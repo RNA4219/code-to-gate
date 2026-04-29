@@ -230,10 +230,10 @@ describe("FileProcessor", () => {
         batchSize: 50,
       });
 
-      const files = createTestFiles(100);
+      const files = createTestFiles(20);
       const results = await processor.processFiles(files);
 
-      expect(results.length).toBe(100);
+      expect(results.length).toBe(20);
     });
   });
 

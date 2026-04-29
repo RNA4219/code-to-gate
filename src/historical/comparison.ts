@@ -177,13 +177,13 @@ export function compareFindings(
 
     // Try to match by ruleId + path first
     const keyPath = `${current.ruleId}:${path}`;
-    const matchedByPath = previousByRuleIdPath.get(keyPath);
+    const matchedByPath = takeNextFinding(previousByRuleIdPath, keyPath, matchedPreviousIds);
 
     // Try to match by ruleId + symbol
     let matchedBySymbol: Finding | undefined;
     for (const symbol of symbols) {
       const keySymbol = `${current.ruleId}:${symbol}`;
-      const found = previousByRuleIdSymbol.get(keySymbol);
+      const found = takeNextFinding(previousByRuleIdSymbol, keySymbol, matchedPreviousIds);
       if (found) {
         matchedBySymbol = found;
         break;
@@ -663,23 +663,50 @@ function generateRecommendations(
 function buildFindingLookupMap(
   findings: Finding[],
   keyType: "ruleId_path" | "ruleId_symbol"
-): Map<string, Finding> {
-  const map = new Map<string, Finding>();
+): Map<string, Finding[]> {
+  const map = new Map<string, Finding[]>();
 
   for (const finding of findings) {
     if (keyType === "ruleId_path") {
       const path = getFindingPrimaryPath(finding);
       const key = `${finding.ruleId}:${path}`;
-      map.set(key, finding);
+      appendFinding(map, key, finding);
     } else {
       for (const symbol of finding.affectedSymbols ?? []) {
         const key = `${finding.ruleId}:${symbol}`;
-        map.set(key, finding);
+        appendFinding(map, key, finding);
       }
     }
   }
 
   return map;
+}
+
+function appendFinding(map: Map<string, Finding[]>, key: string, finding: Finding): void {
+  const entries = map.get(key);
+  if (entries) {
+    entries.push(finding);
+  } else {
+    map.set(key, [finding]);
+  }
+}
+
+function takeNextFinding(
+  map: Map<string, Finding[]>,
+  key: string,
+  alreadyMatchedIds: Set<string>
+): Finding | undefined {
+  const entries = map.get(key);
+  if (!entries) {
+    return undefined;
+  }
+
+  const index = entries.findIndex((finding) => !alreadyMatchedIds.has(finding.id));
+  if (index === -1) {
+    return undefined;
+  }
+
+  return entries.splice(index, 1)[0];
 }
 
 /**
