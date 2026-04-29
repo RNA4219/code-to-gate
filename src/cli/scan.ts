@@ -2,9 +2,11 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
 import { detectLanguage, detectRole, walkDir } from "../core/file-utils.js";
-import { EXIT, getOption, VERSION } from "./exit-codes.js";
+import { EXIT, getOption, VERSION, parseCacheMode, parseParallelWorkers, isVerbose } from "./exit-codes.js";
 import { parseTypeScriptFile, type SymbolNode, type GraphRelation, type EvidenceRef } from "../adapters/ts-adapter.js";
 import { parseJavaScriptFile } from "../adapters/js-adapter.js";
+import { CacheManager, type CacheMode } from "../cache/index.js";
+import { FileProcessor } from "../parallel/index.js";
 
 const CTG_VERSION = "ctg/v1alpha1";
 
@@ -308,12 +310,180 @@ function writeJson(file: string, value: unknown): void {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+/**
+ * Build graph with cache support for incremental scanning
+ */
+function buildGraphWithCache(
+  repoRoot: string,
+  cacheManager: CacheManager,
+  parallelWorkers: number,
+  verbose: boolean
+): NormalizedRepoGraph {
+  const startTime = Date.now();
+  const now = new Date().toISOString();
+  const relativeRoot = toPosix(path.relative(process.cwd(), repoRoot) || ".");
+  const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 12)}`;
+
+  const graph: NormalizedRepoGraph = {
+    version: CTG_VERSION,
+    generated_at: now,
+    run_id: runId,
+    repo: { root: relativeRoot },
+    tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+    artifact: "normalized-repo-graph",
+    schema: "normalized-repo-graph@v1",
+    files: [],
+    modules: [],
+    symbols: [],
+    relations: [],
+    tests: [],
+    configs: [],
+    entrypoints: [],
+    diagnostics: [],
+    stats: { partial: false },
+  };
+
+  // Walk the directory to find all files
+  const walkStart = Date.now();
+  const allFiles = walkDir(repoRoot);
+
+  // Filter for target file types
+  const targetFiles = allFiles.filter(
+    (file) =>
+      /\.(ts|tsx|js|jsx|py|mjs|cjs|json|yaml|yml|md|txt)$/.test(file) &&
+      !file.endsWith(".d.ts")
+  );
+
+  if (verbose) {
+    console.log(JSON.stringify({
+      phase: "file-discovery",
+      totalFiles: targetFiles.length,
+      timeMs: Date.now() - walkStart,
+    }));
+  }
+
+  // Validate cache
+  const cacheStart = Date.now();
+  const cacheResult = cacheManager.validateCache(targetFiles);
+
+  if (verbose) {
+    console.log(JSON.stringify({
+      phase: "cache-validation",
+      changedFiles: cacheResult.changedFiles.length,
+      unchangedFiles: cacheResult.unchangedFiles.length,
+      needsFullScan: cacheResult.needsFullScan,
+      timeMs: Date.now() - cacheStart,
+    }));
+  }
+
+  // Use FileProcessor for parallel parsing
+  const processor = new FileProcessor({
+    repoRoot,
+    maxWorkers: parallelWorkers,
+    batchSize: Math.max(25, Math.floor(targetFiles.length / parallelWorkers)),
+    useWorkers: targetFiles.length > 100 && parallelWorkers > 1,
+  });
+
+  const parseStart = Date.now();
+  const filesToProcess = cacheResult.needsFullScan ? targetFiles : cacheResult.changedFiles;
+
+  // Process files (for now, use single-thread mode for stability)
+  for (const file of filesToProcess) {
+    const result = processor.processFile(file);
+
+    graph.files.push(result.file);
+
+    if (result.parseResult) {
+      for (const symbol of result.parseResult.symbols) {
+        graph.symbols.push(symbol);
+      }
+      for (const relation of result.parseResult.relations) {
+        graph.relations.push(relation);
+      }
+      for (const diagnostic of result.parseResult.diagnostics) {
+        graph.diagnostics.push(diagnostic);
+      }
+
+      if (result.parseResult.parserStatus === "failed") {
+        graph.stats.partial = true;
+      }
+    }
+
+    // Update cache for this file
+    if (cacheManager.isEnabled()) {
+      cacheManager.getFileHash(file);
+    }
+
+    // Add to configs/tests/entrypoints
+    if (result.file.role === "config") {
+      graph.configs.push({ id: `config:${result.file.path}`, path: result.file.path });
+    }
+    if (result.file.role === "test") {
+      graph.tests.push({
+        id: `test:${result.file.path}`,
+        path: result.file.path,
+        framework: result.file.path.endsWith(".py") ? "pytest" : result.file.path.endsWith(".js") ? "node:test" : "vitest",
+      });
+    }
+
+    // Check for entrypoints
+    const content = readFileSync(file, "utf8");
+    if (isEntrypoint(result.file.path, content)) {
+      graph.entrypoints.push({
+        id: `entrypoint:${result.file.path}`,
+        path: result.file.path,
+        kind: entrypointKind(result.file.path),
+      });
+    }
+  }
+
+  processor.terminate();
+
+  if (verbose) {
+    console.log(JSON.stringify({
+      phase: "file-parsing",
+      filesProcessed: filesToProcess.length,
+      timeMs: Date.now() - parseStart,
+    }));
+  }
+
+  // Add diagnostic if partial
+  if (graph.stats.partial) {
+    graph.diagnostics.push({
+      id: `diag:${runId}:partial-graph`,
+      severity: "warning",
+      code: "PARTIAL_GRAPH",
+      message: "Some files failed to parse, resulting in a partial graph",
+    });
+  }
+
+  const totalTime = Date.now() - startTime;
+
+  if (verbose) {
+    const cacheStats = cacheManager.getStats();
+    console.log(JSON.stringify({
+      phase: "complete",
+      totalTimeMs: totalTime,
+      cacheStats: {
+        hitRate: cacheStats.fileHash.hitRate,
+        filesCached: cacheStats.overall.filesCached,
+        filesChanged: cacheStats.overall.filesChanged,
+      },
+    }));
+  }
+
+  return graph;
+}
+
 export function scanCommand(args: string[], options: ScanOptions): number {
   const repoArg = args[0];
   const outDir = options.getOption(args, "--out") ?? ".qh";
+  const cacheModeValue = options.getOption(args, "--cache");
+  const parallelValue = options.getOption(args, "--parallel");
+  const verbose = isVerbose(args);
 
   if (!repoArg) {
-    console.error("usage: code-to-gate scan <repo> --out <dir>");
+    console.error("usage: code-to-gate scan <repo> --out <dir> [--cache <mode>] [--parallel <n>] [--verbose]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -330,24 +500,53 @@ export function scanCommand(args: string[], options: ScanOptions): number {
     return options.EXIT.USAGE_ERROR;
   }
 
+  // Parse options
+  const cacheMode = parseCacheMode(cacheModeValue);
+  const parallelWorkers = parseParallelWorkers(parallelValue);
+
+  const absoluteOutDir = path.resolve(cwd, outDir);
+
+  // Create cache manager
+  const cacheDir = path.join(absoluteOutDir, ".cache");
+  const cacheManager = new CacheManager(repoRoot, {
+    enabled: cacheMode !== "disabled",
+    cacheDir,
+    forceRescan: cacheMode === "force",
+    computeBlastRadius: true,
+  });
+
+  // Initialize cache
+  cacheManager.initialize();
+
   try {
-    const graph = buildGraph(repoRoot);
-    const absoluteOutDir = path.resolve(cwd, outDir);
+    // Build graph with cache support
+    const graph = buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose);
+
     ensureDir(absoluteOutDir);
     writeJson(path.join(absoluteOutDir, "repo-graph.json"), graph);
 
+    // Save cache
+    if (cacheManager.isEnabled()) {
+      cacheManager.save();
+    }
+
     const artifactPath = path.join(outDir, "repo-graph.json");
     if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
-      console.log(
-        JSON.stringify({
-          tool: "code-to-gate",
-          command: "scan",
-          artifact: artifactPath,
-          fileCount: graph.files.length,
-          symbolCount: graph.symbols.length,
-          relationCount: graph.relations.length,
-        })
-      );
+      const output: Record<string, unknown> = {
+        tool: "code-to-gate",
+        command: "scan",
+        artifact: artifactPath,
+        fileCount: graph.files.length,
+        symbolCount: graph.symbols.length,
+        relationCount: graph.relations.length,
+      };
+
+      if (cacheManager.isEnabled()) {
+        output.cacheMode = cacheMode;
+        output.cacheStats = cacheManager.getStats();
+      }
+
+      console.log(JSON.stringify(output));
     }
 
     // Exit code 0 if files found, 3 (SCAN_FAILED) if empty

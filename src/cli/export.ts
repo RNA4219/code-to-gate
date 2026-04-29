@@ -11,6 +11,7 @@
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
   FindingsArtifact,
@@ -20,26 +21,10 @@ import {
   CTG_VERSION,
 } from "../types/artifacts.js";
 
-const VERSION = "0.1.0";
-
-export interface ExitCodes {
-  OK: number;
-  READINESS_NOT_CLEAR: number;
-  USAGE_ERROR: number;
-  SCAN_FAILED: number;
-  LLM_FAILED: number;
-  POLICY_FAILED: number;
-  PLUGIN_FAILED: number;
-  SCHEMA_FAILED: number;
-  IMPORT_FAILED: number;
-  INTEGRATION_EXPORT_FAILED: number;
-  INTERNAL_ERROR: number;
-}
-
 export interface ExportOptions {
   VERSION: string;
-  EXIT: ExitCodes;
-  getOption: (args: string[], name: string) => string | undefined;
+  EXIT: typeof EXIT;
+  getOption: typeof getOption;
 }
 
 // Export target types

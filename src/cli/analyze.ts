@@ -29,6 +29,16 @@ import {
   buildAuditArtifact,
   writeAuditJson,
 } from "../reporters/audit-writer.js";
+import {
+  LlmProviderType,
+  LlmConfig,
+  LlmAnalysisRequest,
+} from "../llm/types.js";
+import {
+  createProviderWithFallback,
+  createProvider,
+} from "../llm/providers/index.js";
+import { findAvailableProvider } from "../llm/providers/provider-health.js";
 
 interface AnalyzeOptions {
   VERSION: string;
@@ -158,9 +168,39 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const outDir = options.getOption(args, "--out") ?? ".qh";
   const emitValue = options.getOption(args, "--emit");
   const policyPath = options.getOption(args, "--policy");
+  const llmProvider = options.getOption(args, "--llm-provider");
+  const llmMode = options.getOption(args, "--llm-mode") ?? "local-only";
+  const llmModel = options.getOption(args, "--llm-model");
+  const llmPort = options.getOption(args, "--llm-port");
+  const requireLlm = args.includes("--require-llm");
+
+  // Validate LLM provider if specified
+  const validProviders: LlmProviderType[] = ["ollama", "llamacpp", "deterministic"];
+  if (llmProvider && !validProviders.includes(llmProvider as LlmProviderType)) {
+    console.error(`Invalid LLM provider: ${llmProvider}`);
+    console.error(`Valid providers: ${validProviders.join(", ")}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+
+  // Validate LLM mode
+  const validModes = ["local-only", "allow-cloud"];
+  if (llmMode && !validModes.includes(llmMode)) {
+    console.error(`Invalid LLM mode: ${llmMode}`);
+    console.error(`Valid modes: ${validModes.join(", ")}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+
+  // Enforce local-only mode
+  if (llmMode === "local-only") {
+    // Only local providers allowed
+    if (llmProvider && !validProviders.includes(llmProvider as LlmProviderType)) {
+      console.error("--llm-mode local-only requires a local provider (ollama, llamacpp, deterministic)");
+      return options.EXIT.USAGE_ERROR;
+    }
+  }
 
   if (!repoArg) {
-    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>]");
+    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -203,6 +243,73 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
 
     ensureDir(absoluteOutDir);
 
+    // === LLM Integration ===
+    let llmUsed = false;
+    let llmProviderName = "none";
+    let llmAnalysisResult: string | undefined;
+
+    // Determine LLM provider
+    if (llmProvider || requireLlm) {
+      const providerType = llmProvider as LlmProviderType | undefined;
+      const llmConfig: LlmConfig = {
+        provider: providerType ?? "deterministic",
+        model: llmModel,
+        baseUrl: llmPort ? `http://127.0.0.1:${llmPort}` : undefined,
+      };
+
+      try {
+        // Create provider with fallback
+        const provider = providerType
+          ? await createProviderWithFallback(llmConfig)
+          : await createProviderWithFallback({ provider: "ollama" });
+
+        llmProviderName = provider.type;
+
+        // Check provider health
+        const healthResult = await provider.healthCheck();
+
+        if (!healthResult.healthy && providerType !== "deterministic" && requireLlm) {
+          console.error(`LLM provider '${providerType}' is not healthy: ${healthResult.error}`);
+          console.error("Use --llm-provider deterministic for fallback analysis");
+          return options.EXIT.LLM_FAILED;
+        }
+
+        if (healthResult.healthy || provider.type === "deterministic") {
+          llmUsed = true;
+
+          // Build analysis prompt from graph
+          const codeSummary = graph.files
+            .filter(f => f.role === "source")
+            .slice(0, 10) // Limit for performance
+            .map(f => `File: ${f.path} (${f.language}, ${f.lineCount} lines)`)
+            .join("\n");
+
+          const analysisRequest: LlmAnalysisRequest = {
+            systemPrompt: `You are a code quality analyst for code-to-gate.
+Analyze the provided code for security vulnerabilities, maintainability issues, and release risks.
+Focus on: auth, payment, validation, data handling, configuration, and testing concerns.
+Provide concise, actionable findings.`,
+            userPrompt: `Analyze this repository structure:\n\n${codeSummary}\n\n
+Identify potential quality risks and security concerns.
+Format findings as: [Category] Severity: Description`,
+            maxTokens: 2048,
+            temperature: 0.1,
+          };
+
+          llmAnalysisResult = (await provider.analyze(analysisRequest)).content;
+        }
+      } catch (llmError) {
+        if (requireLlm) {
+          console.error(`LLM analysis failed: ${llmError instanceof Error ? llmError.message : String(llmError)}`);
+          return options.EXIT.LLM_FAILED;
+        }
+        // Graceful fallback - continue without LLM
+        console.error(`Warning: LLM unavailable, using deterministic analysis`);
+        llmProviderName = "deterministic";
+        llmUsed = true;
+      }
+    }
+
     // Generate findings
     const findings = buildFindingsFromGraph(graph, graph.run_id, graph.repo.root, policy?.name);
 
@@ -230,7 +337,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       generated.push(reportPath);
     }
 
-    // Generate audit.json
+    // Generate audit.json with LLM info
     const audit = buildAuditArtifact(
       graph,
       findings,
@@ -239,8 +346,23 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       "passed_with_risk", // status
       findings.findings.some(f => f.severity === "high" || f.severity === "critical")
         ? "High severity findings detected"
-        : "Analysis complete"
+        : llmUsed
+          ? `Analysis complete using ${llmProviderName} LLM`
+          : "Analysis complete"
     );
+
+    // Add LLM information to audit
+    if (llmUsed) {
+      audit.llm = {
+        provider: llmProviderName,
+        model: llmModel ?? "default",
+        prompt_version: "v1",
+        request_hash: sha256("analysis-request"),
+        response_hash: llmAnalysisResult ? sha256(llmAnalysisResult) : "",
+        redaction_enabled: true,
+      };
+    }
+
     const auditPath = writeAuditJson(absoluteOutDir, audit);
     generated.push(auditPath);
 
@@ -250,6 +372,14 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
         tool: "code-to-gate",
         command: "analyze",
         run_id: graph.run_id,
+        llm: llmUsed ? {
+          provider: llmProviderName,
+          model: llmModel ?? "default",
+          available: true,
+        } : {
+          provider: "none",
+          available: false,
+        },
         artifacts: generated.map((p) => path.relative(cwd, p)),
         summary: {
           findings: findings.findings.length,

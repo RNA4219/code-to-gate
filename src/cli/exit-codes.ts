@@ -42,3 +42,46 @@ export function getOption(args: string[], name: string): string | undefined {
  * Standard VERSION constant
  */
 export const VERSION = "0.1.0";
+
+/**
+ * Cache mode options
+ */
+export type CacheMode = "enabled" | "disabled" | "force";
+
+/**
+ * Parse cache mode from CLI argument
+ */
+export function parseCacheMode(value: string | undefined): CacheMode {
+  if (!value || value === "enabled") {
+    return "enabled";
+  }
+  if (value === "disabled") {
+    return "disabled";
+  }
+  if (value === "force") {
+    return "force";
+  }
+  // Invalid value, default to enabled
+  return "enabled";
+}
+
+/**
+ * Parse parallel workers count from CLI argument
+ */
+export function parseParallelWorkers(value: string | undefined): number {
+  if (!value) {
+    return 4; // Default
+  }
+  const num = parseInt(value, 10);
+  if (isNaN(num) || num < 1) {
+    return 4;
+  }
+  return Math.min(num, 16); // Cap at 16 workers
+}
+
+/**
+ * Check if verbose mode is enabled
+ */
+export function isVerbose(args: string[]): boolean {
+  return args.includes("--verbose") || args.includes("-v");
+}

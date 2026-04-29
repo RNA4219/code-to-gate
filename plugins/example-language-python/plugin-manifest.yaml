@@ -1,0 +1,29 @@
+apiVersion: ctg/v1alpha1
+kind: language-plugin
+name: example-language-python
+version: 0.1.0
+visibility: public
+description: Python language adapter plugin for code-to-gate
+
+entry:
+  command: ["node", "./dist/index.js"]
+  timeout: 60
+
+capabilities:
+  - parse
+
+receives:
+  - normalized-repo-graph@v1
+
+returns:
+  - findings@v1
+
+security:
+  network: false
+  filesystem:
+    read:
+      - "${repoRoot}"
+
+metadata:
+  author: "code-to-gate team"
+  license: "MIT"

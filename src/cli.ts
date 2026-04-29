@@ -6,22 +6,12 @@ import { diffCommand } from "./cli/diff.js";
 import { importCommand } from "./cli/import.js";
 import { readinessCommand } from "./cli/readiness.js";
 import { exportCommand } from "./cli/export.js";
+import { viewerCommand } from "./cli/viewer.js";
+import { llmHealthCommand } from "./cli/llm-health.js";
+import { historicalCommand } from "./cli/historical.js";
+import { EXIT, getOption } from "./cli/exit-codes.js";
 
-const EXIT = {
-  OK: 0,
-  READINESS_NOT_CLEAR: 1,
-  USAGE_ERROR: 2,
-  SCAN_FAILED: 3,
-  LLM_FAILED: 4,
-  POLICY_FAILED: 5,
-  PLUGIN_FAILED: 6,
-  SCHEMA_FAILED: 7,
-  IMPORT_FAILED: 8,
-  INTEGRATION_EXPORT_FAILED: 9,
-  INTERNAL_ERROR: 10,
-};
-
-const VERSION = "0.1.0";
+const VERSION = "0.2.0-alpha.1";
 
 function printHelp(): void {
   console.log(`code-to-gate ${VERSION}
@@ -29,13 +19,16 @@ function printHelp(): void {
 Usage:
   code-to-gate schema validate <artifact-or-schema>
   code-to-gate scan <repo> --out <dir>
-  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm]
+  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir>
   code-to-gate import <tool> <input-file> --out <dir>
     Tools: eslint, semgrep, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir>
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif
+  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
+  code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
+  code-to-gate llm-health [--provider <provider>] [--all]
 
 Options:
   --out <dir>        Output directory (default: .qh)
@@ -44,14 +37,29 @@ Options:
   --policy <file>    Policy file for readiness evaluation
   --from <dir>       Input artifact directory
   --emit <formats>   Output formats (all, json, yaml, md, mermaid)
-  --require-llm      Require LLM analysis (not yet implemented)
+  --require-llm      Require LLM analysis
+  --llm-provider     LLM provider (ollama, llamacpp, deterministic)
+  --llm-mode         LLM mode (local-only, allow-cloud)
+  --llm-model        Model name for provider
+  --llm-port         Custom port for provider
+  --cache <mode>     Cache mode: enabled, disabled, force (default: enabled)
+                     enabled  - Use incremental cache for faster scans
+                     disabled - Skip caching, fresh scan each time
+                     force    - Ignore cache, rebuild and update cache
+  --parallel <n>     Max parallel workers for file parsing (default: 4)
+  --verbose          Show detailed progress and timing information
+  --title <title>    Report title for viewer
+  --dark             Enable dark mode for viewer
+  --current <dir>    Current run artifact directory (historical)
+  --previous <dir>   Previous run artifact directory (historical)
+  --history <dir>    Directory with historical runs for trend analysis
   --help, -h         Show this help
-  --version          Show version`);
-}
+  --version          Show version
 
-function getOption(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
+Local LLM Providers:
+  ollama       - Ollama server (default port: 11434)
+  llamacpp     - llama.cpp server (default port: 8080)
+  deterministic - Built-in deterministic fallback (always available)`);
 }
 
 async function main(): Promise<number> {
@@ -94,6 +102,18 @@ async function main(): Promise<number> {
 
     if (command === "export") {
       return await exportCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "viewer") {
+      return await viewerCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "llm-health") {
+      return await llmHealthCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "historical") {
+      return await historicalCommand(args, { VERSION, EXIT, getOption });
     }
 
     console.error(`unknown command: ${command}`);

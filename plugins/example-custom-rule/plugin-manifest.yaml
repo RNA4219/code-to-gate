@@ -1,0 +1,32 @@
+apiVersion: ctg/v1alpha1
+kind: rule-plugin
+name: example-custom-rule
+version: 0.1.0
+visibility: public
+description: Example custom rule plugin for detecting hardcoded API keys
+
+entry:
+  command: ["node", "./dist/index.js"]
+  timeout: 30
+  retry: 1
+
+capabilities:
+  - evaluate
+
+receives:
+  - normalized-repo-graph@v1
+
+returns:
+  - findings@v1
+
+security:
+  network: false
+  filesystem:
+    read:
+      - "${repoRoot}"
+    write:
+      - "${workDir}/plugin-output"
+
+metadata:
+  author: "code-to-gate team"
+  license: "MIT"
