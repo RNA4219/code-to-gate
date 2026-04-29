@@ -47,7 +47,7 @@ jobs:
         id: analyze
         run: |
           set +e
-          npx code-to-gate analyze . \
+          node ./dist/cli.js analyze . \
             --policy ${{ github.event.inputs.policy_file || '.github/ctg-policy.yaml' }} \
             --emit all \
             --out .qh \
@@ -70,7 +70,7 @@ jobs:
         id: readiness
         run: |
           set +e
-          npx code-to-gate readiness . \
+          node ./dist/cli.js readiness . \
             --policy ${{ github.event.inputs.policy_file || '.github/ctg-policy.yaml' }} \
             --from .qh \
             --out .qh
@@ -106,7 +106,7 @@ jobs:
           fi
 
       - name: Export SARIF
-        run: npx code-to-gate export sarif --from .qh --out .qh/results.sarif
+        run: node ./dist/cli.js export sarif --from .qh --out .qh/results.sarif
 
       - name: Upload SARIF to code scanning
         uses: github/codeql-action/upload-sarif@v4
@@ -116,7 +116,7 @@ jobs:
 
       - name: Generate release evidence
         run: |
-          npx code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.json
+          node ./dist/cli.js export workflow-evidence --from .qh --out .qh/workflow-evidence.json
 
           # Create release evidence summary
           cat > .qh/release-evidence.md << 'EOF'
