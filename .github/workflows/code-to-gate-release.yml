@@ -46,17 +46,46 @@ jobs:
       - name: Run full analysis
         id: analyze
         run: |
+          set +e
           npx code-to-gate analyze . \
             --policy ${{ github.event.inputs.policy_file || '.github/ctg-policy.yaml' }} \
             --emit all \
             --out .qh \
             --format json
+          ANALYZE_EXIT=$?
+          set -e
+
+          if [ "$ANALYZE_EXIT" -ne 0 ] && [ ! -f .qh/findings.json ]; then
+            echo "::error::Analysis failed before producing findings artifacts"
+            exit "$ANALYZE_EXIT"
+          fi
+
+          if [ "$ANALYZE_EXIT" -ne 0 ]; then
+            echo "::notice::Analysis produced findings and exited with code $ANALYZE_EXIT; continuing to readiness evaluation"
+          fi
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Evaluate release readiness
         id: readiness
         run: |
+          set +e
+          npx code-to-gate readiness . \
+            --policy ${{ github.event.inputs.policy_file || '.github/ctg-policy.yaml' }} \
+            --from .qh \
+            --out .qh
+          READINESS_EXIT=$?
+          set -e
+
+          if [ "$READINESS_EXIT" -ne 0 ] && [ ! -f .qh/release-readiness.json ]; then
+            echo "::error::Readiness evaluation failed before producing release-readiness.json"
+            exit "$READINESS_EXIT"
+          fi
+
+          if [ "$READINESS_EXIT" -ne 0 ]; then
+            echo "::notice::Readiness gate returned code $READINESS_EXIT; preserving artifacts for the final gate step"
+          fi
+
           if [ -f .qh/release-readiness.json ]; then
             STATUS=$(jq -r '.status' .qh/release-readiness.json)
             echo "status=$STATUS" >> $GITHUB_OUTPUT
@@ -64,9 +93,9 @@ jobs:
             SUMMARY=$(jq -r '.summary // "No summary available"' .qh/release-readiness.json)
             echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
 
-            CRITICAL=$(jq '.findings_summary.critical // 0' .qh/release-readiness.json)
-            HIGH=$(jq '.findings_summary.high // 0' .qh/release-readiness.json)
-            MEDIUM=$(jq '.findings_summary.medium // 0' .qh/release-readiness.json)
+            CRITICAL=$(jq '.counts.critical // .findings_summary.critical // 0' .qh/release-readiness.json)
+            HIGH=$(jq '.counts.high // .findings_summary.high // 0' .qh/release-readiness.json)
+            MEDIUM=$(jq '.counts.medium // .findings_summary.medium // 0' .qh/release-readiness.json)
 
             echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
             echo "high_count=$HIGH" >> $GITHUB_OUTPUT
