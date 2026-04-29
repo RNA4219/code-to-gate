@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/normalized-repo-graph.schema.json",
+  "title": "NormalizedRepoGraph",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "files", "modules", "symbols", "relations", "tests", "configs", "entrypoints", "diagnostics", "stats"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string" },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "normalized-repo-graph" },
+    "schema": { "const": "normalized-repo-graph@v1" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "language", "role", "hash", "sizeBytes", "lineCount", "parser"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "language": { "enum": ["ts", "tsx", "js", "jsx", "py", "unknown"] },
+          "role": { "enum": ["source", "test", "config", "fixture", "docs", "generated", "unknown"] },
+          "hash": { "type": "string" },
+          "sizeBytes": { "type": "integer", "minimum": 0 },
+          "lineCount": { "type": "integer", "minimum": 0 },
+          "moduleId": { "type": "string" },
+          "parser": {
+            "type": "object",
+            "required": ["status"],
+            "additionalProperties": false,
+            "properties": {
+              "status": { "enum": ["parsed", "text_fallback", "skipped", "failed"] },
+              "adapter": { "type": "string" },
+              "errorCode": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "modules": { "type": "array", "items": { "type": "object" } },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "fileId", "name", "kind", "exported", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "fileId": { "type": "string" },
+          "name": { "type": "string" },
+          "kind": { "enum": ["function", "class", "method", "variable", "type", "interface", "route", "test", "unknown"] },
+          "exported": { "type": "boolean" },
+          "async": { "type": "boolean" },
+          "location": {
+            "type": "object",
+            "required": ["startLine", "endLine"],
+            "additionalProperties": false,
+            "properties": {
+              "startLine": { "type": "integer", "minimum": 1 },
+              "endLine": { "type": "integer", "minimum": 1 }
+            }
+          },
+          "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } }
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to", "kind", "confidence", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "kind": { "enum": ["imports", "exports", "calls", "references", "tests", "configures", "depends_on"] },
+          "confidence": { "$ref": "./shared-defs.schema.json#/$defs/confidence" },
+          "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } }
+        }
+      }
+    },
+    "tests": { "type": "array", "items": { "type": "object" } },
+    "configs": { "type": "array", "items": { "type": "object" } },
+    "entrypoints": { "type": "array", "items": { "type": "object" } },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "code", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "enum": ["info", "warning", "error"] },
+          "code": { "enum": ["PARSER_FAILED", "UNSUPPORTED_LANGUAGE", "MISSING_FILE", "PARTIAL_GRAPH", "EXTERNAL_IMPORT_FAILED"] },
+          "message": { "type": "string" },
+          "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["partial"],
+      "additionalProperties": true,
+      "properties": {
+        "partial": { "type": "boolean" }
+      }
+    }
+  }
+}

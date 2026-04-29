@@ -1,0 +1,7 @@
+.qh/
+.qh*/
+.test-temp*/
+node_modules/
+dist/
+coverage/
+*.log

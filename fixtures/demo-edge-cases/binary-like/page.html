@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML with Embedded Code</title>
+  <script>
+    // Embedded JavaScript in HTML
+    function handleClick() {
+      alert('Clicked!');
+    }
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <h1>HTML Test File</h1>
+  <button onclick="handleClick()">Click Me</button>
+  <script type="module">
+    // ES Module in HTML
+    import { greeting } from './greeting.js';
+    console.log(greeting('World'));
+  </script>
+</body>
+</html>

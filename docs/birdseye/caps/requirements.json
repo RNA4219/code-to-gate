@@ -1,0 +1,19 @@
+{
+  "capsule_id": "caps-requirements-001",
+  "node_id": "docs/requirements",
+  "path": "docs/requirements.md",
+  "role": "requirements",
+  "summary": "製品定義、スコープ、機能要件(P0-P2)、非機能要件の正本",
+  "key_sections": [
+    {"id": "sec-doc-set", "title": "要件セットの構成", "line_range": "10-28"},
+    {"id": "sec-definition", "title": "製品定義", "line_range": "32-60"},
+    {"id": "sec-users", "title": "対象ユーザーと利用シーン", "line_range": "62-90"},
+    {"id": "sec-scope", "title": "スコープ", "line_range": "93-130"},
+    {"id": "sec-artifacts", "title": "成果物モデル", "line_range": "132-160"},
+    {"id": "sec-trust", "title": "信頼モデル", "line_range": "162-205"},
+    {"id": "sec-functional", "title": "機能要件", "line_range": "207-250"},
+    {"id": "sec-nonfunctional", "title": "非機能要件", "line_range": "252-280"}
+  ],
+  "dependencies": ["docs/artifact-contracts", "docs/error-model", "docs/llm-trust-model", "docs/integrations"],
+  "last_updated": "2026-04-30T00:00:00+09:00"
+}

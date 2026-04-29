@@ -1,0 +1,17 @@
+{
+  "name": "@demo/monorepo-web",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@demo/monorepo-core": "*",
+    "@demo/monorepo-shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

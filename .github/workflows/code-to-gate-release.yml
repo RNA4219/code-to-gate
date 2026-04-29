@@ -1,0 +1,146 @@
+name: code-to-gate Release Readiness
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag for evidence'
+        required: false
+        default: ''
+      policy_file:
+        description: 'Policy file path'
+        required: false
+        default: '.github/ctg-policy.yaml'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+env:
+  RELEASE_TAG: ${{ github.event.inputs.release_tag || github.sha }}
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run full analysis
+        id: analyze
+        run: |
+          npx code-to-gate analyze . \
+            --policy ${{ github.event.inputs.policy_file || '.github/ctg-policy.yaml' }} \
+            --emit all \
+            --out .qh \
+            --format json
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Evaluate release readiness
+        id: readiness
+        run: |
+          if [ -f .qh/release-readiness.json ]; then
+            STATUS=$(jq -r '.status' .qh/release-readiness.json)
+            echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+            SUMMARY=$(jq -r '.summary // "No summary available"' .qh/release-readiness.json)
+            echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+
+            CRITICAL=$(jq '.findings_summary.critical // 0' .qh/release-readiness.json)
+            HIGH=$(jq '.findings_summary.high // 0' .qh/release-readiness.json)
+            MEDIUM=$(jq '.findings_summary.medium // 0' .qh/release-readiness.json)
+
+            echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
+            echo "high_count=$HIGH" >> $GITHUB_OUTPUT
+            echo "medium_count=$MEDIUM" >> $GITHUB_OUTPUT
+          else
+            echo "status=unknown" >> $GITHUB_OUTPUT
+            echo "summary=Release readiness file not found" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Export SARIF
+        run: npx code-to-gate export sarif --from .qh --out .qh/results.sarif
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .qh/results.sarif
+          category: code-to-gate-release
+
+      - name: Generate release evidence
+        run: |
+          npx code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.json
+
+          # Create release evidence summary
+          cat > .qh/release-evidence.md << 'EOF'
+          # Release Evidence
+
+          **Release Tag**: ${{ env.RELEASE_TAG }}
+          **Commit**: ${{ github.sha }}
+          **Workflow Run**: ${{ github.run_id }}
+          **Timestamp**: ${{ github.event.head_commit.timestamp || github.event.repository.pushed_at }}
+          **Status**: ${{ steps.readiness.outputs.status }}
+
+          ## Summary
+          ${{ steps.readiness.outputs.summary }}
+
+          ## Findings Count
+          - Critical: ${{ steps.readiness.outputs.critical_count }}
+          - High: ${{ steps.readiness.outputs.high_count }}
+          - Medium: ${{ steps.readiness.outputs.medium_count }}
+
+          ## Artifacts
+          - [Release Readiness](./release-readiness.json)
+          - [Findings](./findings.json)
+          - [Risk Register](./risk-register.yaml)
+          - [Test Seeds](./test-seeds.json)
+          - [SARIF Report](./results.sarif)
+          - [Workflow Evidence](./workflow-evidence.json)
+          EOF
+
+      - name: Upload release evidence artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctg-release-evidence-${{ github.sha }}
+          path: |
+            .qh/release-readiness.json
+            .qh/findings.json
+            .qh/risk-register.yaml
+            .qh/test-seeds.json
+            .qh/analysis-report.md
+            .qh/results.sarif
+            .qh/workflow-evidence.json
+            .qh/release-evidence.md
+            .qh/audit.json
+          retention-days: 90
+
+      - name: Block release if not ready
+        if: steps.readiness.outputs.status == 'blocked_input' || steps.readiness.outputs.status == 'needs_review'
+        run: |
+          echo "::error::Release blocked - readiness status: ${{ steps.readiness.outputs.status }}"
+          echo "Summary: ${{ steps.readiness.outputs.summary }}"
+          exit 1
+
+      - name: Report success
+        if: steps.readiness.outputs.status == 'passed' || steps.readiness.outputs.status == 'passed_with_risk'
+        run: |
+          echo "::notice::Release readiness passed with status: ${{ steps.readiness.outputs.status }}"
+          echo "Summary: ${{ steps.readiness.outputs.summary }}"

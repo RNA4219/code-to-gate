@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "results": [
+    {
+      "check_id": "typescript.express.security.open-redirect.open-redirect",
+      "path": "src/config.ts",
+      "start": { "line": 9, "col": 38 },
+      "end": { "line": 10, "col": 59 },
+      "extra": {
+        "message": "User-controlled redirect URL is returned without validation.",
+        "severity": "ERROR",
+        "metadata": {
+          "category": "security",
+          "technology": ["typescript"]
+        }
+      }
+    }
+  ],
+  "errors": []
+}
+

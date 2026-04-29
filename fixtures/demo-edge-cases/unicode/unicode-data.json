@@ -1,0 +1,19 @@
+{
+  "unicode_strings": {
+    "japanese": "日本語テキスト",
+    "chinese": "中文文本",
+    "korean": "한국어 텍스트",
+    "arabic": "نص عربي",
+    "hebrew": "טקסט בעברית",
+    "emoji": "🎨🎭🎪🎢🎡🎠",
+    "mixed": "Hello 世界 🌍 مرحبا"
+  },
+  "special_chars": {
+    "quotes": "\"'„"«»‹›",
+    "dashes": "–—‒",
+    "spaces": " normal   nbsp   emspace   enspace",
+    "control": "line1\nline2\ttabbed"
+  },
+  "escaped_unicode": "Hello",
+  "surrogate_pairs": "𝕳𝖊𝖑𝖑𝖔 𝖂𝖔𝖗𝖑𝖉"
+}

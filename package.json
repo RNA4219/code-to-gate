@@ -1,0 +1,75 @@
+{
+  "name": "@quality-harness/code-to-gate",
+  "version": "0.2.0-alpha.1",
+  "description": "A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs",
+  "type": "module",
+  "bin": {
+    "code-to-gate": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "exports": {
+    ".": "./dist/cli.js"
+  },
+  "types": "./dist/cli.d.ts",
+  "files": [
+    "dist/",
+    "schemas/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "ctg": "node ./dist/cli.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:smoke": "vitest run src/__tests__/smoke --reporter verbose",
+    "test:real-repo": "vitest run src/__tests__/real-repos --reporter verbose",
+    "real-repo-test": "node ./dist/cli.js analyze ./fixtures/demo-ci-imports --out ./fixtures/demo-ci-imports/.qh",
+    "fp-eval": "node ./dist/cli.js analyze ./fixtures/demo-shop-ts --out ./fixtures/demo-shop-ts/.qh --emit all",
+    "release:prep": "npm run build && npm run test:smoke",
+    "release:validate": "node -e \"const p=require('./package.json');console.log('Package:', p.name, 'v' + p.version);console.log('Bin:', p.bin);console.log('Files:', p.files);\" && npm pack --dry-run",
+    "prepublishOnly": "npm run build && npm run test:smoke"
+  },
+  "keywords": [
+    "code-analysis",
+    "quality-gate",
+    "release-readiness",
+    "static-analysis",
+    "risk-analysis",
+    "test-generation",
+    "sarif",
+    "cli-tool"
+  ],
+  "author": "R_N_A",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quality-harness/code-to-gate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/quality-harness/code-to-gate/issues"
+  },
+  "homepage": "https://github.com/quality-harness/code-to-gate#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "acorn": "^8.14.1",
+    "acorn-walk": "^8.3.4",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "fs-extra": "^11.3.4",
+    "glob": "^13.0.6",
+    "ts-morph": "^25.0.1"
+  },
+  "devDependencies": {
+    "@types/acorn": "^6.0.3",
+    "@types/glob": "^8.1.0",
+    "@types/node": "^22.19.17",
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

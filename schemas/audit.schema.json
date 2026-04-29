@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/audit.schema.json",
+  "title": "AuditArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "inputs", "policy", "exit"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string" },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "audit" },
+    "schema": { "const": "audit@v1" },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "hash", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "hash": { "type": "string" },
+          "kind": { "enum": ["source", "config", "policy", "external-result"] }
+        }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "required": ["provider", "model", "prompt_version", "request_hash", "response_hash", "redaction_enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "prompt_version": { "type": "string" },
+        "request_hash": { "type": "string" },
+        "response_hash": { "type": "string" },
+        "redaction_enabled": { "type": "boolean" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["id", "hash"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "hash": { "type": "string" }
+      }
+    },
+    "exit": {
+      "type": "object",
+      "required": ["code", "status", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "integer", "minimum": 0 },
+        "status": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    }
+  }
+}

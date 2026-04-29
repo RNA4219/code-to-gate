@@ -1,0 +1,1 @@
+// Empty JavaScript file for testing edge cases

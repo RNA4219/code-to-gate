@@ -1,0 +1,52 @@
+version: ctg/v1alpha1
+
+policy_id: my-project-release-policy
+
+# Blocking thresholds by severity
+blocking:
+  severity:
+    critical: true
+    high: true
+    medium: false
+    low: false
+
+  # Blocking thresholds by category
+  category:
+    auth: true
+    payment: true
+    validation: true
+    data: false
+    config: false
+    maintainability: false
+    testing: false
+
+# Confidence thresholds
+confidence:
+  min_confidence: 0.6
+  low_confidence_threshold: 0.4
+  filter_low: true
+
+# Suppression settings
+suppression:
+  file: .ctg/suppressions.yaml
+  expiry_warning_days: 30
+  max_suppressions_per_rule: 10
+
+# LLM policy
+llm:
+  enabled: true
+  mode: remote
+  min_confidence: 0.6
+  require_llm: false
+  unsupported_claims_max: 10
+
+# Partial handling
+partial:
+  allow_partial: false
+  partial_warning_threshold: 0.2
+
+# Exit code policy
+exit:
+  fail_on_critical: true
+  fail_on_high: true
+  warn_only: false

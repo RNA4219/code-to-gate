@@ -1,0 +1,223 @@
+name: 'code-to-gate PR Comment'
+description: 'Create a PR comment with code-to-gate analysis results'
+author: 'code-to-gate'
+
+inputs:
+  artifact_dir:
+    description: 'Directory containing code-to-gate artifacts'
+    required: true
+    default: '.qh'
+  github_token:
+    description: 'GitHub token for API access'
+    required: true
+  comment_mode:
+    description: 'Comment mode: create, update, or replace'
+    required: false
+    default: 'replace'
+  fail_on_error:
+    description: 'Fail the action if comment creation fails'
+    required: false
+    default: 'true'
+
+outputs:
+  comment_id:
+    description: 'ID of the created or updated comment'
+    value: ${{ steps.comment.outputs.comment_id }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check artifact directory
+      shell: bash
+      run: |
+        if [ ! -d "${{ inputs.artifact_dir }}" ]; then
+          echo "::error::Artifact directory not found: ${{ inputs.artifact_dir }}"
+          exit 1
+        fi
+
+    - name: Parse analysis results
+      id: parse
+      shell: bash
+      run: |
+        ARTIFACT_DIR="${{ inputs.artifact_dir }}"
+
+        # Parse diff analysis or fall back to findings
+        if [ -f "$ARTIFACT_DIR/diff-analysis.json" ]; then
+          # Diff mode
+          CHANGED_FILES=$(jq '.changed_files | length // 0' "$ARTIFACT_DIR/diff-analysis.json")
+          NEW_FINDINGS=$(jq '.diff_findings.new_findings | length // 0' "$ARTIFACT_DIR/diff-analysis.json")
+          AFFECTED_FINDINGS=$(jq '.diff_findings.potentially_affected_findings | length // 0' "$ARTIFACT_DIR/diff-analysis.json")
+
+          echo "mode=diff" >> $GITHUB_OUTPUT
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "new_findings=$NEW_FINDINGS" >> $GITHUB_OUTPUT
+          echo "affected_findings=$AFFECTED_FINDINGS" >> $GITHUB_OUTPUT
+        fi
+
+        # Parse findings
+        if [ -f "$ARTIFACT_DIR/findings.json" ]; then
+          CRITICAL=$(jq '[.findings[] | select(.severity == "critical")] | length' "$ARTIFACT_DIR/findings.json")
+          HIGH=$(jq '[.findings[] | select(.severity == "high")] | length' "$ARTIFACT_DIR/findings.json")
+          MEDIUM=$(jq '[.findings[] | select(.severity == "medium")] | length' "$ARTIFACT_DIR/findings.json")
+          LOW=$(jq '[.findings[] | select(.severity == "low")] | length' "$ARTIFACT_DIR/findings.json")
+          TOTAL=$((CRITICAL + HIGH + MEDIUM + LOW))
+
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "medium=$MEDIUM" >> $GITHUB_OUTPUT
+          echo "low=$LOW" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+        else
+          echo "critical=0" >> $GITHUB_OUTPUT
+          echo "high=0" >> $GITHUB_OUTPUT
+          echo "medium=0" >> $GITHUB_OUTPUT
+          echo "low=0" >> $GITHUB_OUTPUT
+          echo "total=0" >> $GITHUB_OUTPUT
+        fi
+
+        # Parse release readiness if available
+        if [ -f "$ARTIFACT_DIR/release-readiness.json" ]; then
+          STATUS=$(jq -r '.status // "unknown"' "$ARTIFACT_DIR/release-readiness.json")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+        else
+          echo "status=analyzed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate comment body
+      id: body
+      shell: bash
+      run: |
+        # Determine status emoji and color
+        STATUS="${{ steps.parse.outputs.status }}"
+        CRITICAL="${{ steps.parse.outputs.critical }}"
+        HIGH="${{ steps.parse.outputs.high }}"
+
+        if [ "$STATUS" == "passed" ]; then
+          EMOJI=":white_check_mark:"
+          STATUS_TEXT="Passed"
+        elif [ "$STATUS" == "passed_with_risk" ]; then
+          EMOJI=":warning:"
+          STATUS_TEXT="Passed with Risk"
+        elif [ "$STATUS" == "needs_review" ]; then
+          EMOJI=":eyes:"
+          STATUS_TEXT="Needs Review"
+        elif [ "$STATUS" == "blocked_input" ]; then
+          EMOJI=":x:"
+          STATUS_TEXT="Blocked"
+        else
+          EMOJI=":mag:"
+          STATUS_TEXT="Analyzed"
+        fi
+
+        # Build comment body
+        cat > /tmp/comment_body.md << 'COMMENT_EOF'
+        ## $EMOJI code-to-gate Analysis
+
+        **Status**: **$STATUS_TEXT**
+
+        ### Summary
+        | Severity | Count |
+        |:--------:|:-----:|
+        | Critical | $CRITICAL |
+        | High | $HIGH |
+        | Medium | $MEDIUM |
+        | Low | $LOW |
+        | **Total** | **$TOTAL** |
+        COMMENT_EOF
+
+        # Add diff-specific info if available
+        if [ "${{ steps.parse.outputs.mode }}" == "diff" ]; then
+          cat >> /tmp/comment_body.md << 'DIFF_EOF'
+
+        ### Diff Analysis
+        - **Changed Files**: $CHANGED_FILES
+        - **New Findings**: $NEW_FINDINGS
+        - **Potentially Affected**: $AFFECTED_FINDINGS
+        DIFF_EOF
+        fi
+
+        # Add top findings if any
+        if [ "${{ steps.parse.outputs.total }}" -gt 0 ] && [ -f "${{ inputs.artifact_dir }}/findings.json" ]; then
+          cat >> /tmp/comment_body.md << 'FINDINGS_EOF'
+
+        ### Top Findings
+        FINDINGS_EOF
+          jq -r '.findings[:5][] | "- **\(.ruleId)** (\(.severity)): \(.summary // .title) at `\(.evidence[0].path // "unknown"):\(.evidence[0].startLine // "?")`"' "${{ inputs.artifact_dir }}/findings.json" >> /tmp/comment_body.md || true
+        fi
+
+        # Add recommendations if available
+        if [ -f "${{ inputs.artifact_dir }}/analysis-report.md" ]; then
+          if grep -q "## Recommendations" "${{ inputs.artifact_dir }}/analysis-report.md" 2>/dev/null; then
+            cat >> /tmp/comment_body.md << 'REC_EOF'
+
+        ### Recommendations
+        REC_EOF
+            sed -n '/## Recommendations/,/^## /p' "${{ inputs.artifact_dir }}/analysis-report.md" | head -n 6 >> /tmp/comment_body.md || true
+          fi
+        fi
+
+        # Add footer
+        cat >> /tmp/comment_body.md << 'FOOTER_EOF'
+
+        ---
+        *Generated by [code-to-gate](https://github.com/code-to-gate/code-to-gate)*
+        FOOTER_EOF
+
+        # Replace placeholders
+        sed -i "s/\$EMOJI/$EMOJI/g" /tmp/comment_body.md
+        sed -i "s/\$STATUS_TEXT/$STATUS_TEXT/g" /tmp/comment_body.md
+        sed -i "s/\$CRITICAL/${{ steps.parse.outputs.critical }}/g" /tmp/comment_body.md
+        sed -i "s/\$HIGH/${{ steps.parse.outputs.high }}/g" /tmp/comment_body.md
+        sed -i "s/\$MEDIUM/${{ steps.parse.outputs.medium }}/g" /tmp/comment_body.md
+        sed -i "s/\$LOW/${{ steps.parse.outputs.low }}/g" /tmp/comment_body.md
+        sed -i "s/\$TOTAL/${{ steps.parse.outputs.total }}/g" /tmp/comment_body.md
+        sed -i "s/\$CHANGED_FILES/${{ steps.parse.outputs.changed_files }}/g" /tmp/comment_body.md
+        sed -i "s/\$NEW_FINDINGS/${{ steps.parse.outputs.new_findings }}/g" /tmp/comment_body.md
+        sed -i "s/\$AFFECTED_FINDINGS/${{ steps.parse.outputs.affected_findings }}/g" /tmp/comment_body.md
+
+        echo "file=/tmp/comment_body.md" >> $GITHUB_OUTPUT
+
+    - name: Create or update PR comment
+      id: comment
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        PR_NUMBER="${{ github.event.pull_request.number }}"
+        REPO="${{ github.repository }}"
+        COMMENT_MODE="${{ inputs.comment_mode }}"
+
+        if [ -z "$PR_NUMBER" ]; then
+          echo "::warning::Not a pull request, skipping comment"
+          echo "comment_id=" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Check for existing comment
+        EXISTING_COMMENT=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+          --jq ".[] | select(.body | contains(\"code-to-gate Analysis\")) | .id" | head -1)
+
+        COMMENT_BODY=$(cat /tmp/comment_body.md)
+
+        if [ -n "$EXISTING_COMMENT" ] && [ "$COMMENT_MODE" != "create" ]; then
+          # Update existing comment
+          gh api "repos/$REPO/issues/comments/$EXISTING_COMMENT" \
+            -X PATCH \
+            -f body="$COMMENT_BODY"
+          echo "comment_id=$EXISTING_COMMENT" >> $GITHUB_OUTPUT
+          echo "action=updated" >> $GITHUB_OUTPUT
+        else
+          # Create new comment
+          NEW_COMMENT=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            -f body="$COMMENT_BODY" \
+            --jq '.id')
+          echo "comment_id=$NEW_COMMENT" >> $GITHUB_OUTPUT
+          echo "action=created" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Handle errors
+      if: failure() && inputs.fail_on_error == 'true'
+      shell: bash
+      run: |
+        echo "::error::Failed to create PR comment"
+        exit 1

@@ -1,0 +1,13 @@
+{
+  "diagnostics": [
+    {
+      "code": 7006,
+      "category": "error",
+      "messageText": "Parameter 'value' implicitly has an 'any' type.",
+      "file": "src/user.ts",
+      "start": { "line": 15, "character": 28 },
+      "end": { "line": 15, "character": 33 }
+    }
+  ]
+}
+

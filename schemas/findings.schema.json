@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/findings.schema.json",
+  "title": "FindingsArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "findings", "unsupported_claims"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string" },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "findings" },
+    "schema": { "const": "findings@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "ruleId", "category", "severity", "confidence", "title", "summary", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "category": { "enum": ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk"] },
+          "severity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+          "confidence": { "$ref": "./shared-defs.schema.json#/$defs/confidence" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } },
+          "affectedSymbols": { "type": "array", "items": { "type": "string" } },
+          "affectedEntrypoints": { "type": "array", "items": { "type": "string" } },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "upstream": {
+            "type": "object",
+            "required": ["tool"],
+            "additionalProperties": false,
+            "properties": {
+              "tool": { "enum": ["native", "semgrep", "eslint", "sonarqube", "tsc", "coverage", "test"] },
+              "ruleId": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "unsupported_claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "reason", "sourceSection"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "claim": { "type": "string" },
+          "reason": { "enum": ["missing_evidence", "unknown_symbol", "policy_conflict", "schema_invalid"] },
+          "sourceSection": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+# This file looks like it might have encoding issues
+
+# Normal ASCII content
+hello world
+
+# Base64-like content (not actually binary, but looks like it)
+data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+
+# Long hex string
+48656c6c6f20576f726c64
+
+# Binary representation
+0b01001000 0b01100101 0b01101100 0b01101100 0b01101111
+
+# Some null-like sequences (escaped)
+null_sequence: \x00\x01\x02\x03
+
+# Mixed content
+{
+  "binary_like": true,
+  "data": "AQIDBAUGBwgJ"
+}

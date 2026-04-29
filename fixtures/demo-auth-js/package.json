@@ -1,0 +1,14 @@
+{
+  "name": "demo-auth-js",
+  "version": "1.0.0",
+  "description": "Demo fixture for auth route analysis with intentional security smells",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node src/tests/public.test.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

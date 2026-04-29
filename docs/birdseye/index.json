@@ -1,0 +1,252 @@
+{
+  "$schema": "https://code-to-gate.local/schemas/birdseye-index.schema.json",
+  "version": "birdseye/v1",
+  "generated_at": "00001",
+  "repo": "code-to-gate",
+  "nodes": [
+    {
+      "id": "ROOT",
+      "path": "/",
+      "role": "root",
+      "dependencies": ["README", "BLUEPRINT", "GUARDRAILS", "RUNBOOK"]
+    },
+    {
+      "id": "README",
+      "path": "README.md",
+      "role": "entrypoint",
+      "dependencies": ["docs/requirements", "docs/artifact-contracts"]
+    },
+    {
+      "id": "BLUEPRINT",
+      "path": "BLUEPRINT.md",
+      "role": "blueprint",
+      "dependencies": ["docs/requirements", "docs/acceptance-v0.1", "orchestration/v0.1-impl", "GUARDRAILS", "RUNBOOK"]
+    },
+    {
+      "id": "GUARDRAILS",
+      "path": "GUARDRAILS.md",
+      "role": "guardrails",
+      "dependencies": ["BLUEPRINT", "docs/error-model", "docs/llm-trust-model", "docs/plugin-security-contract", "RUNBOOK"]
+    },
+    {
+      "id": "RUNBOOK",
+      "path": "RUNBOOK.md",
+      "role": "runbook",
+      "dependencies": ["BLUEPRINT", "docs/error-model", "docs/llm-trust-model"]
+    },
+    {
+      "id": "docs/requirements",
+      "path": "docs/requirements.md",
+      "role": "requirements",
+      "dependencies": ["docs/artifact-contracts", "docs/error-model", "docs/llm-trust-model", "docs/integrations"]
+    },
+    {
+      "id": "docs/artifact-contracts",
+      "path": "docs/artifact-contracts.md",
+      "role": "contract",
+      "dependencies": ["schemas/shared-defs", "schemas/normalized-repo-graph", "schemas/findings", "schemas/risk-register"]
+    },
+    {
+      "id": "docs/error-model",
+      "path": "docs/error-model.md",
+      "role": "error-spec",
+      "dependencies": []
+    },
+    {
+      "id": "docs/llm-trust-model",
+      "path": "docs/llm-trust-model.md",
+      "role": "trust-spec",
+      "dependencies": ["docs/artifact-contracts"]
+    },
+    {
+      "id": "docs/integrations",
+      "path": "docs/integrations.md",
+      "role": "integration-spec",
+      "dependencies": ["schemas/integrations/gatefield-static-result", "schemas/integrations/state-gate-evidence", "schemas/integrations/manual-bb-seed", "schemas/integrations/workflow-evidence"]
+    },
+    {
+      "id": "docs/plugin-security-contract",
+      "path": "docs/plugin-security-contract.md",
+      "role": "security-spec",
+      "dependencies": []
+    },
+    {
+      "id": "docs/acceptance-v0.1",
+      "path": "docs/acceptance-v0.1.md",
+      "role": "acceptance",
+      "dependencies": ["docs/fixture-spec-v0.1", "docs/artifact-contracts"]
+    },
+    {
+      "id": "docs/fixture-spec-v0.1",
+      "path": "docs/fixture-spec-v0.1.md",
+      "role": "fixture-spec",
+      "dependencies": ["fixtures/demo-shop-ts", "fixtures/demo-auth-js", "fixtures/demo-ci-imports"]
+    },
+    {
+      "id": "docs/acceptance-review-manual-bb",
+      "path": "docs/acceptance-review-manual-bb.md",
+      "role": "acceptance-review",
+      "dependencies": ["docs/integrations"]
+    },
+    {
+      "id": "docs/implementation-plan-v0.1",
+      "path": "docs/implementation-plan-v0.1.md",
+      "role": "plan",
+      "dependencies": ["docs/acceptance-v0.1", "docs/artifact-contracts"]
+    },
+    {
+      "id": "orchestration/v0.1-impl",
+      "path": "orchestration/v0.1-implementation.md",
+      "role": "orchestration",
+      "dependencies": ["docs/requirements", "docs/acceptance-v0.1", "docs/implementation-plan-v0.1"]
+    },
+    {
+      "id": "schemas/shared-defs",
+      "path": "schemas/shared-defs.schema.json",
+      "role": "schema-core",
+      "dependencies": []
+    },
+    {
+      "id": "schemas/normalized-repo-graph",
+      "path": "schemas/normalized-repo-graph.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/findings",
+      "path": "schemas/findings.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/risk-register",
+      "path": "schemas/risk-register.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/invariants",
+      "path": "schemas/invariants.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/test-seeds",
+      "path": "schemas/test-seeds.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/release-readiness",
+      "path": "schemas/release-readiness.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/audit",
+      "path": "schemas/audit.schema.json",
+      "role": "schema",
+      "dependencies": ["schemas/shared-defs"]
+    },
+    {
+      "id": "schemas/integrations/gatefield-static-result",
+      "path": "schemas/integrations/gatefield-static-result.schema.json",
+      "role": "integration-schema",
+      "dependencies": []
+    },
+    {
+      "id": "schemas/integrations/state-gate-evidence",
+      "path": "schemas/integrations/state-gate-evidence.schema.json",
+      "role": "integration-schema",
+      "dependencies": []
+    },
+    {
+      "id": "schemas/integrations/manual-bb-seed",
+      "path": "schemas/integrations/manual-bb-seed.schema.json",
+      "role": "integration-schema",
+      "dependencies": []
+    },
+    {
+      "id": "schemas/integrations/workflow-evidence",
+      "path": "schemas/integrations/workflow-evidence.schema.json",
+      "role": "integration-schema",
+      "dependencies": []
+    },
+    {
+      "id": "fixtures/demo-shop-ts",
+      "path": "fixtures/demo-shop-ts/",
+      "role": "fixture",
+      "dependencies": []
+    },
+    {
+      "id": "fixtures/demo-auth-js",
+      "path": "fixtures/demo-auth-js/",
+      "role": "fixture",
+      "dependencies": []
+    },
+    {
+      "id": "fixtures/demo-ci-imports",
+      "path": "fixtures/demo-ci-imports/",
+      "role": "fixture",
+      "dependencies": []
+    }
+  ],
+  "edges": [
+    {"from": "ROOT", "to": "README", "kind": "entrypoint"},
+    {"from": "ROOT", "to": "BLUEPRINT", "kind": "blueprint"},
+    {"from": "ROOT", "to": "GUARDRAILS", "kind": "guardrails"},
+    {"from": "ROOT", "to": "RUNBOOK", "kind": "runbook"},
+    {"from": "README", "to": "docs/requirements", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "docs/requirements", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "docs/acceptance-v0.1", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "orchestration/v0.1-impl", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "GUARDRAILS", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "RUNBOOK", "kind": "reference"},
+    {"from": "GUARDRAILS", "to": "docs/error-model", "kind": "reference"},
+    {"from": "GUARDRAILS", "to": "docs/llm-trust-model", "kind": "reference"},
+    {"from": "docs/requirements", "to": "docs/artifact-contracts", "kind": "reference"},
+    {"from": "docs/requirements", "to": "docs/error-model", "kind": "reference"},
+    {"from": "docs/requirements", "to": "docs/llm-trust-model", "kind": "reference"},
+    {"from": "docs/requirements", "to": "docs/integrations", "kind": "reference"},
+    {"from": "docs/artifact-contracts", "to": "schemas/shared-defs", "kind": "schema-ref"},
+    {"from": "docs/artifact-contracts", "to": "schemas/normalized-repo-graph", "kind": "schema-ref"},
+    {"from": "docs/artifact-contracts", "to": "schemas/findings", "kind": "schema-ref"},
+    {"from": "docs/integrations", "to": "schemas/integrations/gatefield-static-result", "kind": "schema-ref"},
+    {"from": "docs/integrations", "to": "schemas/integrations/state-gate-evidence", "kind": "schema-ref"},
+    {"from": "docs/integrations", "to": "schemas/integrations/manual-bb-seed", "kind": "schema-ref"},
+    {"from": "docs/integrations", "to": "schemas/integrations/workflow-evidence", "kind": "schema-ref"},
+    {"from": "docs/acceptance-v0.1", "to": "docs/fixture-spec-v0.1", "kind": "reference"},
+    {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-shop-ts", "kind": "fixture-ref"},
+    {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-auth-js", "kind": "fixture-ref"},
+    {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-ci-imports", "kind": "fixture-ref"},
+    {"from": "orchestration/v0.1-impl", "to": "docs/requirements", "kind": "reference"},
+    {"from": "orchestration/v0.1-impl", "to": "docs/acceptance-v0.1", "kind": "reference"},
+    {"from": "orchestration/v0.1-impl", "to": "docs/implementation-plan-v0.1", "kind": "reference"},
+    {"from": "schemas/normalized-repo-graph", "to": "schemas/shared-defs", "kind": "extends"},
+    {"from": "schemas/findings", "to": "schemas/shared-defs", "kind": "extends"},
+    {"from": "schemas/risk-register", "to": "schemas/shared-defs", "kind": "extends"},
+    {"from": "schemas/release-readiness", "to": "schemas/shared-defs", "kind": "extends"}
+  ],
+  "roles": {
+    "root": "リポジトリroot、全ドキュメント入口",
+    "entrypoint": "README、人間とagent共通入口",
+    "blueprint": "要件・制約・背景の最上位方針",
+    "guardrails": "全メンバー必読のガードレール",
+    "runbook": "実行手順・コマンド・トラブルシューティング",
+    "requirements": "製品定義・スコープ・機能要件",
+    "contract": "artifact schema契約",
+    "error-spec": "CLI exit code・失敗分類",
+    "trust-spec": "LLM信頼モデル",
+    "integration-spec": "downstream連携仕様",
+    "security-spec": "plugin安全境界",
+    "acceptance": "v0.1完成条件",
+    "fixture-spec": "synthetic fixtures仕様",
+    "acceptance-review": "manual-bb検収",
+    "plan": "実装計画",
+    "orchestration": "Task Seed形式実装計画",
+    "schema-core": "共通schema定義",
+    "schema": "artifact schema",
+    "integration-schema": "downstream adapter schema",
+    "fixture": "synthetic fixture repo"
+  }
+}

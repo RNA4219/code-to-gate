@@ -1,0 +1,29 @@
+version: ctg/v1alpha1
+
+policy_id: demo-github-actions-policy
+
+blocking:
+  severity:
+    critical: true
+    high: true
+    medium: false
+    low: false
+
+  category:
+    auth: true
+    payment: true
+    validation: true
+    data: false
+    config: false
+    maintainability: false
+    testing: false
+
+  count_threshold:
+    critical_max: 0
+    high_max: 3
+    medium_max: 10
+
+confidence:
+  min_confidence: 0.6
+  low_confidence_threshold: 0.4
+  filter_low: true

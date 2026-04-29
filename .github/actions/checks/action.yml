@@ -1,0 +1,223 @@
+name: 'code-to-gate Checks'
+description: 'Create GitHub Check run with code-to-gate analysis results'
+author: 'code-to-gate'
+
+inputs:
+  artifact_dir:
+    description: 'Directory containing code-to-gate artifacts'
+    required: true
+    default: '.qh'
+  github_token:
+    description: 'GitHub token for API access'
+    required: true
+  check_name:
+    description: 'Name of the check run'
+    required: false
+    default: 'code-to-gate Analysis'
+  fail_on_critical:
+    description: 'Fail the check if critical findings exist'
+    required: false
+    default: 'true'
+  fail_on_high:
+    description: 'Fail the check if high findings exist'
+    required: false
+    default: 'false'
+
+outputs:
+  check_id:
+    description: 'ID of the created check run'
+    value: ${{ steps.check.outputs.check_id }}
+  conclusion:
+    description: 'Conclusion of the check run'
+    value: ${{ steps.check.outputs.conclusion }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check artifact directory
+      shell: bash
+      run: |
+        if [ ! -d "${{ inputs.artifact_dir }}" ]; then
+          echo "::error::Artifact directory not found: ${{ inputs.artifact_dir }}"
+          exit 1
+        fi
+
+    - name: Parse analysis results
+      id: parse
+      shell: bash
+      run: |
+        ARTIFACT_DIR="${{ inputs.artifact_dir }}"
+
+        # Parse findings
+        if [ -f "$ARTIFACT_DIR/findings.json" ]; then
+          CRITICAL=$(jq '[.findings[] | select(.severity == "critical")] | length' "$ARTIFACT_DIR/findings.json")
+          HIGH=$(jq '[.findings[] | select(.severity == "high")] | length' "$ARTIFACT_DIR/findings.json")
+          MEDIUM=$(jq '[.findings[] | select(.severity == "medium")] | length' "$ARTIFACT_DIR/findings.json")
+          LOW=$(jq '[.findings[] | select(.severity == "low")] | length' "$ARTIFACT_DIR/findings.json")
+          TOTAL=$((CRITICAL + HIGH + MEDIUM + LOW))
+
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "medium=$MEDIUM" >> $GITHUB_OUTPUT
+          echo "low=$LOW" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+          # Extract findings as JSON for annotations
+          jq -c '.findings[:50]' "$ARTIFACT_DIR/findings.json" > /tmp/findings.json
+        else
+          echo "critical=0" >> $GITHUB_OUTPUT
+          echo "high=0" >> $GITHUB_OUTPUT
+          echo "medium=0" >> $GITHUB_OUTPUT
+          echo "low=0" >> $GITHUB_OUTPUT
+          echo "total=0" >> $GITHUB_OUTPUT
+          echo "[]" > /tmp/findings.json
+        fi
+
+        # Parse release readiness if available
+        if [ -f "$ARTIFACT_DIR/release-readiness.json" ]; then
+          STATUS=$(jq -r '.status // "unknown"' "$ARTIFACT_DIR/release-readiness.json")
+          SUMMARY=$(jq -r '.summary // "Analysis complete"' "$ARTIFACT_DIR/release-readiness.json")
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+        else
+          echo "status=analyzed" >> $GITHUB_OUTPUT
+          echo "summary=Analysis complete" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Determine check conclusion
+      id: conclusion
+      shell: bash
+      run: |
+        STATUS="${{ steps.parse.outputs.status }}"
+        CRITICAL="${{ steps.parse.outputs.critical }}"
+        HIGH="${{ steps.parse.outputs.high }}"
+        FAIL_CRITICAL="${{ inputs.fail_on_critical }}"
+        FAIL_HIGH="${{ inputs.fail_on_high }}"
+
+        # Determine conclusion based on findings and settings
+        if [ "$STATUS" == "blocked_input" ]; then
+          CONCLUSION="failure"
+          TITLE="Blocked - Input Issues"
+        elif [ "$CRITICAL" -gt 0 ] && [ "$FAIL_CRITICAL" == "true" ]; then
+          CONCLUSION="failure"
+          TITLE="Failed - Critical Findings"
+        elif [ "$HIGH" -gt 0 ] && [ "$FAIL_HIGH" == "true" ]; then
+          CONCLUSION="failure"
+          TITLE="Failed - High Findings"
+        elif [ "$STATUS" == "needs_review" ]; then
+          CONCLUSION="neutral"
+          TITLE="Needs Review"
+        elif [ "$STATUS" == "passed_with_risk" ]; then
+          CONCLUSION="neutral"
+          TITLE="Passed with Risk"
+        elif [ "$TOTAL" -gt 0 ]; then
+          CONCLUSION="neutral"
+          TITLE="Passed with Findings"
+        else
+          CONCLUSION="success"
+          TITLE="Passed"
+        fi
+
+        echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
+        echo "title=$TITLE" >> $GITHUB_OUTPUT
+
+    - name: Generate annotations
+      id: annotations
+      shell: bash
+      run: |
+        # Generate annotations from findings
+        # GitHub limits to 50 annotations per check run
+        jq -c '.[] | {
+          path: (.evidence[0].path // "unknown"),
+          start_line: (.evidence[0].startLine // 1),
+          end_line: (.evidence[0].endLine // (.evidence[0].startLine // 1)),
+          annotation_level: (if .severity == "critical" or .severity == "high" then "failure" elif .severity == "medium" then "warning" else "notice" end),
+          message: (.summary // .title // "Finding"),
+          title: "\(.ruleId) [\(.severity)]"
+        }' /tmp/findings.json > /tmp/annotations.json
+
+        # Count annotations
+        ANNOTATION_COUNT=$(wc -l < /tmp/annotations.json)
+        echo "count=$ANNOTATION_COUNT" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Check run
+      id: check
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        REPO="${{ github.repository }}"
+        SHA="${{ github.sha }}"
+        CHECK_NAME="${{ inputs.check_name }}"
+        CONCLUSION="${{ steps.conclusion.outputs.conclusion }}"
+        TITLE="${{ steps.conclusion.outputs.title }}"
+
+        CRITICAL="${{ steps.parse.outputs.critical }}"
+        HIGH="${{ steps.parse.outputs.high }}"
+        MEDIUM="${{ steps.parse.outputs.medium }}"
+        LOW="${{ steps.parse.outputs.low }}"
+        TOTAL="${{ steps.parse.outputs.total }}"
+        STATUS="${{ steps.parse.outputs.status }}"
+        SUMMARY="${{ steps.parse.outputs.summary }}"
+
+        # Build summary
+        SUMMARY_TEXT="## $TITLE
+
+        **Status**: $STATUS
+
+        ### Findings Summary
+        | Severity | Count |
+        |:--------:|:-----:|
+        | Critical | $CRITICAL |
+        | High | $HIGH |
+        | Medium | $MEDIUM |
+        | Low | $LOW |
+        | **Total** | **$TOTAL** |
+
+        $SUMMARY"
+
+        # Create output JSON
+        OUTPUT_JSON=$(jq -n \
+          --arg title "$TITLE" \
+          --arg summary "$SUMMARY_TEXT" \
+          --argjson annotations "$(cat /tmp/annotations.json)" \
+          '{
+            title: $title,
+            summary: $summary,
+            annotations: $annotations
+          }')
+
+        # Create check run
+        CHECK_RESPONSE=$(gh api "repos/$REPO/check-runs" \
+          -X POST \
+          -H "Accept: application/vnd.github.v3+json" \
+          -f name="$CHECK_NAME" \
+          -f head_sha="$SHA" \
+          -f status="completed" \
+          -f conclusion="$CONCLUSION" \
+          -f output="$OUTPUT_JSON" \
+          --jq '{id: .id, html_url: .html_url}')
+
+        CHECK_ID=$(echo "$CHECK_RESPONSE" | jq -r '.id')
+        CHECK_URL=$(echo "$CHECK_RESPONSE" | jq -r '.html_url')
+
+        echo "check_id=$CHECK_ID" >> $GITHUB_OUTPUT
+        echo "check_url=$CHECK_URL" >> $GITHUB_OUTPUT
+        echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
+
+        echo "Check run created: $CHECK_URL"
+
+    - name: Output summary
+      shell: bash
+      run: |
+        echo "## code-to-gate Check Result" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Conclusion**: ${{ steps.check.outputs.conclusion }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Check ID**: ${{ steps.check.outputs.check_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+        echo "|:--------:|:-----:|" >> $GITHUB_STEP_SUMMARY
+        echo "| Critical | ${{ steps.parse.outputs.critical }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| High | ${{ steps.parse.outputs.high }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Medium | ${{ steps.parse.outputs.medium }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Low | ${{ steps.parse.outputs.low }} |" >> $GITHUB_STEP_SUMMARY

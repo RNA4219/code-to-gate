@@ -1,0 +1,20 @@
+{
+  "capsule_id": "caps-orchestration-001",
+  "node_id": "orchestration/v0.1-impl",
+  "path": "orchestration/v0.1-implementation.md",
+  "role": "orchestration",
+  "summary": "Task Seed形式のPhase/Stage分解実装計画",
+  "key_sections": [
+    {"id": "sec-purpose", "title": "目的", "line_range": "10-20"},
+    {"id": "sec-phase", "title": "Phase定義", "line_range": "22-30"},
+    {"id": "phase-0", "title": "Phase 0: Foundation", "line_range": "32-80"},
+    {"id": "phase-1", "title": "Phase 1: Core Engine", "line_range": "82-150"},
+    {"id": "phase-2", "title": "Phase 2: LLM Layer", "line_range": "152-200"},
+    {"id": "phase-3", "title": "Phase 3: Gate & Export", "line_range": "202-260"},
+    {"id": "sec-acceptance", "title": "Acceptance Gate", "line_range": "262-280"},
+    {"id": "sec-integrate", "title": "Integration Gate", "line_range": "282-295"},
+    {"id": "sec-blockers", "title": "Blockers", "line_range": "297-300"}
+  ],
+  "dependencies": ["docs/requirements", "docs/acceptance-v0.1", "docs/implementation-plan-v0.1"],
+  "last_updated": "2026-04-30T00:00:00+09:00"
+}

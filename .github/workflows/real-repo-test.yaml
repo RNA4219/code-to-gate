@@ -1,0 +1,82 @@
+# Real Repo Test - code-to-gate Phase 1
+#
+# Tests code-to-gate against public repositories
+# Runs weekly and on manual dispatch
+
+name: Real Repo Test
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:
+    inputs:
+      clean:
+        description: 'Clean up cloned repos after test'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code-to-gate
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CLI
+        run: npm run build
+
+      - name: Verify CLI
+        run: node dist/cli.js --help
+
+      - name: Run Real Repo Tests
+        run: |
+          chmod +x scripts/real-repo-test.sh
+          ./scripts/real-repo-test.sh --clean
+        continue-on-error: true
+
+      - name: Collect Results
+        if: always()
+        run: |
+          if [ -d ".real-repo-results" ]; then
+            echo "=== Overall Summary ==="
+            cat .real-repo-results/overall-summary.yaml || echo "Summary not found"
+          fi
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-repo-results
+          path: |
+            .real-repo-results/
+            .real-repo-temp/
+          retention-days: 7
+
+      - name: Check Test Results
+        if: always()
+        run: |
+          if [ -f ".real-repo-results/overall-summary.yaml" ]; then
+            result=$(grep "overall_result:" .real-repo-results/overall-summary.yaml | cut -d':' -f2 | tr -d ' ')
+            if [ "$result" = "pass" ]; then
+              echo "Real repo tests PASSED"
+              exit 0
+            else
+              echo "Real repo tests FAILED"
+              exit 1
+            fi
+          else
+            echo "No results found"
+            exit 1
+          fi

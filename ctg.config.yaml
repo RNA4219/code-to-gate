@@ -1,0 +1,39 @@
+version: ctg/v1alpha1
+
+# Target languages
+languages:
+  - ts
+  - js
+
+# File handling - exclude patterns
+exclude:
+  - node_modules/
+  - dist/
+  - build/
+  - "*.test.*"
+  - "*.spec.*"
+  - "*.generated.*"
+
+# Parser settings per language
+parser:
+  ts:
+    adapter: ast
+    fallback: text
+  js:
+    adapter: ast
+    fallback: text
+
+# LLM settings
+llm:
+  mode: remote
+  provider: openai
+  timeout: 60
+
+# Plugin settings
+plugins:
+  - name: "@code-to-gate/lang-ts"
+    enabled: true
+
+# Output settings
+output:
+  default_out: .qh

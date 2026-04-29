@@ -1,0 +1,22 @@
+{
+  "capsule_id": "caps-artifact-contracts-001",
+  "node_id": "docs/artifact-contracts",
+  "path": "docs/artifact-contracts.md",
+  "role": "contract",
+  "summary": "NormalizedRepoGraph、Finding、Evidence、schema契約の正本",
+  "key_sections": [
+    {"id": "sec-principles", "title": "原則", "line_range": "9-21"},
+    {"id": "sec-header", "title": "共通ヘッダ", "line_range": "23-56"},
+    {"id": "sec-evidence-ref", "title": "EvidenceRef", "line_range": "58-86"},
+    {"id": "sec-repo-graph", "title": "NormalizedRepoGraph", "line_range": "88-200"},
+    {"id": "sec-findings", "title": "Findings", "line_range": "202-255"},
+    {"id": "sec-risk", "title": "RiskSeed", "line_range": "257-285"},
+    {"id": "sec-invariant", "title": "InvariantSeed", "line_range": "287-316"},
+    {"id": "sec-test-seed", "title": "TestSeed", "line_range": "318-346"},
+    {"id": "sec-readiness", "title": "ReleaseReadiness", "line_range": "348-411"},
+    {"id": "sec-audit", "title": "Audit", "line_range": "413-443"},
+    {"id": "sec-json-schema", "title": "JSON Schema方針", "line_range": "445-465"}
+  ],
+  "dependencies": ["schemas/shared-defs", "schemas/normalized-repo-graph", "schemas/findings"],
+  "last_updated": "2026-04-30T00:00:00+09:00"
+}

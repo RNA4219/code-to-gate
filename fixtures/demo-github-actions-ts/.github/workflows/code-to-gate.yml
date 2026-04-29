@@ -1,0 +1,60 @@
+name: code-to-gate PR Analysis
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install code-to-gate
+        run: npm install -g code-to-gate
+
+      - name: Run diff analysis
+        run: |
+          code-to-gate diff . \
+            --base origin/main \
+            --head HEAD \
+            --policy .github/ctg-policy.yaml \
+            --out .qh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export SARIF
+        run: code-to-gate export sarif --from .qh --out .qh/results.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .qh/results.sarif
+
+      - name: Create PR comment
+        uses: code-to-gate/pr-comment-action@v1
+        with:
+          artifact_dir: .qh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Check run
+        uses: code-to-gate/checks-action@v1
+        with:
+          artifact_dir: .qh
+          head_sha: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctg-artifacts
+          path: .qh/

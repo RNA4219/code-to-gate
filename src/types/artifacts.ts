@@ -1,0 +1,282 @@
+/**
+ * Shared types for code-to-gate artifacts.
+ * Based on docs/artifact-contracts.md and schemas/*.schema.json
+ */
+
+export const CTG_VERSION = "ctg/v1alpha1";
+
+export interface ArtifactHeader {
+  version: "ctg/v1alpha1";
+  generated_at: string; // ISO 8601
+  run_id: string;
+  repo: RepoRef;
+  tool: ToolRef;
+}
+
+export interface RepoRef {
+  root: string;
+  revision?: string;
+  branch?: string;
+  base_ref?: string;
+  head_ref?: string;
+  dirty?: boolean;
+}
+
+export interface ToolRef {
+  name: "code-to-gate";
+  version: string;
+  config_hash?: string;
+  policy_id?: string;
+  plugin_versions: Array<{
+    name: string;
+    version: string;
+    visibility: "public" | "private";
+  }>;
+}
+
+export interface EvidenceRef {
+  id: string;
+  path: string;
+  startLine?: number;
+  endLine?: number;
+  kind: "ast" | "text" | "import" | "external" | "test" | "coverage" | "diff";
+  excerptHash?: string;
+  nodeId?: string;
+  symbolId?: string;
+  externalRef?: {
+    tool: string;
+    ruleId?: string;
+    url?: string;
+  };
+}
+
+export type Severity = "low" | "medium" | "high" | "critical";
+export type Completeness = "complete" | "partial";
+
+// === Findings ===
+
+export type FindingCategory =
+  | "auth"
+  | "payment"
+  | "validation"
+  | "data"
+  | "config"
+  | "maintainability"
+  | "testing"
+  | "compatibility"
+  | "release-risk"
+  | "security";
+
+export type UnsupportedReason =
+  | "missing_evidence"
+  | "unknown_symbol"
+  | "policy_conflict"
+  | "schema_invalid";
+
+export type UpstreamTool =
+  | "native"
+  | "semgrep"
+  | "eslint"
+  | "sonarqube"
+  | "tsc"
+  | "coverage"
+  | "test";
+
+export interface Finding {
+  id: string;
+  ruleId: string;
+  category: FindingCategory;
+  severity: Severity;
+  confidence: number;
+  title: string;
+  summary: string;
+  evidence: EvidenceRef[];
+  affectedSymbols?: string[];
+  affectedEntrypoints?: string[];
+  tags?: string[];
+  upstream?: {
+    tool: UpstreamTool;
+    ruleId?: string;
+  };
+}
+
+export interface UnsupportedClaim {
+  id: string;
+  claim: string;
+  reason: UnsupportedReason;
+  sourceSection: string;
+}
+
+export interface FindingsArtifact extends ArtifactHeader {
+  artifact: "findings";
+  schema: "findings@v1";
+  completeness: Completeness;
+  findings: Finding[];
+  unsupported_claims: UnsupportedClaim[];
+}
+
+// === Risk Register ===
+
+export type Likelihood = "low" | "medium" | "high" | "unknown";
+
+export interface RiskSeed {
+  id: string;
+  title: string;
+  severity: Severity;
+  likelihood: Likelihood;
+  impact: string[];
+  confidence: number;
+  sourceFindingIds: string[];
+  evidence: EvidenceRef[];
+  narrative?: string;
+  recommendedActions: string[];
+}
+
+export interface RiskRegisterArtifact extends ArtifactHeader {
+  artifact: "risk-register";
+  schema: "risk-register@v1";
+  completeness: Completeness;
+  risks: RiskSeed[];
+}
+
+// === Test Seeds ===
+
+export interface TestSeed {
+  id: string;
+  title: string;
+  category: "positive" | "negative" | "edge" | "security";
+  target: string;
+  description: string;
+  inputs: Record<string, unknown>;
+  expectedOutcome: string;
+  sourceRiskId?: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface TestSeedsArtifact extends ArtifactHeader {
+  artifact: "test-seeds";
+  schema: "test-seeds@v1";
+  completeness: Completeness;
+  seeds: TestSeed[];
+}
+
+// === Release Readiness ===
+
+export type ReadinessStatus = "passed" | "passed_with_risk" | "needs_review" | "blocked";
+
+export interface ReleaseReadinessArtifact extends ArtifactHeader {
+  artifact: "release-readiness";
+  schema: "release-readiness@v1";
+  completeness: Completeness;
+  status: ReadinessStatus;
+  summary: string;
+  blockers: string[];
+  warnings: string[];
+  passedChecks: string[];
+  metrics: {
+    criticalFindings: number;
+    highFindings: number;
+    mediumFindings: number;
+    lowFindings: number;
+    riskCount: number;
+    testSeedCount: number;
+    coveragePercent?: number;
+  };
+}
+
+// === Audit ===
+
+export interface AuditInput {
+  path: string;
+  hash: string;
+  kind: "source" | "config" | "policy" | "external-result";
+}
+
+export interface AuditLlm {
+  provider: string;
+  model: string;
+  prompt_version: string;
+  request_hash: string;
+  response_hash: string;
+  redaction_enabled: boolean;
+}
+
+export interface AuditPolicy {
+  id: string;
+  name?: string;
+  hash: string;
+}
+
+export interface AuditExit {
+  code: number;
+  status: string;
+  reason: string;
+}
+
+export interface AuditArtifact extends ArtifactHeader {
+  artifact: "audit";
+  schema: "audit@v1";
+  inputs: AuditInput[];
+  llm?: AuditLlm;
+  policy: AuditPolicy;
+  exit: AuditExit;
+}
+
+// === Normalized Repo Graph (for analyze input) ===
+
+export interface RepoFile {
+  id: string;
+  path: string;
+  language: "ts" | "tsx" | "js" | "jsx" | "py" | "unknown";
+  role: "source" | "test" | "config" | "fixture" | "docs" | "generated" | "unknown";
+  hash: string;
+  sizeBytes: number;
+  lineCount: number;
+  moduleId?: string;
+  parser: {
+    status: "parsed" | "text_fallback" | "skipped" | "failed";
+    adapter?: string;
+    errorCode?: string;
+  };
+}
+
+export interface NormalizedRepoGraph extends ArtifactHeader {
+  artifact: "normalized-repo-graph";
+  schema: "normalized-repo-graph@v1";
+  files: RepoFile[];
+  modules: unknown[];
+  symbols: unknown[];
+  relations: unknown[];
+  tests: unknown[];
+  configs: unknown[];
+  entrypoints: unknown[];
+  diagnostics: unknown[];
+  stats: { partial: boolean };
+}
+
+// === Policy ===
+
+export interface Policy {
+  version: string;
+  name: string;
+  description?: string;
+  blocking: {
+    severities?: Severity[];
+    categories?: FindingCategory[];
+    rules?: string[];
+  };
+  readiness?: {
+    criticalFindingStatus?: string;
+    highAuthFindingStatus?: string;
+    defaultRiskStatus?: string;
+  };
+}
+
+// === Emit Options ===
+
+export type EmitFormat = "json" | "yaml" | "md" | "mermaid" | "all";
+
+export interface EmitOptions {
+  formats: EmitFormat[];
+  outDir: string;
+}

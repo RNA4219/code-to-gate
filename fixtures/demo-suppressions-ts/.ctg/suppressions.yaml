@@ -1,0 +1,33 @@
+version: ctg/v1alpha1
+
+# Suppressions for demo-suppressions-ts fixture
+# Based on docs/product-spec-v1.md Section 5.3
+
+suppressions:
+  # Suppression for legacy order processing code
+  # This file uses client-supplied price without validation
+  - rule_id: CLIENT_TRUSTED_PRICE
+    path: "src/api/order/legacy-*.ts"
+    reason: "Legacy code, migration planned for Q2 2026"
+    expiry: "2026-06-30"
+    author: "tech-lead"
+
+  # Suppression for public routes that don't require auth
+  - rule_id: WEAK_AUTH_GUARD
+    path: "src/routes/public.ts"
+    reason: "Public route, no auth required"
+    expiry: "2027-01-01"
+    author: "security-team"
+
+  # Suppression for demo/test utility functions
+  - rule_id: MISSING_SERVER_VALIDATION
+    path: "src/utils/demo-*.ts"
+    reason: "Demo utilities, not production code"
+    expiry: "2026-12-31"
+    author: "demo-team"
+
+  # Long-term suppression for generated config files
+  - rule_id: ENV_DIRECT_ACCESS
+    path: "src/config/generated-*.ts"
+    reason: "Generated config, will be regenerated with proper pattern"
+    author: "automation-team"

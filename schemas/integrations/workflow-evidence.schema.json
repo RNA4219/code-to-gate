@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/integrations/workflow-evidence.schema.json",
+  "title": "WorkflowEvidence",
+  "type": "object",
+  "required": ["version", "producer", "run_id", "evidence_type", "subject", "artifacts", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "ctg.workflow-evidence/v1alpha1" },
+    "producer": { "const": "code-to-gate" },
+    "run_id": { "type": "string" },
+    "intent_id": { "type": "string" },
+    "evidence_type": { "enum": ["release-readiness", "pr-risk-scan", "quality-scan"] },
+    "subject": {
+      "type": "object",
+      "required": ["repo"],
+      "additionalProperties": false,
+      "properties": {
+        "repo": { "type": "string" },
+        "revision": { "type": "string" },
+        "branch": { "type": "string" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path", "hash", "schema"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" },
+          "hash": { "type": "string" },
+          "schema": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["status", "critical_count", "high_count", "needs_review"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string" },
+        "critical_count": { "type": "integer", "minimum": 0 },
+        "high_count": { "type": "integer", "minimum": 0 },
+        "needs_review": { "type": "boolean" }
+      }
+    }
+  }
+}

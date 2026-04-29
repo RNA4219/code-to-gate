@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/evidence-ref.schema.json",
+  "title": "EvidenceRef",
+  "$ref": "./shared-defs.schema.json#/$defs/evidenceRef"
+}

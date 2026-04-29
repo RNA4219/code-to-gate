@@ -1,0 +1,1 @@
+// Empty TypeScript file for testing edge cases

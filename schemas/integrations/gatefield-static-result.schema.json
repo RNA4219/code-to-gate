@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/integrations/gatefield-static-result.schema.json",
+  "title": "GatefieldStaticResult",
+  "type": "object",
+  "required": ["version", "producer", "run_id", "artifact_hash", "repo", "status", "summary", "signals", "non_binding_gate_hint"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "ctg.gatefield/v1alpha1" },
+    "producer": { "const": "code-to-gate" },
+    "run_id": { "type": "string" },
+    "artifact_hash": { "type": "string" },
+    "repo": {
+      "type": "object",
+      "required": ["root"],
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string" },
+        "revision": { "type": "string" },
+        "branch": { "type": "string" }
+      }
+    },
+    "status": { "enum": ["passed", "warning", "blocked_input", "failed"] },
+    "summary": { "type": "string" },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "severity", "confidence", "finding_id", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["sast", "secret", "quality", "test_gap", "release_risk"] },
+          "severity": { "enum": ["low", "medium", "high", "critical"] },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "finding_id": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "non_binding_gate_hint": { "enum": ["pass", "hold", "block"] }
+  }
+}

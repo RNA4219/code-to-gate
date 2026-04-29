@@ -1,0 +1,9 @@
+{
+  "name": "demo-suppressions-ts",
+  "version": "1.0.0",
+  "description": "Demo fixture for testing suppression mechanism",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run"
+  }
+}

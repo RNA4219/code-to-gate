@@ -1,0 +1,21 @@
+{
+  "total": {
+    "lines": { "total": 18, "covered": 11, "skipped": 0, "pct": 61.11 },
+    "statements": { "total": 18, "covered": 11, "skipped": 0, "pct": 61.11 },
+    "functions": { "total": 4, "covered": 1, "skipped": 0, "pct": 25 },
+    "branches": { "total": 4, "covered": 1, "skipped": 0, "pct": 25 }
+  },
+  "src/user.ts": {
+    "lines": { "total": 12, "covered": 9, "skipped": 0, "pct": 75 },
+    "statements": { "total": 12, "covered": 9, "skipped": 0, "pct": 75 },
+    "functions": { "total": 2, "covered": 1, "skipped": 0, "pct": 50 },
+    "branches": { "total": 2, "covered": 1, "skipped": 0, "pct": 50 }
+  },
+  "src/config.ts": {
+    "lines": { "total": 6, "covered": 2, "skipped": 0, "pct": 33.33 },
+    "statements": { "total": 6, "covered": 2, "skipped": 0, "pct": 33.33 },
+    "functions": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 },
+    "branches": { "total": 2, "covered": 0, "skipped": 0, "pct": 0 }
+  }
+}
+

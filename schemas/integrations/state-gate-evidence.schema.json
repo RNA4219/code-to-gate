@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/integrations/state-gate-evidence.schema.json",
+  "title": "StateGateEvidence",
+  "type": "object",
+  "required": ["version", "producer", "run_id", "artifact_hash", "release_readiness", "evidence_refs", "approval_relevance"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "ctg.state-gate/v1alpha1" },
+    "producer": { "const": "code-to-gate" },
+    "run_id": { "type": "string" },
+    "artifact_hash": { "type": "string" },
+    "release_readiness": {
+      "type": "object",
+      "required": ["status", "summary", "failed_conditions"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"] },
+        "summary": { "type": "string" },
+        "failed_conditions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact", "path", "hash"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": { "enum": ["findings", "risk-register", "invariants", "test-seeds", "audit"] },
+          "path": { "type": "string" },
+          "hash": { "type": "string" }
+        }
+      }
+    },
+    "approval_relevance": {
+      "type": "object",
+      "required": ["requires_human_attention", "reasons"],
+      "additionalProperties": false,
+      "properties": {
+        "requires_human_attention": { "type": "boolean" },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

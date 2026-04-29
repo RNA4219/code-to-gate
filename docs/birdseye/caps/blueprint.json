@@ -1,0 +1,19 @@
+{
+  "capsule_id": "caps-blueprint-001",
+  "node_id": "BLUEPRINT",
+  "path": "BLUEPRINT.md",
+  "role": "blueprint",
+  "summary": "要件、制約、背景、設計方針の最上位ドキュメント",
+  "key_sections": [
+    {"id": "sec-background", "title": "背景", "line_range": "10-20"},
+    {"id": "sec-definition", "title": "一文定義", "line_range": "22-24"},
+    {"id": "sec-scope", "title": "スコープ", "line_range": "26-45"},
+    {"id": "sec-constraints", "title": "制約", "line_range": "47-65"},
+    {"id": "sec-trust", "title": "信頼モデル", "line_range": "67-85"},
+    {"id": "sec-artifacts", "title": "成果物モデル", "line_range": "87-100"},
+    {"id": "sec-integrations", "title": "連携先", "line_range": "102-110"},
+    {"id": "sec-priority", "title": "実装優先度", "line_range": "112-120"}
+  ],
+  "dependencies": ["docs/requirements", "docs/acceptance-v0.1", "orchestration/v0.1-impl"],
+  "last_updated": "2026-04-30T00:00:00+09:00"
+}
