@@ -811,4 +811,153 @@ describe("readiness CLI", () => {
     const validStatuses = ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"];
     expect(validStatuses).toContain(readiness.status);
   });
+
+  // Regression test for P0: strict policy blocking
+  it("strict policy blocks on critical findings", async () => {
+    // Create findings with critical severity that matches strict.yaml blocking
+    const findingsWithCritical = {
+      version: "ctg/v1alpha1",
+      generated_at: new Date().toISOString(),
+      run_id: "test-strict-block",
+      repo: { root: fixturesDir },
+      tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+      artifact: "findings",
+      schema: "findings@v1",
+      completeness: "complete",
+      findings: [
+        {
+          id: "finding-critical-1",
+          ruleId: "TEST_RULE",
+          category: "security",
+          severity: "critical",
+          confidence: 0.9,
+          title: "Critical finding should block",
+          summary: "A critical security issue that should block release",
+          evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10 }],
+        },
+      ],
+      unsupported_claims: [],
+    };
+
+    const findingsDir = path.join(tempOutDir, "strict-block-test");
+    rmSync(findingsDir, { recursive: true, force: true });
+    mkdirSync(findingsDir, { recursive: true });
+    writeFileSync(
+      path.join(findingsDir, "findings.json"),
+      JSON.stringify(findingsWithCritical),
+      "utf8"
+    );
+
+    const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
+    const result = await readinessCommand(args, { VERSION, EXIT, getOption });
+
+    // Should return READINESS_NOT_CLEAR (blocked)
+    expect(result).toBe(EXIT.READINESS_NOT_CLEAR);
+
+    const readinessPath = path.join(tempOutDir, "release-readiness.json");
+    const readiness = JSON.parse(readFileSync(readinessPath, "utf8"));
+
+    // Status should be blocked_input due to critical finding
+    expect(readiness.status).toBe("blocked_input");
+
+    // failedConditions should include the severity block
+    expect(readiness.failedConditions.length).toBeGreaterThan(0);
+    expect(readiness.failedConditions.some(c => c.id === "BLOCKING_SEVERITY_CRITICAL")).toBe(true);
+
+    // summary should reflect blocked status
+    expect(readiness.summary).toContain("blocked");
+  });
+
+  // Regression test for P0: strict policy blocks on payment category
+  it("strict policy blocks on payment category with high/critical severity", async () => {
+    const findingsWithPayment = {
+      version: "ctg/v1alpha1",
+      generated_at: new Date().toISOString(),
+      run_id: "test-payment-block",
+      repo: { root: fixturesDir },
+      tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+      artifact: "findings",
+      schema: "findings@v1",
+      completeness: "complete",
+      findings: [
+        {
+          id: "finding-payment-1",
+          ruleId: "CLIENT_TRUSTED_PRICE",
+          category: "payment",
+          severity: "high",
+          confidence: 0.9,
+          title: "Payment finding",
+          summary: "A payment-related issue",
+          evidence: [{ id: "ev-1", path: "src/payment.ts", startLine: 10 }],
+        },
+      ],
+      unsupported_claims: [],
+    };
+
+    const findingsDir = path.join(tempOutDir, "payment-block-test");
+    rmSync(findingsDir, { recursive: true, force: true });
+    mkdirSync(findingsDir, { recursive: true });
+    writeFileSync(
+      path.join(findingsDir, "findings.json"),
+      JSON.stringify(findingsWithPayment),
+      "utf8"
+    );
+
+    const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
+    await readinessCommand(args, { VERSION, EXIT, getOption });
+
+    const readinessPath = path.join(tempOutDir, "release-readiness.json");
+    const readiness = JSON.parse(readFileSync(readinessPath, "utf8"));
+
+    // Should have failed condition for payment category
+    expect(readiness.failedConditions.some(c => c.id.includes("PAYMENT"))).toBe(true);
+  });
+
+  // Regression test for P0: strict policy blocks on blocking rules
+  it("strict policy blocks on CLIENT_TRUSTED_PRICE rule with high/critical severity", async () => {
+    const findingsWithRule = {
+      version: "ctg/v1alpha1",
+      generated_at: new Date().toISOString(),
+      run_id: "test-rule-block",
+      repo: { root: fixturesDir },
+      tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+      artifact: "findings",
+      schema: "findings@v1",
+      completeness: "complete",
+      findings: [
+        {
+          id: "finding-rule-1",
+          ruleId: "CLIENT_TRUSTED_PRICE",
+          category: "security",
+          severity: "critical",
+          confidence: 0.9,
+          title: "Client trusted price vulnerability",
+          summary: "Price calculation is done on client side",
+          evidence: [{ id: "ev-1", path: "src/cart.ts", startLine: 50 }],
+        },
+      ],
+      unsupported_claims: [],
+    };
+
+    const findingsDir = path.join(tempOutDir, "rule-block-test");
+    rmSync(findingsDir, { recursive: true, force: true });
+    mkdirSync(findingsDir, { recursive: true });
+    writeFileSync(
+      path.join(findingsDir, "findings.json"),
+      JSON.stringify(findingsWithRule),
+      "utf8"
+    );
+
+    const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
+    const result = await readinessCommand(args, { VERSION, EXIT, getOption });
+
+    expect(result).toBe(EXIT.READINESS_NOT_CLEAR);
+
+    const readinessPath = path.join(tempOutDir, "release-readiness.json");
+    const readiness = JSON.parse(readFileSync(readinessPath, "utf8"));
+
+    // Should have failed condition for the blocking rule
+    expect(readiness.failedConditions.some(c => c.id.includes("CLIENT_TRUSTED_PRICE"))).toBe(true);
+    expect(readiness.status).toBe("blocked_input");
+  });
 });
