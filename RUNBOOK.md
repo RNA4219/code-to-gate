@@ -693,8 +693,16 @@ MVP / release smoke:
 - [x] 2026-05-01: `scripts/acceptance-phase1-mvp.sh` を作成。PowerShell 版で `.qh/acceptance/mvp-smoke/` に証跡保存。
 
 Product α acceptance:
-- [ ] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
+- [~] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
+  - 2026-05-01: `scripts/real-repo-test.ps1` (PowerShell 版) 作成。
+  - 使用方法: `./scripts/real-repo-test.ps1 [-Clean] [-Repo express|nextjs|typescript]`
+  - 不足: 実際の repo clone と実行は network 依存。CI 環境または手動実行が必要。
+- [x] 3+ fixtures で `scan/analyze` を実行し、exit code 0 or 1 と schema pass を記録。
+  - 2026-05-01: `scripts/fixture-acceptance.ps1` 作成。
+  - 実行結果: demo-shop-ts (16 findings), demo-auth-js (5 findings), demo-python (1 findings) - all pass。
+  - 証跡: `.qh/acceptance/fixtures/summary.yaml`
 - [ ] backend / frontend / library の 3 タイプを含める。
+  - 不足: frontend fixture 未作成。demo-shop-ts, demo-auth-js, demo-python は backend。
 - [ ] 100-500 files 程度の repo を含める。
 - [ ] `demo-suppressions-ts` fixture を作り、suppression と expiry warning を確認。
 - [ ] `demo-github-actions-ts` fixture を作り、workflow 動作を確認。
