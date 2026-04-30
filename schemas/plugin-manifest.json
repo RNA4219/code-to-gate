@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quality-harness.org/schemas/plugin-manifest.json",
+  "title": "CTG Plugin Manifest",
+  "description": "Manifest for code-to-gate plugin",
+  "type": "object",
+  "required": ["name", "version", "entrypoint"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Plugin name (unique identifier)",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Plugin version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-z0-9]+)?$"
+    },
+    "entrypoint": {
+      "type": "string",
+      "description": "Entrypoint script path relative to manifest"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable plugin description"
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author"
+    },
+    "license": {
+      "type": "string",
+      "description": "Plugin license (SPDX identifier)"
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Plugin capabilities",
+      "items": {
+        "type": "string",
+        "enum": ["rules", "parsers", "reporters", "llm-providers", "importers", "exporters"]
+      }
+    },
+    "timeout": {
+      "type": "number",
+      "description": "Timeout in milliseconds",
+      "default": 30000,
+      "minimum": 1000,
+      "maximum": 120000
+    },
+    "visibility": {
+      "type": "string",
+      "description": "Plugin visibility",
+      "enum": ["public", "private"],
+      "default": "public"
+    }
+  },
+  "additionalProperties": false
+}

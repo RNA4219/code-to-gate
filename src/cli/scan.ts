@@ -385,7 +385,10 @@ function buildGraphWithCache(
   });
 
   const parseStart = Date.now();
-  const filesToProcess = cacheResult.needsFullScan ? targetFiles : cacheResult.changedFiles;
+  // If cache hit rate is 100% (no changed files), still process all files to build graph
+  const filesToProcess = (cacheResult.needsFullScan || cacheResult.changedFiles.length === 0)
+    ? targetFiles
+    : cacheResult.changedFiles;
 
   // Process files (for now, use single-thread mode for stability)
   for (const file of filesToProcess) {
@@ -505,6 +508,7 @@ export function scanCommand(args: string[], options: ScanOptions): number {
   const parallelWorkers = parseParallelWorkers(parallelValue);
 
   const absoluteOutDir = path.resolve(cwd, outDir);
+  ensureDir(absoluteOutDir);
 
   // Create cache manager
   const cacheDir = path.join(absoluteOutDir, ".cache");
@@ -522,7 +526,6 @@ export function scanCommand(args: string[], options: ScanOptions): number {
     // Build graph with cache support
     const graph = buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose);
 
-    ensureDir(absoluteOutDir);
     writeJson(path.join(absoluteOutDir, "repo-graph.json"), graph);
 
     // Save cache
