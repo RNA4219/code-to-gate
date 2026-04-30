@@ -514,14 +514,23 @@ describe("Docker Utilities", () => {
 
   describe("pullDockerImage", () => {
     it("should handle non-existent image gracefully", async () => {
-      // This test may fail if Docker is not available
+      // Skip if Docker not available
+      try {
+        const dockerAvailable = await isDockerAvailable();
+        if (!dockerAvailable) {
+          return; // Skip test
+        }
+      } catch {
+        return; // Docker check failed, skip
+      }
+
       try {
         const result = await pullDockerImage("nonexistent-image:latest");
         expect(typeof result).toBe("boolean");
       } catch {
-        // Docker not available, skip
+        // Image pull failed, which is expected for non-existent image
       }
-    });
+    }, 60000);
   });
 
   describe("getContainerLogs", () => {

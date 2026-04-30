@@ -447,7 +447,7 @@ describe("error handling integration", () => {
       expect(result.stderr).toContain("unknown command");
     });
 
-    it("scan without --out option uses default .qh directory", () => {
+    it("scan with --out option creates output directory", () => {
       const fixture = "demo-shop-ts";
       const fixtureRoot = fixturePath(fixture);
       const customOutDir = path.join(tempDir, "scan-default-out");
