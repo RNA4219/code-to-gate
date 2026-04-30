@@ -1,1 +1,0 @@
-const value9 = 9;

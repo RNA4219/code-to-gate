@@ -1,1 +1,0 @@
-const value3 = 3;

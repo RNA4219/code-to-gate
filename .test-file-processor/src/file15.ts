@@ -1,1 +1,0 @@
-const value15 = 15;

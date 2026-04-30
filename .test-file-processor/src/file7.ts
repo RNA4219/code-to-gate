@@ -1,1 +1,0 @@
-const value7 = 7;
