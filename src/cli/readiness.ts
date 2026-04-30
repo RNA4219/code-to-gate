@@ -156,7 +156,12 @@ function parsePolicyYaml(content: string): Policy {
     }
 
     // Sub-section keys inside blocking (at indent+2)
-    if (currentSection === "blocking" && indent === rootIndent + 2 && trimmed.endsWith(":")) {
+    // Also handle transition from blocking_* sub-sections to next sub-section
+    if (
+      (currentSection === "blocking" || currentSection.startsWith("blocking_")) &&
+      indent === rootIndent + 2 &&
+      trimmed.endsWith(":")
+    ) {
       if (trimmed === "severities:") {
         currentSection = "blocking_severities";
         listIndent = indent + 2;
@@ -319,6 +324,32 @@ function evaluateFindingsAgainstPolicy(
           // Use more severe status
           if (authStatus === "blocked_input" || status === "needs_review") {
             status = authStatus;
+          }
+        }
+      }
+
+      // If policy readiness didn't set a non-passed status, use failedConditions to determine
+      if (status === "passed") {
+        // Apply default logic based on failedConditions
+        const hasCriticalBlock = failedConditions.some(
+          (c) => c.id === "BLOCKING_SEVERITY_CRITICAL"
+        );
+
+        if (hasCriticalBlock) {
+          status = "blocked_input";
+        } else {
+          const hasHighBlock = failedConditions.some(
+            (c) =>
+              c.id === "BLOCKING_SEVERITY_HIGH" ||
+              c.id.includes("_AUTH_") ||
+              c.id.includes("_PAYMENT_") ||
+              c.id.startsWith("BLOCKING_RULE_")
+          );
+
+          if (hasHighBlock) {
+            status = "needs_review";
+          } else {
+            status = "passed_with_risk";
           }
         }
       }
