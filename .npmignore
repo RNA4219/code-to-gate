@@ -19,3 +19,9 @@ orchestration/
 *.tsbuildinfo
 .vscode/
 .idea/
+
+# Dist test files (should not be in npm package)
+dist/**/__tests__/
+dist/**/*.test.js
+dist/**/*.test.d.ts
+dist/**/*.test.js.map
