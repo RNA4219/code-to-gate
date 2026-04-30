@@ -37,26 +37,14 @@ export const RAW_SQL_RULE: RulePlugin = {
 
       // Patterns that indicate raw SQL with potential injection
       const unsafeSqlPatterns = [
-        // Generic SQL string concatenation. Keep this broad because SQL often
-        // contains nested quotes such as VALUES ('" + name + "').
-        /["'`]\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b.*["'`]\s*\+/gi,
-        // String concatenation with SQL keyword followed by structure and concatenation
-        // SELECT ... FROM with concatenation
-        /["'`]\s*SELECT\s+[^"'`]*\s+FROM\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
-        // INSERT INTO ... with concatenation
-        /["'`]\s*INSERT\s+INTO\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
-        // UPDATE ... SET with concatenation
-        /["'`]\s*UPDATE\s+[^"'`]*\s+SET\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
-        // DELETE FROM ... with concatenation
-        /["'`]\s*DELETE\s+FROM\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
-        // Template literals with SQL structure and variable interpolation
-        /`(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+[^`]*\$\{[^}]+\}/gi,
-        // Direct variable in query string: query("SELECT * FROM users WHERE id = " + userId)
-        /(?:query|execute|exec|run)\s*\(\s*["'`][^"'`]*(?:SELECT|INSERT|UPDATE|DELETE)\s+[^"'`]*["'`]\s*\+/gi,
-        // Python f-strings: f"SELECT ... FROM ... {var}"
-        /f["'](?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+[^"']*["']/gi,
-        // Python format strings: "SELECT ... FROM ... {}".format(table)
-        /["'](?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+[^"']*["']\.format\s*\(/gi,
+        // String concatenation with SQL keywords
+        /["'`]\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
+        // Template literals with SQL and interpolation
+        /`(?:SELECT|INSERT|UPDATE|DELETE)[^`]*\$\{[^}]+\}/gi,
+        // Python f-strings with SQL
+        /f["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*["']/gi,
+        // Python format strings
+        /["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*["']\.format\s*\(/gi,
       ];
 
       // Patterns that indicate safe parameterized queries
@@ -74,6 +62,12 @@ export const RAW_SQL_RULE: RulePlugin = {
         /\.where\s*\(/,              // ORM where clause
         /\.find\s*\(/,               // ORM find
         /\.findOne\s*\(/,            // ORM findOne
+        // Message/logging context (not SQL)
+        /\.send\s*\(/,               // Express res.send()
+        /\.json\s*\(/,               // Express res.json()
+        /\.write\s*\(/,              // HTTP response write
+        /console\.log\s*\(/,         // Console logging
+        /console\.error\s*\(/,       // Console error
       ];
 
       // Patterns that indicate HTTP/API method context (not SQL)
