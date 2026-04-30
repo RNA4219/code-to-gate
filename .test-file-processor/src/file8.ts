@@ -1,0 +1,1 @@
+const value8 = 8;

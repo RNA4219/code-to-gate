@@ -1,0 +1,1 @@
+const value16 = 16;

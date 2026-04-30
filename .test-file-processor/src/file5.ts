@@ -1,0 +1,1 @@
+const value5 = 5;

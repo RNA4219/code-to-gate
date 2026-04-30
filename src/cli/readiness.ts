@@ -303,79 +303,19 @@ function evaluateFindingsAgainstPolicy(
   let status: ReadinessStatus = "passed";
 
   if (failedConditions.length > 0) {
-    // Use policy readiness settings if available
-    if (policy.readiness) {
-      // Check for critical findings
-      const hasCriticalFindings = findings.findings.some(f => f.severity === "critical");
-      if (hasCriticalFindings && policy.readiness.criticalFindingStatus) {
-        const criticalStatus = policy.readiness.criticalFindingStatus;
-        if (criticalStatus === "blocked_input" || criticalStatus === "needs_review") {
-          status = criticalStatus;
-        }
-      }
+    const hasBlockingCondition = failedConditions.some((condition) =>
+      condition.id.startsWith("BLOCKING_")
+    );
 
-      // Check for auth-related high findings
-      const hasAuthHighFindings = findings.findings.some(
-        f => f.severity === "high" && f.category === "auth"
-      );
-      if (hasAuthHighFindings && policy.readiness.highAuthFindingStatus) {
-        const authStatus = policy.readiness.highAuthFindingStatus;
-        if (authStatus === "blocked_input" || authStatus === "needs_review") {
-          // Use more severe status
-          if (authStatus === "blocked_input" || status === "needs_review") {
-            status = authStatus;
-          }
-        }
-      }
-
-      // If policy readiness didn't set a non-passed status, use failedConditions to determine
-      if (status === "passed") {
-        // Apply default logic based on failedConditions
-        const hasCriticalBlock = failedConditions.some(
-          (c) => c.id === "BLOCKING_SEVERITY_CRITICAL"
-        );
-
-        if (hasCriticalBlock) {
-          status = "blocked_input";
-        } else {
-          const hasHighBlock = failedConditions.some(
-            (c) =>
-              c.id === "BLOCKING_SEVERITY_HIGH" ||
-              c.id.includes("_AUTH_") ||
-              c.id.includes("_PAYMENT_") ||
-              c.id.startsWith("BLOCKING_RULE_")
-          );
-
-          if (hasHighBlock) {
-            status = "needs_review";
-          } else {
-            status = "passed_with_risk";
-          }
-        }
-      }
+    if (hasBlockingCondition) {
+      status = "blocked_input";
+    } else if (
+      policy.readiness?.defaultRiskStatus === "needs_review" ||
+      policy.readiness?.defaultRiskStatus === "passed_with_risk"
+    ) {
+      status = policy.readiness.defaultRiskStatus;
     } else {
-      // Default logic without policy readiness settings
-      const hasCriticalBlock = failedConditions.some(
-        (c) => c.id === "BLOCKING_SEVERITY_CRITICAL"
-      );
-
-      if (hasCriticalBlock) {
-        status = "blocked_input";
-      } else {
-        const hasHighBlock = failedConditions.some(
-          (c) =>
-            c.id === "BLOCKING_SEVERITY_HIGH" ||
-            c.id.includes("_AUTH_") ||
-            c.id.includes("_PAYMENT_") ||
-            c.id.startsWith("BLOCKING_RULE_")
-        );
-
-        if (hasHighBlock) {
-          status = "needs_review";
-        } else {
-          status = "passed_with_risk";
-        }
-      }
+      status = "needs_review";
     }
   }
 

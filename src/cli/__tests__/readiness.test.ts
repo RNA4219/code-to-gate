@@ -904,13 +904,16 @@ describe("readiness CLI", () => {
     );
 
     const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
-    await readinessCommand(args, { VERSION, EXIT, getOption });
+    const result = await readinessCommand(args, { VERSION, EXIT, getOption });
+
+    expect(result).toBe(EXIT.READINESS_NOT_CLEAR);
 
     const readinessPath = path.join(tempOutDir, "release-readiness.json");
     const readiness = JSON.parse(readFileSync(readinessPath, "utf8"));
 
     // Should have failed condition for payment category
     expect(readiness.failedConditions.some(c => c.id.includes("PAYMENT"))).toBe(true);
+    expect(readiness.status).toBe("blocked_input");
   });
 
   // Regression test for P0: strict policy blocks on blocking rules

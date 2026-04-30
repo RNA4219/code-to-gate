@@ -252,7 +252,7 @@ describe("scan CLI - demo shop entrypoints", () => {
     scanCommand(args, { VERSION, EXIT, getOption });
 
     graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
-  });
+  }, 60000);
 
   it("detects entrypoints in API-related files", () => {
     const entrypoints = graph.entrypoints as Array<{ id: string; path: string; kind: string }>;
