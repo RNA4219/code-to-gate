@@ -702,6 +702,12 @@ Product α acceptance:
   - 不足: fixture runner command (`code-to-gate fixture run`) は未確認。
 - [~] `demo-ci-imports` は import fixture として存在。
   - 不足: product acceptance の full command set と evidence package は未作成。
+- [~] FP/FN evaluation workflow 作成。
+  - 2026-05-01: `scripts/fp-review.ps1` 作成。
+  - 使用方法: `./scripts/fp-review.ps1 -Repo <path> -Phase phase1 [-Interactive]`
+  - template 生成: `.qh/fp-review-{repo}/fp-evaluation-template.yaml`
+  - interactive review: 各 finding を TP/FP/Uncertain に分類
+  - sample evaluation: `.qh/fp-review-demo-shop/fp-evaluation.yaml`
 
 Schema / artifact:
 - [x] `findings.json` と `release-readiness.json` は直近検収で schema validate 済み。
@@ -727,8 +733,14 @@ Policy / readiness:
 - [ ] malformed policy を `POLICY_FAILED` に倒すか、graceful partial とするか仕様を固定。
 
 FP/FN / finding quality:
-- [ ] 3+ repo の findings を human review し、TP / FP / uncertain を記録。
+- [~] 3+ repo の findings を human review し、TP / FP / uncertain を記録。
+  - 2026-05-01: `scripts/fp-review.ps1` (PowerShell 版) と `scripts/fp-review.sh` (bash 版) を作成。
+  - demo-shop-ts で FP review template 生成: `.qh/fp-review-demo-shop/fp-evaluation-template.yaml`
+  - sample evaluation: 16 findings, 10 TP, 4 FP, 2 Uncertain, FP rate 25% (demo fixture は UNTESTED_CRITICAL_PATH が FP)
+  - 不足: real repo (express/nextjs/typescript) で FP evaluation 実行が必要。
 - [ ] FP rate <= 15% を確認。
+  - demo-shop-ts: 25% (demo fixture の特性による)
+  - real repo で再評価が必要。
 - [ ] seeded smells の detection rate >= 80% を確認。
 - [ ] domain-specific report 表現が payment/auth/validation などの文脈を拾うことを確認。
 - [ ] LLM enrichment が finding / report / audit に反映されることを確認。

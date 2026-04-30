@@ -34,7 +34,7 @@ $FP_TARGETS = @{
 }
 
 $Target = $FP_TARGETS[$Phase]
-Write-Host "Target FP rate for $Phase: <= $Target%"
+Write-Host "Target FP rate for ${Phase}: <= ${Target}%"
 
 # Resolve paths
 $ProjectRoot = $PSScriptRoot | Split-Path
