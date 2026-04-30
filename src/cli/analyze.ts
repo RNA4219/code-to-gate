@@ -77,6 +77,9 @@ function loadPolicy(policyPath: string | undefined): Policy | undefined {
   };
 
   for (const line of lines) {
+    if (line.startsWith("policy_id:")) {
+      policy.name = line.split(":")[1].trim();
+    }
     if (line.startsWith("name:")) {
       policy.name = line.split(":")[1].trim();
     }

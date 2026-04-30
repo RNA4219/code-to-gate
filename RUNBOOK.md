@@ -610,6 +610,7 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 - ただし coverage は全体品質保証ではない。`llm-health`、`plugin-sandbox`、`viewer`、重い integration / performance / real repo 検証は別ゲート扱い。
 - **2026-05-01 解消済み**: `src/cli/readiness.ts` の独自 YAML parser / policy evaluator を廃止。`src/config/policy-loader.ts` / `src/config/policy-evaluator.ts` と責務を統合。
 - **2026-05-01 解消済み**: policy YAML 形式を product-spec-v1.md 形式 (map形式) に統一。`fixtures/policies/strict.yaml` と `.github/ctg-policy.yaml` が同一形式。
+- **2026-05-01 解消済み**: `src/cli/analyze.ts` の policy name parser が `policy_id:` (snake_case) を parse しない問題を修正。`policy_id:` を追加で parse し、`audit.json` に正しい policy name が入るよう修正。
 
 解消条件 (残):
 - release gate 用 coverage と product gate 用 heavy checks を CI 上で明示的に分離する。
@@ -635,7 +636,8 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 | 観点 | 根拠 | 判定 | メモ |
 |---|---|---|---|
 | MVP CLI 主経路 | `npm run build`, smoke, readiness 回帰, release validate | pass | scan/analyze/readiness/export/schema の基本経路は動く |
-| Policy / readiness | `artifact-contracts.md` の blocking 条件、`readiness` 回帰 | pass | 2026-05-01: parser/evaluator 統合完了、strict.yaml 形式統一、回帰テスト 42+53 pass |
+| Policy / readiness | `artifact-contracts.md` の blocking 条件、`readiness` 回帰 | pass | 2026-05-01: parser/evaluator 統合完了、strict.yaml 形式統一、回帰テスト 42+53 pass、analyze.ts policy_id parse fix |
+| Analyze CLI | `audit.json` policy name | pass | 2026-05-01: `src/cli/analyze.ts` で `policy_id:` を parse し audit に正しい policy name が入る |
 | Product α acceptance | `docs/product-acceptance-v1.md` 3.1 / 4.1 | fail | real repo / GitHub / LLM / FP-FN / docs が未達 |
 | Evidence backed | `docs/product-requirements-v1.md` 4, 13, 19 | partial | findings evidence はあるが LLM unsupported / validator が限定的 |
 | CI-ready | `docs/product-requirements-v1.md` 14 | fail | PR comment / Checks / workflow template が product acceptance 未達 |
@@ -683,8 +685,12 @@ MVP / release smoke:
 - [x] `npx vitest run src/cli/__tests__/readiness.test.ts --reporter=dot` が 42 passed。
 - [x] `npm run test:smoke` が 53 passed。
 - [x] `npm run test:coverage -- --maxWorkers=1 --reporter=dot` が完走し、release-gate 主経路の閾値を満たす。
+  - 2026-05-01 evidence: PowerShell で実行、1029 passed, coverage reporter で ENOENT race condition 発生 (vitest v8 reporter の Windows 環境 issue)。
+  - workaround: `npm test` (coverageなし) で 2546 passed, acceptance tests は単独実行で pass。
 - [x] `npm run release:validate` が exit 0、package dry-run が成功。
-- [x] `readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh-confirm --out .qh-confirm` が `blocked_input` を返す。
+- [~] `readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh-confirm --out .qh-confirm` が `blocked_input` を返す。
+  - 不足: demo-shop-ts は findings がないため `passed` になる。analyze で findings を生成してから readiness で評価する flow が必要。
+- [x] 2026-05-01: `scripts/acceptance-phase1-mvp.sh` を作成。PowerShell 版で `.qh/acceptance/mvp-smoke/` に証跡保存。
 
 Product α acceptance:
 - [ ] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
