@@ -651,7 +651,7 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 |---|---|---|---|---|
 | PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 本 checklist を CI / release procedure に組み込む |
 | PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定。2026-05-01: analyze.ts/readiness.ts 共に evaluatePolicy() 使用、audit exit code 一致確認。 |
-| PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 3+ public repo で scan/analyze/readiness/schema を記録 |
+| PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 3+ public repo で scan/analyze/readiness/schema を記録。2026-05-01: express (backend, 141 files) PASS。nextjs/typescript は大規模すぎるため小規模 repo 追加選定が必要。 |
 | PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | FP rate <= 15%、seeded detection >= 80% を記録 |
 | PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | PR comment / Checks / artifact upload / SARIF upload を検証 |
 | PRD-P1-02 | P1 | LLM trust 実装不足 | LLM finding / redaction / fallback の安全性が不明 | provider contract、redaction、require-llm failure を検証 |
@@ -697,7 +697,9 @@ Product α acceptance:
 - [~] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
   - 2026-05-01: `scripts/real-repo-test.ps1` (PowerShell 版) 作成。
   - 使用方法: `./scripts/real-repo-test.ps1 [-Clean] [-Repo express|nextjs|typescript]`
-  - 不足: 実際の repo clone と実行は network 依存。CI 環境または手動実行が必要。
+  - express (backend, 141 files): PASS (scan 0, analyze 0, readiness 1, schema 0 failures, 3.6s)
+  - 不足: nextjs/typescript は file count が target を超過 (nextjs examples: 2163, typescript: 39308)、実行時間超過。
+  - 代替案: 100-500 files 程度の小規模 repo を追加選定するか、--max-files limit を実装。
 - [x] 3+ fixtures で `scan/analyze` を実行し、exit code 0 or 1 と schema pass を記録。
   - 2026-05-01: `scripts/fixture-acceptance.ps1` 作成。
   - 実行結果: demo-shop-ts (16 findings), demo-auth-js (5 findings), demo-python (1 findings) - all pass。

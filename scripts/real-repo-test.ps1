@@ -310,7 +310,7 @@ tests:
 # Main execution
 LogInfo "Starting real repo acceptance tests for Phase: $Phase"
 LogInfo "Project root: $ProjectRoot"
-LogInfo "CLI: $CTGCLI"
+LogInfo "CLI: ${CTG_CLI}"
 
 # Check CLI exists
 if (-not (Test-Path $CTG_CLI)) {
