@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/policy.schema.json",
+  "title": "CTG Policy",
+  "description": "Policy configuration for code-to-gate release readiness evaluation",
+  "type": "object",
+  "required": ["version", "policy_id", "blocking", "confidence"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "ctg/v1alpha1",
+      "description": "Policy schema version"
+    },
+    "policy_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique policy identifier"
+    },
+    "description": {
+      "type": "string",
+      "description": "Policy description"
+    },
+    "blocking": {
+      "type": "object",
+      "required": ["severity", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "severity": {
+          "type": "object",
+          "description": "Severity blocking thresholds",
+          "properties": {
+            "critical": { "type": "boolean" },
+            "high": { "type": "boolean" },
+            "medium": { "type": "boolean" },
+            "low": { "type": "boolean" }
+          }
+        },
+        "category": {
+          "type": "object",
+          "description": "Category blocking thresholds",
+          "properties": {
+            "auth": { "type": "boolean" },
+            "payment": { "type": "boolean" },
+            "validation": { "type": "boolean" },
+            "data": { "type": "boolean" },
+            "config": { "type": "boolean" },
+            "maintainability": { "type": "boolean" },
+            "testing": { "type": "boolean" },
+            "compatibility": { "type": "boolean" },
+            "release-risk": { "type": "boolean" },
+            "security": { "type": "boolean" }
+          }
+        },
+        "rules": {
+          "type": "object",
+          "description": "Rule-specific blocking thresholds",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "count_threshold": {
+          "type": "object",
+          "description": "Count thresholds for findings",
+          "properties": {
+            "critical_max": { "type": "integer", "minimum": 0 },
+            "high_max": { "type": "integer", "minimum": 0 },
+            "medium_max": { "type": "integer", "minimum": 0 },
+            "low_max": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "required": ["min_confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "min_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum confidence threshold for findings"
+        },
+        "low_confidence_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Threshold for flagging low confidence findings"
+        },
+        "filter_low": {
+          "type": "boolean",
+          "description": "Filter out low confidence findings"
+        }
+      }
+    },
+    "suppression": {
+      "type": "object",
+      "description": "Suppression configuration",
+      "properties": {
+        "file": { "type": "string" },
+        "expiry_warning_days": { "type": "integer", "minimum": 0 },
+        "max_suppressions_per_rule": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "description": "LLM policy configuration",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "type": "string", "enum": ["remote", "local-only", "none"] },
+        "min_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "require_llm": { "type": "boolean" },
+        "unsupported_claims_max": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "partial": {
+      "type": "object",
+      "description": "Partial artifact handling",
+      "properties": {
+        "allow_partial": { "type": "boolean" },
+        "partial_warning_threshold": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "description": "Baseline comparison configuration",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "file": { "type": "string" },
+        "new_findings_block": { "type": "boolean" }
+      }
+    },
+    "exit": {
+      "type": "object",
+      "description": "Exit code policy",
+      "properties": {
+        "fail_on_critical": { "type": "boolean" },
+        "fail_on_high": { "type": "boolean" },
+        "warn_only": { "type": "boolean" }
+      }
+    }
+  }
+}

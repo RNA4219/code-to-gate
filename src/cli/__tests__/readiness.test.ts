@@ -248,8 +248,7 @@ describe("readiness CLI", () => {
     expect(result).toBe(EXIT.OK);
     const defaultOutPath = path.join(process.cwd(), ".qh", "release-readiness.json");
     expect(existsSync(defaultOutPath)).toBe(true);
-    // Clean up
-    rmSync(path.join(process.cwd(), ".qh"), { recursive: true, force: true });
+    // Note: Cleanup skipped - .qh may have files from other tests/processes
   });
 
   // Policy evaluation tests
