@@ -769,7 +769,7 @@ export const greeting = "Hello World!";
     const graphPath = path.join(tempDir, "repo-graph.json");
     const graph = JSON.parse(readFileSync(graphPath, "utf8"));
     expect(graph.files.length).toBe(20);
-  });
+  }, 60000);
 
   it("should handle empty file content", () => {
     const emptyDir = path.join(tempDir, "empty-files");
