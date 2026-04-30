@@ -333,8 +333,7 @@ describe("scan CLI - edge cases", () => {
 // Group 5: Small fixture tests (parallelizable)
 describe("scan CLI - small fixtures", () => {
   it("language detection for JavaScript files", () => {
-    const jsFixture = path.join(tempOutDir, "js-fixture");
-    rmSync(jsFixture, { recursive: true, force: true });
+    const jsFixture = path.join(tmpdir(), `ctg-js-fixture-${Date.now()}`);
     mkdirSync(jsFixture, { recursive: true });
     mkdirSync(path.join(jsFixture, "src"), { recursive: true });
     writeFileSync(path.join(jsFixture, "src", "index.js"), "export function hello() { return 'world'; }", "utf8");
@@ -346,6 +345,7 @@ describe("scan CLI - small fixtures", () => {
     scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
+    rmSync(jsFixture, { recursive: true, force: true });
     const jsFiles = (graph.files as Array<{ path: string; language: string }>).filter(f => f.path.endsWith(".js"));
     expect(jsFiles.length).toBeGreaterThan(0);
     for (const file of jsFiles) {
@@ -354,8 +354,7 @@ describe("scan CLI - small fixtures", () => {
   });
 
   it("ignores .git directory", () => {
-    const gitRepo = path.join(tempOutDir, "git-repo");
-    rmSync(gitRepo, { recursive: true, force: true });
+    const gitRepo = path.join(tmpdir(), `ctg-git-repo-${Date.now()}`);
     mkdirSync(gitRepo, { recursive: true });
     mkdirSync(path.join(gitRepo, ".git"), { recursive: true });
     mkdirSync(path.join(gitRepo, "src"), { recursive: true });
@@ -369,13 +368,13 @@ describe("scan CLI - small fixtures", () => {
     scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
+    rmSync(gitRepo, { recursive: true, force: true });
     const gitFiles = (graph.files as Array<{ path: string }>).filter(f => f.path.includes(".git"));
     expect(gitFiles.length).toBe(0);
   });
 
   it("ignores node_modules directory", () => {
-    const nmRepo = path.join(tempOutDir, "nm-repo");
-    rmSync(nmRepo, { recursive: true, force: true });
+    const nmRepo = path.join(tmpdir(), `ctg-nm-repo-${Date.now()}`);
     mkdirSync(nmRepo, { recursive: true });
     mkdirSync(path.join(nmRepo, "node_modules"), { recursive: true });
     mkdirSync(path.join(nmRepo, "src"), { recursive: true });
@@ -389,6 +388,7 @@ describe("scan CLI - small fixtures", () => {
     scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
+    rmSync(nmRepo, { recursive: true, force: true });
     const nmFiles = (graph.files as Array<{ path: string }>).filter(f => f.path.includes("node_modules"));
     expect(nmFiles.length).toBe(0);
   });
