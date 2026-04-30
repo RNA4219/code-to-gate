@@ -652,7 +652,7 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 | PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 本 checklist を CI / release procedure に組み込む |
 | PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定。2026-05-01: analyze.ts/readiness.ts 共に evaluatePolicy() 使用、audit exit code 一致確認。 |
 | PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 3+ public repo で scan/analyze/readiness/schema を記録。2026-05-01: express (backend, 141 files) PASS。nextjs/typescript は大規模すぎるため小規模 repo 追加選定が必要。 |
-| PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | FP rate <= 15%、seeded detection >= 80% を記録 |
+| PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | FP rate <= 15%、seeded detection >= 80% を記録。2026-05-01: express 37.5% (RAW_SQL FP)。rule refinement 必要。 |
 | PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | PR comment / Checks / artifact upload / SARIF upload を検証 |
 | PRD-P1-02 | P1 | LLM trust 実装不足 | LLM finding / redaction / fallback の安全性が不明 | provider contract、redaction、require-llm failure を検証 |
 | PRD-P1-03 | P1 | plugin sandbox 未達 | private plugin 利用時の安全性が不足 | sandbox / timeout / invalid output / provenance を検証 |
@@ -753,10 +753,12 @@ FP/FN / finding quality:
   - 2026-05-01: `scripts/fp-review.ps1` (PowerShell 版) と `scripts/fp-review.sh` (bash 版) を作成。
   - demo-shop-ts で FP review template 生成: `.qh/fp-review-demo-shop/fp-evaluation-template.yaml`
   - sample evaluation: 16 findings, 10 TP, 4 FP, 2 Uncertain, FP rate 25% (demo fixture は UNTESTED_CRITICAL_PATH が FP)
-  - 不足: real repo (express/nextjs/typescript) で FP evaluation 実行が必要。
-- [ ] FP rate <= 15% を確認。
+  - express (real repo): 8 findings, 4 TP (LARGE_MODULE), 3 FP (RAW_SQL, UNTESTED_CRITICAL_PATH), 1 Uncertain, FP rate 37.5%
+  - 不足: RAW_SQL rule が web framework (Express) で誤検知。rule refinement が必要。
+- [~] FP rate <= 15% を確認。
   - demo-shop-ts: 25% (demo fixture の特性による)
-  - real repo で再評価が必要。
+  - express: 37.5% (RAW_SQL false positives on non-DB framework)
+  - P0-04 未達: rule refinement (RAW_SQL, UNTESTED_CRITICAL_PATH) で FP rate 改善が必要。
 - [ ] seeded smells の detection rate >= 80% を確認。
 - [ ] domain-specific report 表現が payment/auth/validation などの文脈を拾うことを確認。
 - [ ] LLM enrichment が finding / report / audit に反映されることを確認。
