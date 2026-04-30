@@ -650,7 +650,7 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 | id | 優先度 | リスク | No-Go 理由 | 解消条件 |
 |---|---|---|---|---|
 | PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 本 checklist を CI / release procedure に組み込む |
-| PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定 |
+| PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定。2026-05-01: analyze.ts/readiness.ts 共に evaluatePolicy() 使用、audit exit code 一致確認。 |
 | PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 3+ public repo で scan/analyze/readiness/schema を記録 |
 | PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | FP rate <= 15%、seeded detection >= 80% を記録 |
 | PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | PR comment / Checks / artifact upload / SARIF upload を検証 |
@@ -735,6 +735,11 @@ Policy / readiness:
   - policy-loader.ts に rules blocking を追加。
   - policy-evaluator.ts で複数 blocking reasons を同時記録。
   - 回帰テスト: 42 readiness tests, 53 smoke tests pass。
+- [x] `src/cli/analyze.ts` の blocking 判定を `evaluatePolicy()` に統合。
+  - 2026-05-01: checkBlockingFindings() を削除し evaluatePolicy() を使用。
+  - audit.json の exit.code/status/reason を実際の exit code と一致。
+  - generateBlockingSummary() で具体的 blocking 理由を生成。
+  - fixture acceptance 3 fixtures pass、demo-shop-ts で blocked_input 時 exit 1。
 - [x] policy YAML 形式を docs / fixtures / `.github/ctg-policy.yaml` / schema で統一。
   - 2026-05-01: strict.yaml を product-spec-v1.md 形式 (map形式) に変換。
   - `.github/ctg-policy.yaml` は既に map形式。
