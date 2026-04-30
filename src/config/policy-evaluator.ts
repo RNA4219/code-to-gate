@@ -20,7 +20,7 @@ export type ReadinessStatus =
  * Failed condition details
  */
 export interface FailedCondition {
-  type: "severity_block" | "category_block" | "count_threshold" | "low_confidence" | "suppressed_expired";
+  type: "severity_block" | "category_block" | "rule_block" | "count_threshold" | "low_confidence" | "suppressed_expired";
   severity?: Severity;
   category?: FindingCategory;
   ruleId?: string;
@@ -90,6 +90,14 @@ function isSeverityBlocked(severity: Severity, blockingConfig: CtgPolicy["blocki
 function isCategoryBlocked(category: FindingCategory, blockingConfig: CtgPolicy["blocking"]["category"]): boolean {
   const policyKey = CATEGORY_MAP[category];
   return blockingConfig[policyKey] === true;
+}
+
+/**
+ * Check if a rule is blocked by policy
+ */
+function isRuleBlocked(ruleId: string, blockingRules: CtgPolicy["blocking"]["rules"]): boolean {
+  if (!blockingRules) return false;
+  return blockingRules[ruleId] === true;
 }
 
 /**
@@ -250,29 +258,51 @@ export function evaluatePolicy(
       continue;
     }
 
+    // Check all blocking conditions and record all reasons
+    const blockingReasons: FailedCondition[] = [];
+    let isBlocked = false;
+
     // Check severity blocking
     if (isSeverityBlocked(finding.severity, policy.blocking.severity)) {
-      blockedFindings.push(finding);
-      failedConditions.push({
+      isBlocked = true;
+      blockingReasons.push({
         type: "severity_block",
         severity: finding.severity,
         findingId: finding.id,
         ruleId: finding.ruleId,
         message: `Finding ${finding.id} blocked due to severity ${finding.severity}`,
       });
-      continue;
+    }
+
+    // Check rule blocking (only for high/critical severity)
+    if (policy.blocking.rules && isRuleBlocked(finding.ruleId, policy.blocking.rules)) {
+      if (finding.severity === "high" || finding.severity === "critical") {
+        isBlocked = true;
+        blockingReasons.push({
+          type: "rule_block",
+          ruleId: finding.ruleId,
+          findingId: finding.id,
+          message: `Finding ${finding.id} blocked due to rule ${finding.ruleId} with ${finding.severity} severity`,
+        });
+      }
     }
 
     // Check category blocking
     if (isCategoryBlocked(finding.category, policy.blocking.category)) {
-      blockedFindings.push(finding);
-      failedConditions.push({
+      isBlocked = true;
+      blockingReasons.push({
         type: "category_block",
         category: finding.category,
         findingId: finding.id,
         ruleId: finding.ruleId,
         message: `Finding ${finding.id} blocked due to category ${finding.category}`,
       });
+    }
+
+    // If any blocking condition matched, add to blocked findings and record all reasons
+    if (isBlocked) {
+      blockedFindings.push(finding);
+      failedConditions.push(...blockingReasons);
       continue;
     }
 

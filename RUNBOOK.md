@@ -607,17 +607,190 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 - 2026-05-01 時点の判定は、MVP リリース検収としては conditional go、プロダクトレベル品質としては no-go。
 - `readiness` の policy blocking は `BLOCKING_CATEGORY_*` / `BLOCKING_RULE_*` を `blocked_input` に倒す状態まで修正済み。
 - `npm run test:coverage` は `vitest.coverage.config.ts` により release gate 主経路へ対象を絞って完走する。
-- ただし coverage は全体品質保証ではない。`llm-health`、`plugin-sandbox`、`viewer`、config loader、policy loader、重い integration / performance / real repo 検証は別ゲート扱い。
-- `src/cli/readiness.ts` には独自 YAML parser / policy evaluator が残っており、`src/config/policy-loader.ts` / `src/config/policy-evaluator.ts` と責務が分岐している。
-- policy YAML 形式は docs / fixture / config 実装間で揺れが残る。
+- ただし coverage は全体品質保証ではない。`llm-health`、`plugin-sandbox`、`viewer`、重い integration / performance / real repo 検証は別ゲート扱い。
+- **2026-05-01 解消済み**: `src/cli/readiness.ts` の独自 YAML parser / policy evaluator を廃止。`src/config/policy-loader.ts` / `src/config/policy-evaluator.ts` と責務を統合。
+- **2026-05-01 解消済み**: policy YAML 形式を product-spec-v1.md 形式 (map形式) に統一。`fixtures/policies/strict.yaml` と `.github/ctg-policy.yaml` が同一形式。
 
-解消条件:
-- policy schema を 1 つに固定し、fixtures、docs、`.github/ctg-policy.yaml`、loader/evaluator を同一 contract に統合する。
-- `readiness` は CLI 内独自 parser ではなく共通 policy loader / evaluator を呼ぶ。
+解消条件 (残):
 - release gate 用 coverage と product gate 用 heavy checks を CI 上で明示的に分離する。
 - `npm run test:real-repo` と `npm run test:performance` の期待値、対象 repo、失敗時扱いを RUNBOOK と CI に固定する。
 - LLM finding 反映、誤検知/偽陰性評価、domain-specific report 表現を acceptance test と golden artifact で固定する。
 - viewer / plugin sandbox / local LLM provider / GitHub integration を product gate の必須または明示 waiver 対象にする。
+
+### 6.9 プロダクト品質検収レポート (2026-05-01)
+
+#### 意図
+
+この検収は「いま npm package として動くか」だけを判定しない。`docs/product-acceptance-v1.md` の Phase 1 α 以上を最低ラインとして、実ユーザーが CI / PR / release 判断で継続利用できる品質かを判定する。
+
+ドリフト防止ルール:
+- 正本は `docs/product-requirements-v1.md`、`docs/product-spec-v1.md`、`docs/product-acceptance-v1.md`、`docs/product-gap-analysis.md`、本 RUNBOOK。
+- `npm run test:coverage` が green でも product gate を green とみなさない。coverage は release gate 主経路の白箱証跡であり、real repo / FP-FN / CI / LLM / security / docs の代替ではない。
+- product gate の判定を変える場合は、この節の checklist と `6.8` の負債を同時に更新する。
+- 未検証項目は `[ ]` のまま残す。推測で `[x]` にしない。
+- waiver を使う場合は、期限、責任者、残リスク、再検収コマンドを同じ行または直下に書く。
+
+#### 1. 根拠付き観点
+
+| 観点 | 根拠 | 判定 | メモ |
+|---|---|---|---|
+| MVP CLI 主経路 | `npm run build`, smoke, readiness 回帰, release validate | pass | scan/analyze/readiness/export/schema の基本経路は動く |
+| Policy / readiness | `artifact-contracts.md` の blocking 条件、`readiness` 回帰 | pass | 2026-05-01: parser/evaluator 統合完了、strict.yaml 形式統一、回帰テスト 42+53 pass |
+| Product α acceptance | `docs/product-acceptance-v1.md` 3.1 / 4.1 | fail | real repo / GitHub / LLM / FP-FN / docs が未達 |
+| Evidence backed | `docs/product-requirements-v1.md` 4, 13, 19 | partial | findings evidence はあるが LLM unsupported / validator が限定的 |
+| CI-ready | `docs/product-requirements-v1.md` 14 | fail | PR comment / Checks / workflow template が product acceptance 未達 |
+| Plugin/security | `docs/plugin-security-contract.md`, `docs/product-requirements-v1.md` 15 | fail | plugin sandbox と provenance は product gate 未達 |
+| Operability | RUNBOOK / troubleshooting / release procedure | partial | RUNBOOK はあるが product acceptance 実行手順が未自動化 |
+
+#### 2. リスク
+
+| id | 優先度 | リスク | No-Go 理由 | 解消条件 |
+|---|---|---|---|---|
+| PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 本 checklist を CI / release procedure に組み込む |
+| PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定 |
+| PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 3+ public repo で scan/analyze/readiness/schema を記録 |
+| PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | FP rate <= 15%、seeded detection >= 80% を記録 |
+| PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | PR comment / Checks / artifact upload / SARIF upload を検証 |
+| PRD-P1-02 | P1 | LLM trust 実装不足 | LLM finding / redaction / fallback の安全性が不明 | provider contract、redaction、require-llm failure を検証 |
+| PRD-P1-03 | P1 | plugin sandbox 未達 | private plugin 利用時の安全性が不足 | sandbox / timeout / invalid output / provenance を検証 |
+
+#### 3. 優先度
+
+Product α 判定に必要な最低順:
+1. P0: product gate checklist を release procedure / CI に接続する。
+2. P0: policy loader/evaluator を統合し、`strict.yaml` と product policy schema の揺れをなくす。
+3. P0: 3+ real repo acceptance を実行して証跡を保存する。
+4. P0: FP/FN 評価表を作り、core rules の誤検知率と検出率を記録する。
+5. P1: GitHub Actions / PR comment / Checks / SARIF upload を product acceptance として固定する。
+6. P1: LLM trust / redaction / require-llm failure path を自動検証に入れる。
+7. P1: docs / quickstart / CLI reference / examples を OSS 利用者向けに揃える。
+
+#### 4. 手動テストケース / チェックリスト
+
+埋め方:
+- `[x]`: 実行証跡あり、期待値一致。
+- `[~]`: 部分 pass。直下に不足を書く。
+- `[ ]`: 未実施または期待値未達。
+- `waiver:` を付ける場合は期限と責任者を書く。
+
+Product gate summary:
+- [ ] Product α GO
+- [ ] Conditional GO with explicit waiver
+- [x] No-Go
+
+MVP / release smoke:
+- [x] `npm run build` が exit 0。
+- [x] `npx vitest run src/cli/__tests__/readiness.test.ts --reporter=dot` が 42 passed。
+- [x] `npm run test:smoke` が 53 passed。
+- [x] `npm run test:coverage -- --maxWorkers=1 --reporter=dot` が完走し、release-gate 主経路の閾値を満たす。
+- [x] `npm run release:validate` が exit 0、package dry-run が成功。
+- [x] `readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh-confirm --out .qh-confirm` が `blocked_input` を返す。
+
+Product α acceptance:
+- [ ] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
+- [ ] backend / frontend / library の 3 タイプを含める。
+- [ ] 100-500 files 程度の repo を含める。
+- [ ] `demo-suppressions-ts` fixture を作り、suppression と expiry warning を確認。
+- [ ] `demo-github-actions-ts` fixture を作り、workflow 動作を確認。
+- [~] `demo-shop-ts` は blocking fixture として確認済み。
+  - 不足: fixture runner command (`code-to-gate fixture run`) は未確認。
+- [~] `demo-ci-imports` は import fixture として存在。
+  - 不足: product acceptance の full command set と evidence package は未作成。
+
+Schema / artifact:
+- [x] `findings.json` と `release-readiness.json` は直近検収で schema validate 済み。
+- [x] SARIF / workflow-evidence export は直近検収で生成確認済み。
+- [ ] `repo-graph.json`, `risk-register.yaml`, `test-seeds.json`, `audit.json` を product acceptance package として一括 schema validate。
+- [ ] 4 downstream adapter schema を CI で contract test 化。
+- [ ] SARIF v2.1.0 外部 validator または GitHub upload 経路で検証。
+
+Policy / readiness:
+- [x] `BLOCKING_SEVERITY_*` は `blocked_input`。
+- [x] `BLOCKING_CATEGORY_*` は `blocked_input`。
+- [x] `BLOCKING_RULE_*` は `blocked_input`。
+- [x] `src/cli/readiness.ts` の独自 parser を共通 `policy-loader` / `policy-evaluator` に統合。
+  - 2026-05-01: readiness.ts を policy-loader/policy-evaluator 使いに修正。
+  - strict.yaml を map形式 (blocking.severity.critical: true) に変換。
+  - policy-loader.ts に rules blocking を追加。
+  - policy-evaluator.ts で複数 blocking reasons を同時記録。
+  - 回帰テスト: 42 readiness tests, 53 smoke tests pass。
+- [x] policy YAML 形式を docs / fixtures / `.github/ctg-policy.yaml` / schema で統一。
+  - 2026-05-01: strict.yaml を product-spec-v1.md 形式 (map形式) に変換。
+  - `.github/ctg-policy.yaml` は既に map形式。
+  - policy-loader.ts, policy-evaluator.ts が共通 parser/evaluator。
+- [ ] malformed policy を `POLICY_FAILED` に倒すか、graceful partial とするか仕様を固定。
+
+FP/FN / finding quality:
+- [ ] 3+ repo の findings を human review し、TP / FP / uncertain を記録。
+- [ ] FP rate <= 15% を確認。
+- [ ] seeded smells の detection rate >= 80% を確認。
+- [ ] domain-specific report 表現が payment/auth/validation などの文脈を拾うことを確認。
+- [ ] LLM enrichment が finding / report / audit に反映されることを確認。
+
+LLM / redaction:
+- [ ] remote LLM provider で structured output schema validation pass。
+- [ ] deterministic fallback が LLM timeout / provider failure 時に安全側へ倒れる。
+- [ ] `--require-llm` 失敗時に exit code 4。
+- [ ] `.env` / secrets が LLM request payload に含まれない。
+- [ ] unsupported claims が primary findings に混入せず隔離される。
+- [ ] local-only mode で外部 network を使わないことを確認。
+
+GitHub / CI:
+- [ ] GitHub Actions workflow template が動作する。
+- [ ] `.qh/` artifact upload が成功する。
+- [ ] SARIF upload が GitHub code scanning に通る。
+- [ ] PR comment が投稿 / 再実行時更新される。
+- [ ] Checks API で check run と annotations が作成される。
+- [ ] exit code 0/1/4/7/9 が CI 上で意図どおり扱われる。
+
+Plugin / security:
+- [ ] plugin manifest validation が pass/fail を正しく返す。
+- [ ] plugin timeout / invalid output / retry が contract 通り。
+- [ ] plugin sandbox が private data を保護する。
+- [ ] plugin provenance / visibility が audit に残る。
+- [ ] company-specific rule が OSS core に混入しない。
+
+Viewer / operability / docs:
+- [ ] quickstart が 5-step で初回利用者に通る。
+- [ ] CLI reference が全コマンド / 全 option を網羅する。
+- [ ] troubleshooting が主要 exit code と対処を網羅する。
+- [ ] examples repo または examples directory が product acceptance と同期する。
+- [ ] viewer が findings / risk / readiness / graph を表示できる。
+- [ ] large artifact で viewer が破綻しない。
+
+Performance:
+- [ ] small repo scan <= 30s。
+- [ ] small repo analyze <= 60s (LLM excluded)。
+- [ ] schema validation <= 5s。
+- [ ] performance 証跡を `.qh/acceptance/timing.json` 相当に保存。
+- [ ] `npm run test:performance` の期待値と失敗時扱いを CI に固定。
+
+#### 5. 工数
+
+| 作業 | 目安 |
+|---|---:|
+| product gate checklist を CI / release procedure に接続 | 0.5-1 日 |
+| policy loader/evaluator 統合 + regression fixtures | 1-2 日 |
+| 3+ real repo acceptance 実行と証跡整備 | 0.5-1.5 日 |
+| FP/FN evaluation workflow と初回レビュー | 1-2 日 |
+| GitHub Actions / PR comment / Checks / SARIF upload 検証 | 1-2 日 |
+| LLM trust / redaction / require-llm failure tests | 1-2 日 |
+| docs / quickstart / CLI reference / examples 整備 | 1-2 日 |
+
+最短で Product α に近づけるだけでも 5-10 人日程度。v1.0 product stable は別見積り。
+
+#### 6. Gate 判定
+
+判定: no_go
+
+理由:
+- Product α の必須項目である real repo acceptance、FP/FN 評価、GitHub Actions / PR comment / Checks、LLM trust / redaction、docs package が未達。
+- 現在の coverage pass は release-gate 主経路の証跡であり、product gate の代替ではない。
+- policy 実装が分岐しており、将来の判定ドリフトリスクが高い。
+
+#### 7. Go/No-Go brief
+
+2026-05-01 時点の code-to-gate は、MVP リリース検収としては動作確認済みだが、プロダクト品質レベルでは No-Go。次に進める場合は、上記 checklist を release procedure の正規ゲートにして、P0 項目から順に `[x]` へ埋める。`conditional_go` に変えるには、未達 P0 に期限付き waiver を置き、CI / evidence package / human review 証跡を残すこと。
 
 ## 7. リファクタリング方針
 

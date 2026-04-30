@@ -36,6 +36,13 @@ export interface BlockingCategoryConfig {
 }
 
 /**
+ * Blocking rule thresholds (rule-specific blocking)
+ */
+export interface BlockingRulesConfig {
+  [ruleId: string]: boolean;
+}
+
+/**
  * Blocking count thresholds
  */
 export interface BlockingCountThreshold {
@@ -51,6 +58,7 @@ export interface BlockingCountThreshold {
 export interface BlockingConfig {
   severity: BlockingSeverityConfig;
   category: BlockingCategoryConfig;
+  rules?: BlockingRulesConfig;
   countThreshold?: BlockingCountThreshold;
 }
 
@@ -259,6 +267,7 @@ function parseYamlPolicy(content: string): Partial<CtgPolicy> {
         result.blocking = {
           severity: { ...DEFAULT_BLOCKING_SEVERITY },
           category: { ...DEFAULT_BLOCKING_CATEGORY },
+          rules: {},
         };
       } else if (key === "confidence") {
         result.confidence = { ...DEFAULT_CONFIDENCE };
@@ -278,20 +287,37 @@ function parseYamlPolicy(content: string): Partial<CtgPolicy> {
     else if (indent > 0 && trimmed.includes(":")) {
       const [key, value] = trimmed.split(":").map(s => s.trim());
 
-      // Blocking severity
-      if (currentSection === "blocking" && currentSubSection === "severity" && result.blocking?.severity) {
+      // Sub-section markers first (indent=2 level keys like severity:, category:, rules:)
+      if (currentSection === "blocking" && result.blocking && indent === 2) {
+        if (key === "severity") {
+          currentSubSection = "severity";
+        } else if (key === "category") {
+          currentSubSection = "category";
+        } else if (key === "rules") {
+          currentSubSection = "rules";
+          result.blocking.rules = {};
+        } else if (key === "count_threshold") {
+          currentSubSection = "count_threshold";
+        }
+      }
+      // Blocking severity values
+      else if (currentSection === "blocking" && currentSubSection === "severity" && result.blocking?.severity) {
         if (["critical", "high", "medium", "low"].includes(key)) {
           result.blocking.severity[key as Severity] = value === "true";
         }
       }
-      // Blocking category
+      // Blocking category values
       else if (currentSection === "blocking" && currentSubSection === "category" && result.blocking?.category) {
         const categoryKey = key.replace("-", "");
         if (categoryKey in DEFAULT_BLOCKING_CATEGORY) {
           result.blocking.category[categoryKey as keyof BlockingCategoryConfig] = value === "true";
         }
       }
-      // Blocking count_threshold
+      // Blocking rules values
+      else if (currentSection === "blocking" && currentSubSection === "rules" && result.blocking?.rules) {
+        result.blocking.rules[key] = value === "true";
+      }
+      // Blocking count_threshold values
       else if (currentSection === "blocking" && currentSubSection === "count_threshold") {
         if (!result.blocking?.countThreshold) {
           result.blocking = result.blocking || { severity: DEFAULT_BLOCKING_SEVERITY, category: DEFAULT_BLOCKING_CATEGORY };
@@ -305,16 +331,6 @@ function parseYamlPolicy(content: string): Partial<CtgPolicy> {
           result.blocking.countThreshold.mediumMax = parseInt(value, 10);
         } else if (key === "low_max") {
           result.blocking.countThreshold.lowMax = parseInt(value, 10);
-        }
-      }
-      // Sub-section markers
-      else if (currentSection === "blocking" && result.blocking) {
-        if (key === "severity") {
-          currentSubSection = "severity";
-        } else if (key === "category") {
-          currentSubSection = "category";
-        } else if (key === "count_threshold") {
-          currentSubSection = "count_threshold";
         }
       }
       // Confidence section
@@ -397,6 +413,7 @@ function mergeWithDefaults(parsed: Partial<CtgPolicy>): CtgPolicy {
     blocking: {
       severity: { ...defaults.blocking.severity, ...parsed.blocking?.severity },
       category: { ...defaults.blocking.category, ...parsed.blocking?.category },
+      rules: { ...parsed.blocking?.rules },
       countThreshold: { ...defaults.blocking.countThreshold, ...parsed.blocking?.countThreshold },
     },
     confidence: { ...defaults.confidence, ...parsed.confidence },

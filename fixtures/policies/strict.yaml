@@ -1,16 +1,47 @@
 version: ctg/v1alpha1
-name: strict
+policy_id: strict
 description: Strict synthetic policy for v0.1 fixture acceptance.
-blocking:
-  severities:
-    - critical
-  categories:
-    - payment
-  rules:
-    - CLIENT_TRUSTED_PRICE
-    - WEAK_AUTH_GUARD
-readiness:
-  criticalFindingStatus: blocked_input
-  highAuthFindingStatus: blocked_input
-  defaultRiskStatus: needs_review
 
+# Blocking thresholds by severity
+blocking:
+  severity:
+    critical: true
+    high: true
+    medium: false
+    low: false
+
+  # Blocking thresholds by category
+  category:
+    auth: true
+    payment: true
+    validation: true
+    data: false
+    config: false
+    maintainability: false
+    testing: false
+    compatibility: false
+    release-risk: false
+    security: true
+
+  # Blocking thresholds by rule (synthetic fixture specific)
+  rules:
+    CLIENT_TRUSTED_PRICE: true
+    WEAK_AUTH_GUARD: true
+
+  # Count thresholds
+  count_threshold:
+    critical_max: 0
+    high_max: 3
+    medium_max: 10
+
+# Confidence thresholds
+confidence:
+  min_confidence: 0.6
+  low_confidence_threshold: 0.4
+  filter_low: true
+
+# Exit code policy
+exit:
+  fail_on_critical: true
+  fail_on_high: true
+  warn_only: false

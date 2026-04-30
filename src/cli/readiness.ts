@@ -6,16 +6,14 @@
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { sha256 } from "../core/path-utils.js";
 import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
+import { loadPolicyFile, type CtgPolicy } from "../config/policy-loader.js";
+import { evaluatePolicy, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
 
 import {
   FindingsArtifact,
   RiskRegisterArtifact,
-  Policy,
-  Severity,
-  FindingCategory,
   CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
 
@@ -70,300 +68,106 @@ interface ReleaseReadinessArtifact {
   };
 }
 
-interface FailedCondition {
+/**
+ * Map evaluation failed conditions to artifact format
+ */
+function mapFailedConditions(result: PolicyEvaluationResult): Array<{
   id: string;
   reason: string;
   matchedFindingIds?: string[];
-  matchedRiskIds?: string[];
+}> {
+  return result.failedConditions.map((condition) => {
+    let id: string;
+
+    switch (condition.type) {
+      case "severity_block":
+        id = `BLOCKING_SEVERITY_${condition.severity?.toUpperCase() || "UNKNOWN"}`;
+        break;
+      case "category_block":
+        id = `BLOCKING_CATEGORY_${condition.category?.toUpperCase() || "UNKNOWN"}`;
+        break;
+      case "rule_block":
+        id = `BLOCKING_RULE_${condition.ruleId || "UNKNOWN"}`;
+        break;
+      case "count_threshold":
+        id = `COUNT_THRESHOLD_${condition.severity?.toUpperCase() || "UNKNOWN"}`;
+        break;
+      case "low_confidence":
+        id = `LOW_CONFIDENCE_${condition.findingId || "UNKNOWN"}`;
+        break;
+      default:
+        id = "UNKNOWN_CONDITION";
+    }
+
+    return {
+      id,
+      reason: condition.message,
+      matchedFindingIds: condition.findingId ? [condition.findingId] : undefined,
+    };
+  });
 }
 
 /**
- * Parse YAML policy file (simple implementation)
+ * Generate recommended actions based on evaluation result
  */
-function parsePolicyYaml(content: string): Policy {
-  const lines = content.split("\n");
-  const policy: Policy = {
-    version: CTG_VERSION,
-    name: "unknown",
-    blocking: {
-      severities: [],
-      categories: [],
-      rules: [],
-    },
-    readiness: {
-      criticalFindingStatus: "blocked_input",
-      highAuthFindingStatus: "needs_review",
-      defaultRiskStatus: "needs_review",
-    },
-  };
-
-  // Track indent levels for each section
-  let currentSection: "" | "blocking" | "readiness" | "blocking_severities" | "blocking_categories" | "blocking_rules" | "readiness_values" = "";
-  let rootIndent = 0; // Indent level of root keys like "blocking:", "readiness:"
-  let listIndent = 0; // Expected indent for list items under a sub-section
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const indent = line.length - line.trimStart().length;
-
-    // Skip empty lines but don't reset section (YAML continuation)
-    if (trimmed === "") continue;
-
-    // Parse version
-    if (trimmed.startsWith("version:")) {
-      policy.version = trimmed.split(":")[1].trim();
-      currentSection = "";
-      continue;
-    }
-
-    // Parse name/policy_id
-    if (trimmed.startsWith("name:") || trimmed.startsWith("policy_id:")) {
-      policy.name = trimmed.split(":")[1].trim();
-      currentSection = "";
-      continue;
-    }
-
-    // Parse description
-    if (trimmed.startsWith("description:")) {
-      policy.description = trimmed.split(":")[1].trim();
-      currentSection = "";
-      continue;
-    }
-
-    // Top-level sections - check if indent is 0 or matches root level
-    if (indent <= rootIndent || rootIndent === 0) {
-      // Enter blocking section
-      if (trimmed.startsWith("blocking:")) {
-        currentSection = "blocking";
-        rootIndent = indent;
-        listIndent = indent + 4; // Items are at indent+4 (2 for sub-section key, +2 for list items)
-        continue;
-      }
-
-      // Enter readiness section
-      if (trimmed.startsWith("readiness:")) {
-        currentSection = "readiness";
-        rootIndent = indent;
-        listIndent = indent + 2;
-        continue;
-      }
-
-      // Reset to root level if we encounter a non-section key at root level
-      if (!trimmed.startsWith("-") && rootIndent > 0) {
-        currentSection = "";
-        rootIndent = 0;
-      }
-    }
-
-    // Sub-section keys inside blocking (at indent+2)
-    // Also handle transition from blocking_* sub-sections to next sub-section
-    if (
-      (currentSection === "blocking" || currentSection.startsWith("blocking_")) &&
-      indent === rootIndent + 2 &&
-      trimmed.endsWith(":")
-    ) {
-      if (trimmed === "severities:") {
-        currentSection = "blocking_severities";
-        listIndent = indent + 2;
-        continue;
-      }
-      if (trimmed === "categories:") {
-        currentSection = "blocking_categories";
-        listIndent = indent + 2;
-        continue;
-      }
-      if (trimmed === "rules:") {
-        currentSection = "blocking_rules";
-        listIndent = indent + 2;
-        continue;
-      }
-    }
-
-    // Sub-section keys inside readiness (at indent+2)
-    if (currentSection === "readiness" && indent === rootIndent + 2 && !trimmed.endsWith(":")) {
-      // Parse readiness values inline
-      if (trimmed.startsWith("criticalFindingStatus:")) {
-        const val = trimmed.split(":")[1].trim();
-        if (val === "blocked_input" || val === "needs_review") {
-          policy.readiness!.criticalFindingStatus = val;
-        }
-        continue;
-      }
-      if (trimmed.startsWith("highAuthFindingStatus:")) {
-        const val = trimmed.split(":")[1].trim();
-        if (val === "blocked_input" || val === "needs_review") {
-          policy.readiness!.highAuthFindingStatus = val;
-        }
-        continue;
-      }
-      if (trimmed.startsWith("defaultRiskStatus:")) {
-        const val = trimmed.split(":")[1].trim();
-        if (val === "needs_review" || val === "passed_with_risk") {
-          policy.readiness!.defaultRiskStatus = val;
-        }
-        continue;
-      }
-    }
-
-    // Parse list items (at listIndent level, starting with "-")
-    if (trimmed.startsWith("-") && indent === listIndent) {
-      const value = trimmed.slice(1).trim();
-
-      if (currentSection === "blocking_severities") {
-        if (["critical", "high", "medium", "low"].includes(value)) {
-          policy.blocking.severities!.push(value as Severity);
-        }
-      } else if (currentSection === "blocking_categories") {
-        policy.blocking.categories!.push(value as FindingCategory);
-      } else if (currentSection === "blocking_rules") {
-        policy.blocking.rules!.push(value);
-      }
-    }
-
-    // Reset section if indent goes back to root level with a non-list key
-    if (indent <= rootIndent && !trimmed.startsWith("-") && currentSection !== "") {
-      // Check if it's a new section
-      if (trimmed.startsWith("blocking:") || trimmed.startsWith("readiness:")) {
-        // Already handled above
-      } else {
-        currentSection = "";
-        rootIndent = 0;
-      }
-    }
-  }
-
-  return policy;
-}
-
-/**
- * Evaluate findings against policy
- */
-function evaluateFindingsAgainstPolicy(
-  findings: FindingsArtifact,
-  policy: Policy
-): {
-  failedConditions: FailedCondition[];
-  status: "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
-} {
-  const failedConditions: FailedCondition[] = [];
-
-  // Check severity thresholds
-  for (const severity of policy.blocking.severities || []) {
-    const matchingFindings = findings.findings.filter((f) => f.severity === severity);
-
-    if (matchingFindings.length > 0) {
-      failedConditions.push({
-        id: `BLOCKING_SEVERITY_${severity.toUpperCase()}`,
-        reason: `${matchingFindings.length} findings with blocking severity ${severity}`,
-        matchedFindingIds: matchingFindings.map((f) => f.id),
-      });
-    }
-  }
-
-  // Check category thresholds
-  for (const category of policy.blocking.categories || []) {
-    const matchingFindings = findings.findings.filter((f) => f.category === category);
-
-    if (matchingFindings.length > 0) {
-      const highSeverityFindings = matchingFindings.filter(
-        (f) => f.severity === "high" || f.severity === "critical"
-      );
-
-      if (highSeverityFindings.length > 0) {
-        failedConditions.push({
-          id: `BLOCKING_CATEGORY_${category.toUpperCase()}`,
-          reason: `${highSeverityFindings.length} high/critical findings in blocking category ${category}`,
-          matchedFindingIds: highSeverityFindings.map((f) => f.id),
-        });
-      }
-    }
-  }
-
-  // Check blocking rules
-  for (const rule of policy.blocking.rules || []) {
-    const matchingFindings = findings.findings.filter((f) => f.ruleId === rule);
-
-    if (matchingFindings.length > 0) {
-      const highSeverityFindings = matchingFindings.filter(
-        (f) => f.severity === "high" || f.severity === "critical"
-      );
-
-      if (highSeverityFindings.length > 0) {
-        failedConditions.push({
-          id: `BLOCKING_RULE_${rule}`,
-          reason: `${highSeverityFindings.length} high/critical findings for blocking rule ${rule}`,
-          matchedFindingIds: highSeverityFindings.map((f) => f.id),
-        });
-      }
-    }
-  }
-
-  // Determine status based on failed conditions and policy readiness settings
-  type ReadinessStatus = "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
-  let status: ReadinessStatus = "passed";
-
-  if (failedConditions.length > 0) {
-    const hasBlockingCondition = failedConditions.some((condition) =>
-      condition.id.startsWith("BLOCKING_")
-    );
-
-    if (hasBlockingCondition) {
-      status = "blocked_input";
-    } else if (
-      policy.readiness?.defaultRiskStatus === "needs_review" ||
-      policy.readiness?.defaultRiskStatus === "passed_with_risk"
-    ) {
-      status = policy.readiness.defaultRiskStatus;
-    } else {
-      status = "needs_review";
-    }
-  }
-
-  return { failedConditions, status };
-}
-
-/**
- * Generate recommended actions based on failed conditions
- */
-function generateRecommendedActions(
-  failedConditions: FailedCondition[],
-  findings: FindingsArtifact
-): string[] {
+function generateRecommendedActions(result: PolicyEvaluationResult): string[] {
   const actions: string[] = [];
 
-  for (const condition of failedConditions) {
-    if (condition.id.includes("SEVERITY_CRITICAL")) {
+  for (const condition of result.failedConditions) {
+    if (condition.type === "severity_block" && condition.severity === "critical") {
       actions.push("Address all critical severity findings before release");
     }
 
-    if (condition.id.includes("SEVERITY_HIGH")) {
+    if (condition.type === "severity_block" && condition.severity === "high") {
       actions.push("Review and address high severity findings");
     }
 
-    if (condition.id.includes("_AUTH_")) {
+    if (condition.type === "category_block" && condition.category === "auth") {
       actions.push("Review authentication findings - consider security impact");
     }
 
-    if (condition.id.includes("_PAYMENT_")) {
+    if (condition.type === "category_block" && condition.category === "payment") {
       actions.push("Review payment-related findings - validate server-side price calculation");
     }
 
-    if (condition.id.includes("_VALIDATION_")) {
+    if (condition.type === "category_block" && condition.category === "validation") {
       actions.push("Add missing server-side validation for user inputs");
     }
 
-    if (condition.id.includes("_TESTING_")) {
+    if (condition.type === "category_block" && condition.category === "testing") {
       actions.push("Add tests for critical paths and untested functionality");
+    }
+
+    if (condition.type === "rule_block") {
+      actions.push(`Address findings for blocking rule ${condition.ruleId}`);
     }
   }
 
   // Add general recommendations if no specific ones
-  if (actions.length === 0 && findings.findings.length > 0) {
+  if (actions.length === 0 && result.summary.totalFindings > 0) {
     actions.push("Review findings and assess impact on release");
     actions.push("Consider addressing medium/low severity findings");
   }
 
   return actions;
+}
+
+/**
+ * Get status summary message
+ */
+function getStatusSummary(status: ReadinessStatus): string {
+  switch (status) {
+    case "passed":
+      return "All policy conditions met, release ready";
+    case "passed_with_risk":
+      return "Release possible with identified risks to address";
+    case "needs_review":
+      return "Release blocked pending review of findings";
+    case "blocked_input":
+      return "Release blocked by critical findings";
+    default:
+      return "Unknown status";
+  }
 }
 
 export async function readinessCommand(args: string[], options: ReadinessOptions): Promise<number> {
@@ -399,28 +203,27 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
   const absoluteOutDir = path.resolve(cwd, outDir);
 
   try {
-    // Load policy
-    const policyContent = readFileSync(policyFile, "utf8");
-    const policy = parsePolicyYaml(policyContent);
+    // Load policy using policy-loader
+    const { policy, errors: policyErrors } = loadPolicyFile(policyPath, cwd);
 
-    // Load findings from --from directory or build from repo
+    if (policyErrors.length > 0) {
+      for (const error of policyErrors) {
+        console.error(`Policy error: ${error}`);
+      }
+      if (!policy.policyId) {
+        return options.EXIT.POLICY_FAILED;
+      }
+    }
+
+    // Load findings from --from directory or create empty
     let findings: FindingsArtifact;
-    let riskRegister: RiskRegisterArtifact | undefined;
 
     if (fromDir && existsSync(path.resolve(cwd, fromDir, "findings.json"))) {
-      // Load existing findings
       const findingsPath = path.resolve(cwd, fromDir, "findings.json");
       const findingsContent = readFileSync(findingsPath, "utf8");
       findings = JSON.parse(findingsContent);
-
-      // Try to load risk register
-      const riskPath = path.resolve(cwd, fromDir, "risk-register.yaml");
-      if (existsSync(riskPath)) {
-        // For YAML, we just note the reference
-        riskRegister = undefined; // Would need YAML parser
-      }
     } else {
-      // Need to run analysis first (simplified - create empty findings)
+      // Create empty findings artifact
       const now = new Date().toISOString();
       const runId = `readiness-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
 
@@ -432,7 +235,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
         tool: {
           name: "code-to-gate",
           version: VERSION,
-          policy_id: policy.name,
+          policy_id: policy.policyId,
           plugin_versions: [],
         },
         artifact: "findings",
@@ -443,11 +246,14 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       };
     }
 
-    // Evaluate findings against policy
-    const { failedConditions, status } = evaluateFindingsAgainstPolicy(findings, policy);
+    // Evaluate findings against policy using policy-evaluator
+    const evalResult = evaluatePolicy(findings.findings, policy);
+
+    // Map failed conditions to artifact format
+    const failedConditions = mapFailedConditions(evalResult);
 
     // Generate recommended actions
-    const recommendedActions = generateRecommendedActions(failedConditions, findings);
+    const recommendedActions = generateRecommendedActions(evalResult);
 
     // Build readiness artifact
     const now = new Date().toISOString();
@@ -461,27 +267,20 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       tool: {
         name: "code-to-gate",
         version: VERSION,
-        policy_id: policy.name,
+        policy_id: policy.policyId,
         plugin_versions: [],
       },
       artifact: "release-readiness",
       schema: "release-readiness@v1",
-      status,
+      status: evalResult.status,
       completeness: findings.completeness,
-      summary:
-        status === "passed"
-          ? "All policy conditions met, release ready"
-          : status === "passed_with_risk"
-          ? "Release possible with identified risks to address"
-          : status === "needs_review"
-          ? "Release blocked pending review of findings"
-          : "Release blocked by critical findings",
+      summary: getStatusSummary(evalResult.status),
       counts: {
         findings: findings.findings.length,
-        critical: findings.findings.filter((f) => f.severity === "critical").length,
-        high: findings.findings.filter((f) => f.severity === "high").length,
-        risks: 0, // Would need risk register
-        testSeeds: 0, // Would need test seeds
+        critical: evalResult.summary.severityCounts.critical,
+        high: evalResult.summary.severityCounts.high,
+        risks: 0,
+        testSeeds: 0,
         unsupportedClaims: findings.unsupported_claims.length,
       },
       failedConditions,
@@ -503,8 +302,8 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       JSON.stringify({
         tool: "code-to-gate",
         command: "readiness",
-        policy: policy.name,
-        status,
+        policy: policy.policyId,
+        status: evalResult.status,
         artifact: path.relative(cwd, outputPath),
         summary: {
           findings: readiness.counts.findings,
@@ -516,7 +315,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     );
 
     // Return exit code based on status
-    if (status === "passed" || status === "passed_with_risk") {
+    if (evalResult.status === "passed" || evalResult.status === "passed_with_risk") {
       return options.EXIT.OK;
     } else {
       return options.EXIT.READINESS_NOT_CLEAR;
