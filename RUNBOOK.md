@@ -485,7 +485,8 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 状態:
 - `npm run build` は通過済み。
 - `npx vitest run src/cli/__tests__/scan.test.ts --reporter=dot` は 38 tests pass。
-- `npx vitest run --maxWorkers=1 --reporter=dot` は 2026-04-30 時点で 5 分 timeout。
+- 追加機能群の targeted test は 2026-04-30 時点で `11 files / 270 tests passed`。
+- `npx vitest run --maxWorkers=1 --reporter=dot` は過去に 5 分 timeout。追加機能群の安定化後、full suite は未再検証。
 - `npm run test:coverage` は coverage summary 未取得。sandbox では Vitest/esbuild spawn が失敗する場合がある。
 
 暫定運用:
@@ -523,6 +524,82 @@ npx vitest run --maxWorkers=1 --reporter=dot
 - CLI / integration tests で同一 fixture を何度も生成する箇所を shared fixture setup に寄せる。
 - performance tests を通常 unit test と別 script に分離する。
 - full test と release validation test の境界を `package.json` scripts に明示する。
+
+### 6.3 Release readiness policy の gate 判定が弱い
+
+状態:
+- GitHub Actions の Release Readiness は成功している。
+- `analyze` は critical/high findings を生成し exit code `5` になるが、workflow では artifact 生成済みなら続行する。
+- `readiness` は `.github/ctg-policy.yaml` を読むが、現行の簡易 YAML parser / policy shape の不整合により、critical/high findings があっても `passed` になる可能性がある。
+
+暫定運用:
+```powershell
+npm run build
+node ./dist/cli.js analyze . --policy .github/ctg-policy.yaml --emit all --out .qh --format json
+node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out .qh
+```
+
+確認観点:
+- `.qh/findings.json` の severity count と `.qh/release-readiness.json` の `failedConditions` が一致しているか。
+- `.github/ctg-policy.yaml`、`fixtures/policies/*.yaml`、`src/cli/readiness.ts` の policy schema が同じ形を前提にしているか。
+- CI の `Block release if not ready` が、本当に release blocking 条件を拾えているか。
+
+解消条件:
+- policy loader を共通化し、`analyze` / `readiness` / tests が同じ policy model を使う。
+- critical/high blocking fixture で `readiness.status=blocked_input` または `needs_review` になる contract test を追加する。
+- CI が findings ありの alpha と release blocking を区別できる。
+
+### 6.4 Parallel worker 実装は smoke 済みだが本番 worker path は要検証
+
+状態:
+- `src/parallel/__tests__/file-processor.test.ts` は 2026-04-30 時点で 18 tests pass。
+- `scan --cache enabled --parallel 2` の fixture smoke は通過済み。
+- 現行 scan は `targetFiles.length > 100 && parallelWorkers > 1` のとき worker mode に入る。
+- worker script path は `file-processor-worker.js` を前提にしており、dist 配下の実ファイル存在・ESM 実行互換は未検証。
+
+暫定運用:
+- 大きめ repo で不安定な場合は `--parallel 1` または worker が起動しない file count で切り分ける。
+- CI / release gate では、worker mode の大規模 repo smoke をまだ必須条件にしない。
+
+解消条件:
+- dist 後の worker script を用意し、Node ESM 環境で worker mode が実行できる。
+- 100+ files fixture で `scan --parallel 2` が安定して完走する integration test を追加する。
+
+### 6.5 Historical comparison は重複 finding 対応済みだが matching heuristic は限定的
+
+状態:
+- 同一 artifact 比較で `new=0 resolved=0 unchanged=16 modified=0` になることは確認済み。
+- 同じ `ruleId + path` が複数あるケースはキュー方式で上書きしないよう修正済み。
+- ただし matching は主に `ruleId + primary evidence path` / `ruleId + affectedSymbols` で、行移動・rename・rule id 変更には弱い。
+
+解消条件:
+- finding fingerprint を artifact contract に追加する。
+- path rename / line move / duplicate finding の golden fixtures を追加する。
+- historical report が matching confidence を出す。
+
+### 6.6 Viewer / report 出力は MVP
+
+状態:
+- `viewer --from <dir>` は HTML 生成 smoke 済み。
+- `risk-register.yaml` は viewer 側で完全 parse せず、警告して findings 中心の表示になる。
+- 生成 HTML の視覚 QA、アクセシビリティ、巨大 artifact 表示性能は未検証。
+
+解消条件:
+- risk-register YAML または JSON を正式に読み込む。
+- generated HTML の snapshot / smoke を CI に追加する。
+- large findings set での表示性能を測る。
+
+### 6.7 Local LLM provider は health smoke 中心
+
+状態:
+- `llm-health --provider deterministic` と `llm-health --all` はローカルで通過済み。
+- ollama / llama.cpp はローカル endpoint の health check 中心で、実 model response schema / timeout / fallback の contract test は限定的。
+- 外部 LLM や secret redaction の end-to-end 検証は未完了。
+
+解消条件:
+- provider ごとの response schema contract test を追加する。
+- local-only / allow-cloud / require-llm の失敗時 exit code を fixture で固定する。
+- redaction と audit hash の検証を CI に載せる。
 
 ---
 
