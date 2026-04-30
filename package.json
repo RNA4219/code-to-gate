@@ -36,6 +36,8 @@
     "schemas/",
     "LICENSE",
     "README.md",
+    "README_EN.md",
+    "README_JA.md",
     "CHANGELOG.md"
   ],
   "scripts": {
