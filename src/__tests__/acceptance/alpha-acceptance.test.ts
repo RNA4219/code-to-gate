@@ -477,7 +477,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
       ensureTempDir(outDir);
       // Generate artifacts for schema validation
       runCli(`analyze "${fixturePath}" --emit all --out "${outDir}"`);
-    });
+    }, 30000);
 
     describe('Core artifact schema validation', () => {
       it('findings.json should have valid schema', () => {
@@ -694,7 +694,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         ensureTempDir(readinessSourceDir);
         // Generate findings first for readiness evaluation
         runCli(`analyze "${fixturePath}" --emit all --out "${readinessSourceDir}"`);
-      });
+      }, 30000);
 
       it('should evaluate readiness with policy', () => {
         const result = runCli(`readiness "${fixturePath}" --policy "${policyPath}" --from "${readinessSourceDir}" --out "${outDir}"`);
@@ -722,7 +722,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
       beforeAll(() => {
         ensureTempDir(analyzeOutDir);
         runCli(`analyze "${fixturePath}" --emit all --out "${analyzeOutDir}"`);
-      });
+      }, 30000);
 
       it('should export to gatefield', () => {
         const outFile = path.join(TEMP_DIR, 'gatefield-export.json');

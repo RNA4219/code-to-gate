@@ -186,6 +186,7 @@ export async function schemaValidate(args: string[]): Promise<number> {
       oneOf?: unknown[];
       $defs?: Record<string, unknown>;
       properties?: Record<string, unknown>;
+      $ref?: string;
     };
 
     if (!schema.$schema || !schema.title) {
@@ -199,7 +200,7 @@ export async function schemaValidate(args: string[]): Promise<number> {
     const hasValidStructure =
       schema.$schema &&
       schema.title &&
-      (schema.type || schema.allOf || schema.anyOf || schema.oneOf || schema.$defs || schema.properties);
+      (schema.type || schema.allOf || schema.anyOf || schema.oneOf || schema.$defs || schema.properties || schema.$ref);
 
     if (!hasValidStructure) {
       console.error(`schema invalid: ${targetArg} - missing required schema structure`);

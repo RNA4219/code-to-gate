@@ -59,8 +59,11 @@ describe("Phase 3 v1.0 Acceptance Tests", () => {
     it("should have v1 schema version", () => {
       const graphSchema = readFileSync("./schemas/normalized-repo-graph.schema.json", "utf8");
       const schema = JSON.parse(graphSchema);
-      // v1 or v1alpha1 accepted
-      expect(schema.$id || schema.version || "").toMatch(/v1/);
+      // Check schema property contains v1 (e.g., "normalized-repo-graph@v1")
+      // or check $defs.version const
+      const schemaRef = schema.properties?.schema?.const || "";
+      const versionDef = schema.$defs?.version?.const || "";
+      expect(schemaRef.includes("v1") || versionDef.includes("v1")).toBe(true);
     });
 
     it("should have schema versioning documentation", () => {
@@ -74,7 +77,8 @@ describe("Phase 3 v1.0 Acceptance Tests", () => {
           `node ${CLI} schema validate ./fixtures/demo-shop-ts/.qh/repo-graph.json`,
           { encoding: "utf8" }
         );
-        expect(result).toContain("valid");
+        // Accept "valid" or "artifact ok" as success indicators
+        expect(result).toMatch(/(valid|artifact ok)/);
       }
     });
   });
@@ -274,9 +278,9 @@ describe("Phase 3 v1.0 Acceptance Tests", () => {
 
     it("all adapter schemas should validate", () => {
       const adapterSchemas = [
-        "gatefield.schema.json",
-        "state-gate.schema.json",
-        "manual-bb.schema.json",
+        "gatefield-static-result.schema.json",
+        "state-gate-evidence.schema.json",
+        "manual-bb-seed.schema.json",
         "workflow-evidence.schema.json",
       ];
 

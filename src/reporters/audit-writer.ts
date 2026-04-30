@@ -46,7 +46,7 @@ export function buildAuditArtifact(
   // Build policy section
   const policySection: AuditPolicy = {
     id: policy?.name ?? "default",
-    name: policy?.name ?? "default",
+    name: policy?.name,
     hash: policy ? createHash("sha256").update(JSON.stringify(policy)).digest("hex") : "none",
   };
 

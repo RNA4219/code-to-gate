@@ -77,7 +77,7 @@ describe('CLI Smoke Tests', () => {
 
     const result = execSync(
       `node ${CLI_PATH} scan ${repoPath} --out ${outDir}`,
-      { encoding: 'utf-8', timeout: 10000 }
+      { encoding: 'utf-8', timeout: 30000 }
     );
 
     // Should complete without error

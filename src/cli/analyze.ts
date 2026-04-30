@@ -4,12 +4,12 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { sha256, toPosix } from "../core/path-utils.js";
-import { detectLanguage, detectRole, walkDir, ensureDir } from "../core/file-utils.js";
+import { sha256 } from "../core/path-utils.js";
+import { ensureDir } from "../core/file-utils.js";
+import { buildGraph } from "../core/repo-graph-builder.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
-  NormalizedRepoGraph,
   Policy,
   EmitFormat,
   CTG_VERSION_V1ALPHA1,
@@ -47,80 +47,6 @@ interface AnalyzeOptions {
   VERSION: string;
   EXIT: typeof EXIT;
   getOption: typeof getOption;
-}
-
-function buildGraph(repoRoot: string): NormalizedRepoGraph {
-  const now = new Date().toISOString();
-  const relativeRoot = toPosix(path.relative(process.cwd(), repoRoot) || ".");
-  const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 12)}`;
-
-  const graph: NormalizedRepoGraph = {
-    version: CTG_VERSION,
-    generated_at: now,
-    run_id: runId,
-    repo: { root: relativeRoot },
-    tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
-    artifact: "normalized-repo-graph",
-    schema: "normalized-repo-graph@v1",
-    files: [],
-    modules: [],
-    symbols: [],
-    relations: [],
-    tests: [],
-    configs: [],
-    entrypoints: [],
-    diagnostics: [],
-    stats: { partial: false },
-  };
-
-  // Walk the directory to find all files
-  const allFiles = walkDir(repoRoot);
-
-  // Filter for target file types
-  const targetFiles = allFiles.filter(
-    (file) =>
-      /\.(ts|tsx|js|jsx|py|mjs|cjs|json|yaml|yml|md)$/.test(file) &&
-      !file.endsWith(".d.ts") // Exclude TypeScript declaration files
-  );
-
-  for (const file of targetFiles) {
-    const rel = toPosix(path.relative(repoRoot, file));
-    const body = readFileSync(file, "utf8");
-    const language = detectLanguage(file);
-    const role = detectRole(rel);
-    const fileId = `file:${rel}`;
-
-    graph.files.push({
-      id: fileId,
-      path: rel,
-      language,
-      role,
-      hash: sha256(body),
-      sizeBytes: Buffer.byteLength(body),
-      lineCount: body.split(/\r?\n/).length,
-      moduleId: `module:${rel}`,
-      parser: {
-        status: ["ts", "tsx", "js", "jsx", "py"].includes(language) ? "text_fallback" : "skipped",
-        adapter: "ctg-text-v0",
-      },
-    });
-
-    // Add to configs if role is config
-    if (role === "config") {
-      graph.configs.push({ id: `config:${rel}`, path: rel });
-    }
-
-    // Add to tests if role is test
-    if (role === "test") {
-      graph.tests.push({
-        id: `test:${rel}`,
-        path: rel,
-        framework: rel.endsWith(".py") ? "pytest" : rel.endsWith(".js") ? "node:test" : "vitest",
-      });
-    }
-  }
-
-  return graph;
 }
 
 function parseEmitOption(value: string | undefined): EmitFormat[] {
@@ -221,7 +147,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
 
   try {
     // Build repo graph
-    const graph = buildGraph(repoRoot);
+    const graph = buildGraph(repoRoot, VERSION);
 
     // Check if repo is empty (no target files found)
     if (graph.files.length === 0) {
