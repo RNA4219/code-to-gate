@@ -2,7 +2,7 @@
  * Analyze command - generates findings, risk-register, analysis-report, and audit
  */
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { sha256 } from "../core/path-utils.js";
 import { ensureDir } from "../core/file-utils.js";
@@ -10,10 +10,21 @@ import { buildGraph } from "../core/repo-graph-builder.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
-  Policy,
   EmitFormat,
   CTG_VERSION_V1ALPHA1,
+  type Severity,
+  type FindingCategory,
 } from "../types/artifacts.js";
+import {
+  CtgPolicy,
+  loadPolicyFile,
+} from "../config/policy-loader.js";
+import {
+  isSeverityBlocked,
+  isCategoryBlocked,
+  isRuleBlocked,
+  CATEGORY_MAP,
+} from "../config/policy-evaluator.js";
 
 const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 import {
@@ -37,17 +48,17 @@ import {
   LlmConfig,
   LlmAnalysisRequest,
 } from "../llm/types.js";
-import {
-  createProviderWithFallback,
-  createProvider,
-} from "../llm/providers/index.js";
-import { findAvailableProvider } from "../llm/providers/provider-health.js";
+import { createProviderWithFallback } from "../llm/providers/index.js";
 
 interface AnalyzeOptions {
   VERSION: string;
   EXIT: typeof EXIT;
   getOption: typeof getOption;
 }
+
+// Constants
+const VALID_LLM_PROVIDERS: LlmProviderType[] = ["ollama", "llamacpp", "deterministic"];
+const VALID_LLM_MODES = ["local-only", "allow-cloud"];
 
 function parseEmitOption(value: string | undefined): EmitFormat[] {
   if (!value || value === "all") {
@@ -57,38 +68,31 @@ function parseEmitOption(value: string | undefined): EmitFormat[] {
   return formats.filter((f) => ["json", "yaml", "md", "mermaid", "all"].includes(f));
 }
 
-function loadPolicy(policyPath: string | undefined): Policy | undefined {
-  if (!policyPath) return undefined;
+function checkBlockingFindings(
+  findings: Array<{ severity: Severity; category: FindingCategory; ruleId: string }>,
+  policy: CtgPolicy | undefined
+): boolean {
+  if (!policy) return false;
 
-  const absolutePath = path.resolve(process.cwd(), policyPath);
-  if (!existsSync(absolutePath)) {
-    throw new Error(`Policy file not found: ${policyPath}`);
-  }
+  for (const f of findings) {
+    // Always block on critical severity
+    if (f.severity === "critical") return true;
 
-  const content = readFileSync(absolutePath, "utf8");
-
-  // Parse YAML (simple implementation)
-  // For now, we just parse the basic structure
-  const lines = content.split("\n");
-  const policy: Policy = {
-    version: CTG_VERSION,
-    name: "unknown",
-    blocking: {},
-  };
-
-  for (const line of lines) {
-    if (line.startsWith("policy_id:")) {
-      policy.name = line.split(":")[1].trim();
+    // Check severity blocking
+    if (isSeverityBlocked(f.severity, policy.blocking.severity)) {
+      // Also check category if severity is blocked
+      if (isCategoryBlocked(f.category, policy.blocking.category)) {
+        return true;
+      }
     }
-    if (line.startsWith("name:")) {
-      policy.name = line.split(":")[1].trim();
-    }
-    if (line.startsWith("description:")) {
-      policy.description = line.split(":")[1].trim();
+
+    // Check rule blocking
+    if (isRuleBlocked(f.ruleId, policy.blocking.rules)) {
+      return true;
     }
   }
 
-  return policy;
+  return false;
 }
 
 export async function analyzeCommand(args: string[], options: AnalyzeOptions): Promise<number> {
@@ -102,31 +106,20 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const llmPort = options.getOption(args, "--llm-port");
   const requireLlm = args.includes("--require-llm");
 
-  // Validate LLM provider if specified
-  const validProviders: LlmProviderType[] = ["ollama", "llamacpp", "deterministic"];
-  if (llmProvider && !validProviders.includes(llmProvider as LlmProviderType)) {
+  // Validate LLM options
+  if (llmProvider && !VALID_LLM_PROVIDERS.includes(llmProvider as LlmProviderType)) {
     console.error(`Invalid LLM provider: ${llmProvider}`);
-    console.error(`Valid providers: ${validProviders.join(", ")}`);
+    console.error(`Valid providers: ${VALID_LLM_PROVIDERS.join(", ")}`);
     return options.EXIT.USAGE_ERROR;
   }
 
-  // Validate LLM mode
-  const validModes = ["local-only", "allow-cloud"];
-  if (llmMode && !validModes.includes(llmMode)) {
+  if (!VALID_LLM_MODES.includes(llmMode)) {
     console.error(`Invalid LLM mode: ${llmMode}`);
-    console.error(`Valid modes: ${validModes.join(", ")}`);
+    console.error(`Valid modes: ${VALID_LLM_MODES.join(", ")}`);
     return options.EXIT.USAGE_ERROR;
   }
 
-  // Enforce local-only mode
-  if (llmMode === "local-only") {
-    // Only local providers allowed
-    if (llmProvider && !validProviders.includes(llmProvider as LlmProviderType)) {
-      console.error("--llm-mode local-only requires a local provider (ollama, llamacpp, deterministic)");
-      return options.EXIT.USAGE_ERROR;
-    }
-  }
-
+  // Validate repo argument
   if (!repoArg) {
     console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>]");
     return options.EXIT.USAGE_ERROR;
@@ -152,31 +145,29 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     // Build repo graph
     const graph = buildGraph(repoRoot, VERSION);
 
-    // Check if repo is empty (no target files found)
     if (graph.files.length === 0) {
       console.error(`repo contains no target files: ${repoArg}`);
       return options.EXIT.SCAN_FAILED;
     }
 
     // Load policy if specified
-    let policy: Policy | undefined;
-    try {
-      policy = loadPolicy(policyPath);
-    } catch (err) {
-      if (policyPath) {
-        console.error(err instanceof Error ? err.message : String(err));
+    let policy: CtgPolicy | undefined;
+    if (policyPath) {
+      const loaded = loadPolicyFile(policyPath, cwd);
+      if (loaded.errors.length > 0) {
+        console.error(`Policy loading errors: ${loaded.errors.join(", ")}`);
         return options.EXIT.USAGE_ERROR;
       }
+      policy = loaded.policy;
     }
 
     ensureDir(absoluteOutDir);
 
-    // === LLM Integration ===
+    // LLM Integration
     let llmUsed = false;
     let llmProviderName = "none";
     let llmAnalysisResult: string | undefined;
 
-    // Determine LLM provider
     if (llmProvider || requireLlm) {
       const providerType = llmProvider as LlmProviderType | undefined;
       const llmConfig: LlmConfig = {
@@ -186,14 +177,9 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       };
 
       try {
-        // Create provider with fallback
-        const provider = providerType
-          ? await createProviderWithFallback(llmConfig)
-          : await createProviderWithFallback({ provider: "ollama" });
-
+        const provider = await createProviderWithFallback(llmConfig);
         llmProviderName = provider.type;
 
-        // Check provider health
         const healthResult = await provider.healthCheck();
 
         if (!healthResult.healthy && providerType !== "deterministic" && requireLlm) {
@@ -205,10 +191,9 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
         if (healthResult.healthy || provider.type === "deterministic") {
           llmUsed = true;
 
-          // Build analysis prompt from graph
           const codeSummary = graph.files
             .filter(f => f.role === "source")
-            .slice(0, 10) // Limit for performance
+            .slice(0, 10)
             .map(f => `File: ${f.path} (${f.language}, ${f.lineCount} lines)`)
             .join("\n");
 
@@ -217,9 +202,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
 Analyze the provided code for security vulnerabilities, maintainability issues, and release risks.
 Focus on: auth, payment, validation, data handling, configuration, and testing concerns.
 Provide concise, actionable findings.`,
-            userPrompt: `Analyze this repository structure:\n\n${codeSummary}\n\n
-Identify potential quality risks and security concerns.
-Format findings as: [Category] Severity: Description`,
+            userPrompt: `Analyze this repository structure:\n\n${codeSummary}\n\nIdentify potential quality risks and security concerns.`,
             maxTokens: 2048,
             temperature: 0.1,
           };
@@ -231,7 +214,6 @@ Format findings as: [Category] Severity: Description`,
           console.error(`LLM analysis failed: ${llmError instanceof Error ? llmError.message : String(llmError)}`);
           return options.EXIT.LLM_FAILED;
         }
-        // Graceful fallback - continue without LLM
         console.error(`Warning: LLM unavailable, using deterministic analysis`);
         llmProviderName = "deterministic";
         llmUsed = true;
@@ -240,50 +222,49 @@ Format findings as: [Category] Severity: Description`,
 
     // Generate findings
     const findings = applyLlmEnrichment(
-      buildFindingsFromGraph(graph, graph.run_id, graph.repo.root, policy?.name),
+      buildFindingsFromGraph(graph, graph.run_id, graph.repo.root, policy?.policyId),
       llmAnalysisResult,
       llmProviderName
     );
 
-    // Generate risk register from findings
-    const riskRegister = buildRiskRegisterFromFindings(findings, policy?.name);
+    // Generate risk register
+    const riskRegister = buildRiskRegisterFromFindings(findings, policy?.policyId);
 
     // Track generated artifacts
     const generated: string[] = [];
 
-    // Emit JSON (findings.json)
-    if (emitFormats.includes("json") || emitFormats.includes("all")) {
+    // Emit artifacts
+    if (emitFormats.includes("json")) {
       const findingsPath = writeFindingsJson(absoluteOutDir, findings);
       generated.push(findingsPath);
     }
 
-    // Emit YAML (risk-register.yaml)
-    if (emitFormats.includes("yaml") || emitFormats.includes("all")) {
+    if (emitFormats.includes("yaml")) {
       const riskPath = writeRiskRegisterYaml(absoluteOutDir, riskRegister);
       generated.push(riskPath);
     }
 
-    // Emit Markdown (analysis-report.md)
-    if (emitFormats.includes("md") || emitFormats.includes("all")) {
+    if (emitFormats.includes("md")) {
       const reportPath = writeAnalysisReportMd(absoluteOutDir, findings, riskRegister, graph.repo.root);
       generated.push(reportPath);
     }
 
-    // Generate audit.json with LLM info
+    // Generate audit.json
+    const hasHighSeverity = findings.findings.some(f => f.severity === "high" || f.severity === "critical");
     const audit = buildAuditArtifact(
       graph,
       findings,
       policy,
-      0, // exit code
-      "passed_with_risk", // status
-      findings.findings.some(f => f.severity === "high" || f.severity === "critical")
+      0,
+      hasHighSeverity ? "blocked_input" : "passed_with_risk",
+      hasHighSeverity
         ? "High severity findings detected"
         : llmUsed
           ? `Analysis complete using ${llmProviderName} LLM`
           : "Analysis complete"
     );
 
-    // Add LLM information to audit
+    // Add LLM info to audit
     if (llmUsed) {
       audit.llm = {
         provider: llmProviderName,
@@ -324,14 +305,8 @@ Format findings as: [Category] Severity: Description`,
       })
     );
 
-    // Return exit code based on findings severity
-    const hasBlockingFindings = findings.findings.some((f) =>
-      f.severity === "critical" ||
-      (policy?.blocking?.severities?.includes(f.severity) &&
-        policy?.blocking?.categories?.includes(f.category))
-    );
-
-    if (hasBlockingFindings) {
+    // Check for blocking findings using policy-evaluator functions
+    if (checkBlockingFindings(findings.findings, policy)) {
       return options.EXIT.POLICY_FAILED;
     }
 

@@ -10,7 +10,8 @@ import {
 import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import type { NormalizedRepoGraph, FindingsArtifact, Policy } from "../../types/artifacts.js";
+import type { NormalizedRepoGraph, FindingsArtifact } from "../../types/artifacts.js";
+import type { CtgPolicy } from "../../config/policy-loader.js";
 
 describe("audit-writer", () => {
   let tempOutDir: string;
@@ -249,10 +250,14 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const policy: Policy = {
-        version: "1.0",
-        name: "my-policy",
-        blocking: { severities: ["critical", "high"] },
+      const policy: CtgPolicy = {
+        version: "ctg/v1alpha1",
+        policyId: "my-policy",
+        blocking: {
+          severity: { critical: true, high: true },
+          category: { auth: true, payment: true },
+        },
+        confidence: { minConfidence: 0.6 },
       };
 
       const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "Analysis complete");
@@ -374,10 +379,14 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const policy: Policy = {
-        version: "1.0",
-        name: "release-policy",
-        blocking: {},
+      const policy: CtgPolicy = {
+        version: "ctg/v1alpha1",
+        policyId: "release-policy",
+        blocking: {
+          severity: { critical: true },
+          category: { auth: true },
+        },
+        confidence: { minConfidence: 0.6 },
       };
 
       const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "OK");

@@ -64,7 +64,7 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 /**
  * Category name mapping for policy
  */
-const CATEGORY_MAP: Record<FindingCategory, keyof CtgPolicy["blocking"]["category"]> = {
+export const CATEGORY_MAP: Record<FindingCategory, keyof CtgPolicy["blocking"]["category"]> = {
   auth: "auth",
   payment: "payment",
   validation: "validation",
@@ -80,14 +80,14 @@ const CATEGORY_MAP: Record<FindingCategory, keyof CtgPolicy["blocking"]["categor
 /**
  * Check if a severity level is blocked by policy
  */
-function isSeverityBlocked(severity: Severity, blockingConfig: CtgPolicy["blocking"]["severity"]): boolean {
+export function isSeverityBlocked(severity: Severity, blockingConfig: CtgPolicy["blocking"]["severity"]): boolean {
   return blockingConfig[severity] === true;
 }
 
 /**
  * Check if a category is blocked by policy
  */
-function isCategoryBlocked(category: FindingCategory, blockingConfig: CtgPolicy["blocking"]["category"]): boolean {
+export function isCategoryBlocked(category: FindingCategory, blockingConfig: CtgPolicy["blocking"]["category"]): boolean {
   const policyKey = CATEGORY_MAP[category];
   return blockingConfig[policyKey] === true;
 }
@@ -95,7 +95,7 @@ function isCategoryBlocked(category: FindingCategory, blockingConfig: CtgPolicy[
 /**
  * Check if a rule is blocked by policy
  */
-function isRuleBlocked(ruleId: string, blockingRules: CtgPolicy["blocking"]["rules"]): boolean {
+export function isRuleBlocked(ruleId: string, blockingRules: CtgPolicy["blocking"]["rules"]): boolean {
   if (!blockingRules) return false;
   return blockingRules[ruleId] === true;
 }

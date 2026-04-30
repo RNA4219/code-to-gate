@@ -9,9 +9,9 @@ import {
   AuditExit,
   FindingsArtifact,
   NormalizedRepoGraph,
-  Policy,
   CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
+import { CtgPolicy } from "../config/policy-loader.js";
 
 const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
@@ -27,7 +27,7 @@ const VERSION = "0.1.0";
 export function buildAuditArtifact(
   graph: NormalizedRepoGraph,
   findings: FindingsArtifact,
-  policy: Policy | undefined,
+  policy: CtgPolicy | undefined,
   exitCode: number,
   exitStatus: string,
   exitReason: string
@@ -45,8 +45,8 @@ export function buildAuditArtifact(
 
   // Build policy section
   const policySection: AuditPolicy = {
-    id: policy?.name ?? "default",
-    name: policy?.name,
+    id: policy?.policyId ?? "default",
+    name: policy?.policyId,
     hash: policy ? createHash("sha256").update(JSON.stringify(policy)).digest("hex") : "none",
   };
 
@@ -58,7 +58,7 @@ export function buildAuditArtifact(
     tool: {
       name: "code-to-gate",
       version: VERSION,
-      policy_id: policy?.name,
+      policy_id: policy?.policyId,
       plugin_versions: [],
     },
     artifact: "audit",
