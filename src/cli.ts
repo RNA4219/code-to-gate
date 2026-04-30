@@ -13,7 +13,7 @@ import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { EXIT, getOption } from "./cli/exit-codes.js";
 
-const VERSION = "0.2.0-alpha.1";
+const VERSION = "1.0.0";
 
 function printHelp(): void {
   console.log(`code-to-gate ${VERSION}

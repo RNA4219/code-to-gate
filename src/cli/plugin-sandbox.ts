@@ -17,7 +17,7 @@ import type { PluginRegistryEntry, SandboxConfig } from "../plugin/index.js";
 import * as path from "path";
 import * as fs from "fs/promises";
 
-const VERSION = "0.2.0-alpha.1";
+const VERSION = "1.0.0";
 
 interface PluginOptions {
   VERSION: string;

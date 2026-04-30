@@ -18,8 +18,10 @@ import {
   RiskRegisterArtifact,
   Finding,
   Severity,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 export interface ExportOptions {
   VERSION: string;

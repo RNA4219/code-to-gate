@@ -2,7 +2,7 @@
  * JSON Reporter - generates findings.json
  */
 
-const VERSION = "0.2.0";
+const VERSION = "1.0.0";
 
 import {
   ArtifactHeader,
@@ -10,9 +10,11 @@ import {
   Finding,
   FindingsArtifact,
   UnsupportedClaim,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
   RepoFile,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 import { createHash } from "node:crypto";
 import { writeFileSync, readFileSync } from "node:fs";

@@ -5,10 +5,11 @@
  * and normalizes them to code-to-gate findings format.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { sha256 } from "../core/path-utils.js";
+import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
@@ -19,8 +20,10 @@ import {
   FindingCategory,
   UpstreamTool,
   UnsupportedClaim,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 import {
   createArtifactHeader,
 } from "../reporters/json-reporter.js";
@@ -418,10 +421,6 @@ function importTest(inputFile: string): Finding[] {
   }
 
   return findings;
-}
-
-function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true });
 }
 
 export async function importCommand(args: string[], options: ImportOptions): Promise<number> {

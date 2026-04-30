@@ -5,10 +5,10 @@
  * generates blast radius and findings for changed files.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
-import { detectLanguage, detectRole, walkDir } from "../core/file-utils.js";
+import { detectLanguage, detectRole, walkDir, ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
@@ -279,10 +279,6 @@ function generateBlastRadiusMermaid(blastRadius: BlastRadius): string {
   }
 
   return mermaid;
-}
-
-function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true });
 }
 
 function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {

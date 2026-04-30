@@ -2,18 +2,20 @@
  * Analyze command - generates findings, risk-register, analysis-report, and audit
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
-import { detectLanguage, detectRole, walkDir } from "../core/file-utils.js";
+import { detectLanguage, detectRole, walkDir, ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
   NormalizedRepoGraph,
   Policy,
   EmitFormat,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 import {
   buildFindingsFromGraph,
   writeFindingsJson,
@@ -158,10 +160,6 @@ function loadPolicy(policyPath: string | undefined): Policy | undefined {
   }
 
   return policy;
-}
-
-function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true });
 }
 
 export async function analyzeCommand(args: string[], options: AnalyzeOptions): Promise<number> {

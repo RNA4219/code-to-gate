@@ -4,9 +4,10 @@
  * Evaluates findings against policy to determine release readiness.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { sha256 } from "../core/path-utils.js";
+import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
@@ -281,10 +282,6 @@ function generateRecommendedActions(
   }
 
   return actions;
-}
-
-function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true });
 }
 
 export async function readinessCommand(args: string[], options: ReadinessOptions): Promise<number> {

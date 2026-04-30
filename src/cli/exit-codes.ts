@@ -41,7 +41,7 @@ export function getOption(args: string[], name: string): string | undefined {
 /**
  * Standard VERSION constant
  */
-export const VERSION = "0.1.0";
+export const VERSION = "1.0.0";
 
 /**
  * Cache mode options

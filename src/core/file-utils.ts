@@ -2,7 +2,7 @@
  * Core file discovery and classification utilities
  */
 
-import { readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, statSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { toPosix } from "./path-utils.js";
 
@@ -347,4 +347,21 @@ export function detectTestFramework(filePath: string): string {
   if (ext === ".ts" || ext === ".tsx") return "vitest";
 
   return "unknown";
+}
+
+/**
+ * Ensure a directory exists, creating it recursively if needed
+ * @param dir - Directory path to ensure exists
+ */
+export function ensureDir(dir: string): void {
+  mkdirSync(dir, { recursive: true });
+}
+
+/**
+ * Write JSON to a file with formatting
+ * @param file - File path to write to
+ * @param value - Value to serialize as JSON
+ */
+export function writeJson(file: string, value: unknown): void {
+  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }

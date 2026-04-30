@@ -1,14 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
-import { detectLanguage, detectRole, walkDir } from "../core/file-utils.js";
+import { detectLanguage, detectRole, walkDir, ensureDir, writeJson } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION, parseCacheMode, parseParallelWorkers, isVerbose } from "./exit-codes.js";
 import { parseTypeScriptFile, type SymbolNode, type GraphRelation, type EvidenceRef } from "../adapters/ts-adapter.js";
 import { parseJavaScriptFile } from "../adapters/js-adapter.js";
 import { CacheManager, type CacheMode, LARGE_REPO_THRESHOLD } from "../cache/index.js";
 import { FileProcessor, type ProcessingProgressEvent } from "../parallel/index.js";
+import { CTG_VERSION_V1ALPHA1 } from "../types/artifacts.js";
 
-const CTG_VERSION = "ctg/v1alpha1";
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 /**
  * Threshold for large repo processing
@@ -305,14 +306,6 @@ function buildGraph(repoRoot: string): NormalizedRepoGraph {
   }
 
   return graph;
-}
-
-function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true });
-}
-
-function writeJson(file: string, value: unknown): void {
-  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 /**
@@ -628,23 +621,21 @@ export function scanCommand(args: string[], options: ScanOptions): number {
     }
 
     const artifactPath = path.join(outDir, "repo-graph.json");
-    if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
-      const output: Record<string, unknown> = {
-        tool: "code-to-gate",
-        command: "scan",
-        artifact: artifactPath,
-        fileCount: graph.files.length,
-        symbolCount: graph.symbols.length,
-        relationCount: graph.relations.length,
-      };
+    const output: Record<string, unknown> = {
+      tool: "code-to-gate",
+      command: "scan",
+      artifact: artifactPath,
+      fileCount: graph.files.length,
+      symbolCount: graph.symbols.length,
+      relationCount: graph.relations.length,
+    };
 
-      if (cacheManager.isEnabled()) {
-        output.cacheMode = cacheMode;
-        output.cacheStats = cacheManager.getStats();
-      }
-
-      console.log(JSON.stringify(output));
+    if (cacheManager.isEnabled()) {
+      output.cacheMode = cacheMode;
+      output.cacheStats = cacheManager.getStats();
     }
+
+    console.log(JSON.stringify(output));
 
     // Exit code 0 if files found, 3 (SCAN_FAILED) if empty
     return graph.files.length > 0 ? options.EXIT.OK : options.EXIT.SCAN_FAILED;
