@@ -37,8 +37,13 @@ export const RAW_SQL_RULE: RulePlugin = {
 
       // Patterns that indicate raw SQL with potential injection
       const unsafeSqlPatterns = [
+        // Generic SQL string concatenation. Keep this broad because SQL often
+        // contains nested quotes such as VALUES ('" + name + "').
+        /["'`]\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b.*["'`]\s*\+/gi,
         // String concatenation with SQL keywords
         /["'`]\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
+        // Client input appended into SQL fragments
+        /\+\s*(?:req|request|ctx|context|event|params|body|data)\s*(?:\.\s*\w+|\[['"]\w+['"]])/gi,
         // Template literals with SQL and interpolation
         /`(?:SELECT|INSERT|UPDATE|DELETE)[^`]*\$\{[^}]+\}/gi,
         // Python f-strings with SQL
