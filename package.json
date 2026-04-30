@@ -1,6 +1,6 @@
 {
   "name": "@quality-harness/code-to-gate",
-  "version": "0.2.0-v1pre",
+  "version": "1.0.0",
   "description": "A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs",
   "type": "module",
   "bin": {
