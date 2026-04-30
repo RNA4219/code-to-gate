@@ -1,61 +1,9 @@
-import { createHash } from "node:crypto";
-import { Project, SourceFile, SyntaxKind, Node, Type } from "ts-morph";
+import { Project, SourceFile, SyntaxKind, Node } from "ts-morph";
 import path from "node:path";
+import { sha256, toPosix } from "../core/path-utils.js";
+import type { EvidenceRef, SymbolNode, GraphRelation } from "../types/graph.js";
 
-export interface EvidenceRef {
-  id: string;
-  path: string;
-  startLine?: number;
-  endLine?: number;
-  kind: "ast" | "text" | "import" | "external" | "test" | "coverage" | "diff";
-  excerptHash?: string;
-  nodeId?: string;
-  symbolId?: string;
-  externalRef?: {
-    tool: string;
-    ruleId?: string;
-    url?: string;
-  };
-}
-
-export interface SymbolNode {
-  id: string;
-  fileId: string;
-  name: string;
-  kind:
-    | "function"
-    | "class"
-    | "method"
-    | "variable"
-    | "type"
-    | "interface"
-    | "route"
-    | "test"
-    | "unknown";
-  exported: boolean;
-  async?: boolean;
-  location?: {
-    startLine: number;
-    endLine: number;
-  };
-  evidence: EvidenceRef[];
-}
-
-export interface GraphRelation {
-  id: string;
-  from: string;
-  to: string;
-  kind:
-    | "imports"
-    | "exports"
-    | "calls"
-    | "references"
-    | "tests"
-    | "configures"
-    | "depends_on";
-  confidence: number;
-  evidence: EvidenceRef[];
-}
+export type { EvidenceRef, SymbolNode, GraphRelation };
 
 export interface ParseResult {
   symbols: SymbolNode[];
@@ -69,14 +17,6 @@ export interface ParseResult {
   }>;
   parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
   parserAdapter: string;
-}
-
-function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-function toPosix(value: string): string {
-  return value.replace(/\\/g, "/");
 }
 
 function getSymbolKind(

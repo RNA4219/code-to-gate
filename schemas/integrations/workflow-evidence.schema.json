@@ -6,7 +6,7 @@
   "required": ["version", "producer", "run_id", "evidence_type", "subject", "artifacts", "summary"],
   "additionalProperties": false,
   "properties": {
-    "version": { "const": "ctg.workflow-evidence/v1alpha1" },
+    "version": { "const": "ctg.workflow-evidence/v1" },
     "producer": { "const": "code-to-gate" },
     "run_id": { "type": "string" },
     "intent_id": { "type": "string" },

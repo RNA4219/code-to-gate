@@ -86,10 +86,7 @@ interface CoverageResult {
  * Generate unique ID for imported finding
  */
 function generateImportId(tool: string, ruleId: string, path: string, line: number): string {
-  const hash = createHash("sha256")
-    .update(`${tool}:${ruleId}:${path}:${line}`)
-    .digest("hex")
-    .slice(0, 12);
+  const hash = sha256(`${tool}:${ruleId}:${path}:${line}`).slice(0, 12);
   return `import-${tool}-${hash}`;
 }
 

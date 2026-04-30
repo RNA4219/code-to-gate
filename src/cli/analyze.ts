@@ -29,6 +29,7 @@ import {
   buildAuditArtifact,
   writeAuditJson,
 } from "../reporters/audit-writer.js";
+import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
 import {
   LlmProviderType,
   LlmConfig,
@@ -311,7 +312,11 @@ Format findings as: [Category] Severity: Description`,
     }
 
     // Generate findings
-    const findings = buildFindingsFromGraph(graph, graph.run_id, graph.repo.root, policy?.name);
+    const findings = applyLlmEnrichment(
+      buildFindingsFromGraph(graph, graph.run_id, graph.repo.root, policy?.name),
+      llmAnalysisResult,
+      llmProviderName
+    );
 
     // Generate risk register from findings
     const riskRegister = buildRiskRegisterFromFindings(findings, policy?.name);

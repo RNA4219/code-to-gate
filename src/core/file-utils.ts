@@ -214,18 +214,25 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized === "server.js" ||
     normalized.startsWith("src/server.ts") ||
     normalized.startsWith("src/server.js") ||
+    normalized.startsWith("src/server.py") ||
     normalized === "app.ts" ||
     normalized === "app.js" ||
+    normalized === "app.py" ||
     normalized.startsWith("src/app.ts") ||
     normalized.startsWith("src/app.js") ||
+    normalized.startsWith("src/app.py") ||
     normalized === "index.ts" ||
     normalized === "index.js" ||
+    normalized === "index.py" ||
     normalized.startsWith("src/index.ts") ||
     normalized.startsWith("src/index.js") ||
+    normalized.startsWith("src/index.py") ||
     normalized === "main.ts" ||
     normalized === "main.js" ||
+    normalized === "main.py" ||
     normalized.startsWith("src/main.ts") ||
     normalized.startsWith("src/main.js") ||
+    normalized.startsWith("src/main.py") ||
     normalized.includes("/server.ts") ||
     normalized.includes("/server.js") ||
     normalized.includes("/app.ts") ||
@@ -251,6 +258,12 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
       /publicRoutes/,
       /router\./,
       /express\.Router/,
+      /if __name__ == ['"]__main__['"]/,
+      /FastAPI\(\)/,
+      /Flask\(\)/,
+      /APIRouter\(\)/,
+      /uvicorn\.run/,
+      /app\.run/,
     ];
 
     for (const pattern of entrypointPatterns) {

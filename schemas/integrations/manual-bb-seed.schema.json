@@ -6,7 +6,7 @@
   "required": ["version", "producer", "run_id", "scope", "risk_seeds", "invariant_seeds", "test_seed_refs", "known_gaps"],
   "additionalProperties": false,
   "properties": {
-    "version": { "const": "ctg.manual-bb/v1alpha1" },
+    "version": { "const": "ctg.manual-bb/v1" },
     "producer": { "const": "code-to-gate" },
     "run_id": { "type": "string" },
     "scope": {

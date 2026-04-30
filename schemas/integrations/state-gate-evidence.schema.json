@@ -6,7 +6,7 @@
   "required": ["version", "producer", "run_id", "artifact_hash", "release_readiness", "evidence_refs", "approval_relevance"],
   "additionalProperties": false,
   "properties": {
-    "version": { "const": "ctg.state-gate/v1alpha1" },
+    "version": { "const": "ctg.state-gate/v1" },
     "producer": { "const": "code-to-gate" },
     "run_id": { "type": "string" },
     "artifact_hash": { "type": "string" },

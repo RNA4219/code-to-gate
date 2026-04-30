@@ -3,10 +3,45 @@
  * Based on docs/artifact-contracts.md and schemas/*.schema.json
  */
 
-export const CTG_VERSION = "ctg/v1alpha1";
+// Schema version constants
+export const CTG_VERSION_V1 = "ctg/v1";
+export const CTG_VERSION_V1ALPHA1 = "ctg/v1alpha1";
+
+// Current stable version (v1 freeze)
+export const CTG_VERSION = CTG_VERSION_V1;
+
+// Schema version identifiers for artifacts
+export const SCHEMA_VERSIONS = {
+  findings: "findings@v1",
+  riskRegister: "risk-register@v1",
+  invariants: "invariants@v1",
+  testSeeds: "test-seeds@v1",
+  releaseReadiness: "release-readiness@v1",
+  audit: "audit@v1",
+  normalizedRepoGraph: "normalized-repo-graph@v1",
+  stateGateEvidence: "ctg.state-gate/v1",
+  manualBbSeed: "ctg.manual-bb/v1",
+  workflowEvidence: "ctg.workflow-evidence/v1",
+  gatefieldStaticResult: "ctg.gatefield/v1",
+} as const;
+
+// Legacy schema versions for backward compatibility
+export const SCHEMA_VERSIONS_V1ALPHA1 = {
+  findings: "findings@v1",
+  riskRegister: "risk-register@v1",
+  invariants: "invariants@v1",
+  testSeeds: "test-seeds@v1",
+  releaseReadiness: "release-readiness@v1",
+  audit: "audit@v1",
+  normalizedRepoGraph: "normalized-repo-graph@v1",
+  stateGateEvidence: "ctg.state-gate/v1alpha1",
+  manualBbSeed: "ctg.manual-bb/v1alpha1",
+  workflowEvidence: "ctg.workflow-evidence/v1alpha1",
+  gatefieldStaticResult: "ctg.gatefield/v1alpha1",
+} as const;
 
 export interface ArtifactHeader {
-  version: "ctg/v1alpha1";
+  version: "ctg/v1" | "ctg/v1alpha1";
   generated_at: string; // ISO 8601
   run_id: string;
   repo: RepoRef;

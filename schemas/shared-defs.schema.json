@@ -4,6 +4,9 @@
   "title": "code-to-gate shared definitions",
   "$defs": {
     "version": {
+      "const": "ctg/v1"
+    },
+    "versionV1Alpha1": {
       "const": "ctg/v1alpha1"
     },
     "isoDateTime": {
@@ -52,6 +55,17 @@
       "required": ["version", "generated_at", "run_id", "repo", "tool"],
       "properties": {
         "version": { "$ref": "#/$defs/version" },
+        "generated_at": { "$ref": "#/$defs/isoDateTime" },
+        "run_id": { "type": "string", "minLength": 1 },
+        "repo": { "$ref": "#/$defs/repoRef" },
+        "tool": { "$ref": "#/$defs/toolRef" }
+      }
+    },
+    "artifactHeaderV1Alpha1": {
+      "type": "object",
+      "required": ["version", "generated_at", "run_id", "repo", "tool"],
+      "properties": {
+        "version": { "$ref": "#/$defs/versionV1Alpha1" },
         "generated_at": { "$ref": "#/$defs/isoDateTime" },
         "run_id": { "type": "string", "minLength": 1 },
         "repo": { "$ref": "#/$defs/repoRef" },

@@ -15,8 +15,10 @@ import {
   Policy,
   Severity,
   FindingCategory,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 interface ReadinessOptions {
   VERSION: string;

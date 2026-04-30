@@ -2,22 +2,26 @@
  * JSON Reporter - generates findings.json
  */
 
+const VERSION = "0.2.0";
+
 import {
   ArtifactHeader,
   EvidenceRef,
   Finding,
   FindingsArtifact,
   UnsupportedClaim,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
   RepoFile,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
+
 import { createHash } from "node:crypto";
 import { writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { RulePlugin, RuleContext, SimpleGraph, ALL_RULES } from "../rules/index.js";
-
-const VERSION = "0.1.0";
+import { domainTagForFinding, falsePositiveReviewTags } from "./domain-context.js";
 
 // File content cache for rule evaluation
 const fileContentCache: Map<string, string> = new Map();
@@ -140,7 +144,7 @@ export function buildFindingsFromGraph(
         excerptHash: e.excerptHash || (e.kind === "text" ? createHash("sha256").update(e.path).digest("hex") : undefined),
       }));
 
-      allFindings.push({
+      const normalizedFinding: Finding = {
         id: generateFindingId(rule.id, findingIndex),
         ruleId: rule.id,
         category: finding.category,
@@ -153,7 +157,16 @@ export function buildFindingsFromGraph(
         affectedEntrypoints: finding.affectedEntrypoints,
         tags: finding.tags,
         upstream: finding.upstream,
-      });
+      };
+
+      const tags = new Set(normalizedFinding.tags ?? []);
+      tags.add(domainTagForFinding(normalizedFinding));
+      for (const tag of falsePositiveReviewTags(normalizedFinding)) {
+        tags.add(tag);
+      }
+      normalizedFinding.tags = [...tags].sort();
+
+      allFindings.push(normalizedFinding);
       findingIndex++;
     }
   }

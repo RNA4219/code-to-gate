@@ -2,6 +2,11 @@
  * Types for NormalizedRepoGraph and related structures
  */
 
+// Schema version constants (v1 freeze)
+export const GRAPH_SCHEMA_VERSION = "normalized-repo-graph@v1" as const;
+export const CTG_VERSION_V1 = "ctg/v1" as const;
+export const CTG_VERSION_V1ALPHA1 = "ctg/v1alpha1" as const;
+
 export interface RepoRef {
   root: string;
   revision?: string;
@@ -55,6 +60,10 @@ export interface SymbolNode {
     | "unknown";
   exported: boolean;
   async?: boolean;
+  location?: {
+    startLine: number;
+    endLine: number;
+  };
   evidence: EvidenceRef[];
 }
 
@@ -115,7 +124,7 @@ export interface GraphStats {
 }
 
 export interface NormalizedRepoGraph {
-  version: "ctg/v1alpha1";
+  version: "ctg/v1" | "ctg/v1alpha1";
   generated_at: string;
   run_id: string;
   repo: RepoRef;

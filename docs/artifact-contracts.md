@@ -1,8 +1,9 @@
 # code-to-gate Artifact Contracts
 
-**バージョン**: v1alpha1  
+**バージョン**: v1 (stable freeze)  
 **作成日**: 2026-04-29  
-**適用範囲**: v0.1 以降の machine-readable artifact
+**更新日**: 2026-04-30 (v1 freeze)  
+**適用範囲**: v1.0 以降の machine-readable artifact
 
 ---
 
@@ -11,13 +12,19 @@
 すべての machine-readable artifact は次を満たす。
 
 - top-level に `version` を持つ。
-- `version` は `ctg/v1alpha1` 形式とする。
+- `version` は `ctg/v1` 形式とする（v1alpha1 は後方互換として受け付ける）。
 - top-level に `generated_at`、`run_id`、`repo`、`tool` を持つ。
 - evidence 参照は `EvidenceRef` 形式に統一する。
 - LLM 生成文は、根拠となる finding / risk / evidence と紐づける。
-- schema 破壊変更は `v1alpha2` 以上へ上げる。
+- schema 破壊変更は `v2` 以上へ上げる。
 - field の追加は後方互換変更として許可する。
 - field の削除、型変更、enum 値の意味変更は破壊変更とする。
+
+**v1 Stability Guarantees**:
+- v1 schemas は後方互換性を保証する
+- v1alpha1 artifacts は v1 schemas で validation を通る
+- 新規 optional field の追加のみ許可（version bump 不要）
+- 12-month deprecation period for v1alpha1 (until 2027-04-30)
 
 ---
 
@@ -25,7 +32,7 @@
 
 ```ts
 export interface ArtifactHeader {
-  version: "ctg/v1alpha1";
+  version: "ctg/v1" | "ctg/v1alpha1";  // v1 stable, v1alpha1 backward compatible
   generated_at: string; // ISO 8601
   run_id: string;
   repo: RepoRef;

@@ -9,6 +9,8 @@ import { exportCommand } from "./cli/export.js";
 import { viewerCommand } from "./cli/viewer.js";
 import { llmHealthCommand } from "./cli/llm-health.js";
 import { historicalCommand } from "./cli/historical.js";
+import { evidenceCommand } from "./cli/evidence.js";
+import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { EXIT, getOption } from "./cli/exit-codes.js";
 
 const VERSION = "0.2.0-alpha.1";
@@ -29,6 +31,22 @@ Usage:
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate llm-health [--provider <provider>] [--all]
+  code-to-gate evidence <command>
+    Commands: bundle, validate, list, extract
+    bundle:   Create evidence bundle from artifact directory
+              --from <dir> --out <bundle.zip> [--include-optional] [--sign]
+    validate: Validate evidence bundle
+              <bundle.zip> [--strict] [--validate-schemas]
+    list:     List bundle contents
+              <bundle.zip>
+    extract:  Extract bundle contents
+              <bundle.zip> --out <dir>
+  code-to-gate plugin-sandbox <command>
+    Commands: status, run, build-image
+    status:      Check Docker availability and sandbox status
+    run:         Execute a plugin in sandbox mode
+                 <plugin-path> --input <file> [--sandbox docker] [--timeout <s>]
+    build-image: Build the Docker image for plugin execution
 
 Options:
   --out <dir>        Output directory (default: .qh)
@@ -47,6 +65,7 @@ Options:
                      disabled - Skip caching, fresh scan each time
                      force    - Ignore cache, rebuild and update cache
   --parallel <n>     Max parallel workers for file parsing (default: 4)
+  --plugin-sandbox   Sandbox mode for plugin execution: none, docker (default: none)
   --verbose          Show detailed progress and timing information
   --title <title>    Report title for viewer
   --dark             Enable dark mode for viewer
@@ -59,7 +78,11 @@ Options:
 Local LLM Providers:
   ollama       - Ollama server (default port: 11434)
   llamacpp     - llama.cpp server (default port: 8080)
-  deterministic - Built-in deterministic fallback (always available)`);
+  deterministic - Built-in deterministic fallback (always available)
+
+Plugin Sandbox:
+  none         - Direct process execution (no isolation)
+  docker       - Execute plugins in isolated Docker containers`);
 }
 
 async function main(): Promise<number> {
@@ -114,6 +137,14 @@ async function main(): Promise<number> {
 
     if (command === "historical") {
       return await historicalCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "evidence") {
+      return await evidenceCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "plugin-sandbox") {
+      return await pluginSandboxCommand(args, { VERSION, EXIT, getOption });
     }
 
     console.error(`unknown command: ${command}`);

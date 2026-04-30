@@ -6,7 +6,7 @@
   "required": ["version", "producer", "run_id", "artifact_hash", "repo", "status", "summary", "signals", "non_binding_gate_hint"],
   "additionalProperties": false,
   "properties": {
-    "version": { "const": "ctg.gatefield/v1alpha1" },
+    "version": { "const": "ctg.gatefield/v1" },
     "producer": { "const": "code-to-gate" },
     "run_id": { "type": "string" },
     "artifact_hash": { "type": "string" },

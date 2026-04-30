@@ -139,7 +139,7 @@ describe("markdown-reporter", () => {
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
       expect(report).toContain("## All Findings");
-      expect(report).toContain("| ID | Rule | Category | Severity | Title |");
+      expect(report).toContain("| ID | Rule | Category | Domain | Severity | Title | Evidence | Review Flags | LLM |");
       expect(report).toContain("finding-001");
       expect(report).toContain("TEST_RULE");
       expect(report).toContain("Test Finding");
@@ -425,6 +425,47 @@ describe("markdown-reporter", () => {
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
       expect(report).toContain("| Unsupported Claims | 1 |");
+    });
+
+    it("includes domain context and false-positive review checkpoints", () => {
+      const findings = createMockFindings();
+      findings.findings.push({
+        id: "finding-auth-001",
+        ruleId: "WEAK_AUTH_GUARD",
+        category: "auth",
+        severity: "high",
+        confidence: 0.65,
+        title: "Weak auth guard",
+        summary: "Admin route has weak guard",
+        evidence: [{ id: "e1", path: "src/auth/admin.ts", kind: "text" }],
+        tags: ["domain:auth", "fp-review", "fp-review:low-confidence", "llm-reviewed"],
+      });
+      const riskRegister = createMockRiskRegister();
+
+      const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
+
+      expect(report).toContain("## Domain Context");
+      expect(report).toContain("Authentication and authorization");
+      expect(report).toContain("## False-Positive Review");
+      expect(report).toContain("low-confidence");
+      expect(report).toContain("reflected");
+    });
+
+    it("lists unsupported claims with LLM source", () => {
+      const findings = createMockFindings();
+      findings.unsupported_claims.push({
+        id: "unsupported-llm-001",
+        claim: "The repository uses an unknown payment gateway",
+        reason: "missing_evidence",
+        sourceSection: "llm:deterministic",
+      });
+      const riskRegister = createMockRiskRegister();
+
+      const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
+
+      expect(report).toContain("## Unsupported Claims");
+      expect(report).toContain("llm:deterministic");
+      expect(report).toContain("unknown payment gateway");
     });
   });
 });

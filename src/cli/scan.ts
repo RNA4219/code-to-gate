@@ -5,10 +5,15 @@ import { detectLanguage, detectRole, walkDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION, parseCacheMode, parseParallelWorkers, isVerbose } from "./exit-codes.js";
 import { parseTypeScriptFile, type SymbolNode, type GraphRelation, type EvidenceRef } from "../adapters/ts-adapter.js";
 import { parseJavaScriptFile } from "../adapters/js-adapter.js";
-import { CacheManager, type CacheMode } from "../cache/index.js";
-import { FileProcessor } from "../parallel/index.js";
+import { CacheManager, type CacheMode, LARGE_REPO_THRESHOLD } from "../cache/index.js";
+import { FileProcessor, type ProcessingProgressEvent } from "../parallel/index.js";
 
 const CTG_VERSION = "ctg/v1alpha1";
+
+/**
+ * Threshold for large repo processing
+ */
+const SCAN_LARGE_REPO_THRESHOLD = LARGE_REPO_THRESHOLD;
 
 interface ScanOptions {
   VERSION: string;
@@ -312,6 +317,7 @@ function writeJson(file: string, value: unknown): void {
 
 /**
  * Build graph with cache support for incremental scanning
+ * Uses streaming processing for large repos (5000+ files)
  */
 function buildGraphWithCache(
   repoRoot: string,
@@ -354,15 +360,18 @@ function buildGraphWithCache(
       !file.endsWith(".d.ts")
   );
 
+  const isLargeRepo = targetFiles.length >= SCAN_LARGE_REPO_THRESHOLD;
+
   if (verbose) {
     console.log(JSON.stringify({
       phase: "file-discovery",
       totalFiles: targetFiles.length,
+      isLargeRepo,
       timeMs: Date.now() - walkStart,
     }));
   }
 
-  // Validate cache
+  // Validate cache (with streaming for large repos)
   const cacheStart = Date.now();
   const cacheResult = cacheManager.validateCache(targetFiles);
 
@@ -372,16 +381,21 @@ function buildGraphWithCache(
       changedFiles: cacheResult.changedFiles.length,
       unchangedFiles: cacheResult.unchangedFiles.length,
       needsFullScan: cacheResult.needsFullScan,
+      isLargeRepo,
       timeMs: Date.now() - cacheStart,
     }));
   }
 
-  // Use FileProcessor for parallel parsing
+  // Create processor with appropriate settings for repo size
   const processor = new FileProcessor({
     repoRoot,
     maxWorkers: parallelWorkers,
-    batchSize: Math.max(25, Math.floor(targetFiles.length / parallelWorkers)),
+    batchSize: isLargeRepo ? Math.min(200, Math.ceil(targetFiles.length / parallelWorkers / 2)) : 50,
+    chunkSize: isLargeRepo ? 500 : undefined,
     useWorkers: targetFiles.length > 100 && parallelWorkers > 1,
+    streamingMode: isLargeRepo,
+    verbose,
+    lazySymbols: isLargeRepo,
   });
 
   const parseStart = Date.now();
@@ -390,53 +404,128 @@ function buildGraphWithCache(
     ? targetFiles
     : cacheResult.changedFiles;
 
-  // Process files (for now, use single-thread mode for stability)
-  for (const file of filesToProcess) {
-    const result = processor.processFile(file);
+  // Progress callback for large repos
+  const onProgress = (progress: ProcessingProgressEvent) => {
+    if (verbose && isLargeRepo) {
+      console.log(JSON.stringify({
+        phase: progress.phase,
+        processedFiles: progress.processedFiles,
+        totalFiles: progress.totalFiles,
+        batchNumber: progress.batchNumber,
+        totalBatches: progress.totalBatches,
+        elapsedMs: progress.elapsedMs,
+        filesPerSecond: Math.round(progress.filesPerSecond),
+      }));
+    }
+  };
 
-    graph.files.push(result.file);
+  // Graph builder callback for streaming processing
+  const graphBuilder = (results: ReturnType<typeof processor.processFile>[]) => {
+    for (const result of results) {
+      graph.files.push(result.file);
 
-    if (result.parseResult) {
-      for (const symbol of result.parseResult.symbols) {
-        graph.symbols.push(symbol);
-      }
-      for (const relation of result.parseResult.relations) {
-        graph.relations.push(relation);
-      }
-      for (const diagnostic of result.parseResult.diagnostics) {
-        graph.diagnostics.push(diagnostic);
+      if (result.parseResult) {
+        for (const symbol of result.parseResult.symbols) {
+          graph.symbols.push(symbol);
+        }
+        for (const relation of result.parseResult.relations) {
+          graph.relations.push(relation);
+        }
+        for (const diagnostic of result.parseResult.diagnostics) {
+          graph.diagnostics.push(diagnostic);
+        }
+
+        if (result.parseResult.parserStatus === "failed") {
+          graph.stats.partial = true;
+        }
       }
 
-      if (result.parseResult.parserStatus === "failed") {
-        graph.stats.partial = true;
+      // Update cache for this file
+      if (cacheManager.isEnabled()) {
+        cacheManager.getFileHash(path.join(repoRoot, result.file.path));
+      }
+
+      // Add to configs/tests
+      if (result.file.role === "config") {
+        graph.configs.push({ id: `config:${result.file.path}`, path: result.file.path });
+      }
+      if (result.file.role === "test") {
+        graph.tests.push({
+          id: `test:${result.file.path}`,
+          path: result.file.path,
+          framework: result.file.path.endsWith(".py") ? "pytest" : result.file.path.endsWith(".js") ? "node:test" : "vitest",
+        });
       }
     }
+  };
 
-    // Update cache for this file
-    if (cacheManager.isEnabled()) {
-      cacheManager.getFileHash(file);
-    }
+  // For large repos, use streaming processing
+  if (isLargeRepo) {
+    // Use streaming mode with memory-efficient processing
+    // Note: We need to handle this synchronously for the current scan architecture
+    // but we'll use batch processing for memory efficiency
+    const batchSize = Math.min(200, Math.ceil(filesToProcess.length / parallelWorkers / 2));
+    const totalBatches = Math.ceil(filesToProcess.length / batchSize);
 
-    // Add to configs/tests/entrypoints
-    if (result.file.role === "config") {
-      graph.configs.push({ id: `config:${result.file.path}`, path: result.file.path });
-    }
-    if (result.file.role === "test") {
-      graph.tests.push({
-        id: `test:${result.file.path}`,
-        path: result.file.path,
-        framework: result.file.path.endsWith(".py") ? "pytest" : result.file.path.endsWith(".js") ? "node:test" : "vitest",
-      });
-    }
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batchStart = batchIndex * batchSize;
+      const batchEnd = Math.min(batchStart + batchSize, filesToProcess.length);
+      const batchFiles = filesToProcess.slice(batchStart, batchEnd);
 
-    // Check for entrypoints
-    const content = readFileSync(file, "utf8");
-    if (isEntrypoint(result.file.path, content)) {
-      graph.entrypoints.push({
-        id: `entrypoint:${result.file.path}`,
-        path: result.file.path,
-        kind: entrypointKind(result.file.path),
-      });
+      // Process batch
+      for (const file of batchFiles) {
+        const result = processor.processFile(file);
+        graphBuilder([result]);
+
+        // Check for entrypoints (only for source files)
+        if (result.file.role === "source") {
+          try {
+            const content = readFileSync(file, "utf8");
+            if (isEntrypoint(result.file.path, content)) {
+              graph.entrypoints.push({
+                id: `entrypoint:${result.file.path}`,
+                path: result.file.path,
+                kind: entrypointKind(result.file.path),
+              });
+            }
+          } catch {
+            // Skip if file cannot be read
+          }
+        }
+      }
+
+      // Emit batch progress
+      if (verbose) {
+        console.log(JSON.stringify({
+          phase: "batch-processing",
+          batchNumber: batchIndex + 1,
+          totalBatches,
+          processedFiles: batchEnd,
+          totalFiles: filesToProcess.length,
+          elapsedMs: Date.now() - parseStart,
+        }));
+      }
+
+      // Periodically clear lazy symbol cache for memory efficiency
+      if (batchIndex % 5 === 0) {
+        processor.clearLazySymbolCache();
+      }
+    }
+  } else {
+    // Standard processing for smaller repos
+    for (const file of filesToProcess) {
+      const result = processor.processFile(file);
+      graphBuilder([result]);
+
+      // Check for entrypoints
+      const content = readFileSync(file, "utf8");
+      if (isEntrypoint(result.file.path, content)) {
+        graph.entrypoints.push({
+          id: `entrypoint:${result.file.path}`,
+          path: result.file.path,
+          kind: entrypointKind(result.file.path),
+        });
+      }
     }
   }
 
@@ -446,6 +535,7 @@ function buildGraphWithCache(
     console.log(JSON.stringify({
       phase: "file-parsing",
       filesProcessed: filesToProcess.length,
+      isLargeRepo,
       timeMs: Date.now() - parseStart,
     }));
   }
@@ -467,6 +557,10 @@ function buildGraphWithCache(
     console.log(JSON.stringify({
       phase: "complete",
       totalTimeMs: totalTime,
+      isLargeRepo,
+      fileCount: graph.files.length,
+      symbolCount: graph.symbols.length,
+      relationCount: graph.relations.length,
       cacheStats: {
         hitRate: cacheStats.fileHash.hitRate,
         filesCached: cacheStats.overall.filesCached,

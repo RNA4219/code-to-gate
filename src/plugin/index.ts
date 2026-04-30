@@ -132,6 +132,41 @@ export {
   getFailedPlugins,
 } from "./plugin-runner.js";
 
+// === Sandbox Configuration ===
+export {
+  SandboxMode,
+  SandboxConfig,
+  SandboxExecutionResult,
+  SandboxResourceLimits,
+  SandboxStatusCheck,
+  VolumeMount,
+  EnvVarFilterConfig,
+  DockerSecurityOptions,
+  DEFAULT_SANDBOX_CONFIG,
+  DEFAULT_ENV_VAR_FILTER,
+  toDockerResourceLimits,
+  getDockerSecurityOptions,
+  buildDockerSecurityFlags,
+  buildVolumeMounts,
+  toDockerVolumeFlags,
+  filterEnvVars,
+  createSandboxConfigFromManifest,
+  parseSandboxMode,
+  validateSandboxConfig,
+} from "./sandbox-config.js";
+
+// === Docker Sandbox Implementation ===
+export {
+  DockerSandboxRunner,
+  createDockerSandboxRunner,
+  isDockerSandboxAvailable,
+  createSandboxRunner,
+  pullDockerImage,
+  listRunningPluginContainers,
+  getContainerLogs,
+  stopAndRemoveContainer,
+} from "./docker-sandbox.js";
+
 // === Utility Functions ===
 
 /**

@@ -11,6 +11,7 @@ import {
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
+import { escapeMarkdownCell, inferFindingDomain } from "./domain-context.js";
 
 /**
  * Get severity badge emoji
@@ -46,6 +47,54 @@ function countBySeverity(findings: Finding[]): Record<Severity, number> {
   return counts;
 }
 
+function firstEvidencePath(finding: Finding): string {
+  return finding.evidence[0]?.path ?? "n/a";
+}
+
+function findingDomain(finding: Finding): string {
+  return inferFindingDomain(finding).label;
+}
+
+function findingReviewFlags(finding: Finding): string {
+  const tags = finding.tags ?? [];
+  const fpTags = tags.filter((tag) => tag.startsWith("fp-review:"));
+  if (fpTags.length === 0) {
+    return "evidence-linked";
+  }
+  return fpTags.map((tag) => tag.replace("fp-review:", "")).join(", ");
+}
+
+function summarizeDomains(findings: Finding[]): Array<{ domain: string; count: number; high: number; paths: string[] }> {
+  const domains = new Map<string, { domain: string; count: number; high: number; paths: Set<string> }>();
+  for (const finding of findings) {
+    const signal = inferFindingDomain(finding);
+    const entry = domains.get(signal.label) ?? {
+      domain: signal.label,
+      count: 0,
+      high: 0,
+      paths: new Set<string>(),
+    };
+    entry.count += 1;
+    if (finding.severity === "critical" || finding.severity === "high") {
+      entry.high += 1;
+    }
+    const evidencePath = firstEvidencePath(finding);
+    if (evidencePath !== "n/a") {
+      entry.paths.add(evidencePath);
+    }
+    domains.set(signal.label, entry);
+  }
+
+  return [...domains.values()]
+    .map((entry) => ({
+      domain: entry.domain,
+      count: entry.count,
+      high: entry.high,
+      paths: [...entry.paths].slice(0, 3),
+    }))
+    .sort((a, b) => b.high - a.high || b.count - a.count);
+}
+
 /**
  * Generate analysis report markdown
  */
@@ -60,6 +109,7 @@ export function generateAnalysisReport(
   const highRisks = riskRegister.risks.filter(
     (r) => r.severity === "high" || r.severity === "critical"
   );
+  const domainSummary = summarizeDomains(findings.findings);
 
   let md = `# code-to-gate Analysis Report
 
@@ -84,6 +134,18 @@ Repository: ${repoRoot}
 
 `;
 
+  if (domainSummary.length > 0) {
+    md += `## Domain Context
+
+| Domain | Findings | High/Critical | Evidence Paths |
+|--------|----------|---------------|----------------|
+`;
+    for (const domain of domainSummary) {
+      md += `| ${escapeMarkdownCell(domain.domain)} | ${domain.count} | ${domain.high} | ${escapeMarkdownCell(domain.paths.join(", ") || "n/a")} |\n`;
+    }
+    md += "\n";
+  }
+
   // Add high risks section if any
   if (highRisks.length > 0) {
     md += `## High-Priority Risks
@@ -102,11 +164,43 @@ Repository: ${repoRoot}
   if (findings.findings.length > 0) {
     md += `## All Findings
 
-| ID | Rule | Category | Severity | Title |
-|----|------|----------|----------|-------|
+| ID | Rule | Category | Domain | Severity | Title | Evidence | Review Flags | LLM |
+|----|------|----------|--------|----------|-------|----------|--------------|-----|
 `;
     for (const finding of findings.findings) {
-      md += `| ${finding.id} | ${finding.ruleId} | ${finding.category} | ${severityBadge(finding.severity)} | ${finding.title} |\n`;
+      const llmStatus = finding.tags?.includes("llm-reviewed") ? "reflected" : "not-used";
+      md += `| ${finding.id} | ${finding.ruleId} | ${finding.category} | ${escapeMarkdownCell(findingDomain(finding))} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(finding.title)} | ${escapeMarkdownCell(firstEvidencePath(finding))} | ${escapeMarkdownCell(findingReviewFlags(finding))} | ${llmStatus} |\n`;
+    }
+    md += "\n";
+  }
+
+  if (findings.findings.length > 0) {
+    md += `## False-Positive Review
+
+| Finding | Checkpoint |
+|---------|------------|
+`;
+    for (const finding of findings.findings) {
+      const signal = inferFindingDomain(finding);
+      const checkpoint = [
+        `domain=${signal.label}`,
+        `evidence=${firstEvidencePath(finding)}`,
+        `confidence=${finding.confidence.toFixed(2)}`,
+        `flags=${findingReviewFlags(finding)}`,
+      ].join("; ");
+      md += `| ${finding.id} | ${escapeMarkdownCell(checkpoint)} |\n`;
+    }
+    md += "\n";
+  }
+
+  if (findings.unsupported_claims.length > 0) {
+    md += `## Unsupported Claims
+
+| ID | Source | Reason | Claim |
+|----|--------|--------|-------|
+`;
+    for (const claim of findings.unsupported_claims) {
+      md += `| ${claim.id} | ${escapeMarkdownCell(claim.sourceSection)} | ${claim.reason} | ${escapeMarkdownCell(claim.claim)} |\n`;
     }
     md += "\n";
   }

@@ -85,3 +85,22 @@ export function parseParallelWorkers(value: string | undefined): number {
 export function isVerbose(args: string[]): boolean {
   return args.includes("--verbose") || args.includes("-v");
 }
+
+/**
+ * Sandbox mode options for plugin execution
+ */
+export type SandboxModeCli = "none" | "docker";
+
+/**
+ * Parse sandbox mode from CLI argument
+ */
+export function parseSandboxModeCli(value: string | undefined): SandboxModeCli {
+  if (!value || value === "none" || value === "disabled") {
+    return "none";
+  }
+  if (value === "docker") {
+    return "docker";
+  }
+  // Invalid value, default to none
+  return "none";
+}

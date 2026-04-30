@@ -17,6 +17,7 @@ import type {
   PluginExecutionContext,
 } from "./types.js";
 import type { PluginRunner } from "./contract.js";
+import type { SandboxMode, SandboxConfig } from "./sandbox-config.js";
 import {
   PLUGIN_INPUT_VERSION,
   PLUGIN_OUTPUT_VERSION,
@@ -24,6 +25,8 @@ import {
 import { PLUGIN_CONSTANTS } from "./contract.js";
 import { PluginSchemaValidatorImpl } from "./plugin-context.js";
 import { DefaultPluginLogger } from "./plugin-context.js";
+import { DockerSandboxRunner } from "./docker-sandbox.js";
+import { DEFAULT_SANDBOX_CONFIG, parseSandboxMode, validateSandboxConfig } from "./sandbox-config.js";
 import { spawn, ChildProcess } from "child_process";
 import * as path from "path";
 import * as fs from "fs/promises";
@@ -37,8 +40,11 @@ export class PluginRunnerImpl implements PluginRunner {
   private timeoutOverrides: Map<string, number>;
   private runningProcesses: Map<string, ChildProcess>;
   private logger: DefaultPluginLogger;
+  private sandboxMode: SandboxMode;
+  private sandboxConfig: SandboxConfig;
+  private dockerRunner: DockerSandboxRunner | null;
 
-  constructor() {
+  constructor(sandboxMode: SandboxMode = "none", sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG) {
     this.config = {
       timeout: PLUGIN_CONSTANTS.DEFAULT_TIMEOUT,
       retry: PLUGIN_CONSTANTS.DEFAULT_RETRY,
@@ -52,6 +58,33 @@ export class PluginRunnerImpl implements PluginRunner {
     this.timeoutOverrides = new Map();
     this.runningProcesses = new Map();
     this.logger = new DefaultPluginLogger("runner", "info");
+    this.sandboxMode = sandboxMode;
+    this.sandboxConfig = sandboxConfig;
+    this.dockerRunner = null;
+
+    // Initialize Docker runner if sandbox mode is docker
+    if (sandboxMode === "docker") {
+      this.dockerRunner = new DockerSandboxRunner(sandboxConfig);
+    }
+  }
+
+  /**
+   * Get current sandbox mode
+   */
+  getSandboxMode(): SandboxMode {
+    return this.sandboxMode;
+  }
+
+  /**
+   * Set sandbox mode
+   */
+  setSandboxMode(mode: SandboxMode): void {
+    this.sandboxMode = mode;
+    if (mode === "docker" && !this.dockerRunner) {
+      this.dockerRunner = new DockerSandboxRunner(this.sandboxConfig);
+    } else if (mode !== "docker") {
+      this.dockerRunner = null;
+    }
   }
 
   /**
@@ -71,6 +104,11 @@ export class PluginRunnerImpl implements PluginRunner {
         this.logger.error("Failed to create work directory", { error });
       }
     }
+
+    // Initialize Docker runner if sandbox mode is docker
+    if (this.sandboxMode === "docker" && this.dockerRunner) {
+      await this.dockerRunner.initialize(this.sandboxConfig);
+    }
   }
 
   /**
@@ -80,6 +118,13 @@ export class PluginRunnerImpl implements PluginRunner {
     entry: PluginRegistryEntry,
     input: PluginInput
   ): Promise<PluginExecutionResult> {
+    // Use Docker sandbox if sandbox mode is docker
+    if (this.sandboxMode === "docker" && this.dockerRunner) {
+      this.logger.info(`Executing plugin in Docker sandbox: ${entry.manifest.name}`);
+      return this.dockerRunner.executePlugin(entry, input);
+    }
+
+    // Otherwise, use regular process execution
     const manifest = entry.manifest;
     const pluginName = manifest.name;
     const pluginId = `${manifest.name}@${manifest.version}`;
@@ -457,14 +502,24 @@ export class PluginRunnerImpl implements PluginRunner {
 
     // Clear hooks
     this.hooks.clear();
+
+    // Shutdown Docker runner if active
+    if (this.dockerRunner) {
+      await this.dockerRunner.shutdown();
+    }
   }
 }
 
 /**
  * Create default plugin runner
  */
-export function createPluginRunner(): PluginRunner {
-  return new PluginRunnerImpl();
+export function createPluginRunner(
+  sandboxMode?: SandboxMode,
+  sandboxConfig?: SandboxConfig
+): PluginRunner {
+  const mode = sandboxMode ?? "none";
+  const config = sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
+  return new PluginRunnerImpl(mode, config);
 }
 
 /**

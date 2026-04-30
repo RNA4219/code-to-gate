@@ -4,15 +4,18 @@
  * Performance requirement (Phase 2):
  * - Medium repo (500-2000 files) scan <= 45s
  * - Medium repo analyze <= 45s (LLM excluded)
+ * - Large repo (5000+ files) scan <= 120s
  *
  * Features:
  * - Incremental cache based on file hash
  * - Diff-only re-scan (changed files + blast radius)
  * - Cache invalidation on config/policy change
+ * - Batch operations for large file sets
+ * - Memory-efficient validation for large repos
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { toPosix } from "../core/path-utils.js";
 
@@ -21,6 +24,11 @@ import { GraphCache, GraphCacheEntry } from "./graph-cache.js";
 import { FindingsCache, FindingsCacheEntry } from "./findings-cache.js";
 import type { NormalizedRepoGraph } from "../types/graph.js";
 import type { Finding } from "../types/artifacts.js";
+
+/**
+ * Threshold for large repo processing
+ */
+export const LARGE_REPO_THRESHOLD = 5000;
 
 /**
  * Options for cache manager
@@ -34,6 +42,30 @@ export interface CacheOptions {
   forceRescan?: boolean;
   /** Compute blast radius for changed files */
   computeBlastRadius?: boolean;
+  /** Batch size for large repo processing (default: 500) */
+  batchSize?: number;
+  /** Enable streaming validation for large repos */
+  streamingValidation?: boolean;
+  /** Progress callback for large repos */
+  onProgress?: (progress: CacheProgressEvent) => void;
+}
+
+/**
+ * Progress event for cache validation
+ */
+export interface CacheProgressEvent {
+  /** Phase of cache operation */
+  phase: "validation" | "hash-computation" | "blast-radius" | "complete";
+  /** Total files */
+  totalFiles: number;
+  /** Files processed */
+  processedFiles: number;
+  /** Current batch */
+  batchNumber: number;
+  /** Total batches */
+  totalBatches: number;
+  /** Time elapsed in ms */
+  elapsedMs: number;
 }
 
 /**
@@ -88,6 +120,7 @@ export class CacheManager {
   private options: CacheOptions;
   private hitCount = 0;
   private missCount = 0;
+  private validationStartTime = 0;
 
   /**
    * Create a new cache manager
@@ -101,12 +134,24 @@ export class CacheManager {
       cacheDir: path.join(repoRoot, ".qh", ".cache"),
       forceRescan: false,
       computeBlastRadius: true,
+      batchSize: 500,
+      streamingValidation: true,
+      onProgress: undefined,
       ...options,
     };
 
     this.fileCache = new FileHashCache(repoRoot, this.options.cacheDir);
     this.graphCache = new GraphCache(repoRoot, this.options.cacheDir);
     this.findingsCache = new FindingsCache(repoRoot, this.options.cacheDir);
+  }
+
+  /**
+   * Check if this is a large repo
+   * @param fileCount - Number of files
+   * @returns True if large repo mode should be used
+   */
+  isLargeRepo(fileCount: number): boolean {
+    return fileCount >= LARGE_REPO_THRESHOLD;
   }
 
   /**
@@ -209,7 +254,21 @@ export class CacheManager {
       };
     }
 
-    // Determine changed and unchanged files
+    // For large repos, use streaming validation
+    if (this.isLargeRepo(allFiles.length) && this.options.streamingValidation) {
+      return this.validateCacheStreaming(allFiles);
+    }
+
+    // Standard validation for smaller repos
+    return this.validateCacheStandard(allFiles);
+  }
+
+  /**
+   * Standard cache validation for smaller repos
+   * @param allFiles - All files in repo
+   * @returns Cache validation result
+   */
+  private validateCacheStandard(allFiles: string[]): CacheValidationResult {
     const changedFiles: string[] = [];
     const unchangedFiles: string[] = [];
     const cachedFiles = new Set(this.fileCache.getAllEntries().map((e) => e.path));
@@ -226,7 +285,6 @@ export class CacheManager {
       }
     }
 
-    // Compute blast radius (files that might be affected by changes)
     const blastRadius = this.options.computeBlastRadius
       ? this.computeBlastRadius(changedFiles)
       : changedFiles;
@@ -237,6 +295,110 @@ export class CacheManager {
       blastRadius,
       needsFullScan: false,
     };
+  }
+
+  /**
+   * Streaming cache validation for large repos
+   * Processes files in batches to reduce memory pressure
+   * @param allFiles - All files in repo
+   * @returns Cache validation result
+   */
+  private validateCacheStreaming(allFiles: string[]): CacheValidationResult {
+    this.validationStartTime = Date.now();
+    const batchSize = this.options.batchSize ?? 500;
+
+    const changedFiles: string[] = [];
+    const unchangedFiles: string[] = [];
+    const cachedFiles = new Set(this.fileCache.getAllEntries().map((e) => e.path));
+
+    const totalBatches = Math.ceil(allFiles.length / batchSize);
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batchStart = batchIndex * batchSize;
+      const batchEnd = Math.min(batchStart + batchSize, allFiles.length);
+      const batchFiles = allFiles.slice(batchStart, batchEnd);
+
+      for (const file of batchFiles) {
+        const relPath = toPosix(path.relative(this.repoRoot, file));
+
+        // Fast mtime check before hash comparison
+        if (cachedFiles.has(relPath)) {
+          const cachedEntry = this.fileCache.get(relPath);
+          if (cachedEntry) {
+            try {
+              const stat = statSync(file);
+              // Fast check: if mtime and size unchanged, skip hash computation
+              if (stat.mtimeMs === cachedEntry.mtimeMs && stat.size === cachedEntry.sizeBytes) {
+                unchangedFiles.push(file);
+                this.hitCount++;
+                continue;
+              }
+            } catch {
+              // File might have been deleted, mark as changed
+              changedFiles.push(file);
+              this.missCount++;
+              continue;
+            }
+          }
+        }
+
+        // Needs rescan or not cached
+        if (!cachedFiles.has(relPath) || this.fileCache.needsRescan(file)) {
+          changedFiles.push(file);
+          this.missCount++;
+        } else {
+          unchangedFiles.push(file);
+          this.hitCount++;
+        }
+      }
+
+      // Emit progress
+      this.emitProgress("validation", batchIndex + 1, totalBatches, batchEnd);
+
+      // Periodically clear memory for large repos
+      if (batchIndex % 5 === 0 && global.gc) {
+        global.gc();
+      }
+    }
+
+    const blastRadius = this.options.computeBlastRadius
+      ? this.computeBlastRadiusOptimized(changedFiles)
+      : changedFiles;
+
+    this.emitProgress("complete", totalBatches, totalBatches, allFiles.length);
+
+    return {
+      changedFiles,
+      unchangedFiles,
+      blastRadius,
+      needsFullScan: false,
+    };
+  }
+
+  /**
+   * Emit progress event
+   * @param phase - Current phase
+   * @param batchNumber - Current batch number
+   * @param totalBatches - Total batches
+   * @param processedFiles - Files processed so far
+   */
+  private emitProgress(
+    phase: CacheProgressEvent["phase"],
+    batchNumber: number,
+    totalBatches: number,
+    processedFiles: number
+  ): void {
+    if (this.options.onProgress) {
+      const elapsedMs = Date.now() - this.validationStartTime;
+      this.options.onProgress({
+        phase,
+        totalFiles: processedFiles,
+        processedFiles,
+        batchNumber,
+        totalBatches,
+        elapsedMs,
+      });
+    }
   }
 
   /**
@@ -273,6 +435,79 @@ export class CacheManager {
     }
 
     return Array.from(blastRadius);
+  }
+
+  /**
+   * Optimized blast radius computation for large repos
+   * Uses batch processing to reduce memory pressure
+   * @param changedFiles - Files that changed
+   * @returns Files in blast radius (changed + dependent files)
+   */
+  private computeBlastRadiusOptimized(changedFiles: string[]): string[] {
+    const blastRadius = new Set<string>(changedFiles);
+    const cachedGraph = this.graphCache.get();
+
+    if (!cachedGraph) {
+      return changedFiles;
+    }
+
+    const changedRelPaths = new Set(
+      changedFiles.map((f) => toPosix(path.relative(this.repoRoot, f)))
+    );
+
+    // Process relations in batches for memory efficiency
+    const relations = cachedGraph.relations;
+    const batchSize = 1000;
+    const totalBatches = Math.ceil(relations.length / batchSize);
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batchStart = batchIndex * batchSize;
+      const batchEnd = Math.min(batchStart + batchSize, relations.length);
+      const batchRelations = relations.slice(batchStart, batchEnd);
+
+      for (const relation of batchRelations) {
+        if (relation.kind === "imports" || relation.kind === "depends_on") {
+          const toPath = relation.to.replace(/^file:/, "");
+
+          if (changedRelPaths.has(toPath)) {
+            const fromPath = relation.from.replace(/^file:/, "");
+            blastRadius.add(path.join(this.repoRoot, fromPath));
+          }
+        }
+      }
+
+      this.emitProgress("blast-radius", batchIndex + 1, totalBatches, batchEnd);
+    }
+
+    return Array.from(blastRadius);
+  }
+
+  /**
+   * Batch update file hashes for large file sets
+   * @param files - Array of file info objects
+   * @returns Array of updated hash entries
+   */
+  batchUpdateHashes(files: Array<{ path: string; content?: string; hash?: string }>): FileHashEntry[] {
+    const entries: FileHashEntry[] = [];
+    const batchSize = this.options.batchSize ?? 500;
+    const totalBatches = Math.ceil(files.length / batchSize);
+
+    this.validationStartTime = Date.now();
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batchStart = batchIndex * batchSize;
+      const batchEnd = Math.min(batchStart + batchSize, files.length);
+      const batchFiles = files.slice(batchStart, batchEnd);
+
+      for (const fileInfo of batchFiles) {
+        const entry = this.fileCache.update(fileInfo.path, fileInfo.content);
+        entries.push(entry);
+      }
+
+      this.emitProgress("hash-computation", batchIndex + 1, totalBatches, batchEnd);
+    }
+
+    return entries;
   }
 
   /**

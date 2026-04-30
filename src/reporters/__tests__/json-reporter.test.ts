@@ -138,6 +138,32 @@ describe("json-reporter", () => {
       const findings = buildFindingsFromGraph(graph, "run-001", "/test/repo");
       expect(Array.isArray(findings.unsupported_claims)).toBe(true);
     });
+
+    it("adds domain and false-positive review tags to findings", () => {
+      const graph = {
+        files: [
+          {
+            id: "file:src/auth/login.ts",
+            path: "src/auth/login.ts",
+            language: "ts" as const,
+            role: "source" as const,
+            hash: "abc123",
+            sizeBytes: 100,
+            lineCount: 10,
+            parser: { status: "text_fallback" as const, adapter: "ctg-text-v0" },
+          },
+        ],
+        run_id: "run-001",
+        generated_at: "2025-01-01T00:00:00Z",
+        repo: { root: "/test/repo" },
+        stats: { partial: false },
+      };
+
+      const findings = buildFindingsFromGraph(graph, "run-001", "/test/repo");
+      for (const finding of findings.findings) {
+        expect(finding.tags?.some((tag) => tag.startsWith("domain:"))).toBe(true);
+      }
+    });
   });
 
   describe("writeFindingsJson", () => {
