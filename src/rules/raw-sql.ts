@@ -37,27 +37,35 @@ export const RAW_SQL_RULE: RulePlugin = {
 
       // Patterns that indicate raw SQL with potential injection
       const unsafeSqlPatterns = [
-        // String concatenation: "SELECT * FROM " + table
-        /["'`]\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s+.*["'`]\s*\+\s*\w+/gi,
-        // Template literals: `SELECT * FROM ${table}`
-        /`(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)[^`]*\$\{[^}]+\}[^`]*`/gi,
-        // String concatenation with + operator
-        /\+\s*(?:req|request|ctx|context|event|params|body|data)\s*(?:\.\s*\w+|\[['"]\w+['"]])/gi,
+        // Generic SQL string concatenation. Keep this broad because SQL often
+        // contains nested quotes such as VALUES ('" + name + "').
+        /["'`]\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b.*["'`]\s*\+/gi,
+        // String concatenation with SQL keyword followed by structure and concatenation
+        // SELECT ... FROM with concatenation
+        /["'`]\s*SELECT\s+[^"'`]*\s+FROM\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
+        // INSERT INTO ... with concatenation
+        /["'`]\s*INSERT\s+INTO\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
+        // UPDATE ... SET with concatenation
+        /["'`]\s*UPDATE\s+[^"'`]*\s+SET\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
+        // DELETE FROM ... with concatenation
+        /["'`]\s*DELETE\s+FROM\s+[^"'`]*["'`]\s*\+\s*\w+/gi,
+        // Template literals with SQL structure and variable interpolation
+        /`(?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+[^`]*\$\{[^}]+\}/gi,
         // Direct variable in query string: query("SELECT * FROM users WHERE id = " + userId)
         /(?:query|execute|exec|run)\s*\(\s*["'`][^"'`]*(?:SELECT|INSERT|UPDATE|DELETE)\s+[^"'`]*["'`]\s*\+/gi,
-        // Python f-strings: f"SELECT * FROM {table}"
-        /f["'](?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s+[^"']*["']/gi,
-        // Python format strings: "SELECT * FROM {}".format(table)
-        /["'](?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s+[^"']*["']\.format\s*\(/gi,
+        // Python f-strings: f"SELECT ... FROM ... {var}"
+        /f["'](?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+[^"']*["']/gi,
+        // Python format strings: "SELECT ... FROM ... {}".format(table)
+        /["'](?:SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+[^"']*["']\.format\s*\(/gi,
       ];
 
       // Patterns that indicate safe parameterized queries
       const safePatterns = [
         // Parameterized query placeholders: ?, :id, $1, @id
-        /\?\s*[,)]/,
-        /:\w+\s*[,)]/,
-        /\$\d+\s*[,)]/,
-        /@\w+\s*[,)]/,
+        /\?\s*[,)"']/,  // ? followed by comma, closing paren, or end of string quote
+        /:\w+\s*[,)"']/,
+        /\$\d+\s*[,)"']/,
+        /@\w+\s*[,)"']/,
         // Prepared statement usage
         /prepare\s*\(/i,
         /PreparedStatement/i,
@@ -66,6 +74,20 @@ export const RAW_SQL_RULE: RulePlugin = {
         /\.where\s*\(/,              // ORM where clause
         /\.find\s*\(/,               // ORM find
         /\.findOne\s*\(/,            // ORM findOne
+      ];
+
+      // Patterns that indicate HTTP/API method context (not SQL)
+      const httpMethodPatterns = [
+        // Express/router HTTP methods: app.get(), app.post(), app.delete(), router.delete()
+        /\b(?:app|router|route|server|express)\s*\.\s*(?:get|post|put|delete|patch|head|options)\s*\(/i,
+        // Object property definition: method: function, delete: function
+        /^\s*(?:get|post|put|delete|patch)\s*:\s*(?:function|\w)/i,
+        // HTTP method in route definition: { delete: handler }
+        /['"]?(?:get|post|put|delete|patch)['"]?\s*:\s*function/i,
+        // Mongoose/ORM methods: .delete(), .remove()
+        /\.\s*(?:delete|remove|destroy)\s*\(\s*\)/i,
+        // Fetch/axios methods
+        /(?:fetch|axios|http|request)\s*\.\s*(?:get|post|put|delete)/i,
       ];
 
       let inSmellComment = false;
@@ -92,6 +114,18 @@ export const RAW_SQL_RULE: RulePlugin = {
         const hasSqlKeyword = sqlKeywords.some((kw) => line.toUpperCase().includes(kw));
 
         if (!hasSqlKeyword && !inSmellComment) continue;
+
+        // Check for HTTP/API method context - these are not SQL
+        const isHttpMethodContext = httpMethodPatterns.some((p) => p.test(line));
+
+        if (isHttpMethodContext) continue;
+
+        // Additional check: if the SQL keyword appears as a method name or property, skip
+        // e.g., "app.delete()", "router.delete()", "delete: function"
+        const sqlKeywordAsMethod = /\b(?:get|post|put|delete|patch|head|options)\s*[:(]/i.test(line);
+        if (sqlKeywordAsMethod && !line.toUpperCase().includes('FROM') && !line.toUpperCase().includes('WHERE') && !line.toUpperCase().includes('INTO')) {
+          continue;
+        }
 
         // Check for unsafe patterns
         for (const pattern of unsafeSqlPatterns) {
@@ -135,6 +169,8 @@ export const RAW_SQL_RULE: RulePlugin = {
               tags: ["security", "sql-injection", "owasp-api3"],
               upstream: { tool: "native" },
             });
+
+            break;
           }
         }
 

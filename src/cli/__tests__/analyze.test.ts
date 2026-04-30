@@ -32,6 +32,7 @@ function getOption(args: string[], name: string): string | undefined {
 describe("analyze CLI", () => {
   let tempOutDir: string;
   const fixturesDir = path.resolve(import.meta.dirname, "../../../fixtures/demo-ci-imports");
+  const blockingFixturesDir = path.resolve(import.meta.dirname, "../../../fixtures/demo-shop-ts");
   const policyFile = path.resolve(import.meta.dirname, "../../../fixtures/policies/strict.yaml");
 
   beforeAll(() => {
@@ -506,7 +507,22 @@ describe("analyze CLI", () => {
     const auditPath = path.join(tempOutDir, "audit.json");
     const audit = JSON.parse(readFileSync(auditPath, "utf8"));
 
-    const validStatuses = ["passed", "passed_with_risk", "blocked", "failed"];
+    const validStatuses = ["passed", "passed_with_risk", "needs_review", "blocked_input", "blocked", "failed"];
     expect(validStatuses).toContain(audit.exit.status);
+  });
+
+  it("audit exit reflects policy-blocked analyze result", async () => {
+    const blockOutDir = path.join(tempOutDir, "policy-blocked");
+    mkdirSync(blockOutDir, { recursive: true });
+
+    const args = [blockingFixturesDir, "--policy", policyFile, "--emit", "all", "--out", blockOutDir];
+    const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
+
+    const audit = JSON.parse(readFileSync(path.join(blockOutDir, "audit.json"), "utf8"));
+
+    expect(result).toBe(EXIT.READINESS_NOT_CLEAR);
+    expect(audit.exit.code).toBe(result);
+    expect(audit.exit.status).toBe("blocked_input");
+    expect(audit.exit.reason).toContain("Blocked:");
   });
 });
