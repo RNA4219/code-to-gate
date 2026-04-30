@@ -601,6 +601,24 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 - local-only / allow-cloud / require-llm の失敗時 exit code を fixture で固定する。
 - redaction と audit hash の検証を CI に載せる。
 
+### 6.8 プロダクトレベル release gate は未達
+
+状態:
+- 2026-05-01 時点の判定は、MVP リリース検収としては conditional go、プロダクトレベル品質としては no-go。
+- `readiness` の policy blocking は `BLOCKING_CATEGORY_*` / `BLOCKING_RULE_*` を `blocked_input` に倒す状態まで修正済み。
+- `npm run test:coverage` は `vitest.coverage.config.ts` により release gate 主経路へ対象を絞って完走する。
+- ただし coverage は全体品質保証ではない。`llm-health`、`plugin-sandbox`、`viewer`、config loader、policy loader、重い integration / performance / real repo 検証は別ゲート扱い。
+- `src/cli/readiness.ts` には独自 YAML parser / policy evaluator が残っており、`src/config/policy-loader.ts` / `src/config/policy-evaluator.ts` と責務が分岐している。
+- policy YAML 形式は docs / fixture / config 実装間で揺れが残る。
+
+解消条件:
+- policy schema を 1 つに固定し、fixtures、docs、`.github/ctg-policy.yaml`、loader/evaluator を同一 contract に統合する。
+- `readiness` は CLI 内独自 parser ではなく共通 policy loader / evaluator を呼ぶ。
+- release gate 用 coverage と product gate 用 heavy checks を CI 上で明示的に分離する。
+- `npm run test:real-repo` と `npm run test:performance` の期待値、対象 repo、失敗時扱いを RUNBOOK と CI に固定する。
+- LLM finding 反映、誤検知/偽陰性評価、domain-specific report 表現を acceptance test と golden artifact で固定する。
+- viewer / plugin sandbox / local LLM provider / GitHub integration を product gate の必須または明示 waiver 対象にする。
+
 ## 7. リファクタリング方針
 
 ### 7.1 優先順位
