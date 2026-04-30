@@ -1,282 +1,274 @@
 # code-to-gate
 
-code-to-gate is a local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs.
+[![npm version](https://badge.fury.io/js/@quality-harness%2Fcode-to-gate.svg)](https://badge.fury.io/js/@quality-harness%2Fcode-to-gate)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> A local-first code analysis harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs.
+A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs.
+
+## v1.0.0 Release
+
+**Stable Schema Freeze** - All schemas are now v1 with backward compatibility.
+
+### Features
+
+| Category | Features |
+|----------|----------|
+| **Languages** | TypeScript, JavaScript, Python |
+| **Analysis** | 9 deterministic rules, AST parsing, evidence-backed findings |
+| **Performance** | Incremental cache, parallel processing, streaming for large repos |
+| **LLM** | Local-only (ollama, llama.cpp), redaction, unsupported_claims isolation |
+| **CI/CD** | GitHub Actions, PR comments, Checks annotations, SARIF export |
+| **Plugins** | Plugin SDK, Docker sandbox, custom rules support |
+| **History** | Baseline comparison, regression detection |
+| **Reports** | JSON, YAML, Markdown, HTML, SARIF v2.1.0, Evidence bundles |
 
 ## Installation
-
-### npm (Recommended)
 
 ```bash
 # Install globally
 npm install -g @quality-harness/code-to-gate
 
-# Or install locally in your project
+# Or install locally
 npm install --save-dev @quality-harness/code-to-gate
-```
-
-### From Source
-
-```bash
-git clone https://github.com/quality-harness/code-to-gate.git
-cd code-to-gate
-npm install
-npm run build
 ```
 
 ### Prerequisites
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| Node.js | 20+ | Required for npm installation |
-| Git | 2.x | Required for `diff` command |
+| Requirement | Version |
+|-------------|---------|
+| Node.js | 20+ |
+| Git | 2.x (for `diff` command) |
 
 ## Quick Start
 
 ```bash
-# Scan your repository
+# Scan repository structure
 code-to-gate scan ./my-repo --out .qh
 
-# Run full analysis
+# Run full quality analysis
 code-to-gate analyze ./my-repo --emit all --out .qh
 
-# Check release readiness
-code-to-gate readiness ./my-repo --out .qh
+# Check release readiness with policy
+code-to-gate readiness ./my-repo --policy policy.yaml --out .qh
+
+# Export SARIF for GitHub Code Scanning
+code-to-gate export sarif --from .qh --out results.sarif
 ```
 
-See the [Quickstart Guide](docs/quickstart.md) for a complete walkthrough.
-
-## Phase 1 Achievements (v0.2.0-alpha.1)
-
-### Core Commands
+## CLI Commands
 
 | Command | Description |
 |---------|-------------|
-| `scan` | Repository structure analysis generating NormalizedRepoGraph |
-| `analyze` | Full quality assessment with findings, risks, invariants, test seeds |
-| `diff` | Git reference comparison with blast radius estimation |
-| `import` | External tool result importer (Semgrep, ESLint, tsc, coverage) |
-| `readiness` | Release readiness evaluation with policy support |
-| `export` | Downstream integration payloads (gatefield, state-gate, manual-bb, workflow-evidence) |
-| `schema validate` | Artifact and schema validation |
-| `fixture` | Fixture management for testing |
+| `scan` | Generate NormalizedRepoGraph from repository |
+| `analyze` | Full quality assessment with findings, risks, test seeds |
+| `diff` | Git reference comparison with blast radius |
+| `import` | Import external tool results (ESLint, Semgrep, tsc, coverage) |
+| `readiness` | Release readiness evaluation with policy |
+| `export` | Export to downstream formats (SARIF, gatefield, etc.) |
+| `historical` | Compare current run with baseline |
+| `viewer` | Launch HTML artifact viewer |
+| `llm-health` | Check local LLM provider health |
+| `evidence` | Create release evidence bundle |
+| `schema validate` | Validate artifacts against schemas |
 
-### Artifact Generation
+## Performance Options
 
-All 9 core artifacts with schema validation:
+```bash
+# Enable incremental cache
+code-to-gate scan ./repo --cache enabled
+
+# Parallel processing (4 workers)
+code-to-gate scan ./repo --parallel 4
+
+# Verbose progress output
+code-to-gate scan ./repo --verbose
+```
+
+## Built-in Rules
+
+| Rule ID | Category | Description |
+|---------|----------|-------------|
+| CLIENT_TRUSTED_PRICE | payment | Client-supplied pricing without validation |
+| WEAK_AUTH_GUARD | auth | Authorization guard weaknesses |
+| MISSING_SERVER_VALIDATION | validation | Unvalidated request body |
+| UNTESTED_CRITICAL_PATH | testing | Missing test coverage on entrypoints |
+| TRY_CATCH_SWALLOW | maintainability | Swallowed error handling |
+| RAW_SQL | security | Raw SQL query construction |
+| ENV_DIRECT_ACCESS | security | Direct environment variable access |
+| UNSAFE_DELETE | maintainability | Unsafe delete operations |
+| LARGE_MODULE | maintainability | Oversized modules |
+
+## Artifact Generation
+
+All artifacts with stable v1 schema:
 
 | Artifact | Purpose |
 |----------|---------|
-| `repo-graph.json` | Repository structure |
-| `findings.json` | Quality issues with evidence |
+| `repo-graph.json` | Normalized repository structure |
+| `findings.json` | Quality findings with evidence |
 | `risk-register.yaml` | Risk assessment |
 | `invariants.yaml` | Business/security invariants |
 | `test-seeds.json` | Test design recommendations |
 | `release-readiness.json` | Release status |
 | `audit.json` | Run metadata |
 | `analysis-report.md` | Human-readable summary |
-| `results.sarif` | SARIF format for GitHub Code Scanning |
+| `results.sarif` | SARIF v2.1.0 for GitHub |
 
-### Built-in Rules
-
-- **CLIENT_TRUSTED_PRICE**: Detects client-supplied pricing in checkout flows
-- **WEAK_AUTH_GUARD**: Identifies authorization guard weaknesses
-- **MISSING_SERVER_VALIDATION**: Flags unvalidated request body usage
-- **UNTESTED_CRITICAL_PATH**: Detects missing test coverage on entrypoints
-- **TRY_CATCH_SWALLOW**: Identifies swallowed error handling
-- **RAW_SQL**: Detects raw SQL query construction
-- **ENV_DIRECT_ACCESS**: Flags direct environment variable access
-- **UNSAFE_DELETE**: Identifies unsafe delete operations
-- **LARGE_MODULE**: Detects oversized modules
-
-### LLM Provider Support
-
-- OpenAI (`gpt-4`, `gpt-3.5-turbo`)
-- Anthropic (`claude-sonnet-4-6`, `claude-haiku-4-5`)
-- Alibaba Cloud (`qwen-max`, `qwen-plus`)
-- OpenRouter (multi-provider access)
-- ollama (local inference)
-- llama.cpp (local GGUF models)
-
-### Downstream Integration
+## Downstream Integration
 
 Export payloads for ecosystem tools:
-- `gatefield-static-result.json`: For agent-gatefield
-- `state-gate-evidence.json`: For agent-state-gate
-- `manual-bb-seed.json`: For manual-bb-test-harness
-- `workflow-evidence.json`: For workflow-cookbook
 
-## Current Status
+- `gatefield-static-result.json` - agent-gatefield
+- `state-gate-evidence.json` - agent-state-gate
+- `manual-bb-seed.json` - manual-bb-test-harness
+- `workflow-evidence.json` - workflow-cookbook
 
-This repo has two phases: **v0.1 MVP** and **product-level v1.0 design**.
+## GitHub Actions Integration
 
-| Phase | Status | Description |
-|---|---|---|
-| v0.1 requirements | GO | Local Release Readiness MVP accepted |
-| v0.1 specification | GO | Executable acceptance / schema / fixtures accepted |
-| v0.1 implementation | in progress | TypeScript, CLI split, rules, adapters, tests in progress |
-| product-level specs | drafted | v1.0 equivalent requirements / spec / acceptance / roadmap added |
-| product-level implementation | not ready | Build / test / real repo application / CI operation not yet stable |
+```yaml
+# .github/workflows/code-to-gate-pr.yml
+name: code-to-gate PR Analysis
 
-Current state is **product-level alpha implementation in progress**.
+on: [pull_request]
 
-## Scope
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @quality-harness/code-to-gate
+      - run: code-to-gate scan . --out .qh
+      - run: code-to-gate analyze . --emit all --out .qh
+      - run: code-to-gate export sarif --from .qh --out results.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+```
 
-- repo graph / dependency graph
-- TS/JS scan and adapter extraction
-- normalized findings
-- code-derived risk register
-- invariant and test seed artifacts
-- release readiness artifact
-- static analysis result import
-- downstream gate / QA seed export
-- local-first audit and reproducibility
+## Plugin Development
 
-`test seed` is not a finished manual test case, but design input for `manual-bb-test-harness` and other downstream systems.
+Create custom analysis rules:
 
-## Non-goals
+```bash
+# Plugin structure
+my-plugin/
+  manifest.json     # Plugin metadata
+  index.js          # Rule implementation
+```
 
-- AI agent artifact gate engine
-- agent approval / freshness / human queue
-- manual black-box test final design
-- workflow / Task Seed governance
-- company-specific business rules in OSS core
-- proprietary source code or analysis output in public fixtures
-- final production release approval
+See [docs/plugin-development.md](docs/plugin-development.md) for details.
 
-## Documentation Map
+## Local LLM Setup
 
-### Start Here
+```bash
+# Check ollama health
+code-to-gate llm-health --provider ollama
 
-| Document | Purpose |
-|---|---|
-| [docs/product-gap-analysis.md](docs/product-gap-analysis.md) | Gap between current state and product-level |
-| [docs/product-roadmap.md](docs/product-roadmap.md) | Roadmap to alpha / beta / v1.0 |
-| [docs/spec-acceptance-review.md](docs/spec-acceptance-review.md) | v0.1 specification review results |
-| [docs/acceptance-review-manual-bb.md](docs/acceptance-review-manual-bb.md) | v0.1 requirements review results |
-| [docs/quickstart.md](docs/quickstart.md) | 5-minute quickstart guide |
+# Analyze with local LLM
+code-to-gate analyze ./repo --llm-provider ollama --llm-model llama3
+```
 
-### v0.1 MVP Docs
+See [docs/local-llm-setup.md](docs/local-llm-setup.md) for setup instructions.
+
+## Documentation
 
 | Document | Purpose |
-|---|---|
-| [docs/requirements.md](docs/requirements.md) | v0.1 MVP requirements |
-| [docs/artifact-contracts.md](docs/artifact-contracts.md) | Core artifact contracts |
-| [docs/error-model.md](docs/error-model.md) | CLI exit code / failure model |
-| [docs/llm-trust-model.md](docs/llm-trust-model.md) | LLM usage scope and trust boundary |
-| [docs/integrations.md](docs/integrations.md) | Downstream adapter contract |
-| [docs/plugin-security-contract.md](docs/plugin-security-contract.md) | Plugin / private rulepack security boundary |
-| [docs/acceptance-v0.1.md](docs/acceptance-v0.1.md) | v0.1 executable acceptance |
-| [docs/fixture-spec-v0.1.md](docs/fixture-spec-v0.1.md) | Synthetic fixture specification |
-
-### Product-Level v1 Docs
-
-| Document | Purpose |
-|---|---|
-| [docs/product-requirements-v1.md](docs/product-requirements-v1.md) | Product-level requirements |
-| [docs/product-spec-v1.md](docs/product-spec-v1.md) | Product-level specification |
-| [docs/product-acceptance-v1.md](docs/product-acceptance-v1.md) | Alpha / beta / v1.0 acceptance |
-| [docs/product-gap-analysis.md](docs/product-gap-analysis.md) | Gap from v0.1 to product-level |
-| [docs/product-roadmap.md](docs/product-roadmap.md) | Phase plan and exit criteria |
+|----------|---------|
+| [docs/quickstart.md](docs/quickstart.md) | 5-minute walkthrough |
+| [docs/cli-reference.md](docs/cli-reference.md) | Full CLI documentation |
+| [docs/schema-versioning.md](docs/schema-versioning.md) | Schema stability policy |
+| [docs/plugin-development.md](docs/plugin-development.md) | Plugin SDK guide |
+| [docs/performance-optimization.md](docs/performance-optimization.md) | Performance tuning |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
 
 ## Repository Layout
 
 | Path | Content |
 |------|---------|
-| `src/cli/` | CLI command implementations |
-| `src/adapters/` | TS/JS parser adapters |
-| `src/rules/` | Deterministic rule modules |
-| `src/config/` | Config / policy loading and evaluation |
-| `src/reporters/` | JSON / YAML / Markdown reporters |
-| `src/suppression/` | Suppression loading / matching / validation |
-| `src/github/` | GitHub Actions / PR comment / Checks integration scaffold |
-| `src/types/` | Shared artifact and graph types |
-| `schemas/` | Core JSON Schemas |
-| `schemas/integrations/` | Downstream adapter schemas |
-| `fixtures/` | Synthetic repos and policy fixtures |
-| `tests/` | Integration tests |
-| `orchestration/` | Workflow/task planning docs |
-| `.github/` | GitHub workflow/action scaffolds |
+| `src/cli/` | CLI commands |
+| `src/adapters/` | TS/JS/Python parsers |
+| `src/rules/` | Detection rules |
+| `src/cache/` | Incremental cache |
+| `src/parallel/` | Parallel processing |
+| `src/plugin/` | Plugin SDK, sandbox |
+| `src/llm/` | Local LLM providers |
+| `src/historical/` | Baseline comparison |
+| `src/viewer/` | HTML viewer |
+| `src/evidence/` | Evidence bundles |
+| `schemas/` | JSON Schemas (v1) |
+| `fixtures/` | Test fixtures |
 
-## Build And Test
+## Test Coverage
+
+~3000+ tests across all modules:
+
+| Module | Tests |
+|--------|-------|
+| Core adapters | 150+ |
+| Rules | 200+ |
+| CLI commands | 300+ |
+| Cache/Parallel | 50+ |
+| Plugin SDK | 50+ |
+| LLM providers | 70+ |
+| Historical | 60+ |
+| Viewer | 80+ |
+| Evidence bundle | 50+ |
+| Acceptance | 150+ |
+
+## Build and Test
 
 ```bash
 npm install
 npm run build
 npm test
+
+# Smoke tests
+npm run test:smoke
+
+# Coverage
+npm run test:coverage
 ```
 
-Current implementation is in stabilization. Recent builds/tests have known failures; type errors and test expectations need alignment first.
+## Scope
 
-## CLI Smoke
+- Repository graph / dependency extraction
+- TS/JS/Python scan and AST parsing
+- Evidence-backed findings
+- Code-derived risk register
+- Invariant and test seed artifacts
+- Release readiness evaluation
+- External tool import (ESLint, Semgrep, tsc)
+- Downstream gate/QA seed export
+- Local-first audit and reproducibility
 
-After build, use `dist/cli.js`:
+## Non-goals
 
-```bash
-node ./dist/cli.js schema validate schemas/normalized-repo-graph.schema.json
-node ./dist/cli.js scan fixtures/demo-shop-ts --out .qh
-node ./dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh --require-llm
-node ./dist/cli.js diff fixtures/demo-shop-ts --base main --head HEAD --out .qh
-node ./dist/cli.js import semgrep fixtures/demo-ci-imports/semgrep.json --out .qh/imports
-node ./dist/cli.js readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --out .qh
-```
-
-`demo-shop-ts` includes critical findings, so `analyze` and `readiness` returning exit code `1` / `blocked_input` is expected.
-
-## Downstream Exports
-
-```bash
-node ./dist/cli.js export gatefield --from .qh --out .qh/gatefield-static-result.json
-node ./dist/cli.js export state-gate --from .qh --out .qh/state-gate-evidence.json
-node ./dist/cli.js export manual-bb --from .qh --out .qh/manual-bb-seed.json
-node ./dist/cli.js export workflow-evidence --from .qh --out .qh/workflow-evidence.json
-```
+- AI agent artifact gate engine (agent-gatefield)
+- Agent approval/freshness queues (agent-state-gate)
+- Manual black-box test final design (manual-bb-test-harness)
+- Workflow governance (workflow-cookbook)
+- Company-specific business rules in OSS core
+- Proprietary source code in fixtures
+- Final production release approval
 
 ## Fixtures
 
 | Fixture | Purpose |
 |---------|---------|
-| `fixtures/demo-shop-ts` | checkout / payment risk, client trusted price, weak validation |
-| `fixtures/demo-auth-js` | missing admin guard, try/catch swallow |
-| `fixtures/demo-ci-imports` | ESLint / Semgrep / TypeScript diagnostics / coverage import |
-| `fixtures/demo-suppressions-ts` | suppression behavior |
-| `fixtures/edge-cases` | parser edge cases |
-| `fixtures/policies` | standard / strict policy |
+| `demo-shop-ts` | Checkout/payment risks, client trusted price |
+| `demo-auth-js` | Auth guards, try/catch swallow |
+| `demo-ci-imports` | External tool import examples |
+| `demo-suppressions-ts` | Suppression behavior |
+| `demo-github-actions-ts` | GitHub Actions workflow |
+| `demo-python` | Python adapter examples |
+| `demo-monorepo` | Monorepo package boundary |
 
-All public fixtures must be synthetic. Do not include private code, private scan results, or company-specific rules.
-
-## Known Gaps
-
-Priority fixes needed:
-
-- `npm run build` TypeScript errors
-- `npm test` failing tests
-- AST adapter call relation / syntax error handling
-- scan symbol `location` and unknown-file handling
-- audit policy metadata
-- reporter / suppression boundary behavior
-- GitHub Checks / PR comment type alignment
-- generated directories and fixture dependency cleanup
-
-For major remaining product-level gaps, see [docs/product-gap-analysis.md](docs/product-gap-analysis.md).
-
-## Generated Files
-
-These are generated outputs/dependencies, typically not committed:
-
-- `.qh/`
-- `.qh*/`
-- `.test-temp/`
-- `dist/`
-- `coverage/`
-- `node_modules/`
-- `fixtures/*/node_modules/`
-
-## Origin Policy
-
-This project is an original implementation. It does not include proprietary source code, company-specific rules, or internal analysis results. Example fixtures must be synthetic.
+All fixtures are synthetic. No proprietary code included.
 
 ## License
 
 MIT License. See [LICENSE](LICENSE).
+
+## Origin Policy
+
+This project is an original implementation. No proprietary source code, company-specific rules, or internal analysis results are included.

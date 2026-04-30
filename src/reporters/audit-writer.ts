@@ -10,8 +10,11 @@ import {
   FindingsArtifact,
   NormalizedRepoGraph,
   Policy,
-  CTG_VERSION,
+  CTG_VERSION_V1ALPHA1,
 } from "../types/artifacts.js";
+
+const CTG_VERSION = CTG_VERSION_V1ALPHA1;
+
 import { createHash } from "node:crypto";
 import { writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";

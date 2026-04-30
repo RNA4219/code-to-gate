@@ -212,6 +212,7 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized.includes("/controllers/") ||
     normalized === "server.ts" ||
     normalized === "server.js" ||
+    normalized === "server.py" ||
     normalized.startsWith("src/server.ts") ||
     normalized.startsWith("src/server.js") ||
     normalized.startsWith("src/server.py") ||

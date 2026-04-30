@@ -1066,15 +1066,25 @@ export function parsePythonFile(
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Skip triple-quoted strings
-      if (line.includes('"""') || line.includes("'''")) {
+      // Handle triple-quoted strings
+      // Check for both opening and closing on the same line
+      const hasTripleQuote = line.includes('"""') || line.includes("'''");
+      if (hasTripleQuote) {
         if (!inTripleString) {
+          // Starting a triple-quoted string
           inTripleString = true;
           tripleStringChar = line.includes('"""') ? '"""' : "'''";
+          // Check if it also closes on the same line
+          const count = (line.match(new RegExp(tripleStringChar, 'g')) || []).length;
+          if (count >= 2) {
+            inTripleString = false;
+          }
         } else if (line.includes(tripleStringChar)) {
+          // Closing a triple-quoted string
           inTripleString = false;
         }
-        continue;
+        // Still process the line for bracket counting (except for multi-line strings)
+        if (inTripleString) continue;
       }
 
       if (inTripleString) continue;

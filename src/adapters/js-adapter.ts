@@ -1,58 +1,10 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as acorn from "acorn";
+import { sha256, toPosix } from "../core/path-utils.js";
+import type { EvidenceRef, SymbolNode, GraphRelation } from "../types/graph.js";
 
-export interface EvidenceRef {
-  id: string;
-  path: string;
-  startLine?: number;
-  endLine?: number;
-  kind: "ast" | "text" | "import" | "external" | "test" | "coverage" | "diff";
-  excerptHash?: string;
-  nodeId?: string;
-  symbolId?: string;
-  externalRef?: {
-    tool: string;
-    ruleId?: string;
-    url?: string;
-  };
-}
-
-export interface SymbolNode {
-  id: string;
-  fileId: string;
-  name: string;
-  kind:
-    | "function"
-    | "class"
-    | "method"
-    | "variable"
-    | "type"
-    | "interface"
-    | "route"
-    | "test"
-    | "unknown";
-  exported: boolean;
-  async?: boolean;
-  evidence: EvidenceRef[];
-}
-
-export interface GraphRelation {
-  id: string;
-  from: string;
-  to: string;
-  kind:
-    | "imports"
-    | "exports"
-    | "calls"
-    | "references"
-    | "tests"
-    | "configures"
-    | "depends_on";
-  confidence: number;
-  evidence: EvidenceRef[];
-}
+export type { EvidenceRef, SymbolNode, GraphRelation };
 
 export interface ParseResult {
   symbols: SymbolNode[];
@@ -66,14 +18,6 @@ export interface ParseResult {
   }>;
   parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
   parserAdapter: string;
-}
-
-function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-function toPosix(value: string): string {
-  return value.replace(/\\/g, "/");
 }
 
 function getLineFromPosition(source: string, position: number): number {

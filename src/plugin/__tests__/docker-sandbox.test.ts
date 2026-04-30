@@ -691,19 +691,19 @@ describe("Sandbox Mode Integration with PluginRunnerImpl", () => {
   });
 
   describe("createPluginRunner with sandbox mode", () => {
-    it("should create runner with docker sandbox mode", () => {
+    it("should create runner with docker sandbox mode", async () => {
       const { createPluginRunner } = await import("../plugin-runner.js");
       const runner = createPluginRunner("docker");
       expect(runner).toBeDefined();
     });
 
-    it("should create runner with none sandbox mode", () => {
+    it("should create runner with none sandbox mode", async () => {
       const { createPluginRunner } = await import("../plugin-runner.js");
       const runner = createPluginRunner("none");
       expect(runner).toBeDefined();
     });
 
-    it("should default to none mode", () => {
+    it("should default to none mode", async () => {
       const { createPluginRunner } = await import("../plugin-runner.js");
       const runner = createPluginRunner();
       expect(runner).toBeDefined();

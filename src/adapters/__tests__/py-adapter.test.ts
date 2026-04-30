@@ -21,10 +21,17 @@ describe('py-adapter', () => {
       const filePath = path.join(demoPythonDir, 'src/api/order.py');
       const result = parsePythonFile(filePath, demoPythonDir, 'file:order');
 
+      // Check for async_create_order as a function
       const functions = result.symbols.filter(s => s.kind === 'function');
       expect(functions.length).toBeGreaterThan(0);
 
-      const createOrderRoute = functions.find(f => f.name === 'create_order_route');
+      const asyncCreateOrder = functions.find(f => f.name === 'async_create_order');
+      expect(asyncCreateOrder).toBeDefined();
+      expect(asyncCreateOrder?.async).toBe(true);
+
+      // Note: create_order_route is classified as 'route' because name contains 'route'
+      const routes = result.symbols.filter(s => s.kind === 'route');
+      const createOrderRoute = routes.find(f => f.name === 'create_order_route');
       expect(createOrderRoute).toBeDefined();
     });
 

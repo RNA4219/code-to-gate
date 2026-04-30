@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://code-to-gate.local/schemas/findings.schema.json",
   "title": "FindingsArtifact",
-  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeaderV1Alpha1" }],
   "required": ["artifact", "schema", "completeness", "findings", "unsupported_claims"],
   "additionalProperties": false,
   "properties": {
