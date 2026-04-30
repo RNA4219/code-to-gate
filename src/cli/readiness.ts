@@ -97,84 +97,111 @@ function parsePolicyYaml(content: string): Policy {
     },
   };
 
-  let currentSection: "" | "blocking" | "readiness" | "blocking_severities" | "blocking_categories" | "blocking_rules" = "";
-  let indentLevel = 0;
-  let subSectionIndent = 0;
+  // Track indent levels for each section
+  let currentSection: "" | "blocking" | "readiness" | "blocking_severities" | "blocking_categories" | "blocking_rules" | "readiness_values" = "";
+  let rootIndent = 0; // Indent level of root keys like "blocking:", "readiness:"
+  let listIndent = 0; // Expected indent for list items under a sub-section
 
   for (const line of lines) {
     const trimmed = line.trim();
     const indent = line.length - line.trimStart().length;
 
+    // Skip empty lines but don't reset section (YAML continuation)
+    if (trimmed === "") continue;
+
     // Parse version
     if (trimmed.startsWith("version:")) {
       policy.version = trimmed.split(":")[1].trim();
       currentSection = "";
+      continue;
     }
 
     // Parse name/policy_id
     if (trimmed.startsWith("name:") || trimmed.startsWith("policy_id:")) {
       policy.name = trimmed.split(":")[1].trim();
       currentSection = "";
+      continue;
     }
 
     // Parse description
     if (trimmed.startsWith("description:")) {
       policy.description = trimmed.split(":")[1].trim();
       currentSection = "";
-    }
-
-    // Enter blocking section
-    if (trimmed.startsWith("blocking:")) {
-      currentSection = "blocking";
-      indentLevel = indent;
-      subSectionIndent = indent + 2; // Expected indent for sub-sections
       continue;
     }
 
-    // Enter readiness section
-    if (trimmed.startsWith("readiness:")) {
-      currentSection = "readiness";
-      indentLevel = indent;
-      subSectionIndent = indent + 2;
-      continue;
+    // Top-level sections - check if indent is 0 or matches root level
+    if (indent <= rootIndent || rootIndent === 0) {
+      // Enter blocking section
+      if (trimmed.startsWith("blocking:")) {
+        currentSection = "blocking";
+        rootIndent = indent;
+        listIndent = indent + 4; // Items are at indent+4 (2 for sub-section key, +2 for list items)
+        continue;
+      }
+
+      // Enter readiness section
+      if (trimmed.startsWith("readiness:")) {
+        currentSection = "readiness";
+        rootIndent = indent;
+        listIndent = indent + 2;
+        continue;
+      }
+
+      // Reset to root level if we encounter a non-section key at root level
+      if (!trimmed.startsWith("-") && rootIndent > 0) {
+        currentSection = "";
+        rootIndent = 0;
+      }
     }
 
-    // Reset to parent section when encountering a sub-section key at the right indent
-    if (currentSection.startsWith("blocking_") && indent === subSectionIndent && trimmed.endsWith(":")) {
-      currentSection = "blocking";
-    }
-    if (currentSection.startsWith("readiness_") && indent === subSectionIndent && trimmed.endsWith(":")) {
-      currentSection = "readiness";
-    }
-
-    // Exit section when indent decreases significantly (back to root level)
-    if (indent < indentLevel && trimmed !== "" && !trimmed.startsWith("-")) {
-      currentSection = "";
-    }
-
-    // Parse blocking section - list format
-    if (currentSection === "blocking") {
-      // Parse severities list
+    // Sub-section keys inside blocking (at indent+2)
+    if (currentSection === "blocking" && indent === rootIndent + 2 && trimmed.endsWith(":")) {
       if (trimmed === "severities:") {
         currentSection = "blocking_severities";
+        listIndent = indent + 2;
         continue;
       }
-
-      // Parse categories list
       if (trimmed === "categories:") {
         currentSection = "blocking_categories";
+        listIndent = indent + 2;
         continue;
       }
-
-      // Parse rules list
       if (trimmed === "rules:") {
         currentSection = "blocking_rules";
+        listIndent = indent + 2;
         continue;
       }
     }
 
-    // Parse list items in blocking sub-sections (outside the "blocking" block to avoid TS narrowing)
-    if (trimmed.startsWith("-")) {
+    // Sub-section keys inside readiness (at indent+2)
+    if (currentSection === "readiness" && indent === rootIndent + 2 && !trimmed.endsWith(":")) {
+      // Parse readiness values inline
+      if (trimmed.startsWith("criticalFindingStatus:")) {
+        const val = trimmed.split(":")[1].trim();
+        if (val === "blocked_input" || val === "needs_review") {
+          policy.readiness!.criticalFindingStatus = val;
+        }
+        continue;
+      }
+      if (trimmed.startsWith("highAuthFindingStatus:")) {
+        const val = trimmed.split(":")[1].trim();
+        if (val === "blocked_input" || val === "needs_review") {
+          policy.readiness!.highAuthFindingStatus = val;
+        }
+        continue;
+      }
+      if (trimmed.startsWith("defaultRiskStatus:")) {
+        const val = trimmed.split(":")[1].trim();
+        if (val === "needs_review" || val === "passed_with_risk") {
+          policy.readiness!.defaultRiskStatus = val;
+        }
+        continue;
+      }
+    }
+
+    // Parse list items (at listIndent level, starting with "-")
+    if (trimmed.startsWith("-") && indent === listIndent) {
       const value = trimmed.slice(1).trim();
 
       if (currentSection === "blocking_severities") {
@@ -188,25 +215,14 @@ function parsePolicyYaml(content: string): Policy {
       }
     }
 
-    // Parse readiness section
-    if (currentSection === "readiness") {
-      if (trimmed.startsWith("criticalFindingStatus:")) {
-        const val = trimmed.split(":")[1].trim();
-        if (val === "blocked_input" || val === "needs_review") {
-          policy.readiness!.criticalFindingStatus = val;
-        }
-      }
-      if (trimmed.startsWith("highAuthFindingStatus:")) {
-        const val = trimmed.split(":")[1].trim();
-        if (val === "blocked_input" || val === "needs_review") {
-          policy.readiness!.highAuthFindingStatus = val;
-        }
-      }
-      if (trimmed.startsWith("defaultRiskStatus:")) {
-        const val = trimmed.split(":")[1].trim();
-        if (val === "needs_review" || val === "passed_with_risk") {
-          policy.readiness!.defaultRiskStatus = val;
-        }
+    // Reset section if indent goes back to root level with a non-list key
+    if (indent <= rootIndent && !trimmed.startsWith("-") && currentSection !== "") {
+      // Check if it's a new section
+      if (trimmed.startsWith("blocking:") || trimmed.startsWith("readiness:")) {
+        // Already handled above
+      } else {
+        currentSection = "";
+        rootIndent = 0;
       }
     }
   }
