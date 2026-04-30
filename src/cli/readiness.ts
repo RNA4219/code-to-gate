@@ -90,73 +90,122 @@ function parsePolicyYaml(content: string): Policy {
       categories: [],
       rules: [],
     },
+    readiness: {
+      criticalFindingStatus: "blocked_input",
+      highAuthFindingStatus: "needs_review",
+      defaultRiskStatus: "needs_review",
+    },
   };
 
-  let inBlockingSection = false;
-  let currentSeveritySection = "";
+  let currentSection: "" | "blocking" | "readiness" | "blocking_severities" | "blocking_categories" | "blocking_rules" = "";
+  let indentLevel = 0;
+  let subSectionIndent = 0;
 
   for (const line of lines) {
     const trimmed = line.trim();
+    const indent = line.length - line.trimStart().length;
 
     // Parse version
     if (trimmed.startsWith("version:")) {
       policy.version = trimmed.split(":")[1].trim();
+      currentSection = "";
     }
 
     // Parse name/policy_id
     if (trimmed.startsWith("name:") || trimmed.startsWith("policy_id:")) {
       policy.name = trimmed.split(":")[1].trim();
+      currentSection = "";
     }
 
     // Parse description
     if (trimmed.startsWith("description:")) {
       policy.description = trimmed.split(":")[1].trim();
+      currentSection = "";
     }
 
     // Enter blocking section
     if (trimmed.startsWith("blocking:")) {
-      inBlockingSection = true;
+      currentSection = "blocking";
+      indentLevel = indent;
+      subSectionIndent = indent + 2; // Expected indent for sub-sections
       continue;
     }
 
-    // Exit blocking section
-    if (inBlockingSection && !trimmed.startsWith(" ") && !trimmed.startsWith("-") && trimmed !== "") {
-      inBlockingSection = false;
+    // Enter readiness section
+    if (trimmed.startsWith("readiness:")) {
+      currentSection = "readiness";
+      indentLevel = indent;
+      subSectionIndent = indent + 2;
+      continue;
     }
 
-    // Parse blocking section
-    if (inBlockingSection) {
-      if (trimmed.startsWith("severity:")) {
-        currentSeveritySection = "severity";
+    // Reset to parent section when encountering a sub-section key at the right indent
+    if (currentSection.startsWith("blocking_") && indent === subSectionIndent && trimmed.endsWith(":")) {
+      currentSection = "blocking";
+    }
+    if (currentSection.startsWith("readiness_") && indent === subSectionIndent && trimmed.endsWith(":")) {
+      currentSection = "readiness";
+    }
+
+    // Exit section when indent decreases significantly (back to root level)
+    if (indent < indentLevel && trimmed !== "" && !trimmed.startsWith("-")) {
+      currentSection = "";
+    }
+
+    // Parse blocking section - list format
+    if (currentSection === "blocking") {
+      // Parse severities list
+      if (trimmed === "severities:") {
+        currentSection = "blocking_severities";
         continue;
       }
 
-      if (trimmed.startsWith("category:")) {
-        currentSeveritySection = "category";
+      // Parse categories list
+      if (trimmed === "categories:") {
+        currentSection = "blocking_categories";
         continue;
       }
 
-      // Parse severity values
-      if (currentSeveritySection === "severity") {
-        const severityMatch = trimmed.match(/^(\w+):\s*(true|false)/);
-        if (severityMatch) {
-          const sev = severityMatch[1];
-          const block = severityMatch[2] === "true";
-          if (block && ["critical", "high", "medium", "low"].includes(sev)) {
-            policy.blocking.severities!.push(sev as Severity);
-          }
+      // Parse rules list
+      if (trimmed === "rules:") {
+        currentSection = "blocking_rules";
+        continue;
+      }
+    }
+
+    // Parse list items in blocking sub-sections (outside the "blocking" block to avoid TS narrowing)
+    if (trimmed.startsWith("-")) {
+      const value = trimmed.slice(1).trim();
+
+      if (currentSection === "blocking_severities") {
+        if (["critical", "high", "medium", "low"].includes(value)) {
+          policy.blocking.severities!.push(value as Severity);
+        }
+      } else if (currentSection === "blocking_categories") {
+        policy.blocking.categories!.push(value as FindingCategory);
+      } else if (currentSection === "blocking_rules") {
+        policy.blocking.rules!.push(value);
+      }
+    }
+
+    // Parse readiness section
+    if (currentSection === "readiness") {
+      if (trimmed.startsWith("criticalFindingStatus:")) {
+        const val = trimmed.split(":")[1].trim();
+        if (val === "blocked_input" || val === "needs_review") {
+          policy.readiness!.criticalFindingStatus = val;
         }
       }
-
-      // Parse category values
-      if (currentSeveritySection === "category") {
-        const categoryMatch = trimmed.match(/^(\w+):\s*(true|false)/);
-        if (categoryMatch) {
-          const cat = categoryMatch[1];
-          const block = categoryMatch[2] === "true";
-          if (block) {
-            policy.blocking.categories!.push(cat as FindingCategory);
-          }
+      if (trimmed.startsWith("highAuthFindingStatus:")) {
+        const val = trimmed.split(":")[1].trim();
+        if (val === "blocked_input" || val === "needs_review") {
+          policy.readiness!.highAuthFindingStatus = val;
+        }
+      }
+      if (trimmed.startsWith("defaultRiskStatus:")) {
+        const val = trimmed.split(":")[1].trim();
+        if (val === "needs_review" || val === "passed_with_risk") {
+          policy.readiness!.defaultRiskStatus = val;
         }
       }
     }
@@ -209,30 +258,76 @@ function evaluateFindingsAgainstPolicy(
     }
   }
 
-  // Determine status based on failed conditions
-  let status: "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed" = "passed";
+  // Check blocking rules
+  for (const rule of policy.blocking.rules || []) {
+    const matchingFindings = findings.findings.filter((f) => f.ruleId === rule);
 
-  if (failedConditions.length > 0) {
-    // Check if any critical severity findings
-    const hasCriticalBlock = failedConditions.some(
-      (c) => c.id === "BLOCKING_SEVERITY_CRITICAL"
-    );
-
-    if (hasCriticalBlock) {
-      status = "blocked_input";
-    } else {
-      // Check severity of failed conditions
-      const hasHighBlock = failedConditions.some(
-        (c) =>
-          c.id === "BLOCKING_SEVERITY_HIGH" ||
-          c.id.includes("_AUTH_") ||
-          c.id.includes("_PAYMENT_")
+    if (matchingFindings.length > 0) {
+      const highSeverityFindings = matchingFindings.filter(
+        (f) => f.severity === "high" || f.severity === "critical"
       );
 
-      if (hasHighBlock) {
-        status = "needs_review";
+      if (highSeverityFindings.length > 0) {
+        failedConditions.push({
+          id: `BLOCKING_RULE_${rule}`,
+          reason: `${highSeverityFindings.length} high/critical findings for blocking rule ${rule}`,
+          matchedFindingIds: highSeverityFindings.map((f) => f.id),
+        });
+      }
+    }
+  }
+
+  // Determine status based on failed conditions and policy readiness settings
+  type ReadinessStatus = "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
+  let status: ReadinessStatus = "passed";
+
+  if (failedConditions.length > 0) {
+    // Use policy readiness settings if available
+    if (policy.readiness) {
+      // Check for critical findings
+      const hasCriticalFindings = findings.findings.some(f => f.severity === "critical");
+      if (hasCriticalFindings && policy.readiness.criticalFindingStatus) {
+        const criticalStatus = policy.readiness.criticalFindingStatus;
+        if (criticalStatus === "blocked_input" || criticalStatus === "needs_review") {
+          status = criticalStatus;
+        }
+      }
+
+      // Check for auth-related high findings
+      const hasAuthHighFindings = findings.findings.some(
+        f => f.severity === "high" && f.category === "auth"
+      );
+      if (hasAuthHighFindings && policy.readiness.highAuthFindingStatus) {
+        const authStatus = policy.readiness.highAuthFindingStatus;
+        if (authStatus === "blocked_input" || authStatus === "needs_review") {
+          // Use more severe status
+          if (authStatus === "blocked_input" || status === "needs_review") {
+            status = authStatus;
+          }
+        }
+      }
+    } else {
+      // Default logic without policy readiness settings
+      const hasCriticalBlock = failedConditions.some(
+        (c) => c.id === "BLOCKING_SEVERITY_CRITICAL"
+      );
+
+      if (hasCriticalBlock) {
+        status = "blocked_input";
       } else {
-        status = "passed_with_risk";
+        const hasHighBlock = failedConditions.some(
+          (c) =>
+            c.id === "BLOCKING_SEVERITY_HIGH" ||
+            c.id.includes("_AUTH_") ||
+            c.id.includes("_PAYMENT_") ||
+            c.id.startsWith("BLOCKING_RULE_")
+        );
+
+        if (hasHighBlock) {
+          status = "needs_review";
+        } else {
+          status = "passed_with_risk";
+        }
       }
     }
   }
