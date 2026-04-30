@@ -390,6 +390,80 @@ export function getStatusMessage(status: ReadinessStatus): string {
 }
 
 /**
+ * Generate specific blocking summary based on failed conditions
+ */
+export function generateBlockingSummary(
+  failedConditions: FailedCondition[],
+  blockedFindings: Finding[]
+): string {
+  if (blockedFindings.length === 0 && failedConditions.length === 0) {
+    return "No blocking conditions";
+  }
+
+  // Count blocking types
+  const severityBlocks: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+  const categoryBlocks: Partial<Record<FindingCategory, number>> = {};
+  const ruleBlocks: Record<string, number> = {};
+  let countThresholdBlocks = 0;
+
+  for (const condition of failedConditions) {
+    if (condition.type === "severity_block" && condition.severity) {
+      severityBlocks[condition.severity]++;
+    } else if (condition.type === "category_block" && condition.category) {
+      categoryBlocks[condition.category] = (categoryBlocks[condition.category] || 0) + 1;
+    } else if (condition.type === "rule_block" && condition.ruleId) {
+      ruleBlocks[condition.ruleId] = (ruleBlocks[condition.ruleId] || 0) + 1;
+    } else if (condition.type === "count_threshold") {
+      countThresholdBlocks++;
+    }
+  }
+
+  // Build summary parts
+  const parts: string[] = [];
+
+  // Severity blocking
+  const criticalCount = severityBlocks.critical;
+  const highCount = severityBlocks.high;
+  if (criticalCount > 0) {
+    parts.push(`${criticalCount} critical severity findings`);
+  }
+  if (highCount > 0) {
+    parts.push(`${highCount} high severity findings`);
+  }
+
+  // Category blocking (top categories)
+  const topCategories = Object.entries(categoryBlocks)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  for (const [category, count] of topCategories) {
+    if (count > 0) {
+      parts.push(`${count} ${category} category findings`);
+    }
+  }
+
+  // Rule blocking (top rules)
+  const topRules = Object.entries(ruleBlocks)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  for (const [ruleId, count] of topRules) {
+    if (count > 0) {
+      parts.push(`${count} findings from rule ${ruleId}`);
+    }
+  }
+
+  // Count threshold
+  if (countThresholdBlocks > 0) {
+    parts.push(`${countThresholdBlocks} count threshold(s) exceeded`);
+  }
+
+  if (parts.length === 0) {
+    return `Blocked by ${blockedFindings.length} findings`;
+  }
+
+  return `Blocked: ${parts.join(", ")}`;
+}
+
+/**
  * Generate a brief evaluation summary for logging
  */
 export function generateEvaluationSummary(result: PolicyEvaluationResult): string {

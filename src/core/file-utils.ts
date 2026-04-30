@@ -32,6 +32,18 @@ export const DEFAULT_IGNORED_DIRS = new Set([
 ]);
 
 /**
+ * Check if a directory name should be ignored by pattern
+ * Includes .qh* (any directory starting with .qh)
+ */
+function shouldIgnoreByName(name: string, ignoredSet: Set<string>): boolean {
+  // Exact match
+  if (ignoredSet.has(name)) return true;
+  // Pattern match for .qh* directories (.qh-test, .qh-auth, etc.)
+  if (name.startsWith(".qh")) return true;
+  return false;
+}
+
+/**
  * Detect the programming language of a file based on its extension
  * @param filePath - Path to the file
  * @returns Detected language type
@@ -159,7 +171,7 @@ export function walkDir(dir: string, ignoredDirs?: Set<string>): string[] {
     const entries = readdirSync(dir, { withFileTypes: true });
 
     return entries.flatMap((entry) => {
-      if (ignored.has(entry.name)) return [];
+      if (shouldIgnoreByName(entry.name, ignored)) return [];
 
       const fullPath = path.join(dir, entry.name);
 

@@ -864,7 +864,7 @@ describe("readiness CLI", () => {
     expect(readiness.failedConditions.some(c => c.id === "BLOCKING_SEVERITY_CRITICAL")).toBe(true);
 
     // summary should reflect blocked status
-    expect(readiness.summary).toContain("blocked");
+    expect(readiness.summary.toLowerCase()).toContain("blocked");
   });
 
   // Regression test for P0: strict policy blocks on payment category

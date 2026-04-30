@@ -12,18 +12,16 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import {
   EmitFormat,
   CTG_VERSION_V1ALPHA1,
-  type Severity,
-  type FindingCategory,
 } from "../types/artifacts.js";
 import {
   CtgPolicy,
   loadPolicyFile,
 } from "../config/policy-loader.js";
 import {
-  isSeverityBlocked,
-  isCategoryBlocked,
-  isRuleBlocked,
-  CATEGORY_MAP,
+  evaluatePolicy,
+  generateBlockingSummary,
+  getExitCode,
+  type ReadinessStatus,
 } from "../config/policy-evaluator.js";
 
 const CTG_VERSION = CTG_VERSION_V1ALPHA1;
@@ -68,31 +66,22 @@ function parseEmitOption(value: string | undefined): EmitFormat[] {
   return formats.filter((f) => ["json", "yaml", "md", "mermaid", "all"].includes(f));
 }
 
-function checkBlockingFindings(
-  findings: Array<{ severity: Severity; category: FindingCategory; ruleId: string }>,
-  policy: CtgPolicy | undefined
-): boolean {
-  if (!policy) return false;
-
-  for (const f of findings) {
-    // Always block on critical severity
-    if (f.severity === "critical") return true;
-
-    // Check severity blocking
-    if (isSeverityBlocked(f.severity, policy.blocking.severity)) {
-      // Also check category if severity is blocked
-      if (isCategoryBlocked(f.category, policy.blocking.category)) {
-        return true;
-      }
-    }
-
-    // Check rule blocking
-    if (isRuleBlocked(f.ruleId, policy.blocking.rules)) {
-      return true;
-    }
+/**
+ * Determine audit status from evaluation result
+ */
+function mapStatusToAuditStatus(status: ReadinessStatus): string {
+  switch (status) {
+    case "passed":
+      return "passed";
+    case "passed_with_risk":
+      return "passed_with_risk";
+    case "needs_review":
+      return "needs_review";
+    case "blocked_input":
+      return "blocked_input";
+    default:
+      return "unknown";
   }
-
-  return false;
 }
 
 export async function analyzeCommand(args: string[], options: AnalyzeOptions): Promise<number> {
@@ -227,6 +216,11 @@ Provide concise, actionable findings.`,
       llmProviderName
     );
 
+    // Evaluate policy using shared evaluator (unified with readiness)
+    const evalResult = policy ? evaluatePolicy(findings.findings, policy) : undefined;
+    const readinessStatus = evalResult?.status ?? "passed";
+    const finalExitCode = evalResult ? getExitCode(readinessStatus) : options.EXIT.OK;
+
     // Generate risk register
     const riskRegister = buildRiskRegisterFromFindings(findings, policy?.policyId);
 
@@ -249,19 +243,26 @@ Provide concise, actionable findings.`,
       generated.push(reportPath);
     }
 
-    // Generate audit.json
-    const hasHighSeverity = findings.findings.some(f => f.severity === "high" || f.severity === "critical");
+    // Generate audit summary message
+    let auditSummary: string;
+    if (readinessStatus === "blocked_input" && evalResult) {
+      auditSummary = generateBlockingSummary(evalResult.failedConditions, evalResult.blockedFindings);
+    } else if (readinessStatus === "passed_with_risk") {
+      auditSummary = "Analysis complete with identified risks";
+    } else if (llmUsed) {
+      auditSummary = `Analysis complete using ${llmProviderName} LLM`;
+    } else {
+      auditSummary = "Analysis complete";
+    }
+
+    // Generate audit.json with correct exit code and status
     const audit = buildAuditArtifact(
       graph,
       findings,
       policy,
-      0,
-      hasHighSeverity ? "blocked_input" : "passed_with_risk",
-      hasHighSeverity
-        ? "High severity findings detected"
-        : llmUsed
-          ? `Analysis complete using ${llmProviderName} LLM`
-          : "Analysis complete"
+      finalExitCode,
+      mapStatusToAuditStatus(readinessStatus),
+      auditSummary
     );
 
     // Add LLM info to audit
@@ -305,12 +306,7 @@ Provide concise, actionable findings.`,
       })
     );
 
-    // Check for blocking findings using policy-evaluator functions
-    if (checkBlockingFindings(findings.findings, policy)) {
-      return options.EXIT.POLICY_FAILED;
-    }
-
-    return options.EXIT.OK;
+    return finalExitCode;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return options.EXIT.SCAN_FAILED;

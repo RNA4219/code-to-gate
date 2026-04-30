@@ -9,7 +9,7 @@ import path from "node:path";
 import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, type CtgPolicy } from "../config/policy-loader.js";
-import { evaluatePolicy, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
+import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
 
 import {
   FindingsArtifact,
@@ -155,7 +155,7 @@ function generateRecommendedActions(result: PolicyEvaluationResult): string[] {
 /**
  * Get status summary message
  */
-function getStatusSummary(status: ReadinessStatus): string {
+function getStatusSummary(status: ReadinessStatus, evalResult?: PolicyEvaluationResult): string {
   switch (status) {
     case "passed":
       return "All policy conditions met, release ready";
@@ -164,6 +164,9 @@ function getStatusSummary(status: ReadinessStatus): string {
     case "needs_review":
       return "Release blocked pending review of findings";
     case "blocked_input":
+      if (evalResult) {
+        return generateBlockingSummary(evalResult.failedConditions, evalResult.blockedFindings);
+      }
       return "Release blocked by critical findings";
     default:
       return "Unknown status";
@@ -274,7 +277,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       schema: "release-readiness@v1",
       status: evalResult.status,
       completeness: findings.completeness,
-      summary: getStatusSummary(evalResult.status),
+      summary: getStatusSummary(evalResult.status, evalResult),
       counts: {
         findings: findings.findings.length,
         critical: evalResult.summary.severityCounts.critical,
