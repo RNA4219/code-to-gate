@@ -174,11 +174,8 @@ See [docs/local-llm-setup.md](docs/local-llm-setup.md) for setup instructions.
 
 | Document | Purpose |
 |----------|---------|
-| [docs/quickstart.md](docs/quickstart.md) | 5-minute walkthrough |
-| [docs/cli-reference.md](docs/cli-reference.md) | Full CLI documentation |
-| [docs/schema-versioning.md](docs/schema-versioning.md) | Schema stability policy |
-| [docs/plugin-development.md](docs/plugin-development.md) | Plugin SDK guide |
-| [docs/performance-optimization.md](docs/performance-optimization.md) | Performance tuning |
+| [CLAUDE.md](CLAUDE.md) | Project context for Claude Code |
+| [.claude/skills.md](.claude/skills.md) | Claude Code skills/commands |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 
 ## Repository Layout
