@@ -638,11 +638,12 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 | MVP CLI 主経路 | `npm run build`, smoke, readiness 回帰, release validate | pass | scan/analyze/readiness/export/schema の基本経路は動く |
 | Policy / readiness | `artifact-contracts.md` の blocking 条件、`readiness` 回帰 | pass | 2026-05-01: parser/evaluator 統合完了、strict.yaml 形式統一、回帰テスト 42+53 pass、analyze.ts policy_id parse fix |
 | Analyze CLI | `audit.json` policy name | pass | 2026-05-01: `src/cli/analyze.ts` で `policy_id:` を parse し audit に正しい policy name が入る |
-| Product α acceptance | `docs/product-acceptance-v1.md` 3.1 / 4.1 | fail | real repo / GitHub / LLM / FP-FN / docs が未達 |
+| Product α acceptance | `docs/product-acceptance-v1.md` 3.1 / 4.1 | partial | 2026-05-01: fixture acceptance pass (3 fixtures, 22s), real repo acceptance script 作成済み |
+| Fixture acceptance | `scripts/fixture-acceptance.ps1` | pass | demo-shop-ts (16 findings), demo-auth-js (5 findings), demo-python (1 findings) 全て schema validation pass |
 | Evidence backed | `docs/product-requirements-v1.md` 4, 13, 19 | partial | findings evidence はあるが LLM unsupported / validator が限定的 |
 | CI-ready | `docs/product-requirements-v1.md` 14 | fail | PR comment / Checks / workflow template が product acceptance 未達 |
 | Plugin/security | `docs/plugin-security-contract.md`, `docs/product-requirements-v1.md` 15 | fail | plugin sandbox と provenance は product gate 未達 |
-| Operability | RUNBOOK / troubleshooting / release procedure | partial | RUNBOOK はあるが product acceptance 実行手順が未自動化 |
+| Operability | RUNBOOK / troubleshooting / release procedure | partial | RUNBOOK あり、acceptance scripts (fixture-acceptance.ps1, fp-review.ps1) 作成済み |
 
 #### 2. リスク
 
