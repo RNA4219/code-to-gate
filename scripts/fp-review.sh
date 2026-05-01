@@ -160,12 +160,18 @@ if [[ ! -d "$REPO_PATH" ]]; then
 fi
 
 # === FP Rate Targets ===
+# Bash 3.2 compatible: use case statement instead of associative array
 
-FP_TARGETS["phase1"]=15
-FP_TARGETS["phase2"]=10
-FP_TARGETS["phase3"]=5
+get_fp_target() {
+    case "$1" in
+        phase1) echo 15 ;;
+        phase2) echo 10 ;;
+        phase3) echo 5 ;;
+        *) echo 15 ;;
+    esac
+}
 
-TARGET="${FP_TARGETS[$PHASE]}"
+TARGET=$(get_fp_target "$PHASE")
 log_info "Target FP rate for $PHASE: <= ${TARGET}%"
 
 # === Create Output Directory ===

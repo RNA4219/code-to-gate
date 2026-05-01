@@ -41,12 +41,8 @@ import {
   writeAuditJson,
 } from "../reporters/audit-writer.js";
 import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
-import {
-  LlmProviderType,
-  LlmConfig,
-  LlmAnalysisRequest,
-} from "../llm/types.js";
-import { createProviderWithFallback } from "../llm/providers/index.js";
+import { LlmProviderType, LlmConfig, LlmAnalysisRequest } from "../llm/types.js";
+import { createProvider, createProviderWithFallback } from "../llm/providers/index.js";
 
 interface AnalyzeOptions {
   VERSION: string;
@@ -166,12 +162,14 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       };
 
       try {
-        const provider = await createProviderWithFallback(llmConfig);
+        // When --require-llm is set, don't use fallback - directly create the requested provider
+        const provider = requireLlm ? createProvider(llmConfig) : await createProviderWithFallback(llmConfig);
         llmProviderName = provider.type;
 
         const healthResult = await provider.healthCheck();
 
-        if (!healthResult.healthy && providerType !== "deterministic" && requireLlm) {
+        // For --require-llm: fail if provider is not healthy (except deterministic which always succeeds)
+        if (!healthResult.healthy && requireLlm && providerType !== "deterministic") {
           console.error(`LLM provider '${providerType}' is not healthy: ${healthResult.error}`);
           console.error("Use --llm-provider deterministic for fallback analysis");
           return options.EXIT.LLM_FAILED;

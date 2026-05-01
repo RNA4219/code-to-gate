@@ -38,6 +38,25 @@ jobs:
           node ./dist/cli.js --help
           node ./dist/cli.js scan fixtures/demo-ci-imports --out .qh-macos-smoke
 
+      - name: Check Bash 3.2 syntax compatibility (macOS)
+        run: |
+          # macOS ships with Bash 3.2 which lacks some modern features
+          # Check all shell scripts for syntax errors
+          for script in scripts/*.sh; do
+            if [ -f "$script" ]; then
+              echo "Checking: $script"
+              bash -n "$script"
+            fi
+          done
+
+      - name: Verify analyze and readiness on fixture (macOS)
+        run: |
+          # Extended fixture verification on macOS
+          node ./dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-macos-analyze --llm-mode none
+          node ./dist/cli.js readiness fixtures/demo-shop-ts --out .qh-macos-readiness
+          node ./dist/cli.js schema validate .qh-macos-analyze/findings.json
+          echo "macOS fixture verification complete"
+
   analyze:
     runs-on: ubuntu-latest
     steps:
