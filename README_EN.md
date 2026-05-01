@@ -1,6 +1,5 @@
 # code-to-gate
 
-[![npm version](https://badge.fury.io/js/@quality-harness%2Fcode-to-gate.svg)](https://badge.fury.io/js/@quality-harness/code-to-gate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **[日本語](README_JA.md)** | **English**
@@ -17,13 +16,15 @@ It helps answer a few practical questions:
 ## Install
 
 ```bash
-npm install -g @quality-harness/code-to-gate
+npm install -g github:RNA4219/code-to-gate
 ```
 
-For a project-local install:
+If you already cloned this repository:
 
 ```bash
-npm install --save-dev @quality-harness/code-to-gate
+npm install
+npm run build
+npm link
 ```
 
 ## Requirements
@@ -125,7 +126,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm install -g @quality-harness/code-to-gate
+      - run: npm install -g github:RNA4219/code-to-gate
       - run: code-to-gate scan . --out .qh
       - run: code-to-gate analyze . --emit all --out .qh
       - run: code-to-gate export sarif --from .qh --out results.sarif
