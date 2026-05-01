@@ -17,7 +17,7 @@
 param(
     [switch]$Clean,
 
-    [ValidateSet("express", "nextjs", "typescript", "all")]
+    [ValidateSet("express", "dayjs", "axios", "all")]
     [string]$Repo = "all",
 
     [ValidateSet("phase1", "phase2", "phase3")]
@@ -39,20 +39,19 @@ $REPOS = @{
         ExpectedExit = "0_or_1"
         FileTarget = "100-300"
     }
-    "nextjs" = @{
-        Url = "https://github.com/vercel/next.js.git"
-        Type = "frontend"
-        Description = "vercel/next.js (examples only)"
-        ExpectedExit = "0_or_1"
-        FileTarget = "200-400"
-        SubDir = "examples"
-    }
-    "typescript" = @{
-        Url = "https://github.com/microsoft/TypeScript.git"
+    "dayjs" = @{
+        Url = "https://github.com/iamkun/dayjs.git"
         Type = "library"
-        Description = "microsoft/TypeScript"
-        ExpectedExit = "0"
-        FileTarget = "50-150"
+        Description = "iamkun/dayjs"
+        ExpectedExit = "0_or_1"
+        FileTarget = "100-200"
+    }
+    "axios" = @{
+        Url = "https://github.com/axios/axios.git"
+        Type = "backend"
+        Description = "axios/axios"
+        ExpectedExit = "0_or_1"
+        FileTarget = "100-300"
     }
 }
 

@@ -651,7 +651,7 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 |---|---|---|---|---|
 | PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 本 checklist を CI / release procedure に組み込む |
 | PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定。2026-05-01: analyze.ts/readiness.ts 共に evaluatePolicy() 使用、audit exit code 一致確認。 |
-| PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 3+ public repo で scan/analyze/readiness/schema を記録。2026-05-01: express (backend, 141 files) PASS。nextjs/typescript は大規模すぎるため小規模 repo 追加選定が必要。 |
+| PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 2026-05-01: 3 repos PASS - express (141 files), axios (194 files), dayjs (326 files)。scan/analyze/readiness/schema 全て pass。 |
 | PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | FP rate <= 15%、seeded detection >= 80% を記録。2026-05-01: express 0% RAW_SQL FP (eliminated)、21 tests pass、3 fixtures pass。Remaining: need smaller repos for full P0-03。 |
 | PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | PR comment / Checks / artifact upload / SARIF upload を検証 |
 | PRD-P1-02 | P1 | LLM trust 実装不足 | LLM finding / redaction / fallback の安全性が不明 | provider contract、redaction、require-llm failure を検証 |
@@ -694,18 +694,21 @@ MVP / release smoke:
 - [x] 2026-05-01: `scripts/acceptance-phase1-mvp.sh` を作成。PowerShell 版で `.qh/acceptance/mvp-smoke/` に証跡保存。
 
 Product α acceptance:
-- [~] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
-  - 2026-05-01: `scripts/real-repo-test.ps1` (PowerShell 版) 作成。
-  - 使用方法: `./scripts/real-repo-test.ps1 [-Clean] [-Repo express|nextjs|typescript]`
-  - express (backend, 141 files): PASS (scan 0, analyze 0, readiness 1, schema 0 failures, 3.6s)
-  - 不足: nextjs/typescript は file count が target を超過 (nextjs examples: 2163, typescript: 39308)、実行時間超過。
-  - 代替案: 100-500 files 程度の小規模 repo を追加選定するか、--max-files limit を実装。
+- [x] 3+ public repo で `scan/analyze/readiness` を実行し、exit code 0 or 1 と schema pass を記録。
+  - 2026-05-01: `scripts/real-repo-test.ps1` (PowerShell 版) 使用。
+  - **express** (backend, 141 files): PASS (scan 0, analyze 0, readiness 1, schema 0 failures)
+  - **axios** (backend/library, 194 files): PASS (scan 0, analyze 0, readiness 1, schema 0 failures)
+  - **dayjs** (library, 326 files): PASS (scan 0, analyze 0, readiness 0, schema 0 failures)
+  - 証跡: `.qh/acceptance/real-repo/summary.yaml`
 - [x] 3+ fixtures で `scan/analyze` を実行し、exit code 0 or 1 と schema pass を記録。
   - 2026-05-01: `scripts/fixture-acceptance.ps1` 作成。
   - 実行結果: demo-shop-ts (16 findings), demo-auth-js (5 findings), demo-python (1 findings) - all pass。
   - 証跡: `.qh/acceptance/fixtures/summary.yaml`
-- [ ] backend / frontend / library の 3 タイプを含める。
-  - 不足: frontend fixture 未作成。demo-shop-ts, demo-auth-js, demo-python は backend。
+- [~] backend / frontend / library の 3 タイプを含める。
+  - backend: express (141 files), axios (194 files) ✓
+  - library: dayjs (326 files) ✓
+  - frontend: 未達 (React/Vue component repo 追加必要)
+  - waiver: MVP scope では backend/library 2タイプで実用性確認済み。frontend は P1 で対応。
 - [ ] 100-500 files 程度の repo を含める。
 - [ ] `demo-suppressions-ts` fixture を作り、suppression と expiry warning を確認。
 - [ ] `demo-github-actions-ts` fixture を作り、workflow 動作を確認。
@@ -827,6 +830,39 @@ Performance:
 #### 7. Go/No-Go brief
 
 2026-05-01 時点の code-to-gate は、MVP リリース検収としては動作確認済みだが、プロダクト品質レベルでは No-Go。次に進める場合は、上記 checklist を release procedure の正規ゲートにして、P0 項目から順に `[x]` へ埋める。`conditional_go` に変えるには、未達 P0 に期限付き waiver を置き、CI / evidence package / human review 証跡を残すこと。
+
+### 6.10 残タスク・次アクション (2026-05-01)
+
+#### 現在の事実
+
+- `main` の最新 push (`3f42063 macOS互換性ジョブと実repo検証を追加`) に対する GitHub Actions run `25196266046` は `failure`。
+- `macos-compatibility` job は success。`npm ci`、`npm run build`、`npm run test:smoke`、`node ./dist/cli.js --help`、`scan fixtures/demo-ci-imports` は macOS runner で通過。
+- `analyze` job は Build / Run full analysis / Evaluate release readiness / SARIF upload / release evidence artifact upload まで success。
+- 失敗 step は `Block release if not ready`。これは `readiness.outputs.status` が `blocked_input` または `needs_review` の場合に意図的に `exit 1` する gate。
+- `gh auth status` は token invalid。CI log body / artifact zip の取得は `gh auth login` または有効 token が必要。
+- ローカル `main` は `origin/main` より 1 commit ahead (`8565be5 refactor: consolidate weak-auth-guard rule tests`)。
+- 未追跡 `.real-repo-temp/` が残存。real repo 検証の一時ディレクトリなので、コミット対象にしない。
+
+#### 残タスク
+
+| id | 優先度 | タスク | 意図 | 完了条件 |
+|---|---|---|---|---|
+| TODO-20260501-01 | P0 | release gate failure の内訳を artifact から確定する | CI が「壊れている」のか「品質 gate が正しく止めている」のかを分ける | `release-readiness.json` の `status`, `summary`, `failedConditions`, counts を RUNBOOK または evidence に記録 |
+| TODO-20260501-02 | P0 | `blocked_input` / `needs_review` を release CI で failure 扱いにするか、alpha CI では warning 扱いにするか決める | 現状は品質 gate と開発 CI が同じ workflow に同居しており、毎回 failure に見える | `code-to-gate-release.yml` の gate 方針を `release` / `alpha` / `nightly` のどれかに明示 |
+| TODO-20260501-03 | P0 | GitHub CLI 認証を復旧する | CI logs / artifacts / annotations の詳細確認を省エネで回せない | `gh auth status` が valid。Actions log と artifact を取得できる |
+| TODO-20260501-04 | P0 | `8565be5` の weak-auth-guard test refactor を検収して push する | ローカル ahead を残すと CI 対象と手元の状態がズレる | 対象テスト通過後に commit/push 済み、または明示的に revert/hold 判断済み |
+| TODO-20260501-05 | P1 | `.real-repo-temp/` の扱いを整理する | 未追跡一時ディレクトリが作業状況確認を汚す | 必要な証跡を `.qh/acceptance/` 等へ移すか、不要なら削除。削除前に内容確認 |
+| TODO-20260501-06 | P1 | macOS real repo 検証を manual dispatch で実行する | macOS smoke は通ったが、real repo shell 全体は runner 上で未検証 | `real-repo-test.yaml` を `runner_os=macos-latest` で実行し、summary artifact を保存 |
+| TODO-20260501-07 | P1 | `scripts/real-repo-test.sh` の Bash 3.2 構文を runner で確認する | Windows ローカルでは Bash 起動が権限エラーで `bash -n` 未実行 | macOS runner または Linux runner で `bash -n scripts/real-repo-test.sh` が success |
+| TODO-20260501-08 | P1 | product gate checklist を CI workflow に接続する | RUNBOOK の product quality checklist が手動運用のままだとドリフトする | product gate / release gate / smoke gate の workflow 名と必須項目が一致 |
+
+#### 次に実行する推奨順
+
+1. `gh auth login -h github.com` で `gh` 認証を復旧する。
+2. 最新 run `25196266046` の artifact から `.qh/release-readiness.json` を取得し、blocking 理由を確定する。
+3. `8565be5` の weak-auth-guard test refactor に対して `npm run build` と対象 Vitest を実行する。
+4. 問題なければ `8565be5` を push し、最新 `main` の CI を再確認する。
+5. release workflow の最後の failure を「意図した quality block」として残すか、開発用 workflow と release gate workflow を分離する。
 
 ## 7. リファクタリング方針
 
