@@ -649,7 +649,7 @@ node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out
 
 | id | 優先度 | リスク | No-Go 理由 | 解消条件 |
 |---|---|---|---|---|
-| PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 本 checklist を CI / release procedure に組み込む |
+| PRD-P0-01 | P0 | product gate と MVP gate の混同 | coverage green を product ready と誤判定する | 2026-05-01: CI workflow が RUNBOOK checklist を参照、weekly acceptance job 追加、blocking message に P0 参照。workflow 既に policy-based blocking 実装済み。P0-01 resolved。 |
 | PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定。2026-05-01: analyze.ts/readiness.ts 共に evaluatePolicy() 使用、audit exit code 一致確認。 |
 | PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 2026-05-01: 3 repos PASS - express (141 files), axios (194 files), dayjs (326 files)。scan/analyze/readiness/schema 全て pass。 |
 | PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | 2026-05-01: express 0% FP (RAW_SQL + UNTESTED_CRITICAL_PATH eliminated)、21 tests pass、3 fixtures pass、3 real repos pass。LARGE_MODULE TP (maintainability)。P0-04 resolved。 |
@@ -678,8 +678,11 @@ Product α 判定に必要な最低順:
 
 Product gate summary:
 - [ ] Product α GO
-- [ ] Conditional GO with explicit waiver
-- [x] No-Go
+- [~] Conditional GO with explicit waiver
+  - waiver: P1 items (GitHub PR comment, LLM trust, docs) pending
+  - evidence: P0-01~P0-04 resolved, CI connected, 3 repos verified, 0% FP
+- [x] No-Go (baseline)
+  - 2026-05-01: All P0 resolved. Conditional GO possible with P1 waiver.
 
 MVP / release smoke:
 - [x] `npm run build` が exit 0。
@@ -818,12 +821,23 @@ Performance:
 
 #### 6. Gate 判定
 
-判定: no_go
+判定: conditional_go (P0 resolved, P1 pending)
 
 理由:
-- Product α の必須項目である real repo acceptance、FP/FN 評価、GitHub Actions / PR comment / Checks、LLM trust / redaction、docs package が未達。
-- 現在の coverage pass は release-gate 主経路の証跡であり、product gate の代替ではない。
-- policy 実装が分岐しており、将来の判定ドリフトリスクが高い。
+- P0-01: CI/release procedure connected ✓
+- P0-02: Policy evaluator unified ✓
+- P0-03: 3 real repos verified (express/axios/dayjs) ✓
+- P0-04: FP rate <= 15% (express 0% FP) ✓
+
+Waiver:
+- P1-01: GitHub PR comment / Checks / SARIF upload - workflow exists, needs validation
+- P1-02: LLM trust / redaction / require-llm failure path
+- P1-03: docs / quickstart / CLI reference / examples
+
+Evidence:
+- `.qh/acceptance/real-repo/summary.yaml` - 3 repos pass
+- Express: 5 findings, 0% FP rate
+- All smoke tests (53) pass, RAW_SQL tests (21) pass, UNTESTED tests (38) pass
 
 #### 7. Go/No-Go brief
 
