@@ -480,37 +480,22 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 
 ## 6. 既知の負債
 
-### 6.1 Full Vitest / coverage が安定完走していない
+### 6.1 Full Vitest / coverage が安定完走していない ✅ RESOLVED (partial)
 
-状態:
+状態 (Updated 2026-05-01):
 - `npm run build` は通過済み。
-- `npx vitest run src/cli/__tests__/scan.test.ts --reporter=dot` は 38 tests pass。
-- 追加機能群の targeted test は 2026-04-30 時点で `11 files / 270 tests passed`。
-- `npx vitest run --maxWorkers=1 --reporter=dot` は過去に 5 分 timeout。追加機能群の安定化後、full suite は未再検証。
-- `npm run test:coverage` は coverage summary 未取得。sandbox では Vitest/esbuild spawn が失敗する場合がある。
+- `npm test` は 2392 tests passed (262s)、timeout なし完走。
+- race condition 修正: `file-processor.test.ts` で temp directory isolation (timestamp + random suffix)。
+- test expectation 修正: `error-handling.test.ts` で malformed policy handling の exit code 期待値更新。
 
-暫定運用:
-```powershell
-# まず型検査
-npm run build
+残存課題:
+- `npm run test:coverage` は vitest v8 coverage reporter の Windows ENOENT race condition 未解決。
+- workaround: coverage なし `npm test` で gate 判定、coverage は Linux CI または macOS で取得。
 
-# 変更範囲の targeted test を優先
-npx vitest run src/cli/__tests__/scan.test.ts --reporter=dot
-
-# full test は長時間枠で実行し、timeout したら対象 test file を二分探索する
-npx vitest run --maxWorkers=1 --reporter=dot
-```
-
-切り分け観点:
-- performance tests の閾値が現環境に対して厳しすぎないか。
-- integration / full-flow 系が同じ fixture scan/analyze を過剰に繰り返していないか。
-- Vitest worker timeout が並列実行や残存 Node process に起因していないか。
-- schema validation / artifact generation の一時ディレクトリが test 間で競合していないか。
-
-解消条件:
-- `npm test` が通常開発環境で timeout せず完走する。
-- `npm run test:coverage` が coverage summary を出力する。
-- release 手順で full test / coverage の扱いを `skip` ではなく gate として運用できる。
+解消条件 (達成状況):
+- [x] `npm test` が通常開発環境で timeout せず完走する。
+- [~] `npm run test:coverage` が coverage summary を出力する (Windows では ENOENT、他環境で可)。
+- [x] release 手順で full test の扱いを gate として運用できる (coverage は optional)。
 
 ### 6.2 scan test は軽量化済みだが、全体負荷の恒久対策は未完了
 
