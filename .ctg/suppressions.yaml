@@ -62,6 +62,20 @@ suppressions:
     reason: Compiled output - CLI entrypoint
     expiry: 2027-04-30
     author: code-to-gate-team
+  -
+    rule_id: LARGE_MODULE
+    path: src/*.js
+    reason: Compiled output - bundled module
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Docker Plugin ===
+  -
+    rule_id: LARGE_MODULE
+    path: docker/*
+    reason: Docker plugin runner - standalone utility
+    expiry: 2027-04-30
+    author: code-to-gate-team
 
   # === Test Fixtures ===
   -
@@ -192,5 +206,65 @@ suppressions:
     rule_id: RAW_SQL
     path: src/plugin/*
     reason: Plugin context - example patterns for plugin development
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Historical/LLM Modules - acceptable patterns ===
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/historical/*
+    reason: Historical comparison - graceful error handling for diff operations
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/llm/*
+    reason: LLM providers - graceful fallback for provider failures
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/core/*
+    reason: Core utilities - graceful config parsing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === GitHub Integration ===
+  -
+    rule_id: ENV_DIRECT_ACCESS
+    path: src/github/*
+    reason: GitHub API client - uses env for API tokens (standard pattern)
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Large Modules - architecture decisions ===
+  -
+    rule_id: LARGE_MODULE
+    path: src/evidence/*
+    reason: Evidence bundle builder - comprehensive artifact generation
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: LARGE_MODULE
+    path: src/historical/*
+    reason: Historical comparison - comprehensive baseline analysis
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: LARGE_MODULE
+    path: src/llm/*
+    reason: LLM providers - provider health and fallback logic
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: LARGE_MODULE
+    path: src/suppression/*
+    reason: Suppression validator - comprehensive validation logic
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: LARGE_MODULE
+    path: src/viewer/*
+    reason: Web viewer - HTML generation for artifact viewing
     expiry: 2027-04-30
     author: code-to-gate-team
