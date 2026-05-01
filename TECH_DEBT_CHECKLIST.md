@@ -41,13 +41,18 @@ Severity Distribution:
 
 ## P1: High (即座対応)
 
-### LARGE_MODULE-062: py-adapter.ts (1295行)
+### LARGE_MODULE-062: py-adapter.ts (1295行) ✓ DONE
 
-- [ ] `src/adapters/py-adapter.ts` を3-4モジュールに分割
-  - parser-core.ts (AST parsing)
-  - python-syntax.ts (Python specific patterns)
-  - import-resolver.ts (import/export handling)
-  - adapter-main.ts (public interface)
+- [x] `src/adapters/py-adapter.ts` を8モジュールに分割 (2026-05-02)
+  - py-parser-types.ts (72 lines): shared types
+  - py-parser-helpers.ts (83 lines): utility functions
+  - py-parser-syntax.ts (145 lines): symbol classification
+  - py-parser-imports.ts (204 lines): import parsing
+  - py-parser-functions.ts (152 lines): function/call parsing
+  - py-parser-classes.ts (176 lines): class/method parsing
+  - py-parser-variables.ts (199 lines): variable/type parsing
+  - py-parser-entrypoints.ts (75 lines): entrypoint detection
+  - py-adapter.ts (300 lines): public interface only
 
 ### RAW_SQL-041: plugin-context.ts
 
@@ -143,8 +148,8 @@ Severity Distribution:
 | Date | Action | Status |
 |------|--------|--------|
 | 2026-05-02 | 初回解析、CHECKLIST作成 | Done |
-| | CLIENT_TRUSTED_PRICE suppression | Pending |
-| | py-adapter.ts分割 | Pending |
+| 2026-05-02 | py-adapter.ts分割 (1295→300行) | Done |
+| | CLIENT_TRUSTED_PRICE suppression | Pending (suppressions.yaml exists) |
 | | UNSAFE_DELETE確認 | Pending |
 
 ---
