@@ -5,9 +5,16 @@
 
 A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs.
 
-## v1.0.0 Release
+## v1.0.0 Status
 
-**Stable Schema Freeze** - All schemas are now v1 with backward compatibility.
+**P0 Complete** - All core quality gates verified:
+
+| P0 Item | Status | Evidence |
+|---------|--------|----------|
+| CI connection | ✓ | Workflow references RUNBOOK, weekly acceptance |
+| Policy unified | ✓ | audit.exit matches readiness status |
+| Real repos | ✓ | express (141), axios (194), dayjs (326) |
+| FP rate | ✓ | express 0% FP (RAW_SQL + UNTESTED eliminated) |
 
 ### Features
 

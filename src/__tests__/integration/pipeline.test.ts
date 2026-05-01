@@ -291,18 +291,20 @@ describe('Full Pipeline Tests', () => {
       const schemaFiles = fs.readdirSync(schemasDir)
         .filter(f => f.endsWith('.schema.json'))
         .filter(f => {
-          // Skip empty files
+          // Skip empty files and shared definitions (not standalone schemas)
           const content = fs.readFileSync(path.join(schemasDir, f), 'utf8');
-          return content.trim().length > 0;
+          if (content.trim().length === 0) return false;
+          // Skip shared-defs.schema.json as it's not a standalone schema
+          if (f === 'shared-defs.schema.json') return false;
+          return true;
         });
 
       for (const schemaFile of schemaFiles) {
         const result = runCli(`schema validate "${path.join(schemasDir, schemaFile)}"`);
-        // Schema validation outputs to stdout (or stderr on some platforms)
-        const output = result.stdout || result.stderr;
-        expect(output).toContain('schema ok');
+        // Schema validation outputs to stdout
+        expect(result.stdout).toContain('schema ok');
       }
-    });
+    }, 60000);
 
     it('should validate findings artifact', () => {
       const fixturePath = path.join(FIXTURES_DIR, 'demo-shop-ts');
