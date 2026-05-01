@@ -35,7 +35,7 @@ export interface FindingComparison {
   path: string;
   severity: Severity;
   category: FindingCategory;
-  matchedOn: "ruleId_path" | "ruleId_symbol" | "fuzzy_match" | "manual";
+  matchedOn: "fingerprint" | "ruleId_path" | "ruleId_symbol" | "fuzzy_match" | "manual";
   regression?: boolean;
 }
 

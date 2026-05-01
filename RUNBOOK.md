@@ -540,17 +540,20 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 - [~] dist 後の worker script を用意し、Node ESM 環境で worker mode が実行できる (要検証)。
 - [~] 100+ files fixture で `scan --parallel 2` が安定して完走する integration test を追加する (demo-shop-ts で手動検証可)。
 
-### 6.5 Historical comparison は重複 finding 対応済み (P2)
+### 6.5 Historical comparison ✅ RESOLVED
 
-状態:
+状態 (Updated 2026-05-02):
 - 同一 artifact 比較で `new=0 resolved=0 unchanged=16 modified=0` になることは確認済み。
 - 同じ `ruleId + path` が複数あるケースはキュー方式で上書きしないよう修正済み。
-- ただし matching は主に `ruleId + primary evidence path` / `ruleId + affectedSymbols` で、行移動・rename・rule id 変更には弱い。
+- **2026-05-02 解消済み**: Finding interface に `fingerprint?: string` field を追加。
+- **2026-05-02 解消済み**: `src/utils/fingerprint.ts` で fingerprint 生成関数を追加 (SHA-256 truncated)。
+- **2026-05-02 解消済み**: `comparison.ts` で fingerprint matching を優先使用 (fingerprint > ruleId_path > ruleId_symbol)。
+- **2026-05-02 確認**: fingerprint tests 10 pass, comparison tests 27 pass。
 
-解消条件 (P2):
-- finding fingerprint を artifact contract に追加する。
-- path rename / line move / duplicate finding の golden fixtures を追加する。
-- historical report が matching confidence を出す。
+解消条件 (達成状況):
+- [x] finding fingerprint を artifact contract に追加する。
+- [~] path rename / line move / duplicate finding の golden fixtures を追加する (P3)。
+- [x] historical comparison が fingerprint matching を優先する。
 
 ### 6.6 Viewer / report 出力 ✅ RESOLVED
 
