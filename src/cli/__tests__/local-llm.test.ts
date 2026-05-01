@@ -256,4 +256,86 @@ describe("CLI Local LLM Integration", () => {
       expect(llamacpp.config.baseUrl).toBe("http://127.0.0.1:8081");
     });
   });
+
+  // P1-02: require-llm failure path tests
+  describe("require-llm failure handling", () => {
+    it("should fallback to deterministic when ollama unavailable without require-llm", async () => {
+      mockFetch.mockRejectedValue(new Error("Connection refused"));
+
+      const provider = await createProviderWithFallback({ provider: "ollama" });
+      expect(provider).toBeInstanceOf(DeterministicProvider);
+      expect(provider.type).toBe("deterministic");
+    });
+
+    it("should indicate fallback occurred in response", async () => {
+      mockFetch.mockRejectedValue(new Error("Connection refused"));
+
+      const provider = await createProviderWithFallback({ provider: "ollama" });
+      const response = await provider.analyze({
+        systemPrompt: "test",
+        userPrompt: "test prompt",
+      });
+
+      expect(response.fromFallback).toBe(true);
+    });
+
+    it("should return deterministic analysis on fallback", async () => {
+      mockFetch.mockRejectedValue(new Error("Connection refused"));
+
+      const provider = await createProviderWithFallback({ provider: "ollama" });
+      const response = await provider.analyze({
+        systemPrompt: "test",
+        userPrompt: "password handling code",
+      });
+
+      // Deterministic provider returns pattern-based analysis
+      expect(response.content).toBeDefined();
+      expect(response.content.length).toBeGreaterThan(0);
+    });
+
+    it("should succeed when deterministic provider explicitly requested", async () => {
+      mockFetch.mockRejectedValue(new Error("Should not be called"));
+
+      const provider = await createProviderWithFallback({ provider: "deterministic" });
+      expect(provider).toBeInstanceOf(DeterministicProvider);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  // P1-02: trust verification tests
+  describe("LLM trust verification", () => {
+    it("should mark deterministic response as fromFallback", async () => {
+      const provider = new DeterministicProvider();
+      const response = await provider.analyze({
+        systemPrompt: "test",
+        userPrompt: "test",
+      });
+      expect(response.fromFallback).toBe(true);
+    });
+
+    it("should not call external endpoints for deterministic provider", async () => {
+      const provider = new DeterministicProvider();
+      await provider.analyze({
+        systemPrompt: "test",
+        userPrompt: "test",
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("should enforce local-only for all non-deterministic providers", () => {
+      const invalidUrls = [
+        "http://example.com:11434",
+        "http://192.168.1.1:11434",
+        "http://10.0.0.1:8080",
+        "https://api.example.com/v1",
+      ];
+
+      for (const url of invalidUrls) {
+        expect(() => new OllamaProvider({ baseUrl: url }))
+          .toThrow("Local LLM providers only allow localhost communication");
+        expect(() => new LlamacppProvider({ baseUrl: url }))
+          .toThrow("Local LLM providers only allow localhost communication");
+      }
+    });
+  });
 });
