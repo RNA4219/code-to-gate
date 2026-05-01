@@ -497,7 +497,7 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 - [~] `npm run test:coverage` が coverage summary を出力する (Windows では ENOENT、他環境で可)。
 - [x] release 手順で full test の扱いを gate として運用できる (coverage は optional)。
 
-### 6.2 scan test は軽量化済み、大部分解消 ✅ RESOLVED (partial)
+### 6.2 scan test は軽量化済み、大部分解消 ✅ RESOLVED
 
 対応済み:
 - test 実行時の scan graph cache を導入。
@@ -507,10 +507,8 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 - **2026-05-02**: performance tests を `vitest.heavy.config.ts` に分離済み。
 - **2026-05-02**: `test:performance`, `test:real-repo` scripts は `package.json` に存在。
 - **2026-05-02**: `createTestFixture` helper は `tests/integration/helper.ts` に存在。
-
-残作業 (P2):
-- CLI / integration tests で同一 fixture を何度も生成する箇所を shared fixture setup に寄せる。
-- full test と release validation test の境界を README に明示する。
+- **2026-05-02 解消済み**: integration tests で shared fixture setup 使用 (analyze once in beforeAll)。
+- **2026-05-02 解消済み**: README_JA.md にテスト境界説明追加 (smoke/unit/real-repo/performance/CI)。
 
 ### 6.3 Release readiness policy の gate 判定 ✅ RESOLVED
 

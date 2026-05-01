@@ -21,9 +21,12 @@ describe("demo-auth-js integration", () => {
   const fixture = "demo-auth-js";
   const fixtureRoot = fixturePath(fixture);
   let tempDir: string;
+  let analyzeResult: { exitCode: number; stdout: string; stderr: string };
 
   beforeAll(() => {
     tempDir = createTempOutDir("demo-auth-js");
+    // Run analyze once for all tests
+    analyzeResult = runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
   });
 
   afterAll(() => {
@@ -49,11 +52,8 @@ describe("demo-auth-js integration", () => {
   });
 
   it("analyze command generates findings.json", { timeout: 30000 }, () => {
-    // Note: analyze returns exit code 5 (POLICY_FAILED) when there are critical findings
-    const result = runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     // Accept POLICY_FAILED (exit code 5) as valid since there may be critical findings
-    expect([0, 5]).toContain(result.exitCode);
+    expect([0, 5]).toContain(analyzeResult.exitCode);
     expect(fileExists(path.join(tempDir, "findings.json"))).toBe(true);
 
     const findings = readJson(path.join(tempDir, "findings.json")) as {
@@ -64,8 +64,6 @@ describe("demo-auth-js integration", () => {
   });
 
   it("detects security findings in auth-related files", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const findings = readJson(path.join(tempDir, "findings.json")) as {
       findings: Array<{
         ruleId: string;
@@ -90,8 +88,6 @@ describe("demo-auth-js integration", () => {
   });
 
   it("detects TRY_CATCH_SWALLOW finding in audit-log service", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const findings = readJson(path.join(tempDir, "findings.json")) as {
       findings: Array<{
         ruleId: string;
@@ -114,22 +110,16 @@ describe("demo-auth-js integration", () => {
   });
 
   it("generates findings.json that validates against schema", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const result = runCli(["schema", "validate", path.join(tempDir, "findings.json")]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("artifact ok");
   });
 
   it("generates risk-register.yaml for auth findings", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     expect(fileExists(path.join(tempDir, "risk-register.yaml"))).toBe(true);
   });
 
   it("generates analysis-report.md", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     expect(fileExists(path.join(tempDir, "analysis-report.md"))).toBe(true);
   });
 });

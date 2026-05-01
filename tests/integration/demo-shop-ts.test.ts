@@ -25,9 +25,12 @@ describe("demo-shop-ts integration", () => {
   const fixture = "demo-shop-ts";
   const fixtureRoot = fixturePath(fixture);
   let tempDir: string;
+  let analyzeResult: { exitCode: number; stdout: string; stderr: string };
 
   beforeAll(() => {
     tempDir = createTempOutDir("demo-shop-ts");
+    // Run analyze once for all tests
+    analyzeResult = runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
   });
 
   afterAll(() => {
@@ -53,11 +56,8 @@ describe("demo-shop-ts integration", () => {
   });
 
   it("analyze command generates findings.json and risk-register.yaml", { timeout: 30000 }, () => {
-    // Note: analyze returns exit code 5 (POLICY_FAILED) when there are critical findings
-    const result = runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     // Accept POLICY_FAILED (exit code 5) as valid since there are critical findings
-    expect([0, 5]).toContain(result.exitCode);
+    expect([0, 5]).toContain(analyzeResult.exitCode);
     expect(fileExists(path.join(tempDir, "findings.json"))).toBe(true);
     expect(fileExists(path.join(tempDir, "risk-register.yaml"))).toBe(true);
 
@@ -70,8 +70,6 @@ describe("demo-shop-ts integration", () => {
   });
 
   it("detects CLIENT_TRUSTED_PRICE finding", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const findings = readJson(path.join(tempDir, "findings.json")) as {
       findings: Array<{ ruleId: string; category: string; severity: string; title: string }>;
     };
@@ -87,8 +85,6 @@ describe("demo-shop-ts integration", () => {
   });
 
   it("generates risk-register with payment risk", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const riskPath = path.join(tempDir, "risk-register.yaml");
     expect(fileExists(riskPath)).toBe(true);
 
@@ -98,16 +94,12 @@ describe("demo-shop-ts integration", () => {
   });
 
   it("generate findings.json validates against schema", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const result = runCli(["schema", "validate", path.join(tempDir, "findings.json")]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("artifact ok");
   });
 
   it("generate risk-register.yaml validates against schema", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     // Note: YAML schema validation requires JSON conversion
     // For now, we check basic structure
     const riskPath = path.join(tempDir, "risk-register.yaml");
@@ -117,8 +109,6 @@ describe("demo-shop-ts integration", () => {
   });
 
   it("generates audit.json with correct structure", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const audit = readJson(path.join(tempDir, "audit.json")) as {
       artifact: string;
       exit: { code: number; status: string };

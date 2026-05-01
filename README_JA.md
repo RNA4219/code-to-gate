@@ -154,6 +154,26 @@ npm run build
 npm test
 ```
 
+### テストの種類と境界
+
+| コマンド | 内容 | 実行時間 | 用途 |
+|----------|------|----------|------|
+| `npm test` | 全単体テスト + integration テスト | ~5分 | 通常開発、PR gate |
+| `npm run test:smoke` | CLI smoke テスト (54 tests) | ~15秒 | quick validation |
+| `npm run test:coverage` | coverage付き単体テスト | ~5分 | release gate (Linux/macOS) |
+| `npm run test:real-repo` | express/axios/dayjs 検証 | ~10分 | product acceptance |
+| `npm run test:performance` | 性能閾値テスト | ~5分 | performance gate |
+
+**境界の定義**:
+- **Smoke**: CLI commands が基本動作するか (scan/analyze/readiness/export/viewer/schema)
+- **Unit/Integration**: 各モジュールの機能テスト、fixture 検証
+- **Real-repo**: 実際の OSS repo で findings が正しく生成されるか
+- **Performance**: scan/analyze の実行時間が閾値内か
+
+**CI workflow**:
+- PR: `npm run test:smoke` + `npm test` (coverageなし)
+- Release: `npm run test:coverage` + `npm run test:real-repo` (Linux/macOS)
+
 ## ライセンス
 
 MIT ライセンスです。[LICENSE](LICENSE) を参照してください。

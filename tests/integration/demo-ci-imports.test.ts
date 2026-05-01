@@ -23,9 +23,12 @@ describe("demo-ci-imports integration", () => {
   const fixture = "demo-ci-imports";
   const fixtureRoot = fixturePath(fixture);
   let tempDir: string;
+  let analyzeResult: { exitCode: number; stdout: string; stderr: string };
 
   beforeAll(() => {
     tempDir = createTempOutDir("demo-ci-imports");
+    // Run analyze once for all tests
+    analyzeResult = runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
   });
 
   afterAll(() => {
@@ -91,10 +94,8 @@ describe("demo-ci-imports integration", () => {
   });
 
   it("analyze command generates findings for the fixture", { timeout: 30000 }, () => {
-    const result = runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     // Accept any exit code as we're just checking artifact generation
-    expect([0, 1, 5]).toContain(result.exitCode);
+    expect([0, 1, 5]).toContain(analyzeResult.exitCode);
     expect(fileExists(path.join(tempDir, "findings.json"))).toBe(true);
 
     const findings = readJson(path.join(tempDir, "findings.json")) as {
@@ -202,8 +203,6 @@ describe("demo-ci-imports integration", () => {
   });
 
   it("findings.json validates against schema", { timeout: 30000 }, () => {
-    runCli(["analyze", fixtureRoot, "--emit", "all", "--out", tempDir]);
-
     const result = runCli(["schema", "validate", path.join(tempDir, "findings.json")]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("artifact ok");
