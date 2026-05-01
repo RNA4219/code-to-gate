@@ -44,6 +44,11 @@ describe("file-utils", () => {
     writeFileSync(path.join(tempTestDir, "src", "app.js"), "const app = {};", "utf8");
     writeFileSync(path.join(tempTestDir, "src", "Button.jsx"), "export default () => {};", "utf8");
     writeFileSync(path.join(tempTestDir, "src", "main.py"), "def main(): pass", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "app.rb"), "class App; end", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "main.go"), "package main", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "main.rs"), "fn main() {}", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "Main.java"), "class Main {}", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "app.php"), "<?php", "utf8");
     writeFileSync(path.join(tempTestDir, "src", "utils.mjs"), "export const x = 1;", "utf8");
     writeFileSync(path.join(tempTestDir, "src", "config.cjs"), "module.exports = {};", "utf8");
 
@@ -51,6 +56,10 @@ describe("file-utils", () => {
     writeFileSync(path.join(tempTestDir, "tests", "app.test.ts"), "test('x', () => {});", "utf8");
     writeFileSync(path.join(tempTestDir, "__tests__", "utils.spec.js"), "test('x', () => {});", "utf8");
     writeFileSync(path.join(tempTestDir, "src", "module_test.py"), "def test_x(): pass", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "order_spec.rb"), "RSpec.describe 'x'", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "handler_test.go"), "package main", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "OrderControllerTest.java"), "class OrderControllerTest {}", "utf8");
+    writeFileSync(path.join(tempTestDir, "src", "OrderControllerTest.php"), "<?php", "utf8");
 
     // Fixture files
     writeFileSync(path.join(tempTestDir, "fixtures", "data.json"), "{}", "utf8");
@@ -121,6 +130,22 @@ describe("file-utils", () => {
       });
     });
 
+    describe("Ruby detection", () => {
+      it("detects .rb files as Ruby", () => {
+        expect(detectLanguage("app.rb")).toBe("rb");
+        expect(detectLanguage("src/order_service.rb")).toBe("rb");
+      });
+    });
+
+    describe("Additional language detection", () => {
+      it("detects Go, Rust, Java, and PHP files", () => {
+        expect(detectLanguage("main.go")).toBe("go");
+        expect(detectLanguage("main.rs")).toBe("rs");
+        expect(detectLanguage("Main.java")).toBe("java");
+        expect(detectLanguage("index.php")).toBe("php");
+      });
+    });
+
     describe("Unknown detection", () => {
       it("returns unknown for unrecognized extensions", () => {
         expect(detectLanguage("file.txt")).toBe("unknown");
@@ -129,8 +154,8 @@ describe("file-utils", () => {
         expect(detectLanguage("file.yaml")).toBe("unknown");
         expect(detectLanguage("file.yml")).toBe("unknown");
         expect(detectLanguage("file")).toBe("unknown");
-        expect(detectLanguage("file.rs")).toBe("unknown");
-        expect(detectLanguage("file.go")).toBe("unknown");
+        expect(detectLanguage("file.swift")).toBe("unknown");
+        expect(detectLanguage("file.kt")).toBe("unknown");
       });
     });
 
@@ -139,6 +164,11 @@ describe("file-utils", () => {
         expect(detectLanguage("file.TS")).toBe("ts");
         expect(detectLanguage("file.JS")).toBe("js");
         expect(detectLanguage("file.PY")).toBe("py");
+        expect(detectLanguage("file.RB")).toBe("rb");
+        expect(detectLanguage("file.GO")).toBe("go");
+        expect(detectLanguage("file.RS")).toBe("rs");
+        expect(detectLanguage("file.JAVA")).toBe("java");
+        expect(detectLanguage("file.PHP")).toBe("php");
       });
 
       it("handles mixed case extensions", () => {
@@ -201,6 +231,10 @@ describe("file-utils", () => {
         expect(detectRole("module_test.ts")).toBe("test");
         expect(detectRole("src/utils_test.py")).toBe("test");
         expect(detectRole("src/utils_test.js")).toBe("test");
+        expect(detectRole("src/order_spec.rb")).toBe("test");
+        expect(detectRole("src/handler_test.go")).toBe("test");
+        expect(detectRole("src/OrderControllerTest.java")).toBe("test");
+        expect(detectRole("src/OrderControllerTest.php")).toBe("test");
       });
     });
 
@@ -372,6 +406,18 @@ describe("file-utils", () => {
         expect(detectRole("script.py")).toBe("source");
       });
 
+      it("returns source for regular Ruby files", () => {
+        expect(detectRole("src/app.rb")).toBe("source");
+        expect(detectRole("lib/order_service.rb")).toBe("source");
+      });
+
+      it("returns source for regular additional language files", () => {
+        expect(detectRole("src/main.go")).toBe("source");
+        expect(detectRole("src/main.rs")).toBe("source");
+        expect(detectRole("src/Main.java")).toBe("source");
+        expect(detectRole("src/app.php")).toBe("source");
+      });
+
       it("returns source for JSON data files", () => {
         expect(detectRole("data.json")).toBe("source");
         expect(detectRole("response.json")).toBe("source");
@@ -481,6 +527,17 @@ describe("file-utils", () => {
       expect(isTargetFile("script.py")).toBe(true);
     });
 
+    it("returns true for Ruby files", () => {
+      expect(isTargetFile("app.rb")).toBe(true);
+    });
+
+    it("returns true for Go, Rust, Java, and PHP files", () => {
+      expect(isTargetFile("main.go")).toBe(true);
+      expect(isTargetFile("main.rs")).toBe(true);
+      expect(isTargetFile("Main.java")).toBe(true);
+      expect(isTargetFile("index.php")).toBe(true);
+    });
+
     it("returns true for JSON files", () => {
       expect(isTargetFile("data.json")).toBe(true);
       expect(isTargetFile("package.json")).toBe(true);
@@ -502,8 +559,8 @@ describe("file-utils", () => {
 
     it("returns false for non-target extensions", () => {
       expect(isTargetFile("file.txt")).toBe(false);
-      expect(isTargetFile("file.rs")).toBe(false);
-      expect(isTargetFile("file.go")).toBe(false);
+      expect(isTargetFile("file.swift")).toBe(false);
+      expect(isTargetFile("file.kt")).toBe(false);
       expect(isTargetFile("file.css")).toBe(false);
       expect(isTargetFile("file.html")).toBe(false);
     });
@@ -710,6 +767,18 @@ describe("file-utils", () => {
       expect(detectTestFramework("src/test.py")).toBe("pytest");
     });
 
+    it("returns Ruby test frameworks for Ruby files", () => {
+      expect(detectTestFramework("order_spec.rb")).toBe("rspec");
+      expect(detectTestFramework("order_test.rb")).toBe("minitest");
+    });
+
+    it("returns frameworks for additional languages", () => {
+      expect(detectTestFramework("handler_test.go")).toBe("go test");
+      expect(detectTestFramework("main_test.rs")).toBe("cargo test");
+      expect(detectTestFramework("OrderControllerTest.java")).toBe("junit");
+      expect(detectTestFramework("OrderControllerTest.php")).toBe("phpunit");
+    });
+
     it("returns node:test for JavaScript files", () => {
       expect(detectTestFramework("test.js")).toBe("node:test");
       expect(detectTestFramework("src/test.js")).toBe("node:test");
@@ -725,8 +794,8 @@ describe("file-utils", () => {
     });
 
     it("returns unknown for other extensions", () => {
-      expect(detectTestFramework("test.rs")).toBe("unknown");
-      expect(detectTestFramework("test.go")).toBe("unknown");
+      expect(detectTestFramework("test.swift")).toBe("unknown");
+      expect(detectTestFramework("test.kt")).toBe("unknown");
     });
   });
 

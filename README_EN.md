@@ -4,7 +4,7 @@
 
 **[日本語](README_JA.md)** | **English**
 
-`code-to-gate` is a CLI that scans a repository and produces release-review inputs.
+`code-to-gate` is a CLI that scans TypeScript, JavaScript, Python, Ruby, Go, Rust, Java, and PHP repositories and produces release-review inputs.
 
 It helps answer a few practical questions:
 

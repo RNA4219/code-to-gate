@@ -2,6 +2,9 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { parseJavaScriptFile } from "../adapters/js-adapter.js";
+import { parsePythonFile } from "../adapters/py-adapter.js";
+import { parseRubyFile } from "../adapters/rb-adapter.js";
+import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
 import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js";
 import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
 import { CTG_VERSION_V1ALPHA1 } from "../types/artifacts.js";
@@ -41,7 +44,7 @@ export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): Nor
 }
 
 export function isGraphTargetFile(filePath: string): boolean {
-  return /\.(ts|tsx|js|jsx|py|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !filePath.endsWith(".d.ts");
+  return /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !filePath.endsWith(".d.ts");
 }
 
 export function discoverGraphFiles(repoRoot: string): string[] {
@@ -70,7 +73,19 @@ export function addGraphClassifications(graph: NormalizedRepoGraph, file: RepoFi
     graph.tests.push({
       id: `test:${file.path}`,
       path: file.path,
-      framework: file.path.endsWith(".py") ? "pytest" : file.path.endsWith(".js") ? "node:test" : "vitest",
+      framework: file.path.endsWith(".py")
+        ? "pytest"
+        : file.path.endsWith(".rb")
+          ? file.path.includes("spec") ? "rspec" : "minitest"
+          : file.path.endsWith(".go")
+            ? "go test"
+            : file.path.endsWith(".rs")
+              ? "cargo test"
+              : file.path.endsWith(".java")
+                ? "junit"
+                : file.path.endsWith(".php")
+                  ? "phpunit"
+                  : file.path.endsWith(".js") ? "node:test" : "vitest",
     });
   }
 
@@ -96,7 +111,7 @@ function getCachedParseResult(
   fileId: string,
   bodyHash: string
 ): AdapterParseResult | undefined {
-  if (language !== "ts" && language !== "tsx" && language !== "js" && language !== "jsx") {
+  if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(language)) {
     return undefined;
   }
 
@@ -109,7 +124,13 @@ function getCachedParseResult(
   const result =
     language === "ts" || language === "tsx"
       ? parseTypeScriptFile(file, repoRoot, fileId)
-      : parseJavaScriptFile(file, repoRoot, fileId);
+      : language === "js" || language === "jsx"
+        ? parseJavaScriptFile(file, repoRoot, fileId)
+        : language === "py"
+          ? parsePythonFile(file, repoRoot, fileId)
+          : language === "rb"
+            ? parseRubyFile(file, repoRoot, fileId)
+            : parseRegexLanguageFile(file, repoRoot, fileId, language as RegexLanguage);
 
   parseCache.set(cacheKey, result);
   return result;

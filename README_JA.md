@@ -4,7 +4,7 @@
 
 **日本語** | **[English](README_EN.md)**
 
-`code-to-gate` は、リポジトリをスキャンしてリリース前の確認材料を作る CLI です。
+`code-to-gate` は、TypeScript / JavaScript / Python / Ruby / Go / Rust / Java / PHP のリポジトリをスキャンしてリリース前の確認材料を作る CLI です。
 
 主に次のことを確認できます。
 

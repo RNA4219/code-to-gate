@@ -51,7 +51,7 @@ code-to-gate scan <repo-path> --out <output-dir>
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
-| `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx`) |
+| `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx,py,rb,go,rs,java,php`) |
 | `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns (comma-separated) |
 | `--verbose` | false | Enable verbose logging |
 
@@ -115,7 +115,7 @@ code-to-gate analyze <repo-path> --out <output-dir>
 | `--llm-provider <provider>` | none | LLM provider: `openai`, `anthropic`, `alibaba`, `openrouter`, `ollama`, `llama.cpp` |
 | `--llm-model <model>` | provider default | Model name for the selected provider |
 | `--llm-model-path <path>` | none | Model file path for `llama.cpp` provider |
-| `--lang <langs>` | `ts,js` | Target languages |
+| `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx,py,rb,go,rs,java,php`) |
 | `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns |
 
 **Output Artifacts:**

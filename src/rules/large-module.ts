@@ -35,7 +35,7 @@ export const LARGE_MODULE_RULE: RulePlugin = {
     for (const file of context.graph.files) {
       // Skip non-source files and generated files
       if (file.role !== "source") continue;
-      if (file.language !== "ts" && file.language !== "tsx" && file.language !== "js" && file.language !== "jsx" && file.language !== "py") continue;
+      if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(file.language)) continue;
 
       // Skip config, index, and entry files (they often aggregate imports)
       if (
@@ -171,9 +171,18 @@ export const LARGE_MODULE_RULE: RulePlugin = {
 function countFunctions(content: string, language: string): number {
   let count = 0;
 
-  if (language === "py") {
-    // Python: def and async def
-    const defMatches = content.match(/^\s*(?:async\s+)?def\s+\w+/gm);
+  if (language === "py" || language === "rb" || language === "go" || language === "rs" || language === "java" || language === "php") {
+    const defMatches = language === "py"
+      ? content.match(/^\s*(?:async\s+)?def\s+\w+/gm)
+      : language === "rb"
+        ? content.match(/^\s*def\s+(?:self\.)?[a-zA-Z_][a-zA-Z0-9_!?=]*/gm)
+        : language === "go"
+          ? content.match(/^\s*func\s+(?:\([^)]*\)\s*)?[A-Z_a-z][A-Z_a-z0-9]*\s*\(/gm)
+          : language === "rs"
+            ? content.match(/^\s*(?:pub\s+)?fn\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(/gm)
+            : language === "java"
+              ? content.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?[A-Za-z0-9_<>\[\], ?]+\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^;]*\)\s*\{/gm)
+              : content.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?function\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/gm);
     count = defMatches ? defMatches.length : 0;
   } else {
     // JavaScript/TypeScript patterns

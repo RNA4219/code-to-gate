@@ -25,7 +25,7 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
     for (const file of context.graph.files) {
       // Skip non-source and test files
       if (file.role !== "source") continue;
-      if (!["ts", "tsx", "js", "jsx", "py"].includes(file.language)) continue;
+      if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(file.language)) continue;
 
       const content = context.getFileContent(file.path);
       if (!content) continue;
@@ -68,6 +68,13 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
 
         // Track except keyword (Python)
         if (trimmed.startsWith("except") && !trimmed.includes("Exception as")) {
+          inTryBlock = false;
+          inCatchBlock = true;
+          catchStartLine = lineNum;
+        }
+
+        // Track Ruby rescue keyword
+        if (trimmed.startsWith("rescue") && !trimmed.includes("=>")) {
           inTryBlock = false;
           inCatchBlock = true;
           catchStartLine = lineNum;
@@ -131,7 +138,9 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
           trimmed === "return null;" ||
           trimmed === "return undefined;" ||
           trimmed === "return;" ||
-          trimmed === "return None;" // Python
+          trimmed === "return None;" || // Python
+          trimmed === "nil" ||
+          trimmed === "return nil"
         ) {
           // Check if this is inside a catch block
           const prevLines = lines.slice(Math.max(0, i - 5), i);
@@ -140,6 +149,7 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
           if (
             prevContent.includes("catch") ||
             prevContent.includes("except") ||
+            prevContent.includes("rescue") ||
             prevLines.some((l) => l.includes("SMELL: TRY_CATCH_SWALLOW"))
           ) {
             // Check if there's no logging before the return

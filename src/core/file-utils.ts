@@ -9,7 +9,7 @@ import { toPosix } from "./path-utils.js";
 /**
  * Supported language types for file classification
  */
-export type Language = "ts" | "tsx" | "js" | "jsx" | "py" | "unknown";
+export type Language = "ts" | "tsx" | "js" | "jsx" | "py" | "rb" | "go" | "rs" | "java" | "php" | "unknown";
 
 /**
  * Role types for file classification
@@ -56,6 +56,11 @@ export function detectLanguage(filePath: string): Language {
     js: "js",
     jsx: "jsx",
     py: "py",
+    rb: "rb",
+    go: "go",
+    rs: "rs",
+    java: "java",
+    php: "php",
     mjs: "js",
     cjs: "js",
   };
@@ -76,12 +81,20 @@ export function detectRole(relPath: string): FileRole {
     normalized.startsWith("test/") ||
     normalized.includes("/tests/") ||
     normalized.includes("/test/") ||
+    normalized.includes("/spec/") ||
     normalized.includes("__tests__/") ||
     normalized.includes(".test.") ||
     normalized.includes(".spec.") ||
     normalized.endsWith("_test.ts") ||
     normalized.endsWith("_test.js") ||
-    normalized.endsWith("_test.py")
+    normalized.endsWith("_test.py") ||
+    normalized.endsWith("_test.rb") ||
+    normalized.endsWith("_spec.rb") ||
+    normalized.endsWith("_test.go") ||
+    normalized.endsWith("_test.rs") ||
+    normalized.endsWith("Test.java") ||
+    normalized.endsWith("Tests.java") ||
+    normalized.endsWith("Test.php")
   ) {
     return "test";
   }
@@ -198,7 +211,7 @@ export function walkDir(dir: string, ignoredDirs?: Set<string>): string[] {
  */
 export function isTargetFile(filePath: string): boolean {
   return (
-    /\.(ts|tsx|js|jsx|py|mjs|cjs|json|yaml|yml|md)$/.test(filePath) &&
+    /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|mjs|cjs|json|yaml|yml|md)$/.test(filePath) &&
     !filePath.endsWith(".d.ts")
   );
 }
@@ -225,35 +238,75 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized === "server.ts" ||
     normalized === "server.js" ||
     normalized === "server.py" ||
+    normalized === "server.rb" ||
+    normalized === "server.go" ||
+    normalized === "server.rs" ||
+    normalized === "Server.java" ||
+    normalized === "server.php" ||
     normalized.startsWith("src/server.ts") ||
     normalized.startsWith("src/server.js") ||
     normalized.startsWith("src/server.py") ||
+    normalized.startsWith("src/server.rb") ||
+    normalized.startsWith("src/server.go") ||
+    normalized.startsWith("src/server.rs") ||
+    normalized.startsWith("src/Server.java") ||
+    normalized.startsWith("src/server.php") ||
     normalized === "app.ts" ||
     normalized === "app.js" ||
     normalized === "app.py" ||
+    normalized === "app.rb" ||
+    normalized === "app.go" ||
+    normalized === "app.rs" ||
+    normalized === "App.java" ||
+    normalized === "app.php" ||
     normalized.startsWith("src/app.ts") ||
     normalized.startsWith("src/app.js") ||
     normalized.startsWith("src/app.py") ||
+    normalized.startsWith("src/app.rb") ||
+    normalized.startsWith("src/app.go") ||
+    normalized.startsWith("src/app.rs") ||
+    normalized.startsWith("src/App.java") ||
+    normalized.startsWith("src/app.php") ||
     normalized === "index.ts" ||
     normalized === "index.js" ||
     normalized === "index.py" ||
+    normalized === "index.rb" ||
     normalized.startsWith("src/index.ts") ||
     normalized.startsWith("src/index.js") ||
     normalized.startsWith("src/index.py") ||
+    normalized.startsWith("src/index.rb") ||
     normalized === "main.ts" ||
     normalized === "main.js" ||
     normalized === "main.py" ||
+    normalized === "main.rb" ||
+    normalized === "main.go" ||
+    normalized === "main.rs" ||
+    normalized === "Main.java" ||
+    normalized === "main.php" ||
     normalized.startsWith("src/main.ts") ||
     normalized.startsWith("src/main.js") ||
     normalized.startsWith("src/main.py") ||
+    normalized.startsWith("src/main.rb") ||
+    normalized.startsWith("src/main.go") ||
+    normalized.startsWith("src/main.rs") ||
+    normalized.startsWith("src/Main.java") ||
+    normalized.startsWith("src/main.php") ||
     normalized.includes("/server.ts") ||
     normalized.includes("/server.js") ||
+    normalized.includes("/server.rb") ||
     normalized.includes("/app.ts") ||
     normalized.includes("/app.js") ||
+    normalized.includes("/app.rb") ||
     normalized.includes("/index.ts") ||
     normalized.includes("/index.js") ||
+    normalized.includes("/index.rb") ||
     normalized.includes("/main.ts") ||
-    normalized.includes("/main.js")
+    normalized.includes("/main.js") ||
+    normalized.includes("/main.rb")
+    || normalized.includes("/main.go")
+    || normalized.includes("/main.rs")
+    || normalized.includes("/Main.java")
+    || normalized.includes("/main.php")
   ) {
     return true;
   }
@@ -277,6 +330,14 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
       /APIRouter\(\)/,
       /uvicorn\.run/,
       /app\.run/,
+      /Rails\.application/,
+      /Sinatra::Base/,
+      /\b(get|post|put|patch|delete)\s+['"][^'"]+['"]/,
+      /__FILE__\s*==\s*\$PROGRAM_NAME/,
+      /\bfunc\s+main\s*\(/,
+      /\bfn\s+main\s*\(/,
+      /public\s+static\s+void\s+main\s*\(/,
+      /Route::(?:get|post|put|patch|delete)\s*\(/,
     ];
 
     for (const pattern of entrypointPatterns) {
@@ -355,6 +416,11 @@ export function detectTestFramework(filePath: string): string {
   const ext = path.extname(filePath);
 
   if (ext === ".py") return "pytest";
+  if (ext === ".rb") return filePath.includes("spec") ? "rspec" : "minitest";
+  if (ext === ".go") return "go test";
+  if (ext === ".rs") return "cargo test";
+  if (ext === ".java") return "junit";
+  if (ext === ".php") return "phpunit";
   if (ext === ".js") return "node:test";
   if (ext === ".ts" || ext === ".tsx") return "vitest";
 

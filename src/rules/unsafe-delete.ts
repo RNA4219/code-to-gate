@@ -26,7 +26,7 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
     for (const file of context.graph.files) {
       // Skip non-source files
       if (file.role !== "source") continue;
-      if (!["ts", "tsx", "js", "jsx", "py"].includes(file.language)) continue;
+      if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(file.language)) continue;
 
       const content = context.getFileContent(file.path);
       if (!content) continue;
@@ -55,6 +55,17 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
         // Python: os.remove, shutil.rmtree
         /os\.remove\s*\(/g,
         /shutil\.rmtree\s*\(/g,
+        // Ruby: File.delete, FileUtils.rm_rf, ActiveRecord delete_all/destroy_all
+        /File\.delete\s*\(/g,
+        /FileUtils\.rm_rf\s*\(/g,
+        /\.delete_all\s*(?:\(\s*\))?/g,
+        /\.destroy_all\s*(?:\(\s*\))?/g,
+        // Go/Rust/Java/PHP filesystem deletion
+        /os\.Remove(?:All)?\s*\(/g,
+        /std::fs::remove_(?:file|dir_all)\s*\(/g,
+        /Files\.delete\s*\(/g,
+        /unlink\s*\(/g,
+        /rmdir\s*\(/g,
       ];
 
       // Patterns that indicate safe delete operations

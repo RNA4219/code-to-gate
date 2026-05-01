@@ -25,7 +25,7 @@ export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {
     for (const file of context.graph.files) {
       // Skip non-source files and test files
       if (file.role !== "source") continue;
-      if (!["ts", "tsx", "js", "jsx"].includes(file.language)) continue;
+      if (!["ts", "tsx", "js", "jsx", "rb", "go", "rs", "java", "php"].includes(file.language)) continue;
 
       const content = context.getFileContent(file.path);
       if (!content) continue;
@@ -50,6 +50,14 @@ export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {
         /(?:const|let|var)\s*\{\s*([^}]+)\s*\}\s*=\s*process\.env/g,
         // process.env['VAR_NAME']
         /process\.env\[['"](\w+)['"]]/g,
+        // Ruby ENV["VAR_NAME"]
+        /ENV\[['"](\w+)['"]\]/g,
+        // Go / Rust / Java / PHP
+        /os\.Getenv\s*\(\s*["'](\w+)["']\s*\)/g,
+        /env::var\s*\(\s*["'](\w+)["']\s*\)/g,
+        /System\.getenv\s*\(\s*["'](\w+)["']\s*\)/g,
+        /getenv\s*\(\s*["'](\w+)["']\s*\)/g,
+        /\$_ENV\[['"](\w+)['"]\]/g,
       ];
 
       // Patterns that indicate safe env usage
@@ -68,6 +76,7 @@ export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {
         /env-var/,
         /dotenv-safe/,
         /convict/,
+        /fetch\s*\(/,
       ];
 
       // Check for imports of validation libraries

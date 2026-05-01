@@ -93,6 +93,11 @@ describe('Core Module Smoke Tests', () => {
       expect(detectLanguage('file.js')).toBe('js');
       expect(detectLanguage('file.jsx')).toBe('jsx');
       expect(detectLanguage('file.py')).toBe('py');
+      expect(detectLanguage('file.rb')).toBe('rb');
+      expect(detectLanguage('file.go')).toBe('go');
+      expect(detectLanguage('file.rs')).toBe('rs');
+      expect(detectLanguage('file.java')).toBe('java');
+      expect(detectLanguage('file.php')).toBe('php');
       expect(detectLanguage('file.unknown')).toBe('unknown');
     });
 
@@ -120,6 +125,11 @@ describe('Core Module Smoke Tests', () => {
       expect(isTargetFile('file.ts')).toBe(true);
       expect(isTargetFile('file.js')).toBe(true);
       expect(isTargetFile('file.py')).toBe(true);
+      expect(isTargetFile('file.rb')).toBe(true);
+      expect(isTargetFile('file.go')).toBe(true);
+      expect(isTargetFile('file.rs')).toBe(true);
+      expect(isTargetFile('file.java')).toBe(true);
+      expect(isTargetFile('file.php')).toBe(true);
       expect(isTargetFile('file.json')).toBe(true);
       expect(isTargetFile('file.d.ts')).toBe(false);
       expect(isTargetFile('file.exe')).toBe(false);
@@ -149,6 +159,11 @@ describe('Core Module Smoke Tests', () => {
       expect(detectTestFramework('test.ts')).toBe('vitest');
       expect(detectTestFramework('test.js')).toBe('node:test');
       expect(detectTestFramework('test.py')).toBe('pytest');
+      expect(detectTestFramework('order_spec.rb')).toBe('rspec');
+      expect(detectTestFramework('handler_test.go')).toBe('go test');
+      expect(detectTestFramework('main_test.rs')).toBe('cargo test');
+      expect(detectTestFramework('OrderControllerTest.java')).toBe('junit');
+      expect(detectTestFramework('OrderControllerTest.php')).toBe('phpunit');
       expect(detectTestFramework('test.unknown')).toBe('unknown');
     });
 

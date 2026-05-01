@@ -25,7 +25,7 @@ export const RAW_SQL_RULE: RulePlugin = {
     for (const file of context.graph.files) {
       // Skip non-source files
       if (file.role !== "source") continue;
-      if (!["ts", "tsx", "js", "jsx", "py"].includes(file.language)) continue;
+      if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(file.language)) continue;
 
       const content = context.getFileContent(file.path);
       if (!content) continue;
@@ -50,6 +50,11 @@ export const RAW_SQL_RULE: RulePlugin = {
         /f["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*["']/gi,
         // Python format strings
         /["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*["']\.format\s*\(/gi,
+        // Ruby interpolation with SQL
+        /["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*#\{[^}]+\}[^"']*["']/gi,
+        // Common concatenation/interpolation forms in C-like languages
+        /["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*["']\s*\+\s*[A-Za-z_$][\w$]*/gi,
+        /fmt\.Sprintf\s*\(\s*["'](?:SELECT|INSERT|UPDATE|DELETE)/gi,
       ];
 
       // Patterns that indicate safe parameterized queries

@@ -22,7 +22,7 @@
         "properties": {
           "id": { "type": "string" },
           "path": { "type": "string" },
-          "language": { "enum": ["ts", "tsx", "js", "jsx", "py", "unknown"] },
+          "language": { "enum": ["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php", "unknown"] },
           "role": { "enum": ["source", "test", "config", "fixture", "docs", "generated", "unknown"] },
           "hash": { "type": "string" },
           "sizeBytes": { "type": "integer", "minimum": 0 },

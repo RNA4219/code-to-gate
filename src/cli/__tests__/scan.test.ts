@@ -33,6 +33,8 @@ function getOption(args: string[], name: string): string | undefined {
 let tempOutDir: string;
 const fixturesDir = path.resolve(import.meta.dirname, "../../../fixtures/demo-ci-imports");
 const demoShopDir = path.resolve(import.meta.dirname, "../../../fixtures/demo-shop-ts");
+const demoRubyDir = path.resolve(import.meta.dirname, "../../../fixtures/demo-ruby");
+const demoMultilangDir = path.resolve(import.meta.dirname, "../../../fixtures/demo-multilang");
 
 beforeAll(() => {
   tempOutDir = path.join(tmpdir(), `ctg-scan-test-${Date.now()}`);
@@ -237,6 +239,53 @@ describe("scan CLI - fixtures graph", () => {
       expect(file.moduleId).toBeDefined();
       expect(file.moduleId).toMatch(/^module:/);
     }
+  });
+});
+
+describe("scan CLI - Ruby graph", () => {
+  it("parses Ruby files and includes Ruby symbols", () => {
+    const outDir = path.join(tempOutDir, "ruby");
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+
+    const result = scanCommand([demoRubyDir, "--out", outDir], { VERSION, EXIT, getOption });
+    expect(result).toBe(EXIT.OK);
+
+    const graph = JSON.parse(readFileSync(path.join(outDir, "repo-graph.json"), "utf8")) as {
+      files: Array<{ path: string; language: string; parser: { status: string; adapter?: string } }>;
+      symbols: Array<{ name: string; kind: string }>;
+      tests: Array<{ path: string; framework: string }>;
+    };
+
+    expect(graph.files.some((file) => file.language === "rb" && file.parser.adapter === "rb-regex-v0")).toBe(true);
+    expect(graph.symbols.some((symbol) => symbol.name === "OrderApp" && symbol.kind === "class")).toBe(true);
+    expect(graph.symbols.some((symbol) => symbol.name === "create_order" && symbol.kind === "method")).toBe(true);
+    expect(graph.tests.some((test) => test.path === "spec/order_service_spec.rb" && test.framework === "rspec")).toBe(true);
+  });
+});
+
+describe("scan CLI - additional language graph", () => {
+  it("parses Go, Rust, Java, and PHP files", () => {
+    const outDir = path.join(tempOutDir, "multilang");
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+
+    const result = scanCommand([demoMultilangDir, "--out", outDir], { VERSION, EXIT, getOption });
+    expect(result).toBe(EXIT.OK);
+
+    const graph = JSON.parse(readFileSync(path.join(outDir, "repo-graph.json"), "utf8")) as {
+      files: Array<{ language: string; parser: { adapter?: string } }>;
+      symbols: Array<{ name: string }>;
+      tests: Array<{ framework: string }>;
+    };
+
+    expect(graph.files.some((file) => file.language === "go" && file.parser.adapter === "go-regex-v0")).toBe(true);
+    expect(graph.files.some((file) => file.language === "rs" && file.parser.adapter === "rs-regex-v0")).toBe(true);
+    expect(graph.files.some((file) => file.language === "java" && file.parser.adapter === "java-regex-v0")).toBe(true);
+    expect(graph.files.some((file) => file.language === "php" && file.parser.adapter === "php-regex-v0")).toBe(true);
+    expect(graph.symbols.some((symbol) => symbol.name === "CreateOrder")).toBe(true);
+    expect(graph.symbols.some((symbol) => symbol.name === "OrderController")).toBe(true);
+    expect(graph.tests.some((test) => test.framework === "phpunit")).toBe(true);
   });
 });
 

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`code-to-gate` は、リポジトリをスキャンして「どこに品質リスクがありそうか」「どんなテストを追加するとよさそうか」「リリース前に止めるべき状態か」を確認するための CLI です。
+`code-to-gate` は、TypeScript / JavaScript / Python / Ruby / Go / Rust / Java / PHP のリポジトリをスキャンして「どこに品質リスクがありそうか」「どんなテストを追加するとよさそうか」「リリース前に止めるべき状態か」を確認するための CLI です。
 
 ## まず使う
 

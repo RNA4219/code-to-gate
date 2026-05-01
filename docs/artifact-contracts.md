@@ -123,7 +123,7 @@ export interface NormalizedRepoGraph extends ArtifactHeader {
 export interface RepoFile {
   id: string;
   path: string;
-  language: "ts" | "tsx" | "js" | "jsx" | "py" | "unknown";
+  language: "ts" | "tsx" | "js" | "jsx" | "py" | "rb" | "go" | "rs" | "java" | "php" | "unknown";
   role: "source" | "test" | "config" | "fixture" | "docs" | "generated" | "unknown";
   hash: string;
   sizeBytes: number;

@@ -23,6 +23,9 @@ import { sha256, toPosix } from "../core/path-utils.js";
 import { detectLanguage, detectRole } from "../core/file-utils.js";
 import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js";
 import { parseJavaScriptFile } from "../adapters/js-adapter.js";
+import { parsePythonFile } from "../adapters/py-adapter.js";
+import { parseRubyFile } from "../adapters/rb-adapter.js";
+import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
 import type { RepoFile } from "../types/artifacts.js";
 
 /**
@@ -351,6 +354,12 @@ export class FileProcessor extends EventEmitter {
         parseResult = parseTypeScriptFile(filePath, this.options.repoRoot, fileId);
       } else if (language === "js" || language === "jsx") {
         parseResult = parseJavaScriptFile(filePath, this.options.repoRoot, fileId);
+      } else if (language === "py") {
+        parseResult = parsePythonFile(filePath, this.options.repoRoot, fileId);
+      } else if (language === "rb") {
+        parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
+      } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
+        parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language);
       } else {
         // Fallback for unsupported languages
         parseResult = {
@@ -440,6 +449,12 @@ export class FileProcessor extends EventEmitter {
         parseResult = parseTypeScriptFile(fileInfo.path, repoRoot, fileInfo.fileId);
       } else if (language === "js" || language === "jsx") {
         parseResult = parseJavaScriptFile(fileInfo.path, repoRoot, fileInfo.fileId);
+      } else if (language === "py") {
+        parseResult = parsePythonFile(fileInfo.path, repoRoot, fileInfo.fileId);
+      } else if (language === "rb") {
+        parseResult = parseRubyFile(fileInfo.path, repoRoot, fileInfo.fileId);
+      } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
+        parseResult = parseRegexLanguageFile(fileInfo.path, repoRoot, fileInfo.fileId, language);
       } else {
         parseResult = {
           symbols: [],
@@ -648,6 +663,12 @@ export class FileProcessor extends EventEmitter {
         parseResult = parseTypeScriptFile(filePath, this.options.repoRoot, fileId);
       } else if (language === "js" || language === "jsx") {
         parseResult = parseJavaScriptFile(filePath, this.options.repoRoot, fileId);
+      } else if (language === "py") {
+        parseResult = parsePythonFile(filePath, this.options.repoRoot, fileId);
+      } else if (language === "rb") {
+        parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
+      } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
+        parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language as RegexLanguage);
       } else {
         parseResult = {
           symbols: [],
