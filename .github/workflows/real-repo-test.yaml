@@ -15,10 +15,18 @@ on:
         required: false
         default: 'true'
         type: boolean
+      runner_os:
+        description: 'Runner OS for manual compatibility checks'
+        required: false
+        default: 'ubuntu-latest'
+        type: choice
+        options:
+          - ubuntu-latest
+          - macos-latest
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner_os || 'ubuntu-latest' }}
     timeout-minutes: 30
 
     steps:

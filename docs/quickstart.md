@@ -29,8 +29,12 @@ npm install --save-dev @quality-harness/code-to-gate
 Download the latest binary from GitHub Releases:
 
 ```bash
-# Linux/macOS
+# Linux
 curl -L https://github.com/quality-harness/code-to-gate/releases/latest/download/code-to-gate-linux -o code-to-gate
+chmod +x code-to-gate
+
+# macOS
+curl -L https://github.com/quality-harness/code-to-gate/releases/latest/download/code-to-gate-macos -o code-to-gate
 chmod +x code-to-gate
 
 # Windows (PowerShell)

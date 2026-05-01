@@ -36,26 +36,31 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Test repositories configuration
-declare -A REPOS=(
-    ["express"]="https://github.com/expressjs/express.git|backend|expressjs/express"
-    ["nextjs"]="https://github.com/vercel/next.js.git|frontend|vercel/next.js (examples only)"
-    ["typescript"]="https://github.com/microsoft/TypeScript.git|library|microsoft/TypeScript"
-)
+# Test repositories configuration.
+# Keep this Bash 3.2 compatible for macOS runners; associative arrays are not
+# available in the system bash shipped with macOS.
+ALL_REPOS=("express" "nextjs" "typescript")
 
-# Expected results per repo (from product-acceptance-v1.md)
-declare -A EXPECTED_EXIT=(
-    ["express"]="0_or_1"
-    ["nextjs"]="0_or_1"
-    ["typescript"]="0"
-)
+get_repo_config() {
+    case "$1" in
+        express) echo "https://github.com/expressjs/express.git|backend|expressjs/express" ;;
+        nextjs) echo "https://github.com/vercel/next.js.git|frontend|vercel/next.js (examples only)" ;;
+        typescript) echo "https://github.com/microsoft/TypeScript.git|library|microsoft/TypeScript" ;;
+        *) return 1 ;;
+    esac
+}
 
-# File count targets (100-500 files)
-declare -A FILE_TARGET=(
-    ["express"]="100-300"
-    ["nextjs"]="200-400"  # examples directory only
-    ["typescript"]="50-150"
-)
+get_expected_exit() {
+    case "$1" in
+        express|nextjs) echo "0_or_1" ;;
+        typescript) echo "0" ;;
+        *) return 1 ;;
+    esac
+}
+
+iso_timestamp() {
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
 
 # Parse arguments
 CLEAN_AFTER=false
@@ -105,7 +110,7 @@ check_cli() {
 
 count_files() {
     local dir="$1"
-    local count=$(find "$dir" -type f -name "*.ts" -o -name "*.js" -o -name "*.tsx" -o -name "*.jsx" 2>/dev/null | wc -l)
+    local count=$(find "$dir" -type f \( -name "*.ts" -o -name "*.js" -o -name "*.tsx" -o -name "*.jsx" \) 2>/dev/null | wc -l)
     echo "$count"
 }
 
@@ -184,25 +189,11 @@ clone_repo() {
     fi
 }
 
-prepare_repo_for_test() {
-    local repo_name="$1"
-    local repo_dir="$2"
-
-    # For next.js, we only test examples directory to reduce file count
-    if [[ "$repo_name" == "nextjs" ]]; then
-        local examples_dir="${repo_dir}/examples"
-        if [[ -d "$examples_dir" ]]; then
-            log_info "Using examples directory only for next.js"
-            return "$examples_dir"
-        fi
-    fi
-
-    return "$repo_dir"
-}
-
 test_repo() {
     local repo_name="$1"
     local repo_config="$2"
+    local expected_exit
+    expected_exit="$(get_expected_exit "$repo_name")"
 
     IFS='|' read -r repo_url repo_type repo_desc <<< "$repo_config"
 
@@ -280,7 +271,7 @@ test_repo() {
 
     log_info "Analyze duration: ${analyze_duration}s"
 
-    validate_exit_code "$analyze_exit" "${EXPECTED_EXIT[$repo_name]}" "$repo_name"
+    validate_exit_code "$analyze_exit" "$expected_exit" "$repo_name"
     local analyze_valid=$?
 
     # Test 3: Readiness
@@ -296,7 +287,7 @@ test_repo() {
 
     log_info "Readiness duration: ${readiness_duration}s"
 
-    validate_exit_code "$readiness_exit" "${EXPECTED_EXIT[$repo_name]}" "$repo_name"
+    validate_exit_code "$readiness_exit" "$expected_exit" "$repo_name"
     local readiness_valid=$?
 
     # Test 4: Schema Validation
@@ -340,7 +331,7 @@ test_repo() {
 # Real repo test results for $repo_name
 repo: $repo_desc
 type: $repo_type
-date: $(date -Iseconds)
+date: $(iso_timestamp)
 file_count: $file_count
 
 tests:
@@ -354,7 +345,7 @@ tests:
 
   analyze:
     exit_code: $analyze_exit
-    expected: ${EXPECTED_EXIT[$repo_name]}
+    expected: $expected_exit
     result: $([[ $analyze_valid -eq 0 ]] && echo "pass" || echo "fail")
     duration_seconds: $analyze_duration
     target_seconds: 60
@@ -362,7 +353,7 @@ tests:
 
   readiness:
     exit_code: $readiness_exit
-    expected: ${EXPECTED_EXIT[$repo_name]}
+    expected: $expected_exit
     result: $([[ $readiness_valid -eq 0 ]] && echo "pass" || echo "fail")
     duration_seconds: $readiness_duration
 
@@ -397,15 +388,15 @@ main() {
     local repos_to_test=()
 
     if [[ -n "$SPECIFIC_REPO" ]]; then
-        if [[ -v "REPOS[$SPECIFIC_REPO]" ]]; then
+        if get_repo_config "$SPECIFIC_REPO" >/dev/null; then
             repos_to_test+=("$SPECIFIC_REPO")
         else
             log_fail "Unknown repo: $SPECIFIC_REPO"
-            log_info "Available repos: ${!REPOS[@]}"
+            log_info "Available repos: ${ALL_REPOS[*]}"
             exit 1
         fi
     else
-        repos_to_test=("express" "nextjs" "typescript")
+        repos_to_test=("${ALL_REPOS[@]}")
     fi
 
     log_info "Repositories to test: ${repos_to_test[@]}"
@@ -414,7 +405,9 @@ main() {
     local total_failed=0
 
     for repo_name in "${repos_to_test[@]}"; do
-        test_repo "$repo_name" "${REPOS[$repo_name]}"
+        local repo_config
+        repo_config="$(get_repo_config "$repo_name")"
+        test_repo "$repo_name" "$repo_config"
         if [[ $? -eq 0 ]]; then
             total_passed=$((total_passed + 1))
         else
@@ -434,12 +427,14 @@ main() {
     local summary_file="${RESULTS_DIR}/overall-summary.yaml"
     cat > "$summary_file" << EOF
 # Real repo test overall summary - Phase 1
-date: $(date -Iseconds)
+date: $(iso_timestamp)
 repos_tested:
 EOF
 
     for repo_name in "${repos_to_test[@]}"; do
-        local repo_desc=$(echo "${REPOS[$repo_name]}" | cut -d'|' -f3)
+        local repo_config
+        repo_config="$(get_repo_config "$repo_name")"
+        local repo_desc=$(echo "$repo_config" | cut -d'|' -f3)
         local repo_results="${RESULTS_DIR}/${repo_name}-results.yaml"
         if [[ -f "$repo_results" ]]; then
             local repo_result=$(grep "overall_result:" "$repo_results" | cut -d':' -f2 | tr -d ' ')
