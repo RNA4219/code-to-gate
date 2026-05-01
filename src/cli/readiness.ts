@@ -8,7 +8,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
-import { loadPolicyFile, type CtgPolicy } from "../config/policy-loader.js";
+import { loadPolicyFile, loadSuppressionFile, type CtgPolicy, type SuppressionEntry } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
 
 import {
@@ -218,6 +218,13 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       }
     }
 
+    // Load suppressions if configured
+    let suppressions: SuppressionEntry[] = [];
+    if (policy.suppression?.file) {
+      const suppressionFile = loadSuppressionFile(policy.suppression.file, cwd);
+      suppressions = suppressionFile.suppressions;
+    }
+
     // Load findings from --from directory or create empty
     let findings: FindingsArtifact;
 
@@ -250,7 +257,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
 
     // Evaluate findings against policy using policy-evaluator
-    const evalResult = evaluatePolicy(findings.findings, policy);
+    const evalResult = evaluatePolicy(findings.findings, policy, suppressions);
 
     // Map failed conditions to artifact format
     const failedConditions = mapFailedConditions(evalResult);

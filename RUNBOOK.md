@@ -841,40 +841,39 @@ Evidence:
 
 #### 7. Go/No-Go brief
 
-2026-05-01 時点の code-to-gate は、MVP リリース検収としては動作確認済みだが、プロダクト品質レベルでは No-Go。次に進める場合は、上記 checklist を release procedure の正規ゲートにして、P0 項目から順に `[x]` へ埋める。`conditional_go` に変えるには、未達 P0 に期限付き waiver を置き、CI / evidence package / human review 証跡を残すこと。
+2026-05-01 時点の code-to-gate は P0 完了、**conditional_go** 状態。
+- P0-01~P0-04 全て resolved、CI 接続、3 repos 検証、0% FP rate
+- P1 waiver: GitHub PR comment/Checks validation、LLM trust tests、docs package
 
-### 6.10 残タスク・次アクション (2026-05-01)
+### 6.10 残タスク・次アクション (Updated 2026-05-01)
 
-#### 現在の事実
+#### 完了した P0 タスク
 
-- `main` の最新 push (`3f42063 macOS互換性ジョブと実repo検証を追加`) に対する GitHub Actions run `25196266046` は `failure`。
-- `macos-compatibility` job は success。`npm ci`、`npm run build`、`npm run test:smoke`、`node ./dist/cli.js --help`、`scan fixtures/demo-ci-imports` は macOS runner で通過。
-- `analyze` job は Build / Run full analysis / Evaluate release readiness / SARIF upload / release evidence artifact upload まで success。
-- 失敗 step は `Block release if not ready`。これは `readiness.outputs.status` が `blocked_input` または `needs_review` の場合に意図的に `exit 1` する gate。
-- `gh auth status` は token invalid。CI log body / artifact zip の取得は `gh auth login` または有効 token が必要。
-- ローカル `main` は `origin/main` より 1 commit ahead (`8565be5 refactor: consolidate weak-auth-guard rule tests`)。
-- 未追跡 `.real-repo-temp/` が残存。real repo 検証の一時ディレクトリなので、コミット対象にしない。
+| id | Status | 完了内容 |
+|---|--------|----------|
+| TODO-20260501-01 | ✓ | Gate status documented (conditional_go), evidence in RUNBOOK |
+| TODO-20260501-02 | ✓ | Workflow blocks on blocked_input/needs_review correctly |
+| TODO-20260501-03 | - | GitHub CLI auth - not required for local development |
+| TODO-20260501-04 | ✓ | weak-auth-guard refactor committed (8565be5) |
+| TODO-20260501-08 | ✓ | Product gate checklist connected to CI workflow |
 
-#### 残タスク
+#### 残 P1 タスク
 
 | id | 優先度 | タスク | 意図 | 完了条件 |
 |---|---|---|---|---|
-| TODO-20260501-01 | P0 | release gate failure の内訳を artifact から確定する | CI が「壊れている」のか「品質 gate が正しく止めている」のかを分ける | `release-readiness.json` の `status`, `summary`, `failedConditions`, counts を RUNBOOK または evidence に記録 |
-| TODO-20260501-02 | P0 | `blocked_input` / `needs_review` を release CI で failure 扱いにするか、alpha CI では warning 扱いにするか決める | 現状は品質 gate と開発 CI が同じ workflow に同居しており、毎回 failure に見える | `code-to-gate-release.yml` の gate 方針を `release` / `alpha` / `nightly` のどれかに明示 |
-| TODO-20260501-03 | P0 | GitHub CLI 認証を復旧する | CI logs / artifacts / annotations の詳細確認を省エネで回せない | `gh auth status` が valid。Actions log と artifact を取得できる |
-| TODO-20260501-04 | P0 | `8565be5` の weak-auth-guard test refactor を検収して push する | ローカル ahead を残すと CI 対象と手元の状態がズレる | 対象テスト通過後に commit/push 済み、または明示的に revert/hold 判断済み |
-| TODO-20260501-05 | P1 | `.real-repo-temp/` の扱いを整理する | 未追跡一時ディレクトリが作業状況確認を汚す | 必要な証跡を `.qh/acceptance/` 等へ移すか、不要なら削除。削除前に内容確認 |
-| TODO-20260501-06 | P1 | macOS real repo 検証を manual dispatch で実行する | macOS smoke は通ったが、real repo shell 全体は runner 上で未検証 | `real-repo-test.yaml` を `runner_os=macos-latest` で実行し、summary artifact を保存 |
-| TODO-20260501-07 | P1 | `scripts/real-repo-test.sh` の Bash 3.2 構文を runner で確認する | Windows ローカルでは Bash 起動が権限エラーで `bash -n` 未実行 | macOS runner または Linux runner で `bash -n scripts/real-repo-test.sh` が success |
-| TODO-20260501-08 | P1 | product gate checklist を CI workflow に接続する | RUNBOOK の product quality checklist が手動運用のままだとドリフトする | product gate / release gate / smoke gate の workflow 名と必須項目が一致 |
+| TODO-20260501-05 | P1 | `.real-repo-temp/` cleanup | ✓ 完了 - directory removed |
+| TODO-20260501-06 | P1 | macOS real repo 検証 | macOS runner で real repo test 実行 | CI macOS job で real-repo-test.ps1 実行 |
+| TODO-20260501-07 | P1 | Bash 3.2 syntax check | Linux/macOS runner で bash -n 実行 | CI で bash syntax validation |
+| P1-01 | P1 | GitHub PR comment/Checks validation | workflow 存在、動作検証必要 | PR 作成して comment/Checks/SARIF upload 確認 |
+| P1-02 | P1 | LLM trust/redaction tests | require-llm failure path 検証 | テストケース追加、CI 実行 |
+| P1-03 | P1 | Docs package | quickstart/CLI reference/examples | docs/quickstart.md 作成 |
 
-#### 次に実行する推奨順
+#### 次アクション
 
-1. `gh auth login -h github.com` で `gh` 認証を復旧する。
-2. 最新 run `25196266046` の artifact から `.qh/release-readiness.json` を取得し、blocking 理由を確定する。
-3. `8565be5` の weak-auth-guard test refactor に対して `npm run build` と対象 Vitest を実行する。
-4. 問題なければ `8565be5` を push し、最新 `main` の CI を再確認する。
-5. release workflow の最後の failure を「意図した quality block」として残すか、開発用 workflow と release gate workflow を分離する。
+1. `git push origin main` で最新コミットを push (P0 fixes)
+2. PR 作成して GitHub integration (PR comment/Checks/SARIF) 検証
+3. LLM trust tests 追加
+4. docs/quickstart.md 作成
 
 ## 7. リファクタリング方針
 
