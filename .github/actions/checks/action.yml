@@ -91,6 +91,9 @@ runs:
         STATUS="${{ steps.parse.outputs.status }}"
         CRITICAL="${{ steps.parse.outputs.critical }}"
         HIGH="${{ steps.parse.outputs.high }}"
+        MEDIUM="${{ steps.parse.outputs.medium }}"
+        LOW="${{ steps.parse.outputs.low }}"
+        TOTAL="${{ steps.parse.outputs.total }}"
         FAIL_CRITICAL="${{ inputs.fail_on_critical }}"
         FAIL_HIGH="${{ inputs.fail_on_high }}"
 
@@ -125,19 +128,19 @@ runs:
       id: annotations
       shell: bash
       run: |
-        # Generate annotations from findings
+        # Generate annotations from findings as a JSON array
         # GitHub limits to 50 annotations per check run
-        jq -c '.[] | {
+        jq -c '[.[] | {
           path: (.evidence[0].path // "unknown"),
           start_line: (.evidence[0].startLine // 1),
           end_line: (.evidence[0].endLine // (.evidence[0].startLine // 1)),
           annotation_level: (if .severity == "critical" or .severity == "high" then "failure" elif .severity == "medium" then "warning" else "notice" end),
           message: (.summary // .title // "Finding"),
           title: "\(.ruleId) [\(.severity)]"
-        }' /tmp/findings.json > /tmp/annotations.json
+        }]' /tmp/findings.json > /tmp/annotations.json
 
         # Count annotations
-        ANNOTATION_COUNT=$(wc -l < /tmp/annotations.json)
+        ANNOTATION_COUNT=$(jq 'length' /tmp/annotations.json)
         echo "count=$ANNOTATION_COUNT" >> $GITHUB_OUTPUT
 
     - name: Create GitHub Check run
