@@ -32,6 +32,8 @@ import {
   FindingsComparisonResult,
 } from "../types.js";
 
+import { generateFindingFingerprint } from "../../utils/fingerprint.js";
+
 // Test fixtures
 function createMockFindingsArtifact(
   runId: string,
@@ -57,6 +59,32 @@ function createMockFinding(
   ruleId: string,
   path: string,
   severity: "low" | "medium" | "high" | "critical",
+  category: "security" | "auth" | "validation" | "maintainability",
+  fingerprint?: string
+): Finding {
+  const finding: Finding = {
+    id,
+    ruleId,
+    category,
+    severity,
+    confidence: 0.9,
+    title: `Finding ${id}`,
+    summary: `Summary for ${id}`,
+    evidence: [{ id: `ev-${id}`, path, kind: "ast", startLine: 10 }],
+    affectedSymbols: [`symbol:${path}`],
+  };
+  if (fingerprint) {
+    finding.fingerprint = fingerprint;
+  }
+  return finding;
+}
+
+function createMockFindingWithExcerpt(
+  id: string,
+  ruleId: string,
+  path: string,
+  excerptHash: string,
+  severity: "low" | "medium" | "high" | "critical",
   category: "security" | "auth" | "validation" | "maintainability"
 ): Finding {
   return {
@@ -67,8 +95,19 @@ function createMockFinding(
     confidence: 0.9,
     title: `Finding ${id}`,
     summary: `Summary for ${id}`,
-    evidence: [{ id: `ev-${id}`, path, kind: "ast", startLine: 10 }],
-    affectedSymbols: [`symbol:${path}`],
+    evidence: [{ id: `ev-${id}`, path, kind: "text", excerptHash }],
+    affectedSymbols: [`symbolFor:${excerptHash}`],
+    fingerprint: generateFindingFingerprint({
+      id,
+      ruleId,
+      category,
+      severity,
+      confidence: 0.9,
+      title: `Finding ${id}`,
+      summary: `Summary for ${id}`,
+      evidence: [{ id: `ev-${id}`, path, kind: "text", excerptHash }],
+      affectedSymbols: [`symbolFor:${excerptHash}`],
+    }),
   };
 }
 
@@ -304,6 +343,103 @@ describe("Historical Comparison", () => {
 
       expect(result.unchanged.length).toBe(1);
       expect(result.unchanged[0].matchedOn).toBe("ruleId_path");
+    });
+
+    // === Fingerprint Matching Tests (Golden Fixtures) ===
+
+    it("matches findings by fingerprint (path rename stability)", () => {
+      // Golden fixture: path renamed but fingerprint stays same due to excerpt hash
+      const fingerprint = "fp-stable-abc123";
+
+      const previous = createMockFindingsArtifact("run-prev", [
+        createMockFinding("f1", "RULE_A", "src/old-path.ts", "high", "security", fingerprint),
+      ]);
+
+      const current = createMockFindingsArtifact("run-current", [
+        // Path changed but fingerprint same - should match
+        createMockFinding("f2", "RULE_A", "src/new-path.ts", "high", "security", fingerprint),
+      ]);
+
+      const result = compareFindings(current, previous);
+
+      expect(result.unchanged.length).toBe(1);
+      expect(result.unchanged[0].matchedOn).toBe("fingerprint");
+    });
+
+    it("matches findings by fingerprint with excerpt hash", () => {
+      // Golden fixture: excerpt hash based matching for code content
+      const excerptHash = "sha256:code-content-hash";
+
+      const previous = createMockFindingsArtifact("run-prev", [
+        createMockFindingWithExcerpt("f1", "RULE_A", "src/a.ts", excerptHash, "high", "security"),
+      ]);
+
+      const current = createMockFindingsArtifact("run-current", [
+        // Line moved (different startLine) but same excerpt hash
+        createMockFindingWithExcerpt("f2", "RULE_A", "src/a.ts", excerptHash, "high", "security"),
+      ]);
+
+      const result = compareFindings(current, previous);
+
+      expect(result.unchanged.length).toBe(1);
+      expect(result.unchanged[0].matchedOn).toBe("fingerprint");
+    });
+
+    it("fingerprint matching takes priority over ruleId_path", () => {
+      // When both fingerprint and ruleId_path are available, fingerprint wins
+      const fpSame = "fp-priority-test";
+
+      const previous = createMockFindingsArtifact("run-prev", [
+        createMockFinding("f1", "RULE_A", "src/a.ts", "high", "security", fpSame),
+      ]);
+
+      const current = createMockFindingsArtifact("run-current", [
+        // Same fingerprint but different path - fingerprint should match
+        createMockFinding("f2", "RULE_A", "src/different.ts", "high", "security", fpSame),
+      ]);
+
+      const result = compareFindings(current, previous);
+
+      expect(result.unchanged.length).toBe(1);
+      expect(result.unchanged[0].matchedOn).toBe("fingerprint");
+    });
+
+    it("handles multiple findings with same ruleId+path using queue", () => {
+      // Golden fixture: duplicate findings at same location
+      const previous = createMockFindingsArtifact("run-prev", [
+        createMockFinding("f1", "RULE_A", "src/a.ts", "high", "security"),
+        createMockFinding("f2", "RULE_A", "src/a.ts", "medium", "security"),
+      ]);
+
+      const current = createMockFindingsArtifact("run-current", [
+        createMockFinding("f3", "RULE_A", "src/a.ts", "high", "security"),
+        createMockFinding("f4", "RULE_A", "src/a.ts", "medium", "security"),
+      ]);
+
+      const result = compareFindings(current, previous);
+
+      // Both should match and be unchanged
+      expect(result.unchanged.length).toBe(2);
+      expect(result.new.length).toBe(0);
+      expect(result.resolved.length).toBe(0);
+    });
+
+    it("handles duplicate findings with fingerprints", () => {
+      // Multiple findings with different fingerprints at same path
+      const previous = createMockFindingsArtifact("run-prev", [
+        createMockFinding("f1", "RULE_A", "src/a.ts", "high", "security", "fp1"),
+        createMockFinding("f2", "RULE_A", "src/a.ts", "medium", "security", "fp2"),
+      ]);
+
+      const current = createMockFindingsArtifact("run-current", [
+        createMockFinding("f3", "RULE_A", "src/a.ts", "high", "security", "fp1"),
+        createMockFinding("f4", "RULE_A", "src/a.ts", "medium", "security", "fp2"),
+      ]);
+
+      const result = compareFindings(current, previous);
+
+      expect(result.unchanged.length).toBe(2);
+      expect(result.unchanged.every(f => f.matchedOn === "fingerprint")).toBe(true);
     });
 
     it("generates correct summary counts", () => {

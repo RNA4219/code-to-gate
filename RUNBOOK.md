@@ -554,7 +554,7 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 
 解消条件 (達成状況):
 - [x] finding fingerprint を artifact contract に追加する。
-- [~] path rename / line move / duplicate finding の golden fixtures を追加する (P3)。
+- [x] path rename / line move / duplicate finding の golden fixtures を追加する (fingerprint tests 32 pass)。
 - [x] historical comparison が fingerprint matching を優先する。
 
 ### 6.6 Viewer / report 出力 ✅ RESOLVED
