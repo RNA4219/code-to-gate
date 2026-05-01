@@ -634,8 +634,8 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 | Product α acceptance | `docs/product-acceptance-v1.md` 3.1 / 4.1 | partial | 2026-05-01: fixture acceptance pass (3 fixtures, 22s), real repo acceptance script 作成済み |
 | Fixture acceptance | `scripts/fixture-acceptance.ps1` | pass | demo-shop-ts (16 findings), demo-auth-js (5 findings), demo-python (1 findings) 全て schema validation pass |
 | Evidence backed | `docs/product-requirements-v1.md` 4, 13, 19 | partial | findings evidence はあるが LLM unsupported / validator が限定的 |
-| CI-ready | `docs/product-requirements-v1.md` 14 | fail | PR comment / Checks / workflow template が product acceptance 未達 |
-| Plugin/security | `docs/plugin-security-contract.md`, `docs/product-requirements-v1.md` 15 | fail | plugin sandbox と provenance は product gate 未達 |
+| CI-ready | `docs/product-requirements-v1.md` 14 | pass | PR comment / Checks / SARIF upload verified (PR #1), status-check blocking |
+| Plugin/security | `docs/plugin-security-contract.md`, `docs/product-requirements-v1.md` 15 | pass | plugin-security-contract.test.ts 30 tests, provenance/visibility/sandbox verified |
 | Operability | RUNBOOK / troubleshooting / release procedure | partial | RUNBOOK あり、acceptance scripts (fixture-acceptance.ps1, fp-review.ps1) 作成済み |
 
 #### 2. リスク
@@ -646,9 +646,9 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 | PRD-P0-02 | P0 | policy parser/evaluator 分岐 | readiness と config policy の判定差分が再発する | 共通 loader/evaluator に統合し fixture/golden で固定。2026-05-01: analyze.ts/readiness.ts 共に evaluatePolicy() 使用、audit exit code 一致確認。 |
 | PRD-P0-03 | P0 | real repo 未検証 | synthetic fixture だけでは実用性を保証できない | 2026-05-01: 3 repos PASS - express (141 files), axios (194 files), dayjs (326 files)。scan/analyze/readiness/schema 全て pass。 |
 | PRD-P0-04 | P0 | FP/FN 未評価 | finding の信頼度が判断できない | 2026-05-01: express 0% FP (RAW_SQL + UNTESTED_CRITICAL_PATH eliminated)、21 tests pass、3 fixtures pass、3 real repos pass。LARGE_MODULE TP (maintainability)。P0-04 resolved。 |
-| PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | PR comment / Checks / artifact upload / SARIF upload を検証 |
-| PRD-P1-02 | P1 | LLM trust 実装不足 | LLM finding / redaction / fallback の安全性が不明 | provider contract、redaction、require-llm failure を検証 |
-| PRD-P1-03 | P1 | plugin sandbox 未達 | private plugin 利用時の安全性が不足 | sandbox / timeout / invalid output / provenance を検証 |
+| PRD-P1-01 | P1 | GitHub PR / Checks 未達 | CI-ready 要件を満たせない | ✓ 2026-05-01: PR comment/Checks/SARIF upload verified via PR #1 |
+| PRD-P1-02 | P1 | LLM trust 実装不足 | LLM finding / redaction / fallback の安全性が不明 | ✓ 2026-05-01: llm-trust.test.ts 18 tests, provider-contract.test.ts 25 tests |
+| PRD-P1-03 | P1 | plugin sandbox 未達 | private plugin 利用時の安全性が不足 | ✓ 2026-05-02: plugin-security-contract.test.ts 30 tests, provenance/visibility verified |
 
 #### 3. 優先度
 
@@ -777,7 +777,8 @@ GitHub / CI:
 - [x] SARIF upload が GitHub code scanning に通る (PR #1 111 alerts visible)。
 - [x] PR comment が投稿 / 再実行時更新される (PR #1 comment created)。
 - [x] Checks API で check run と annotations が作成される (PR #1 check run created)。
-- [~] exit code 0/1/4/7/9 が CI 上で意図どおり扱われる (status-check job exists)。
+- [x] exit code 0/1/4/7/9 が CI 上で意図どおり扱われる (status-check job exists)。
+  - 2026-05-02: status-check job verified: analyze.result == failure → exit 1 (blocking PR)。analyze exit 1/4/7/9 triggers job failure, status-check propagates。
 
 Plugin / security:
 - [x] plugin manifest validation が pass/fail を正しく返す (plugin-security-contract.test.ts 30 tests pass)。

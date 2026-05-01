@@ -250,14 +250,14 @@ Provide concise, actionable findings.`,
     };
 
     // Generate risk register
-    const riskRegister = buildRiskRegisterFromFindings(findings, policy?.policyId);
+    const riskRegister = buildRiskRegisterFromFindings(reportedFindings, policy?.policyId);
 
     // Track generated artifacts
     const generated: string[] = [];
 
     // Emit artifacts
     if (emitFormats.includes("json")) {
-      const findingsPath = writeFindingsJson(absoluteOutDir, findings);
+      const findingsPath = writeFindingsJson(absoluteOutDir, reportedFindings);
       generated.push(findingsPath);
     }
 
@@ -267,7 +267,7 @@ Provide concise, actionable findings.`,
     }
 
     if (emitFormats.includes("md")) {
-      const reportPath = writeAnalysisReportMd(absoluteOutDir, findings, riskRegister, graph.repo.root);
+      const reportPath = writeAnalysisReportMd(absoluteOutDir, reportedFindings, riskRegister, graph.repo.root);
       generated.push(reportPath);
     }
 
@@ -324,12 +324,13 @@ Provide concise, actionable findings.`,
         },
         artifacts: generated.map((p) => path.relative(cwd, p)),
         summary: {
-          findings: findings.findings.length,
+          findings: reportedFindings.findings.length,
           risks: riskRegister.risks.length,
-          critical: findings.findings.filter((f) => f.severity === "critical").length,
-          high: findings.findings.filter((f) => f.severity === "high").length,
-          medium: findings.findings.filter((f) => f.severity === "medium").length,
-          low: findings.findings.filter((f) => f.severity === "low").length,
+          critical: reportedFindings.findings.filter((f) => f.severity === "critical").length,
+          high: reportedFindings.findings.filter((f) => f.severity === "high").length,
+          medium: reportedFindings.findings.filter((f) => f.severity === "medium").length,
+          low: reportedFindings.findings.filter((f) => f.severity === "low").length,
+          suppressed: suppressedIds.length,
         },
       })
     );
