@@ -13,6 +13,9 @@ on:
         description: 'Policy file path'
         required: false
         default: '.github/ctg-policy.yaml'
+  schedule:
+    # Weekly acceptance test: Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
 
 permissions:
   contents: read
@@ -192,6 +195,13 @@ jobs:
         run: |
           echo "::error::Release blocked - readiness status: ${{ steps.readiness.outputs.status }}"
           echo "Summary: ${{ steps.readiness.outputs.summary }}"
+          echo ""
+          echo "Product gate checklist reference: RUNBOOK.md section 6.9"
+          echo "P0 requirements:"
+          echo "  - P0-01: CI/release procedure connection (this workflow)"
+          echo "  - P0-02: Policy evaluator unified (verify: audit.json exit matches readiness)"
+          echo "  - P0-03: 3 real repos verified (run: scripts/real-repo-test.ps1)"
+          echo "  - P0-04: FP rate <= 15% (check: findings should have evidence-backed)"
           exit 1
 
       - name: Report success
@@ -199,3 +209,34 @@ jobs:
         run: |
           echo "::notice::Release readiness passed with status: ${{ steps.readiness.outputs.status }}"
           echo "Summary: ${{ steps.readiness.outputs.summary }}"
+
+  # P0-03: Periodic real repo acceptance (weekly)
+  acceptance:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run fixture acceptance
+        run: |
+          pwsh -File ./scripts/fixture-acceptance.ps1 -OutDir .qh/acceptance/fixtures
+
+      - name: Upload acceptance evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: ctg-acceptance-evidence-${{ github.sha }}
+          path: .qh/acceptance/
+          retention-days: 90
