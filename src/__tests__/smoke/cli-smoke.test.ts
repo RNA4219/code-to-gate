@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const CLI_PATH = './dist/cli.js';
@@ -23,6 +23,7 @@ describe('CLI Smoke Tests', () => {
     expect(result).toContain('import');
     expect(result).toContain('readiness');
     expect(result).toContain('export');
+    expect(result).toContain('viewer');
   });
 
   it('--version shows version number', () => {
@@ -82,5 +83,43 @@ describe('CLI Smoke Tests', () => {
 
     // Should complete without error
     expect(result).toBeDefined();
+  });
+
+  it('viewer command generates valid HTML from findings', () => {
+    // Ensure temp directory exists
+    if (!existsSync(TEMP_DIR)) {
+      mkdirSync(TEMP_DIR, { recursive: true });
+    }
+
+    const analyzeDir = join(TEMP_DIR, 'viewer-analyze');
+    const repoPath = join(FIXTURES_DIR, 'demo-shop-ts');
+    const htmlOut = join(TEMP_DIR, 'viewer-report.html');
+
+    // Clean up previous output
+    if (existsSync(analyzeDir)) {
+      rmSync(analyzeDir, { recursive: true, force: true });
+    }
+    if (existsSync(htmlOut)) {
+      rmSync(htmlOut, { force: true });
+    }
+
+    // Generate findings artifact
+    execSync(
+      `node ${CLI_PATH} analyze ${repoPath} --emit all --out ${analyzeDir} --llm-mode local-only`,
+      { encoding: 'utf-8', timeout: 60000 }
+    );
+
+    // Generate HTML report
+    execSync(
+      `node ${CLI_PATH} viewer --from ${analyzeDir} --out ${htmlOut}`,
+      { encoding: 'utf-8', timeout: 30000 }
+    );
+
+    // Verify HTML output
+    expect(existsSync(htmlOut)).toBe(true);
+    const htmlContent = readFileSync(htmlOut, 'utf-8');
+    expect(htmlContent).toContain('<!DOCTYPE html>');
+    expect(htmlContent).toContain('<html');
+    expect(htmlContent).toContain('code-to-gate');
   });
 });

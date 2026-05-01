@@ -52,9 +52,11 @@ jobs:
       - name: Verify analyze and readiness on fixture (macOS)
         run: |
           # Extended fixture verification on macOS
-          node ./dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-macos-analyze --llm-mode none
+          node ./dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-macos-analyze --llm-mode local-only
           node ./dist/cli.js readiness fixtures/demo-shop-ts --out .qh-macos-readiness
           node ./dist/cli.js schema validate .qh-macos-analyze/findings.json
+          # Viewer HTML generation
+          node ./dist/cli.js viewer --from .qh-macos-analyze --out .qh-macos-analyze/viewer-report.html
           echo "macOS fixture verification complete"
 
   analyze:

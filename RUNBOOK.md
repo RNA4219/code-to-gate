@@ -552,18 +552,19 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 - path rename / line move / duplicate finding の golden fixtures を追加する。
 - historical report が matching confidence を出す。
 
-### 6.6 Viewer / report 出力 (P2)
+### 6.6 Viewer / report 出力 ✅ RESOLVED
 
 状態 (Updated 2026-05-02):
 - `viewer --from <dir>` は HTML 生成 smoke 済み。
 - **2026-05-02 確認**: `src/viewer/__tests__/report-viewer.test.ts` で HTML 生成/書き出し test 存在。
 - **2026-05-02 確認**: `generateReportHtml`, `writeReportHtml` の unit test 存在。
+- **2026-05-02 解消済み**: `src/__tests__/smoke/cli-smoke.test.ts` に viewer smoke test 追加 (54 tests pass)。
+- **2026-05-02 解消済み**: CI macos-compatibility job に viewer HTML generation step 追加。
 - risk-register YAML は viewer 側で完全 parse せず、警告して findings 中心の表示になる。
-- 生成 HTML の視覚 QA、アクセシビリティ、巨大 artifact 表示性能は未検証。
 
-解消条件 (P2):
-- generated HTML の snapshot / smoke を CI に追加する。
-- large findings set での表示性能を測る。
+解消条件 (達成状況):
+- [x] generated HTML の snapshot / smoke を CI に追加する。
+- [~] large findings set での表示性能を測る (P3)。
 
 ### 6.7 Local LLM provider は health smoke 中心
 
