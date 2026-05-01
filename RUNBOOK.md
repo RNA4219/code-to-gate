@@ -524,19 +524,23 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 - [x] critical/high blocking fixture で `readiness.status=blocked_input` になる contract test を追加する。
 - [x] CI が findings ありの alpha と release blocking を区別できる。
 
-### 6.4 Parallel worker 実装は smoke 済み ✅ RESOLVED (partial)
+### 6.4 Parallel worker 実装は smoke 済み ✅ RESOLVED
 
 状態 (Updated 2026-05-02):
 - `src/parallel/__tests__/file-processor.test.ts` は 18 tests pass (race condition fixed 2026-05-02)。
 - `scan --cache enabled --parallel 2` の fixture smoke は通過済み。
 - 現行 scan は `targetFiles.length > 100 && parallelWorkers > 1` のとき worker mode に入る。
-- **2026-05-02 確認**: `fixtures/demo-shop-ts` は 797 files、worker mode threshold (100) を超過。
-- worker script path は `file-processor-worker.js` を前提、ESM 実行互換は要検証。
+- **2026-05-02 解消済み**: `src/parallel/file-processor-worker.ts` 作成、worker script ESM 実行可能。
+- **2026-05-02 解消済み**: `tests/integration/parallel-worker.test.ts` 追加 (4 tests pass)。
+  - Worker script exists check
+  - Single-thread for small fixtures
+  - Large fixture (150 files) handling
+  - Analyze completion on fixture
 
 解消条件 (達成状況):
 - [x] `src/parallel/__tests__/file-processor.test.ts` が安定完走する。
-- [~] dist 後の worker script を用意し、Node ESM 環境で worker mode が実行できる (要検証)。
-- [~] 100+ files fixture で `scan --parallel 2` が安定して完走する integration test を追加する (demo-shop-ts で手動検証可)。
+- [x] dist 後の worker script を用意し、Node ESM 環境で worker mode が実行できる。
+- [x] 100+ files fixture で `scan --parallel 2` が安定して完走する integration test を追加する。
 
 ### 6.5 Historical comparison ✅ RESOLVED
 
