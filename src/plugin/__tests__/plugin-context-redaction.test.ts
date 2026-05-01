@@ -14,7 +14,7 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
   );
 
   describe("secret pattern redaction", () => {
-    it("should detect api_key pattern in output", async () => {
+    it("should detect api_key pattern in output via detectSecretLeak", async () => {
       const output = {
         version: "ctg.plugin-output/v1",
         findings: [
@@ -26,22 +26,22 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
         ],
       };
 
-      // validateOutput should detect the secret pattern
-      // Note: The validator logs detected patterns but doesn't fail
-      const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true); // Output structure is valid
+      const leakResult = await validator.detectSecretLeak(output);
+      expect(leakResult.detected).toBe(true);
+      expect(leakResult.patterns).toContain("api_key");
     });
 
-    it("should detect password pattern in output", async () => {
+    it("should detect password pattern in value via detectSecretLeak", async () => {
       const output = {
         version: "ctg.plugin-output/v1",
         config: {
-          password: "secret123",
+          field: "my_password_value",
         },
       };
 
-      const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true);
+      const leakResult = await validator.detectSecretLeak(output);
+      expect(leakResult.detected).toBe(true);
+      expect(leakResult.patterns).toContain("password");
     });
 
     it("should detect token pattern in nested objects", async () => {
@@ -49,27 +49,29 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
         version: "ctg.plugin-output/v1",
         auth: {
           credentials: {
-            token: "bearer-abc",
+            value: "my_token_here",
           },
         },
       };
 
-      const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true);
+      const leakResult = await validator.detectSecretLeak(output);
+      expect(leakResult.detected).toBe(true);
+      expect(leakResult.patterns).toContain("token");
     });
 
     it("should detect multiple secret patterns", async () => {
       const output = {
         version: "ctg.plugin-output/v1",
         secrets: {
-          api_key: "key123",
-          password: "pass123",
-          private_key: "pk123",
+          field1: "contains_api_key",
+          field2: "has_password_in_it",
+          field3: "private_key_data",
         },
       };
 
-      const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true);
+      const leakResult = await validator.detectSecretLeak(output);
+      expect(leakResult.detected).toBe(true);
+      expect(leakResult.patterns?.length).toBeGreaterThanOrEqual(3);
     });
 
     it("should detect secret patterns in arrays", async () => {
@@ -81,8 +83,8 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
         ],
       };
 
-      const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true);
+      const leakResult = await validator.detectSecretLeak(output);
+      expect(leakResult.detected).toBe(true);
     });
   });
 
@@ -114,7 +116,6 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
     it("should reject invalid manifest structure", async () => {
       const invalidManifest = {
         name: "test-plugin",
-        // Missing required fields
       };
 
       const result = await validator.validateManifest(invalidManifest);
@@ -125,12 +126,12 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
     it("should accept valid manifest structure", async () => {
       const validManifest = {
         apiVersion: "ctg/v1alpha1",
-        kind: "Plugin",
+        kind: "rule-plugin",
         name: "test-plugin",
         version: "1.0.0",
         visibility: "public",
         entry: "index.js",
-        capabilities: ["scan"],
+        capabilities: ["evaluate"],
       };
 
       const result = await validator.validateManifest(validManifest);
@@ -140,9 +141,9 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
     it("should validate apiVersion strictly", async () => {
       const manifest = {
         apiVersion: "invalid/version",
-        kind: "Plugin",
-        name: "test",
-        version: "1.0",
+        kind: "rule-plugin",
+        name: "test-plugin",
+        version: "1.0.0",
         visibility: "public",
         entry: "index.js",
         capabilities: [],
@@ -152,32 +153,70 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
       expect(result.valid).toBe(false);
       expect(result.errors?.some(e => e.path === "apiVersion")).toBe(true);
     });
+
+    it("should reject invalid kind", async () => {
+      const manifest = {
+        apiVersion: "ctg/v1alpha1",
+        kind: "Plugin",
+        name: "test-plugin",
+        version: "1.0.0",
+        visibility: "public",
+        entry: "index.js",
+        capabilities: [],
+      };
+
+      const result = await validator.validateManifest(manifest);
+      expect(result.valid).toBe(false);
+      expect(result.errors?.some(e => e.path === "kind")).toBe(true);
+    });
   });
 
   describe("output validation - trust boundary", () => {
-    it("should validate output version", async () => {
+    it("should reject invalid output version", async () => {
       const output = {
         version: "invalid-version",
         findings: [],
       };
 
       const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true); // Structure valid, version logged as warning
+      expect(result.valid).toBe(false);
+      expect(result.errors?.some(e => e.path === "version")).toBe(true);
     });
 
-    it("should validate findings structure", async () => {
+    it("should reject findings with missing required fields", async () => {
       const output = {
         version: "ctg.plugin-output/v1",
         findings: [
           {
-            // Missing required fields
             id: "test",
           },
         ],
       };
 
       const result = await validator.validateOutput(output, []);
-      expect(result.valid).toBe(true); // Basic validation passes
+      expect(result.valid).toBe(false);
+      expect(result.errors?.some(e => e.path.includes("findings"))).toBe(true);
+    });
+
+    it("should accept valid output structure", async () => {
+      const output = {
+        version: "ctg.plugin-output/v1",
+        findings: [
+          {
+            id: "test-1",
+            ruleId: "TEST",
+            category: "security",
+            severity: "medium",
+            confidence: 0.8,
+            title: "Test finding",
+            summary: "Test summary",
+            evidence: [],
+          },
+        ],
+      };
+
+      const result = await validator.validateOutput(output, []);
+      expect(result.valid).toBe(true);
     });
   });
 });
