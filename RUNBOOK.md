@@ -830,9 +830,9 @@ Performance:
 - P0-04: FP rate <= 15% (express 0% FP) ✓
 
 Waiver:
-- P1-01: GitHub PR comment / Checks / SARIF upload - workflow exists, needs validation
+- P1-01: ✓ RESOLVED - GitHub PR comment/Checks/SARIF upload verified via PR #1
 - P1-02: LLM trust / redaction / require-llm failure path
-- P1-03: docs / quickstart / CLI reference / examples
+- P1-03: ✓ RESOLVED - docs/quickstart.md and docs/cli-reference.md exist and verified
 
 Evidence:
 - `.qh/acceptance/real-repo/summary.yaml` - 3 repos pass
@@ -864,16 +864,30 @@ Evidence:
 | TODO-20260501-05 | P1 | `.real-repo-temp/` cleanup | ✓ 完了 - directory removed |
 | TODO-20260501-06 | P1 | macOS real repo 検証 | macOS runner で real repo test 実行 | CI macOS job で real-repo-test.ps1 実行 |
 | TODO-20260501-07 | P1 | Bash 3.2 syntax check | Linux/macOS runner で bash -n 実行 | CI で bash syntax validation |
-| P1-01 | P1 | GitHub PR comment/Checks validation | workflow 存在、動作検証必要 | PR 作成して comment/Checks/SARIF upload 確認 |
+| P1-01 | P1 | GitHub PR comment/Checks validation | ✓ 完了 - PR #1 検証済み | PR comment/Check run/SARIF upload 全て成功 |
 | P1-02 | P1 | LLM trust/redaction tests | require-llm failure path 検証 | テストケース追加、CI 実行 |
-| P1-03 | P1 | Docs package | quickstart/CLI reference/examples | docs/quickstart.md 作成 |
+| P1-03 | P1 | Docs package | ✓ 完了 - docs 存在確認 | docs/quickstart.md, docs/cli-reference.md 存在 |
+
+#### P1-01 完了内容
+
+PR workflow検証 (PR #1):
+- ✓ PR comment created (分析結果、severity table、diff analysis)
+- ✓ Check run created (code-to-gate Analysis, annotations含む)
+- ✓ SARIF uploaded to code scanning (111 alerts visible)
+- ✓ macOS compatibility job passed
+- ✓ status-check job passed
+
+修正内容:
+- annotation JSON array format fix (jq -c '[.[]]')
+- TOTAL/MEDIUM/LOW variables added in conclusion step
+- --input method for JSON body in gh api call
 
 #### 次アクション
 
-1. `git push origin main` で最新コミットを push (P0 fixes)
-2. PR 作成して GitHub integration (PR comment/Checks/SARIF) 検証
-3. LLM trust tests 追加
-4. docs/quickstart.md 作成
+1. ✓ P1-01 completed: PR #1 verified GitHub integration
+2. ✓ P1-03 completed: docs/quickstart.md, docs/cli-reference.md exist
+3. P1-02: LLM trust tests 追加 (require-llm failure path)
+4. P1-06/P1-07: macOS real repo 検証、Bash 3.2 syntax check
 
 ## 7. リファクタリング方針
 
