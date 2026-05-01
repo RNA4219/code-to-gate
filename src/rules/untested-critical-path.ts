@@ -75,6 +75,21 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
       if (file.role !== "source") continue;
       if (!["ts", "tsx", "js", "jsx"].includes(file.language)) continue;
 
+      // Skip example/demo/documentation directories - not production code
+      const pathLower = file.path.toLowerCase();
+      if (
+        pathLower.includes("examples/") ||
+        pathLower.includes("example/") ||
+        pathLower.includes("demo/") ||
+        pathLower.includes("docs/") ||
+        pathLower.includes("documentation/") ||
+        pathLower.includes("samples/") ||
+        pathLower.startsWith("example") ||
+        pathLower.startsWith("demo")
+      ) {
+        continue;
+      }
+
       const content = context.getFileContent(file.path);
       if (!content) continue;
 
