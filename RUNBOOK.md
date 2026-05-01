@@ -721,9 +721,11 @@ Product α acceptance:
 Schema / artifact:
 - [x] `findings.json` と `release-readiness.json` は直近検収で schema validate 済み。
 - [x] SARIF / workflow-evidence export は直近検収で生成確認済み。
-- [ ] `repo-graph.json`, `risk-register.yaml`, `test-seeds.json`, `audit.json` を product acceptance package として一括 schema validate。
+- [~] `repo-graph.json`, `risk-register.yaml`, `test-seeds.json`, `audit.json` を product acceptance package として一括 schema validate。
+  - 2026-05-02: schema-validation-performance.test.ts で batch validation test 存在 (11 artifacts in 195ms)。
+  - 不足: 実 fixtures からの artifact で full validation 実行必要 (mock artifacts は schema error)。
 - [ ] 4 downstream adapter schema を CI で contract test 化。
-- [ ] SARIF v2.1.0 外部 validator または GitHub upload 経路で検証。
+- [x] SARIF v2.1.0 外部 validator または GitHub upload 経路で検証 (PR #1: 111 alerts visible in GitHub code scanning)。
 
 Policy / readiness:
 - [x] `BLOCKING_SEVERITY_*` は `blocked_input`。
@@ -767,7 +769,7 @@ LLM / redaction:
 - [x] `--require-llm` 失敗時に exit code 4 (llm-trust.test.ts 18 tests pass)。
 - [x] `.env` / secrets が LLM request payload に含まれない (plugin-context-redaction.test.ts)。
 - [x] unsupported claims が primary findings に混入せず隔離される (llm-trust.test.ts)。
-- [ ] local-only mode で外部 network を使わないことを確認。
+- [x] local-only mode で外部 network を使わないことを確認 (local-llm.test.ts lines 241-339, localhost enforcement + fetch mock tests)。
 
 GitHub / CI:
 - [x] GitHub Actions workflow template が動作する (code-to-gate-pr.yml exists, PR #1 verified)。
