@@ -29,6 +29,7 @@ import {
   CTG_VERSION,
 } from "../types/artifacts.js";
 import { detectRegressions, generateRegressionReport, RegressionConfig } from "./regression.js";
+import { buildFingerprintLookupMap } from "../utils/fingerprint.js";
 
 /**
  * Load findings artifact from a directory
@@ -164,6 +165,8 @@ export function compareFindings(
   const modifiedFindings: FindingComparison[] = [];
 
   // Build lookup maps for previous findings
+  // Priority: fingerprint > ruleId_path > ruleId_symbol
+  const previousByFingerprint = buildFingerprintLookupMap(previousList);
   const previousByRuleIdPath = buildFindingLookupMap(previousList, "ruleId_path");
   const previousByRuleIdSymbol = buildFindingLookupMap(previousList, "ruleId_symbol");
 
@@ -175,23 +178,40 @@ export function compareFindings(
     const path = getFindingPrimaryPath(current);
     const symbols = current.affectedSymbols ?? [];
 
-    // Try to match by ruleId + path first
-    const keyPath = `${current.ruleId}:${path}`;
-    const matchedByPath = takeNextFinding(previousByRuleIdPath, keyPath, matchedPreviousIds);
+    // Try to match by fingerprint first (most stable)
+    let previousMatch: Finding | undefined;
+    let matchedOn: "fingerprint" | "ruleId_path" | "ruleId_symbol" | "fuzzy_match" = "fingerprint";
 
-    // Try to match by ruleId + symbol
-    let matchedBySymbol: Finding | undefined;
-    for (const symbol of symbols) {
-      const keySymbol = `${current.ruleId}:${symbol}`;
-      const found = takeNextFinding(previousByRuleIdSymbol, keySymbol, matchedPreviousIds);
-      if (found) {
-        matchedBySymbol = found;
-        break;
+    if (current.fingerprint) {
+      previousMatch = previousByFingerprint.get(current.fingerprint);
+      if (previousMatch && !matchedPreviousIds.has(previousMatch.id)) {
+        matchedOn = "fingerprint";
+      } else {
+        previousMatch = undefined;
       }
     }
 
-    const previousMatch = matchedByPath ?? matchedBySymbol;
-    const matchedOn = matchedByPath ? "ruleId_path" : matchedBySymbol ? "ruleId_symbol" : "fuzzy_match";
+    // Fallback: try to match by ruleId + path
+    if (!previousMatch) {
+      const keyPath = `${current.ruleId}:${path}`;
+      previousMatch = takeNextFinding(previousByRuleIdPath, keyPath, matchedPreviousIds);
+      if (previousMatch) {
+        matchedOn = "ruleId_path";
+      }
+    }
+
+    // Fallback: try to match by ruleId + symbol
+    if (!previousMatch) {
+      for (const symbol of symbols) {
+        const keySymbol = `${current.ruleId}:${symbol}`;
+        const found = takeNextFinding(previousByRuleIdSymbol, keySymbol, matchedPreviousIds);
+        if (found) {
+          previousMatch = found;
+          matchedOn = "ruleId_symbol";
+          break;
+        }
+      }
+    }
 
     if (previousMatch) {
       matchedPreviousIds.add(previousMatch.id);

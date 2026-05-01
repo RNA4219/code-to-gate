@@ -133,6 +133,8 @@ export interface Finding {
     tool: UpstreamTool;
     ruleId?: string;
   };
+  /** Stable fingerprint for historical matching (SHA-256 truncated to 16 chars) */
+  fingerprint?: string;
 }
 
 export interface UnsupportedClaim {
