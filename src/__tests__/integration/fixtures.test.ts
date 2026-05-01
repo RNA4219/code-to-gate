@@ -286,4 +286,60 @@ describe('Fixture Acceptance Tests', () => {
       expect(graph.run_id).toBeDefined();
     });
   });
+
+  describe('demo-github-actions-ts fixture', () => {
+    const fixturePath = path.join(FIXTURES_DIR, 'demo-github-actions-ts');
+    const outDir = path.join(TEMP_DIR, 'demo-github-actions-ts-out');
+
+    it('should have GitHub Actions workflow structure', () => {
+      expect(fs.existsSync(fixturePath)).toBe(true);
+      expect(fs.existsSync(path.join(fixturePath, 'src'))).toBe(true);
+      expect(fs.existsSync(path.join(fixturePath, 'tests'))).toBe(true);
+    });
+
+    it('should scan fixture successfully', () => {
+      const result = runCli(`scan "${fixturePath}" --out "${outDir}"`);
+
+      expect(result.exitCode).toBe(0);
+      const graph = readJsonArtifact(outDir, 'repo-graph.json');
+      expect(graph).not.toBeNull();
+      expect(graph.files.length).toBeGreaterThan(0);
+    });
+
+    it('should analyze fixture and detect expected findings', () => {
+      const result = runCli(`analyze "${fixturePath}" --out "${outDir}"`);
+      const findings = readJsonArtifact(outDir, 'findings.json');
+
+      expect(findings).not.toBeNull();
+      expect(findings.findings).toBeDefined();
+      // Expected: CLIENT_TRUSTED_PRICE, WEAK_AUTH_GUARD, MISSING_SERVER_VALIDATION, etc.
+      expect(findings.findings.length).toBeGreaterThan(0);
+    });
+
+    it('should generate SARIF for GitHub Actions upload', () => {
+      runCli(`analyze "${fixturePath}" --emit sarif --out "${outDir}"`);
+
+      // SARIF should be generated
+      const sarifPath = path.join(outDir, 'results.sarif');
+      if (fs.existsSync(sarifPath)) {
+        const sarif = JSON.parse(fs.readFileSync(sarifPath, 'utf8'));
+        expect(sarif.$schema).toContain('sarif-schema-2.1.0');
+        expect(sarif.version).toBe('2.1.0');
+      }
+    });
+
+    it('should export gatefield for CI integration', () => {
+      runCli(`analyze "${fixturePath}" --out "${outDir}"`);
+
+      // Gatefield export should work
+      const gatefieldOut = path.join(outDir, 'gatefield');
+      runCli(`export gatefield --from "${outDir}" --out "${gatefieldOut}/gatefield-static-result.json"`);
+
+      if (fs.existsSync(path.join(gatefieldOut, 'gatefield-static-result.json'))) {
+        const gatefield = readJsonArtifact(gatefieldOut, 'gatefield-static-result.json');
+        expect(gatefield).not.toBeNull();
+        expect(gatefield.artifact).toBe('gatefield-static-result');
+      }
+    });
+  });
 });

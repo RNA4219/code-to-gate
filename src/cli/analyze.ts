@@ -16,7 +16,9 @@ import {
 import {
   CtgPolicy,
   loadPolicyFile,
+  SuppressionEntry,
 } from "../config/policy-loader.js";
+import { loadSuppressions, DEFAULT_SUPPRESSION_FILE } from "../suppression/suppression-loader.js";
 import {
   evaluatePolicy,
   generateBlockingSummary,
@@ -85,6 +87,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const outDir = options.getOption(args, "--out") ?? ".qh";
   const emitValue = options.getOption(args, "--emit");
   const policyPath = options.getOption(args, "--policy");
+  const suppressPath = options.getOption(args, "--suppress");
   const llmProvider = options.getOption(args, "--llm-provider");
   const llmMode = options.getOption(args, "--llm-mode") ?? "local-only";
   const llmModel = options.getOption(args, "--llm-model");
@@ -150,6 +153,20 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
         // Otherwise continue with graceful partial (policy loaded with warnings)
       }
       policy = loaded.policy;
+    }
+
+    // Load suppressions if specified
+    let suppressions: SuppressionEntry[] = [];
+    const suppressionFile = loadSuppressions(suppressPath, repoRoot);
+    if (suppressionFile) {
+      // Convert from Suppression (rule_id) to SuppressionEntry (ruleId)
+      suppressions = suppressionFile.suppressions.map(s => ({
+        ruleId: s.rule_id,
+        path: s.path,
+        reason: s.reason,
+        expiry: s.expiry,
+        author: s.author,
+      }));
     }
 
     ensureDir(absoluteOutDir);
@@ -221,9 +238,16 @@ Provide concise, actionable findings.`,
     );
 
     // Evaluate policy using shared evaluator (unified with readiness)
-    const evalResult = policy ? evaluatePolicy(findings.findings, policy) : undefined;
+    const evalResult = policy ? evaluatePolicy(findings.findings, policy, suppressions) : undefined;
     const readinessStatus = evalResult?.status ?? "passed";
     const finalExitCode = evalResult ? getExitCode(readinessStatus) : options.EXIT.OK;
+
+    // Remove suppressed findings from reported findings
+    const suppressedIds = evalResult?.suppressedFindings.map(f => f.id) ?? [];
+    const reportedFindings = {
+      ...findings,
+      findings: findings.findings.filter(f => !suppressedIds.includes(f.id)),
+    };
 
     // Generate risk register
     const riskRegister = buildRiskRegisterFromFindings(findings, policy?.policyId);
