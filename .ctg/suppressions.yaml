@@ -1,0 +1,196 @@
+# code-to-gate self-analysis suppressions
+# These suppressions exclude findings from code-to-gate's own source code
+# that are intentional (rule implementations, test fixtures, architecture decisions)
+
+version: ctg/v1alpha1
+suppressions:
+  # === Rule Implementation Files ===
+  # Rule files contain detection patterns that trigger on themselves
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: WEAK_AUTH_GUARD
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: RAW_SQL
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: ENV_DIRECT_ACCESS
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNTESTED_CRITICAL_PATH
+    path: src/rules/*
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Compiled Output ===
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/*.js
+    reason: Compiled output - contains detection patterns from source
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNTESTED_CRITICAL_PATH
+    path: src/*.js
+    reason: Compiled output - CLI entrypoint
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Test Fixtures ===
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: fixtures/*
+    reason: Test fixture - intentional vulnerability pattern for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: WEAK_AUTH_GUARD
+    path: fixtures/*
+    reason: Test fixture - intentional vulnerability pattern for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: fixtures/*
+    reason: Test fixture - intentional pattern for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: RAW_SQL
+    path: fixtures/*
+    reason: Test fixture - intentional pattern for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: fixtures/*
+    reason: Test fixture - intentional pattern for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNTESTED_CRITICAL_PATH
+    path: fixtures/*
+    reason: Test fixture - intentional pattern for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Test Files ===
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/rules/__tests__/*
+    reason: Rule test - validates CLIENT_TRUSTED_PRICE detection
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: WEAK_AUTH_GUARD
+    path: src/rules/__tests__/*
+    reason: Rule test - validates WEAK_AUTH_GUARD detection
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/rules/__tests__/*
+    reason: Rule test - validates TRY_CATCH_SWALLOW detection
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/rules/__tests__/*
+    reason: Rule test - validates UNSAFE_DELETE detection
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Architecture Decisions ===
+  -
+    rule_id: LARGE_MODULE
+    path: src/*
+    reason: Architecture decision - core modules intentionally comprehensive
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Cache/Plugin/Parallel Modules - intentional patterns ===
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/cache/*
+    reason: Cache cleanup - intentional delete for cache invalidation
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/cli/*
+    reason: CLI cleanup - intentional delete for temp file management
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/parallel/*
+    reason: Parallel processing - intentional cleanup
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/plugin/*
+    reason: Plugin sandbox - intentional cleanup
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_DELETE
+    path: src/reporters/*
+    reason: Reporter cleanup - intentional delete for output management
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Config Modules ===
+  -
+    rule_id: ENV_DIRECT_ACCESS
+    path: src/config/*
+    reason: Config modules - intentional env var access for configuration
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Other acceptable patterns ===
+  -
+    rule_id: UNTESTED_CRITICAL_PATH
+    path: src/evaluation/*
+    reason: Evaluation module - internal utility, not critical path
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNTESTED_CRITICAL_PATH
+    path: src/adapters/*
+    reason: Language adapters - internal module, tested via integration
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: RAW_SQL
+    path: src/plugin/*
+    reason: Plugin context - example patterns for plugin development
+    expiry: 2027-04-30
+    author: code-to-gate-team
