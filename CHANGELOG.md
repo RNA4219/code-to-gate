@@ -11,7 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Stable Schema v1 Freeze**: All schemas updated to stable v1 version
+- **Policy-Loader Unit Tests**: 29 tests for policy-loader.ts
+  - createDefaultPolicy, isValidPolicyVersion, validatePolicy
+  - loadPolicyFile (YAML parsing for blocking severity/category/rules)
+  - loadSuppressionFile, isSuppressed (glob patterns, expiry)
+
+### Fixed
+
+- **P0: Policy Handling Unification**
+  - Removed duplicate `loadPolicy()` from `analyze.ts`
+  - Now uses `loadPolicyFile()` from `policy-loader.ts` for consistent parsing
+  - Updated `audit-writer.ts` to use `CtgPolicy` type with `policyId` field
+  - Added helper functions: `isSeverityBlocked`, `isCategoryBlocked`, `isRuleBlocked`
+
+- **P1: Scan Exclusion Pattern**
+  - `.qh*` directories now excluded from scan (`.qh-test`, `.qh-auth`, etc.)
+  - Added `shouldIgnoreByName()` pattern matching function
+
+- **P1: Blocked Input Summary Improvement**
+  - Summary now reflects actual blocking reasons instead of generic message
+  - Shows: severity counts, category counts, rule blocks, threshold exceeded
+  - Example: "Blocked: 10 critical severity findings, 9 payment category findings, 9 findings from rule CLIENT_TRUSTED_PRICE"
+
+### Changed
+
+- `docs/product-spec-v1.md`: `test-seeds.json` and `invariants.yaml` marked as v1.1 planned (not generated in v1.0)
+- Test count: 2555+ tests passing (added policy-loader 29 tests)
+
+### Stability Guarantees
   - Core artifacts: findings, risk-register, invariants, test-seeds, release-readiness, audit, normalized-repo-graph
   - Integration schemas: state-gate-evidence, manual-bb-seed, workflow-evidence, gatefield-static-result
   - Version constant changed from `ctg/v1alpha1` to `ctg/v1`

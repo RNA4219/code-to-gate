@@ -55,6 +55,18 @@ code-to-gate scan <repo-path> --out <output-dir>
 | `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns (comma-separated) |
 | `--verbose` | false | Enable verbose logging |
 
+**Default Exclusions:**
+
+The scanner automatically excludes these directories:
+- `.git` - Git metadata
+- `node_modules` - Node.js dependencies
+- `.qh`, `.qh*` - Output directories (pattern match)
+- `dist` - Build output
+- `coverage` - Coverage reports
+- `.cache` - Cache files
+- `__pycache__` - Python cache
+- `.svn`, `.hg` - Other VCS metadata
+
 **Output:**
 - `.qh/repo-graph.json` - Normalized repository structure with files, modules, symbols, relations, tests, configs, and entrypoints
 
@@ -522,48 +534,119 @@ graph TD
 
 ## Policy YAML Reference
 
-Policy files define thresholds for release readiness evaluation.
+Policy files define blocking thresholds for release readiness evaluation.
 
 ```yaml
-apiVersion: ctg/v1alpha1
-kind: release-policy
-id: strict
-version: 0.1.0
+# policies/strict.yaml
+version: ctg/v1alpha1
+policy_id: strict
 
-thresholds:
+blocking:
   severity:
-    critical: 0      # 1+ critical = blocked_input
-    high: 3          # 4+ high = blocked_input
-    medium: 10       # 11+ medium = needs_review
-  category:
-    auth: 0          # 1+ auth finding = blocked_input
-    payment: 0       # 1+ payment finding = blocked_input
+    critical: true    # Block on critical severity findings
+    high: true        # Block on high severity findings
+    medium: false     # Don't block on medium
+    low: false        # Don't block on low
 
-allow_partial: false  # Partial artifacts = needs_review
+  category:
+    auth: true        # Block on auth category
+    payment: true     # Block on payment category
+    validation: true  # Block on validation category
+    data: false       # Don't block on data category
+    config: false
+    maintainability: false
+    testing: false
+    security: true    # Block on security category
+
+  rules:
+    CLIENT_TRUSTED_PRICE: true  # Block on specific rule (high/critical only)
+    WEAK_AUTH_GUARD: true       # Block on specific rule
+
+  count_threshold:
+    critical_max: 0   # Max critical findings allowed
+    high_max: 5       # Max high findings allowed
+    medium_max: 20    # Max medium findings allowed
+
+confidence:
+  min_confidence: 0.6
+  low_confidence_threshold: 0.4
+  filter_low: true
+
+suppression:
+  file: .ctg/suppressions.yaml
+  expiry_warning_days: 30
+  max_suppressions_per_rule: 10
 
 llm:
-  min_confidence: 0.6     # Minimum LLM confidence
-  require_binding: true   # Evidence binding required
+  enabled: true
+  mode: local-only     # remote | local-only | none
+  min_confidence: 0.6
+  require_llm: false
 
-suppression_rules:
-  - id: suppress-test-gap
-    ruleId: UNTESTED_CRITICAL_PATH
-    reason: "Test coverage tracked separately"
-    expires: 2026-06-01
+partial:
+  allow_partial: false
+  partial_warning_threshold: 0.2
+
+exit:
+  fail_on_critical: true
+  fail_on_high: true
+  warn_only: false
 ```
 
-### Threshold Configuration
+### Blocking Configuration
 
-| Threshold | Effect |
-|-----------|--------|
-| `severity.critical: 0` | Any critical finding blocks release |
-| `severity.high: 3` | 4+ high findings block release |
-| `severity.medium: 10` | 11+ medium findings require review |
-| `category.auth: 0` | Any auth-related finding blocks release |
+| Option | Effect |
+|--------|--------|
+| `blocking.severity.critical: true` | Any critical finding blocks release |
+| `blocking.severity.high: true` | Any high finding blocks release |
+| `blocking.category.auth: true` | Any auth-related finding blocks release |
+| `blocking.category.payment: true` | Any payment-related finding blocks release |
+| `blocking.rules.CLIENT_TRUSTED_PRICE: true` | Specific rule blocks release (high/critical severity only) |
+| `blocking.count_threshold.critical_max: 0` | Exceed threshold blocks release |
+
+### Confidence Configuration
+
+| Option | Description |
+|--------|-------------|
+| `min_confidence` | Minimum confidence threshold (0-1) |
+| `low_confidence_threshold` | Threshold for low confidence warning |
+| `filter_low` | Filter findings below threshold |
 
 ### LLM Configuration
 
 | Option | Description |
 |--------|-------------|
-| `min_confidence` | Minimum confidence threshold for LLM-generated content |
-| `require_binding` | Require all LLM claims to have evidence binding |
+| `enabled` | Enable LLM integration |
+| `mode` | `remote` \| `local-only` \| `none` |
+| `min_confidence` | Minimum confidence threshold for LLM content |
+| `require_llm` | Fail if LLM unavailable |
+
+### Suppression Configuration
+
+| Option | Description |
+|--------|-------------|
+| `file` | Path to suppression file |
+| `expiry_warning_days` | Warning days before expiry |
+| `max_suppressions_per_rule` | Max suppressions per rule |
+
+### Suppression File Format
+
+```yaml
+# .ctg/suppressions.yaml
+version: ctg/v1alpha1
+suppressions:
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/legacy/*
+    reason: Legacy code tracked separately
+    expiry: 2026-12-31
+    author: dev-team
+```
+
+### Exit Configuration
+
+| Option | Description |
+|--------|-------------|
+| `fail_on_critical` | Exit with error on critical findings |
+| `fail_on_high` | Exit with error on high findings |
+| `warn_only` | Never fail, only warn |

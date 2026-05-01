@@ -215,27 +215,40 @@ Test design recommendations derived from findings:
 
 ### Use a Policy File
 
-Create a policy YAML to customize thresholds:
+Create a policy YAML to customize blocking thresholds:
 
 ```yaml
 # policies/strict.yaml
-apiVersion: ctg/v1alpha1
-kind: release-policy
-id: strict
+version: ctg/v1alpha1
+policy_id: strict
 
-thresholds:
+blocking:
   severity:
-    critical: 0    # Block on any critical
-    high: 0        # Block on any high
+    critical: true   # Block on any critical severity
+    high: true       # Block on any high severity
   category:
-    auth: 0        # Block on any auth finding
-    payment: 0     # Block on any payment finding
+    auth: true       # Block on auth category findings
+    payment: true    # Block on payment category findings
+  rules:
+    CLIENT_TRUSTED_PRICE: true  # Block on specific rule
+    WEAK_AUTH_GUARD: true
+
+confidence:
+  min_confidence: 0.7
 ```
 
 Apply the policy:
 
 ```bash
 code-to-gate analyze ./my-repo --policy ./policies/strict.yaml --out .qh
+code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --out .qh
+```
+
+When blocked, the summary shows specific reasons:
+
+```
+Blocked: 10 critical severity findings, 9 payment category findings, 
+         9 findings from rule CLIENT_TRUSTED_PRICE, 2 count threshold(s) exceeded
 ```
 
 ### Import External Tool Results
