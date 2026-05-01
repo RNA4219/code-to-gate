@@ -569,7 +569,12 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 
 解消条件 (達成状況):
 - [x] generated HTML の snapshot / smoke を CI に追加する。
-- [~] large findings set での表示性能を測る (P3)。
+- [x] large findings set での表示性能を測る (performance.test.ts 9 tests pass)。
+  - 10 findings: 0ms, 50.7KB
+  - 50 findings: 1ms, 141.7KB
+  - 100 findings: 2ms, 255.6KB
+  - 200 findings: 4ms, 485.0KB
+  - 500 findings: 14ms, 1173.3KB
 
 ### 6.7 Local LLM provider は health smoke 中心
 
