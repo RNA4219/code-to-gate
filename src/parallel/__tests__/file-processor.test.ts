@@ -5,10 +5,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import { FileProcessor, FileProcessorOptions, FileProcessorResult } from "../file-processor.js";
 
-// Test directory
-const TEST_DIR = path.join(process.cwd(), ".test-file-processor");
+// Test directory - use unique temp directory per test file to avoid race conditions
+const TEST_DIR = path.join(tmpdir(), `ctg-file-processor-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 // Helper to create test files
 function createTestFile(relPath: string, content: string): string {
