@@ -190,15 +190,20 @@ runs:
             annotations: $annotations
           }')
 
+        # Create full request body
+        jq -n \
+          --arg name "$CHECK_NAME" \
+          --arg sha "$SHA" \
+          --arg status "completed" \
+          --arg conclusion "$CONCLUSION" \
+          --argjson output "$OUTPUT_JSON" \
+          '{name: $name, head_sha: $sha, status: $status, conclusion: $conclusion, output: $output}' > /tmp/check-request.json
+
         # Create check run
         CHECK_RESPONSE=$(gh api "repos/$REPO/check-runs" \
           -X POST \
           -H "Accept: application/vnd.github.v3+json" \
-          -f name="$CHECK_NAME" \
-          -f head_sha="$SHA" \
-          -f status="completed" \
-          -f conclusion="$CONCLUSION" \
-          -f output="$OUTPUT_JSON" \
+          --input /tmp/check-request.json \
           --jq '{id: .id, html_url: .html_url}')
 
         CHECK_ID=$(echo "$CHECK_RESPONSE" | jq -r '.id')
