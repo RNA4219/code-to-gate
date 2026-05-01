@@ -154,6 +154,19 @@ npm run build
 npm test
 ```
 
+### Test Boundaries
+
+| Test Type | Command | Purpose | Duration |
+|-----------|---------|---------|----------|
+| **Smoke tests** | `npm run test:smoke` | Quick validation (53 tests) | ~30s |
+| **Full tests** | `npm test` | Complete validation (~2400 tests) | ~5min |
+| **Performance** | `npm run test:performance` | Large repo benchmarks | ~10min |
+| **Real repo** | `npm run test:real-repo` | External repo acceptance | Optional |
+
+**Release gate**: `npm run test:smoke` + `npm run build` + schema validation.
+
+**CI gate**: Full tests on Linux/macOS, smoke tests on Windows.
+
 ## License
 
 MIT License. See [LICENSE](LICENSE).

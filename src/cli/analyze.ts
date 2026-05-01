@@ -140,8 +140,14 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     if (policyPath) {
       const loaded = loadPolicyFile(policyPath, cwd);
       if (loaded.errors.length > 0) {
-        console.error(`Policy loading errors: ${loaded.errors.join(", ")}`);
-        return options.EXIT.USAGE_ERROR;
+        for (const error of loaded.errors) {
+          console.error(`Policy error: ${error}`);
+        }
+        // Return POLICY_FAILED if policy is missing or has no valid policyId
+        if (!loaded.policy.policyId || loaded.errors.some(e => e.includes("not found"))) {
+          return options.EXIT.POLICY_FAILED;
+        }
+        // Otherwise continue with graceful partial (policy loaded with warnings)
       }
       policy = loaded.policy;
     }

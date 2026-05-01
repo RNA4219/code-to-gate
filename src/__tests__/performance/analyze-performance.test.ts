@@ -100,7 +100,7 @@ describe("Analyze Performance Tests", () => {
       console.log("LLM mode: none (excluded from timing)");
 
       const start = Date.now();
-      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"];
+      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"];
       const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 

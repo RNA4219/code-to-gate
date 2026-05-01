@@ -17,7 +17,7 @@
 param(
     [switch]$Clean,
 
-    [ValidateSet("express", "dayjs", "axios", "all")]
+    [ValidateSet("express", "dayjs", "axios", "react", "all")]
     [string]$Repo = "all",
 
     [ValidateSet("phase1", "phase2", "phase3")]
@@ -50,6 +50,13 @@ $REPOS = @{
         Url = "https://github.com/axios/axios.git"
         Type = "backend"
         Description = "axios/axios"
+        ExpectedExit = "0_or_1"
+        FileTarget = "100-300"
+    }
+    "react" = @{
+        Url = "https://github.com/facebook/react.git"
+        Type = "frontend"
+        Description = "facebook/react"
         ExpectedExit = "0_or_1"
         FileTarget = "100-300"
     }
