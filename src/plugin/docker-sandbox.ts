@@ -276,7 +276,6 @@ export class DockerSandboxRunner implements PluginRunner {
     }
   }
 
-  
   /**
    * Check Docker status
    */
