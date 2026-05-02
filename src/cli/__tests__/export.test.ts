@@ -35,7 +35,7 @@ function getOption(args: string[], name: string): string | undefined {
 // Helper: Create findings artifact
 function createFindingsArtifact(findings: object[] = [], overrides = {}): object {
   return {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: new Date().toISOString(),
     run_id: "export-test-run",
     repo: { root: "/test/repo" },

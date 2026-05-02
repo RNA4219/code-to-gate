@@ -100,7 +100,8 @@ export class LlamacppProvider extends LocalBaseProvider {
       }
 
       return response.json() as Promise<LlamacppProps>;
-    } catch {
+    } catch (e) {
+      console.error(`[llamacpp-provider] Failed to get server props from ${this.config.baseUrl}: ${e instanceof Error ? e.message : String(e)}`);
       return null;
     }
   }

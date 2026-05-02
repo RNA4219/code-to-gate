@@ -86,7 +86,7 @@ describe("Sample Plugin Execution Tests", () => {
       const manifestContent = await fs.readFile(manifestPath, "utf-8");
 
       // Verify manifest structure
-      expect(manifestContent).toContain("apiVersion: ctg/v1alpha1");
+      expect(manifestContent).toContain("apiVersion: ctg/v1");
       expect(manifestContent).toContain("kind: rule-plugin");
       expect(manifestContent).toContain("name: example-custom-rule");
       expect(manifestContent).toContain("entry:");
@@ -185,7 +185,7 @@ describe("Sample Plugin Execution Tests", () => {
       const manifestPath = path.join(pythonPluginDir, "plugin-manifest.yaml");
       const manifestContent = await fs.readFile(manifestPath, "utf-8");
 
-      expect(manifestContent).toContain("apiVersion: ctg/v1alpha1");
+      expect(manifestContent).toContain("apiVersion: ctg/v1");
       expect(manifestContent).toContain("kind: language-plugin");
       expect(manifestContent).toContain("name: example-language-python");
     });

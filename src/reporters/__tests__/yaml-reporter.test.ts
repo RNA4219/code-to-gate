@@ -18,7 +18,7 @@ import type { FindingsArtifact, Finding } from "../../types/artifacts.js";
 // Helper: Create findings artifact
 function createFindings(findings: Finding[] = [], overrides = {}): FindingsArtifact {
   return {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: new Date().toISOString(),
     run_id: "test-run",
     repo: { root: "/test/repo" },
@@ -115,7 +115,7 @@ describe("yaml-reporter", () => {
 
       expect(riskRegister.artifact).toBe("risk-register");
       expect(riskRegister.schema).toBe("risk-register@v1");
-      expect(riskRegister.version).toBe("ctg/v1alpha1");
+      expect(riskRegister.version).toBe("ctg/v1");
       expect(Array.isArray(riskRegister.risks)).toBe(true);
     });
 

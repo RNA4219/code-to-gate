@@ -116,7 +116,7 @@ describe("schema-validate CLI", () => {
     // Create a findings artifact missing required fields
     const invalidArtifactPath = path.join(tempDir, "invalid-findings.json");
     writeFileSync(invalidArtifactPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       artifact: "findings",
       // Missing: schema, findings, etc.
     }), "utf8");
@@ -135,7 +135,7 @@ describe("schema-validate CLI", () => {
     ));
 
     writeFileSync(validFindingsPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       generated_at: "2025-01-01T00:00:00Z",
       run_id: "test-run-001",
       repo: { root: "/test" },
@@ -274,7 +274,7 @@ describe("schema-validate CLI", () => {
     // Create an artifact without artifact field
     const noArtifactPath = path.join(tempDir, "no-artifact.json");
     writeFileSync(noArtifactPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       // Missing artifact field - can't determine schema
     }), "utf8");
 
@@ -288,7 +288,7 @@ describe("schema-validate CLI", () => {
     // Create an artifact with unknown artifact type
     const unknownArtifactPath = path.join(tempDir, "unknown-artifact.json");
     writeFileSync(unknownArtifactPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       artifact: "unknown-type"
     }), "utf8");
 
@@ -522,7 +522,7 @@ describe("schema-validate CLI", () => {
   it("validates valid normalized-repo-graph artifact", async () => {
     const validGraphPath = path.join(tempDir, "valid-graph.json");
     writeFileSync(validGraphPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       generated_at: "2025-01-01T00:00:00Z",
       run_id: "test-run",
       repo: { root: "/test" },
@@ -548,7 +548,7 @@ describe("schema-validate CLI", () => {
   it("validates valid audit artifact", async () => {
     const validAuditPath = path.join(tempDir, "valid-audit.json");
     writeFileSync(validAuditPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       generated_at: "2025-01-01T00:00:00Z",
       run_id: "test-run",
       repo: { root: "/test" },
@@ -568,7 +568,7 @@ describe("schema-validate CLI", () => {
     // Create artifact with mismatched schema
     const wrongSchemaPath = path.join(tempDir, "wrong-schema.json");
     writeFileSync(wrongSchemaPath, JSON.stringify({
-      version: "ctg/v1alpha1",
+      version: "ctg/v1",
       generated_at: "2025-01-01T00:00:00Z",
       run_id: "test-run",
       repo: { root: "/test" },

@@ -104,7 +104,7 @@ describe("diff CLI", () => {
 
     expect(diffAnalysis.artifact).toBe("diff-analysis");
     expect(diffAnalysis.schema).toBe("diff-analysis@v1");
-    expect(diffAnalysis.version).toBe("ctg/v1alpha1");
+    expect(diffAnalysis.version).toBe("ctg/v1");
     expect(diffAnalysis.generated_at).toBeDefined();
     expect(diffAnalysis.run_id).toBeDefined();
   });
@@ -298,7 +298,7 @@ describe("diff CLI", () => {
     const findingsPath = path.join(tempOutDir, "findings.json");
     const findings = JSON.parse(readFileSync(findingsPath, "utf8"));
 
-    expect(findings.version).toBe("ctg/v1alpha1");
+    expect(findings.version).toBe("ctg/v1");
     expect(findings.generated_at).toBeDefined();
     expect(findings.run_id).toBeDefined();
     expect(findings.repo).toBeDefined();

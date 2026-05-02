@@ -36,7 +36,7 @@ import type { FindingsArtifact, Finding, Severity, FindingCategory } from "../ty
 // === Test Fixtures ===
 
 const mockFindingsArtifact: FindingsArtifact = {
-  version: "ctg/v1alpha1",
+  version: "ctg/v1",
   generated_at: "2026-04-30T00:00:00Z",
   run_id: "test-run",
   repo: { root: "/test/repo" },

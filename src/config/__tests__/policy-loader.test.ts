@@ -78,12 +78,12 @@ describe("policy-loader", () => {
 
   describe("isValidPolicyVersion", () => {
     it("should accept valid version", () => {
-      expect(isValidPolicyVersion("ctg/v1alpha1")).toBe(true);
+      expect(isValidPolicyVersion("ctg/v1")).toBe(true);
     });
 
     it("should reject invalid versions", () => {
       expect(isValidPolicyVersion("v1")).toBe(false);
-      expect(isValidPolicyVersion("ctg/v1")).toBe(false);
+      expect(isValidPolicyVersion("ctg/v1alpha1")).toBe(false);
       expect(isValidPolicyVersion("1.0")).toBe(false);
       expect(isValidPolicyVersion("")).toBe(false);
     });
@@ -158,7 +158,7 @@ describe("policy-loader", () => {
     it("should load valid policy file", () => {
       const policyPath = path.join(tempDir, "valid-policy.yaml");
       writeFileSync(policyPath, `
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: test-policy
 
 blocking:
@@ -193,7 +193,7 @@ confidence:
     it("should parse rule blocking", () => {
       const policyPath = path.join(tempDir, "rule-policy.yaml");
       writeFileSync(policyPath, `
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: rule-blocking-test
 
 blocking:
@@ -216,7 +216,7 @@ blocking:
     it("should parse count thresholds", () => {
       const policyPath = path.join(tempDir, "threshold-policy.yaml");
       writeFileSync(policyPath, `
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: threshold-test
 
 blocking:
@@ -240,7 +240,7 @@ blocking:
     it("should parse LLM config", () => {
       const policyPath = path.join(tempDir, "llm-policy.yaml");
       writeFileSync(policyPath, `
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: llm-test
 
 llm:
@@ -260,7 +260,7 @@ llm:
     it("should parse suppression config", () => {
       const policyPath = path.join(tempDir, "suppression-policy.yaml");
       writeFileSync(policyPath, `
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: suppression-test
 
 suppression:
@@ -295,7 +295,7 @@ policy_id: minimal
     it("should load valid suppression file", () => {
       const suppressionPath = path.join(tempDir, "suppressions.yaml");
       // Use format compatible with simple YAML parser
-      writeFileSync(suppressionPath, `version: ctg/v1alpha1
+      writeFileSync(suppressionPath, `version: ctg/v1
 suppressions:
   -
     rule_id: CLIENT_TRUSTED_PRICE

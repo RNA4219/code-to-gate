@@ -27,7 +27,7 @@ describe("markdown-reporter", () => {
   });
 
   const createMockFindings = (): FindingsArtifact => ({
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: "2025-01-01T00:00:00Z",
     run_id: "run-001",
     repo: { root: "/test/repo" },
@@ -44,7 +44,7 @@ describe("markdown-reporter", () => {
   });
 
   const createMockRiskRegister = (): RiskRegisterArtifact => ({
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: "2025-01-01T00:00:00Z",
     run_id: "run-001",
     repo: { root: "/test/repo" },

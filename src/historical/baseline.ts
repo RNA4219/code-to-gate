@@ -50,7 +50,8 @@ export function loadBaselineFindings(baselineDir: string): FindingsArtifact | nu
   try {
     const content = readFileSync(findingsPath, "utf8");
     return JSON.parse(content) as FindingsArtifact;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load baseline findings from ${findingsPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -70,7 +71,8 @@ export function loadBaselineRisks(baselineDir: string): RiskRegisterArtifact | n
     // Parse YAML - simplified, assumes JSON-like YAML
     const parsed = parseYamlLike(content);
     return parsed as RiskRegisterArtifact;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load baseline risks from ${risksPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -88,7 +90,8 @@ export function loadBaselineReadiness(baselineDir: string): ReleaseReadinessArti
   try {
     const content = readFileSync(readinessPath, "utf8");
     return JSON.parse(content) as ReleaseReadinessArtifact;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load baseline readiness from ${readinessPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -106,7 +109,8 @@ export function loadBaselineStatus(baselineDir: string): BaselineStatus | null {
   try {
     const content = readFileSync(statusPath, "utf8");
     return JSON.parse(content) as BaselineStatus;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load baseline status from ${statusPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -298,8 +302,9 @@ export function discoverHistoricalRuns(historyDir: string): RunReference[] {
         repo_revision: findings.repo.revision,
         branch: findings.repo.branch,
       });
-    } catch {
+    } catch (e) {
       // Skip invalid runs
+      console.error(`[baseline] Failed to parse findings from ${findingsPath}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -340,7 +345,8 @@ function loadFindingsFromDir(dir: string): FindingsArtifact | null {
 
   try {
     return JSON.parse(readFileSync(findingsPath, "utf8")) as FindingsArtifact;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load findings from ${findingsPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -351,7 +357,8 @@ function loadRisksFromDir(dir: string): RiskRegisterArtifact | null {
 
   try {
     return parseYamlLike(readFileSync(risksPath, "utf8")) as RiskRegisterArtifact;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load risks from ${risksPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
@@ -362,7 +369,8 @@ function loadReadinessFromDir(dir: string): ReleaseReadinessArtifact | null {
 
   try {
     return JSON.parse(readFileSync(readinessPath, "utf8")) as ReleaseReadinessArtifact;
-  } catch {
+  } catch (e) {
+    console.error(`[baseline] Failed to load readiness from ${readinessPath}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }

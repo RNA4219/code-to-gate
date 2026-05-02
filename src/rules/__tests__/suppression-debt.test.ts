@@ -38,7 +38,7 @@ describe("SUPPRESSION_DEBT_RULE", () => {
   it("detects broad long-lived suppressions", () => {
     vi.setSystemTime(new Date("2026-05-02T00:00:00Z"));
     const content = [
-      "version: ctg/v1alpha1",
+      "version: ctg/v1",
       "suppressions:",
       "  -",
       "    rule_id: LARGE_MODULE",

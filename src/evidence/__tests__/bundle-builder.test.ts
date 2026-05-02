@@ -43,7 +43,7 @@ const TEST_OUTPUT_DIR = path.join(TEST_DIR, "output");
 // Helper: Create minimal artifact
 function createMinimalArtifact(type: ArtifactType): object {
   const base = {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: new Date().toISOString(),
     run_id: "test-run-001",
     repo: { root: "/test/repo" },

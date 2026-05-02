@@ -35,7 +35,7 @@ function getOption(args: string[], name: string): string | undefined {
 // Helper: Create findings artifact
 function createFindingsArtifact(findings: object[] = [], overrides = {}): object {
   return {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: new Date().toISOString(),
     run_id: "test-run",
     repo: { root: "/test/repo" },
@@ -115,7 +115,7 @@ describe("readiness CLI", () => {
       expect(exitCode).toBe(EXIT.OK);
       expect(readiness.artifact).toBe("release-readiness");
       expect(readiness.schema).toBe("release-readiness@v1");
-      expect(readiness.version).toBe("ctg/v1alpha1");
+      expect(readiness.version).toBe("ctg/v1");
 
       // Status
       const validStatuses = ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"];

@@ -98,7 +98,7 @@ export function loadPolicy(
   const parsed = parseSimpleYaml(content);
 
   return {
-    version: parsed.version ?? "ctg/v1alpha1",
+    version: parsed.version ?? "ctg/v1",
     name: parsed.name ?? "unknown",
     description: parsed.description,
     blocking: parsed.blocking,
@@ -169,7 +169,8 @@ export function parseJsonFile(filePath: string): unknown | undefined {
   try {
     const content = readFileSync(filePath, "utf8");
     return JSON.parse(content);
-  } catch {
+  } catch (e) {
+    console.error(`[config-utils] Failed to parse JSON file ${filePath}: ${e instanceof Error ? e.message : String(e)}`);
     return undefined;
   }
 }

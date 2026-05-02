@@ -239,10 +239,10 @@ describe("analyze CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
-  it("--policy option with non-existent file returns USAGE_ERROR", async () => {
+  it("--policy option with non-existent file returns POLICY_FAILED", async () => {
     const args = [fixturesDir, "--policy", "/nonexistent/policy.yaml", "--out", tempOutDir];
     const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
-    expect(result).toBe(EXIT.USAGE_ERROR);
+    expect(result).toBe(EXIT.POLICY_FAILED);
   });
 
   it("custom --out directory is created", async () => {
@@ -273,7 +273,7 @@ describe("analyze CLI", () => {
     const findingsPath = path.join(tempOutDir, "findings.json");
     const findings = JSON.parse(readFileSync(findingsPath, "utf8"));
 
-    expect(findings.version).toBe("ctg/v1alpha1");
+    expect(findings.version).toBe("ctg/v1");
     expect(findings.generated_at).toBeDefined();
     expect(findings.run_id).toBeDefined();
     expect(findings.repo).toBeDefined();

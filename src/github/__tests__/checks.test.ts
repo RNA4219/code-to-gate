@@ -32,7 +32,7 @@ const createMockClient = (): GitHubApiClient => ({
 
 // Helper: Create findings artifact
 const createFindings = (findings: Finding[] = []): FindingsArtifact => ({
-  version: "ctg/v1alpha1",
+  version: "ctg/v1",
   generated_at: "2025-01-01T00:00:00Z",
   run_id: "run-001",
   repo: { root: "/test/repo" },
@@ -64,7 +64,7 @@ const createFinding = (
 
 // Helper: Create readiness artifact
 const createReadiness = (status = "needs_review"): ReleaseReadinessArtifact => ({
-  version: "ctg/v1alpha1",
+  version: "ctg/v1",
   generated_at: "2025-01-01T00:00:00Z",
   run_id: "run-001",
   repo: { root: "/test/repo" },

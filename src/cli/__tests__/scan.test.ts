@@ -83,7 +83,7 @@ describe("scan CLI - fixtures graph", () => {
   });
 
   it("repo-graph.json has correct schema version", () => {
-    expect(graph.version).toBe("ctg/v1alpha1");
+    expect(graph.version).toBe("ctg/v1");
     expect(graph.schema).toBe("normalized-repo-graph@v1");
     expect(graph.artifact).toBe("normalized-repo-graph");
   });

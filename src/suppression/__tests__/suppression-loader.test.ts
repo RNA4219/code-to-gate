@@ -28,20 +28,20 @@ describe("suppression-loader", () => {
 
   describe("parseSuppressionYaml", () => {
     it("parses version field", () => {
-      const yaml = "version: ctg/v1alpha1";
+      const yaml = "version: ctg/v1";
       const result = parseSuppressionYaml(yaml);
-      expect(result.version).toBe("ctg/v1alpha1");
+      expect(result.version).toBe("ctg/v1");
     });
 
     it("uses default version when not specified", () => {
       const yaml = "suppressions:\n  - rule_id: TEST_RULE\n    path: src/*.ts\n    reason: test";
       const result = parseSuppressionYaml(yaml);
-      expect(result.version).toBe("ctg/v1alpha1");
+      expect(result.version).toBe("ctg/v1");
     });
 
     it("parses single suppression entry", () => {
       const yaml = `
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
   - rule_id: CLIENT_TRUSTED_PRICE
     path: "src/api/order/legacy-*.ts"
@@ -60,7 +60,7 @@ suppressions:
 
     it("parses multiple suppression entries", () => {
       const yaml = `
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
   - rule_id: CLIENT_TRUSTED_PRICE
     path: "src/api/order/legacy-*.ts"
@@ -105,7 +105,7 @@ suppressions:
     it("ignores comments", () => {
       const yaml = `
 # This is a comment
-version: ctg/v1alpha1
+version: ctg/v1
 # Another comment
 suppressions:
   # Comment in block
@@ -114,19 +114,19 @@ suppressions:
     reason: test
 `;
       const result = parseSuppressionYaml(yaml);
-      expect(result.version).toBe("ctg/v1alpha1");
+      expect(result.version).toBe("ctg/v1");
       expect(result.suppressions).toHaveLength(1);
     });
 
     it("returns empty suppressions array for no suppressions block", () => {
-      const yaml = "version: ctg/v1alpha1";
+      const yaml = "version: ctg/v1";
       const result = parseSuppressionYaml(yaml);
       expect(result.suppressions).toEqual([]);
     });
 
     it("handles empty suppressions block", () => {
       const yaml = `
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
 `;
       const result = parseSuppressionYaml(yaml);
@@ -168,7 +168,7 @@ suppressions:
     it("loads suppression file from specified path", () => {
       const suppressionPath = path.join(tempTestDir, "test-suppressions.yaml");
       writeFileSync(suppressionPath, `
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
   - rule_id: TEST_RULE
     path: src/*.ts
@@ -176,7 +176,7 @@ suppressions:
 `, "utf8");
 
       const result = loadSuppressions("test-suppressions.yaml", tempTestDir);
-      expect(result?.version).toBe("ctg/v1alpha1");
+      expect(result?.version).toBe("ctg/v1");
       expect(result?.suppressions).toHaveLength(1);
       expect(result?.suppressions[0].rule_id).toBe("TEST_RULE");
     });
@@ -221,7 +221,7 @@ suppressions:
       mkdirSync(ctgDir, { recursive: true });
       const defaultFile = path.join(ctgDir, "suppressions.yaml");
       writeFileSync(defaultFile, `
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
   - rule_id: DEFAULT_LOCATION_RULE
     path: src/*.ts

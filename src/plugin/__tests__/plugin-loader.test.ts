@@ -57,14 +57,14 @@ describe("PluginLoader", () => {
 
       expect(result).toBeDefined();
       expect(result?.name).toBe("test-plugin");
-      expect(result?.apiVersion).toBe("ctg/v1alpha1");
+      expect(result?.apiVersion).toBe("ctg/v1");
       expect(result?.kind).toBe("rule-plugin");
     });
 
     it("should parse simple YAML manifest", async () => {
       const loader = new PluginLoaderImpl();
       const yamlContent = `
-apiVersion: ctg/v1alpha1
+apiVersion: ctg/v1
 kind: rule-plugin
 name: my-plugin
 version: 1.0.0
@@ -110,7 +110,7 @@ returns: ["findings@v1"]
     it("should fail validation for missing required fields", async () => {
       const loader = new PluginLoaderImpl();
       const incompleteManifest = {
-        apiVersion: "ctg/v1alpha1",
+        apiVersion: "ctg/v1",
         name: "incomplete-plugin",
         // Missing kind, version, visibility, entry, capabilities, etc.
       };
@@ -229,7 +229,7 @@ returns: ["findings@v1"]
       await fs.mkdir(pluginDir, { recursive: true });
 
       const yamlContent = `
-apiVersion: ctg/v1alpha1
+apiVersion: ctg/v1
 kind: rule-plugin
 name: test-plugin-yaml
 version: 1.0.0

@@ -1,4 +1,4 @@
-version: ctg/v1alpha1
+version: ctg/v1
 name: ci-release-readiness
 policy_id: ci-release-readiness
 

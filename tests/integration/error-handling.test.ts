@@ -269,7 +269,7 @@ describe("error handling integration", () => {
       writeFileSync(
         wrongVersionPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -292,7 +292,7 @@ describe("error handling integration", () => {
       writeFileSync(
         unknownArtifactPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -313,7 +313,7 @@ describe("error handling integration", () => {
       writeFileSync(
         invalidSeverityPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -355,7 +355,7 @@ describe("error handling integration", () => {
       writeFileSync(
         invalidCategoryPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -396,7 +396,7 @@ describe("error handling integration", () => {
       writeFileSync(
         missingEvidencePath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },

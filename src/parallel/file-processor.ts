@@ -454,12 +454,20 @@ export class FileProcessor extends EventEmitter {
   getStats(): {
     workerCount: number;
     lazySymbolCacheSize: number;
-    options: FileProcessorOptions;
+    batchSize: number;
+    useWorkers: boolean;
+    maxWorkers: number;
+    streamingMode: boolean;
+    chunkSize: number;
   } {
     return {
       workerCount: this.workers.length,
       lazySymbolCacheSize: this.lazySymbolCache.size,
-      options: this.options,
+      batchSize: this.options.batchSize!,
+      useWorkers: this.options.useWorkers!,
+      maxWorkers: this.options.maxWorkers!,
+      streamingMode: this.options.streamingMode!,
+      chunkSize: this.options.chunkSize!,
     };
   }
 

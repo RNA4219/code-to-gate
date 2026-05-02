@@ -185,7 +185,7 @@ console.log(JSON.stringify(output));
 
 describe("createPluginInput", () => {
   it("should create valid plugin input", () => {
-    const repoGraph = { version: "ctg/v1alpha1", files: [] };
+    const repoGraph = { version: "ctg/v1", files: [] };
     const input = createPluginInput(repoGraph);
 
     expect(input.version).toBe(PLUGIN_INPUT_VERSION);
@@ -193,7 +193,7 @@ describe("createPluginInput", () => {
   });
 
   it("should create input with all optional fields", () => {
-    const repoGraph = { version: "ctg/v1alpha1" };
+    const repoGraph = { version: "ctg/v1" };
     const importedFindings = { findings: [] };
     const config = { custom: true };
     const policy = { blocking: {} };
@@ -341,7 +341,7 @@ console.log(JSON.stringify(output));
       enabled: true,
     };
 
-    const input = createPluginInput({ version: "ctg/v1alpha1", files: [] });
+    const input = createPluginInput({ version: "ctg/v1", files: [] });
 
     const result = await runner.executePlugin(entry, input);
 
@@ -379,7 +379,7 @@ console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", findings: [] }
       enabled: true,
     };
 
-    const input = createPluginInput({ version: "ctg/v1alpha1" });
+    const input = createPluginInput({ version: "ctg/v1" });
 
     const result = await runner.executePlugin(entry, input);
 
@@ -415,7 +415,7 @@ console.log(JSON.stringify({ version: "invalid-version", findings: [] }));
       enabled: true,
     };
 
-    const input = createPluginInput({ version: "ctg/v1alpha1" });
+    const input = createPluginInput({ version: "ctg/v1" });
 
     const result = await runner.executePlugin(entry, input);
 

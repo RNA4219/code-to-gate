@@ -2,11 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://code-to-gate.local/schemas/invariants.schema.json",
   "title": "InvariantsArtifact",
-  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeaderV1Alpha1" }],
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
   "required": ["artifact", "schema", "completeness", "invariants"],
   "additionalProperties": false,
   "properties": {
-    "version": { "$ref": "./shared-defs.schema.json#/$defs/versionV1Alpha1" },
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
     "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
     "run_id": { "type": "string" },
     "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },

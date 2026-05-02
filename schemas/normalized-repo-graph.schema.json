@@ -2,11 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://code-to-gate.local/schemas/normalized-repo-graph.schema.json",
   "title": "NormalizedRepoGraph",
-  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeaderV1Alpha1" }],
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
   "required": ["artifact", "schema", "files", "modules", "symbols", "relations", "tests", "configs", "entrypoints", "diagnostics", "stats"],
   "additionalProperties": false,
   "properties": {
-    "version": { "$ref": "./shared-defs.schema.json#/$defs/versionV1Alpha1" },
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
     "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
     "run_id": { "type": "string" },
     "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },

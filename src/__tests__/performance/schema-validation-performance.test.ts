@@ -51,7 +51,7 @@ describe("Schema Validation Performance Tests", () => {
       // Create a valid findings artifact
       const artifactPath = path.join(tempDir, "findings.json");
       writeFileSync(artifactPath, JSON.stringify({
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "perf-test-001",
         repo: { root: "/test" },
@@ -132,20 +132,20 @@ describe("Schema Validation Performance Tests", () => {
       // Create mock artifacts
       const artifacts = [
         { name: "repo-graph.json", content: {
-          version: "ctg/v1alpha1", generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
+          version: "ctg/v1", generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
           repo: { root: "/test" }, tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
           artifact: "normalized-repo-graph", schema: "normalized-repo-graph@v1",
           files: [], modules: [], symbols: [], relations: [], tests: [], configs: [],
           entrypoints: [], diagnostics: [], stats: { partial: false }
         }},
         { name: "findings.json", content: {
-          version: "ctg/v1alpha1", generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
+          version: "ctg/v1", generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
           repo: { root: "/test" }, tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
           artifact: "findings", schema: "findings@v1", completeness: "complete",
           findings: [], unsupported_claims: []
         }},
         { name: "audit.json", content: {
-          version: "ctg/v1alpha1", generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
+          version: "ctg/v1", generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
           repo: { root: "/test" }, tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
           artifact: "audit", schema: "audit@v1", inputs: [], exit: { code: 0, status: "passed" }
         }},
@@ -173,11 +173,11 @@ describe("Schema Validation Performance Tests", () => {
 
       // Create YAML artifacts
       writeFileSync(path.join(tempDir, "risk-register.yaml"),
-        "version: ctg/v1alpha1\nartifact: risk-register\nrisks: []\n", "utf8");
+        "version: ctg/v1\nartifact: risk-register\nrisks: []\n", "utf8");
       writeFileSync(path.join(tempDir, "test-seeds.json"),
-        JSON.stringify({ version: "ctg/v1alpha1", artifact: "test-seeds", seeds: [] }), "utf8");
+        JSON.stringify({ version: "ctg/v1", artifact: "test-seeds", seeds: [] }), "utf8");
       writeFileSync(path.join(tempDir, "release-readiness.json"),
-        JSON.stringify({ version: "ctg/v1alpha1", artifact: "release-readiness", status: "passed" }), "utf8");
+        JSON.stringify({ version: "ctg/v1", artifact: "release-readiness", status: "passed" }), "utf8");
 
       // Create JSON artifacts
       for (const artifact of artifacts) {
@@ -207,7 +207,7 @@ describe("Schema Validation Performance Tests", () => {
       // Create a valid artifact
       const artifactPath = path.join(tempDir, "test.json");
       writeFileSync(artifactPath, JSON.stringify({
-        version: "ctg/v1alpha1", artifact: "findings", schema: "findings@v1",
+        version: "ctg/v1", artifact: "findings", schema: "findings@v1",
         generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
         repo: { root: "/test" }, tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
         completeness: "complete", findings: [], unsupported_claims: []
@@ -241,7 +241,7 @@ describe("Schema Validation Performance Tests", () => {
       // Create small artifact
       const smallPath = path.join(tempDir, "small.json");
       writeFileSync(smallPath, JSON.stringify({
-        version: "ctg/v1alpha1", artifact: "findings", schema: "findings@v1",
+        version: "ctg/v1", artifact: "findings", schema: "findings@v1",
         generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
         repo: { root: "/test" }, tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
         completeness: "complete", findings: [], unsupported_claims: []
@@ -254,7 +254,7 @@ describe("Schema Validation Performance Tests", () => {
         description: "Test finding", evidence: { file: "test.ts", line: 1 }
       }));
       writeFileSync(largePath, JSON.stringify({
-        version: "ctg/v1alpha1", artifact: "findings", schema: "findings@v1",
+        version: "ctg/v1", artifact: "findings", schema: "findings@v1",
         generated_at: "2025-01-01T00:00:00Z", run_id: "perf-001",
         repo: { root: "/test" }, tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
         completeness: "complete", findings: manyFindings, unsupported_claims: []

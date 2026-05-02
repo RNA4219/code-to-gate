@@ -56,7 +56,7 @@ describe("full flow integration", () => {
       };
 
       // Validate core structure
-      expect(graph.version).toBe("ctg/v1alpha1");
+      expect(graph.version).toBe("ctg/v1");
       expect(graph.artifact).toBe("normalized-repo-graph");
       expect(graph.schema).toBe("normalized-repo-graph@v1");
       expect(graph.files.length).toBeGreaterThan(0);
@@ -140,7 +140,7 @@ describe("full flow integration", () => {
       };
 
       // Validate structure
-      expect(findings.version).toBe("ctg/v1alpha1");
+      expect(findings.version).toBe("ctg/v1");
       expect(findings.artifact).toBe("findings");
       expect(findings.schema).toBe("findings@v1");
       expect(findings.findings.length).toBeGreaterThan(0);

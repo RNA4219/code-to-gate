@@ -175,7 +175,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         minimalFindingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -228,7 +228,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         allCategoriesPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -268,7 +268,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         allSeveritiesPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -308,7 +308,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         allKindsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -364,7 +364,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         allToolsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -406,7 +406,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         minimalAuditPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -428,7 +428,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         minimalGraphPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -458,7 +458,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         highConfidencePath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -498,7 +498,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         lowConfidencePath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -538,7 +538,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingEvidenceIdPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -578,7 +578,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingEvidencePath_,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -618,7 +618,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         invalidKindPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -658,7 +658,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingHashPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -698,7 +698,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingExtRefPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -738,7 +738,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingUpstreamToolPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -782,7 +782,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         invalidUpstreamToolPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -872,7 +872,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingGeneratedPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           // Missing generated_at field
           run_id: "test-run",
           repo: { root: "." },
@@ -894,7 +894,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         invalidGeneratedPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "not-a-date", // Invalid date format
           run_id: "test-run",
           repo: { root: "." },
@@ -916,7 +916,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingToolNamePath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -942,7 +942,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         wrongToolNamePath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -969,7 +969,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingRepoRootPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: {
@@ -995,7 +995,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         validUnsupportedPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -1024,7 +1024,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         invalidReasonPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },
@@ -1053,7 +1053,7 @@ describe("schema coverage integration", () => {
       writeFileSync(
         missingClaimFieldsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: "2024-01-01T00:00:00Z",
           run_id: "test-run",
           repo: { root: "." },

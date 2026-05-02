@@ -2,11 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://code-to-gate.local/schemas/release-readiness.schema.json",
   "title": "ReleaseReadinessArtifact",
-  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeaderV1Alpha1" }],
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
   "required": ["artifact", "schema", "status", "completeness", "summary", "counts", "failedConditions", "recommendedActions", "artifactRefs"],
   "additionalProperties": false,
   "properties": {
-    "version": { "$ref": "./shared-defs.schema.json#/$defs/versionV1Alpha1" },
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
     "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
     "run_id": { "type": "string" },
     "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },

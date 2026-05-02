@@ -1,4 +1,4 @@
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: strict
 description: Strict synthetic policy for v0.1 fixture acceptance.
 

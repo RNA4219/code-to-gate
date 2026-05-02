@@ -1,4 +1,4 @@
-version: ctg/v1alpha1
+version: ctg/v1
 
 # Suppressions for demo-suppressions-ts fixture
 # Based on docs/product-spec-v1.md Section 5.3

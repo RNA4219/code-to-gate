@@ -30,7 +30,7 @@ describe("audit-writer", () => {
   describe("buildAuditArtifact", () => {
     it("creates audit artifact with correct version", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -49,7 +49,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -63,14 +63,14 @@ describe("audit-writer", () => {
 
       const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete");
 
-      expect(audit.version).toBe("ctg/v1alpha1");
+      expect(audit.version).toBe("ctg/v1");
       expect(audit.artifact).toBe("audit");
       expect(audit.schema).toBe("audit@v1");
     });
 
     it("creates audit artifact with correct run_id", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-002",
         repo: { root: "/test/repo" },
@@ -89,7 +89,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-002",
         repo: { root: "/test/repo" },
@@ -108,7 +108,7 @@ describe("audit-writer", () => {
 
     it("creates audit artifact with correct repo info", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/my/project", branch: "main", revision: "abc123" },
@@ -127,7 +127,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/my/project" },
@@ -146,7 +146,7 @@ describe("audit-writer", () => {
 
     it("includes files from graph as inputs", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -196,7 +196,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -219,7 +219,7 @@ describe("audit-writer", () => {
 
     it("creates policy section with policy info", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -238,7 +238,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -251,7 +251,7 @@ describe("audit-writer", () => {
       };
 
       const policy: CtgPolicy = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         policyId: "my-policy",
         blocking: {
           severity: { critical: true, high: true },
@@ -269,7 +269,7 @@ describe("audit-writer", () => {
 
     it("uses default policy id when no policy provided", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -288,7 +288,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -308,7 +308,7 @@ describe("audit-writer", () => {
 
     it("creates exit section with correct values", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -327,7 +327,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -348,7 +348,7 @@ describe("audit-writer", () => {
 
     it("sets tool info correctly", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -367,7 +367,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -380,7 +380,7 @@ describe("audit-writer", () => {
       };
 
       const policy: CtgPolicy = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         policyId: "release-policy",
         blocking: {
           severity: { critical: true },
@@ -399,7 +399,7 @@ describe("audit-writer", () => {
 
     it("generated_at is valid ISO 8601", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -418,7 +418,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -441,7 +441,7 @@ describe("audit-writer", () => {
   describe("writeAuditJson", () => {
     it("writes audit.json to output directory", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -460,7 +460,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -481,7 +481,7 @@ describe("audit-writer", () => {
 
     it("written JSON is valid and parseable", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -500,7 +500,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -524,7 +524,7 @@ describe("audit-writer", () => {
 
     it("written audit.json has all required fields", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -543,7 +543,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -583,7 +583,7 @@ describe("audit-writer", () => {
 
     it("handles audit with files correctly", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -613,7 +613,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -641,7 +641,7 @@ describe("audit-writer", () => {
   describe("audit.json format validation", () => {
     it("validates audit artifact structure", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -660,7 +660,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -677,12 +677,12 @@ describe("audit-writer", () => {
       // Validate artifact type
       expect(audit.artifact).toBe("audit");
       expect(audit.schema).toBe("audit@v1");
-      expect(audit.version).toBe("ctg/v1alpha1");
+      expect(audit.version).toBe("ctg/v1");
     });
 
     it("validates input structure", () => {
       const graph: NormalizedRepoGraph = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },
@@ -712,7 +712,7 @@ describe("audit-writer", () => {
       };
 
       const findings: FindingsArtifact = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: "2025-01-01T00:00:00Z",
         run_id: "run-001",
         repo: { root: "/test/repo" },

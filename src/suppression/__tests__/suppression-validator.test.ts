@@ -27,7 +27,7 @@ function createValidSuppressionFile(
   suppressions?: Suppression[]
 ): SuppressionFile {
   return {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     suppressions: suppressions ?? [createValidSuppression()],
   };
 }
@@ -35,9 +35,9 @@ function createValidSuppressionFile(
 describe("suppression-validator", () => {
   describe("validateSuppressionFile", () => {
     describe("version validation", () => {
-      it("accepts valid version ctg/v1alpha1", () => {
+      it("accepts valid version ctg/v1", () => {
         const file = createValidSuppressionFile();
-        file.version = "ctg/v1alpha1";
+        file.version = "ctg/v1";
 
         const result = validateSuppressionFile(file);
         expect(result.valid).toBe(true);
@@ -104,7 +104,7 @@ describe("suppression-validator", () => {
 
       it("rejects non-array suppressions", () => {
         const file = {
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           suppressions: "not-an-array",
         } as unknown as SuppressionFile;
 

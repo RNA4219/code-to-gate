@@ -125,7 +125,7 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
 
     it("should accept valid manifest structure", async () => {
       const validManifest = {
-        apiVersion: "ctg/v1alpha1",
+        apiVersion: "ctg/v1",
         kind: "rule-plugin",
         name: "test-plugin",
         version: "1.0.0",
@@ -156,7 +156,7 @@ describe("Plugin Schema Validator - P1-02 Tests", () => {
 
     it("should reject invalid kind", async () => {
       const manifest = {
-        apiVersion: "ctg/v1alpha1",
+        apiVersion: "ctg/v1",
         kind: "Plugin",
         name: "test-plugin",
         version: "1.0.0",

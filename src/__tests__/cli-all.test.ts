@@ -148,7 +148,7 @@ describe("CLI Commands Integration", () => {
       const graphPath = path.join(tempOutDir, "repo-graph.json");
       const graph = JSON.parse(readFileSync(graphPath, "utf8"));
 
-      expect(graph.version).toBe("ctg/v1alpha1");
+      expect(graph.version).toBe("ctg/v1");
       expect(graph.artifact).toBe("normalized-repo-graph");
       expect(graph.schema).toBe("normalized-repo-graph@v1");
     });
@@ -278,7 +278,7 @@ describe("CLI Commands Integration", () => {
       // Create a valid findings.json for export tests
       const findingsPath = path.join(tempOutDir, "findings.json");
       const validFindings = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: new Date().toISOString(),
         run_id: "test-run",
         repo: { root: "." },
@@ -406,7 +406,7 @@ describe("CLI Commands Integration", () => {
       // Create findings.json manually for export test
       const findingsPath = path.join(tempOutDir, "findings.json");
       const validFindings = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: new Date().toISOString(),
         run_id: "test-run",
         repo: { root: "." },
@@ -434,7 +434,7 @@ describe("CLI Commands Integration", () => {
       // Create findings.json
       const findingsPath = path.join(tempOutDir, "findings.json");
       const validFindings = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         generated_at: new Date().toISOString(),
         run_id: "test-run-multi",
         repo: { root: "." },
@@ -496,7 +496,7 @@ describe("CLI Commands Integration", () => {
       writeFileSync(
         findingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: new Date().toISOString(),
           run_id: "test",
           repo: { root: "." },
@@ -524,7 +524,7 @@ describe("CLI Commands Integration", () => {
       writeFileSync(
         findingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: new Date().toISOString(),
           run_id: "test",
           repo: { root: "." },
@@ -552,7 +552,7 @@ describe("CLI Commands Integration", () => {
       writeFileSync(
         findingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: new Date().toISOString(),
           run_id: "test",
           repo: { root: "." },
@@ -582,7 +582,7 @@ describe("CLI Commands Integration", () => {
       writeFileSync(
         findingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: new Date().toISOString(),
           run_id: "test",
           repo: { root: "." },
@@ -622,7 +622,7 @@ describe("CLI Commands Integration", () => {
       writeFileSync(
         findingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: new Date().toISOString(),
           run_id: "test",
           repo: { root: "." },
@@ -651,7 +651,7 @@ describe("CLI Commands Integration", () => {
       writeFileSync(
         findingsPath,
         JSON.stringify({
-          version: "ctg/v1alpha1",
+          version: "ctg/v1",
           generated_at: new Date().toISOString(),
           run_id: "test",
           repo: { root: "." },

@@ -4,7 +4,7 @@ import type { FindingsArtifact } from "../../types/artifacts.js";
 
 function createFindings(): FindingsArtifact {
   return {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: "2025-01-01T00:00:00Z",
     run_id: "run-001",
     repo: { root: "/test/repo" },

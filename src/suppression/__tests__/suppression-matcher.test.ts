@@ -430,7 +430,7 @@ describe("suppression-matcher", () => {
       expect(isSuppressed(finding, [suppression])).toBe(false);
       // But filterSuppressedFindings treats it as suppressed
       const result = filterSuppressedFindings([finding], {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         suppressions: [suppression],
       }, 30);
       expect(result.suppressedFindings).toHaveLength(1);
@@ -463,7 +463,7 @@ describe("suppression-matcher", () => {
         createFinding("f1", "RULE_001", "src/a.ts"),
       ];
       const suppressionFile: SuppressionFile = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         suppressions: [],
       };
 
@@ -477,7 +477,7 @@ describe("suppression-matcher", () => {
         createSuppression("RULE_001", "src/suppressed/*.ts"),
       ];
       const suppressionFile: SuppressionFile = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         suppressions,
       };
       const findings = [
@@ -501,7 +501,7 @@ describe("suppression-matcher", () => {
         }),
       ];
       const suppressionFile: SuppressionFile = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         suppressions,
       };
       const findings = [createFinding("f1", "RULE_001", "src/a.ts")];
@@ -522,7 +522,7 @@ describe("suppression-matcher", () => {
         }),
       ];
       const suppressionFile: SuppressionFile = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         suppressions,
       };
       const findings = [createFinding("f1", "RULE_001", "src/a.ts")];
@@ -553,7 +553,7 @@ describe("suppression-matcher", () => {
         }),
       ];
       const suppressionFile: SuppressionFile = {
-        version: "ctg/v1alpha1",
+        version: "ctg/v1",
         suppressions,
       };
       const findings = [

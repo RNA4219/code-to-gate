@@ -47,7 +47,7 @@ function createSourceFile(path: string, overrides = {}): RepoFile {
 // Helper: Create findings artifact
 function createFindings(overrides = {}): FindingsArtifact {
   return {
-    version: "ctg/v1alpha1",
+    version: "ctg/v1",
     generated_at: new Date().toISOString(),
     run_id: "test-run",
     repo: { root: "/test/repo" },
@@ -85,7 +85,7 @@ describe("json-reporter", () => {
   describe("createArtifactHeader", () => {
     it("creates header with all required fields and optional policy_id", () => {
       const header = createArtifactHeader("run-001", "/test/repo", "policy-001");
-      expect(header.version).toBe("ctg/v1alpha1");
+      expect(header.version).toBe("ctg/v1");
       expect(header.run_id).toBe("run-001");
       expect(header.repo.root).toBe("/test/repo");
       expect(header.tool.policy_id).toBe("policy-001");
@@ -104,7 +104,7 @@ describe("json-reporter", () => {
 
       expect(findings.artifact).toBe("findings");
       expect(findings.schema).toBe("findings@v1");
-      expect(findings.version).toBe("ctg/v1alpha1");
+      expect(findings.version).toBe("ctg/v1");
       expect(Array.isArray(findings.findings)).toBe(true);
       expect(Array.isArray(findings.unsupported_claims)).toBe(true);
     });
