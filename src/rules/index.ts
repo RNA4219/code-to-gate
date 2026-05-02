@@ -119,6 +119,8 @@ export { RAW_SQL_RULE } from "./raw-sql.js";
 export { ENV_DIRECT_ACCESS_RULE } from "./env-direct-access.js";
 export { UNSAFE_DELETE_RULE } from "./unsafe-delete.js";
 export { LARGE_MODULE_RULE } from "./large-module.js";
+export { DEBT_MARKER_RULE } from "./debt-marker.js";
+export { SUPPRESSION_DEBT_RULE } from "./suppression-debt.js";
 
 // All rules array for easy import
 import { CLIENT_TRUSTED_PRICE_RULE } from "./client-trusted-price.js";
@@ -130,6 +132,8 @@ import { RAW_SQL_RULE } from "./raw-sql.js";
 import { ENV_DIRECT_ACCESS_RULE } from "./env-direct-access.js";
 import { UNSAFE_DELETE_RULE } from "./unsafe-delete.js";
 import { LARGE_MODULE_RULE } from "./large-module.js";
+import { DEBT_MARKER_RULE } from "./debt-marker.js";
+import { SUPPRESSION_DEBT_RULE } from "./suppression-debt.js";
 
 export const ALL_RULES: RulePlugin[] = [
   CLIENT_TRUSTED_PRICE_RULE,
@@ -141,4 +145,6 @@ export const ALL_RULES: RulePlugin[] = [
   ENV_DIRECT_ACCESS_RULE,
   UNSAFE_DELETE_RULE,
   LARGE_MODULE_RULE,
+  DEBT_MARKER_RULE,
+  SUPPRESSION_DEBT_RULE,
 ];

@@ -1,5 +1,5 @@
 /**
- * Tests for All 9 Rules Together
+ * Tests for All Rules Together
  *
  * Tests the complete rules system for code-to-gate, including
  * all rule plugins, their interactions, and unified evaluation.
@@ -167,8 +167,8 @@ export const util30 = () => {};
 
 describe("All Rules System", () => {
   describe("Rule Registration", () => {
-    it("should have exactly 9 rules registered", () => {
-      expect(ALL_RULES.length).toBe(9);
+    it("should have exactly 11 rules registered", () => {
+      expect(ALL_RULES.length).toBe(11);
     });
 
     it("should have all expected rule IDs", () => {
@@ -183,6 +183,8 @@ describe("All Rules System", () => {
       expect(ruleIds).toContain("RAW_SQL");
       expect(ruleIds).toContain("UNSAFE_DELETE");
       expect(ruleIds).toContain("LARGE_MODULE");
+      expect(ruleIds).toContain("DEBT_MARKER");
+      expect(ruleIds).toContain("SUPPRESSION_DEBT");
     });
 
     it("should have unique rule IDs", () => {
