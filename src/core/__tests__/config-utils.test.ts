@@ -166,13 +166,13 @@ version: ctg/v1alpha1
       const policyPath = path.join(tempTestDir, "test-policy.yaml");
       writeFileSync(policyPath, `
 name: test-policy
-version: ctg/v1alpha1
+version: ctg/v1
 description: Test policy
 `, "utf8");
 
       const result = loadPolicy("test-policy.yaml", tempTestDir);
       expect(result?.name).toBe("test-policy");
-      expect(result?.version).toBe("ctg/v1alpha1");
+      expect(result?.version).toBe("ctg/v1");
       expect(result?.description).toBe("Test policy");
     });
 
@@ -181,7 +181,7 @@ description: Test policy
       writeFileSync(policyPath, "name: policy", "utf8");
 
       const result = loadPolicy("no-version.yaml", tempTestDir);
-      expect(result?.version).toBe("ctg/v1alpha1");
+      expect(result?.version).toBe("ctg/v1");
     });
 
     it("uses default name if not specified", () => {
