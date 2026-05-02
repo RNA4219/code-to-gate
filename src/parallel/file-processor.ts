@@ -4,18 +4,10 @@
  * Performance requirement (Phase 2):
  * - Medium repo (500-2000 files) scan <= 45s
  * - Large repo (5000+ files) scan <= 120s
- *
- * Strategy:
- * - Use Node.js worker_threads for parallel parsing
- * - Batch files by language for efficient parsing
- * - Fallback to single-thread if workers unavailable
- * - Streaming processing for large repos (5000+ files)
- * - Memory-efficient chunked processing
- * - Lazy symbol loading (symbols only loaded when needed)
  */
 
 import { Worker, isMainThread } from "node:worker_threads";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 
@@ -28,91 +20,29 @@ import { parseRubyFile } from "../adapters/rb-adapter.js";
 import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
 import type { RepoFile } from "../types/artifacts.js";
 
-/**
- * Threshold for large repo processing
- */
-export const LARGE_REPO_THRESHOLD = 5000;
+import {
+  LARGE_REPO_THRESHOLD,
+  type FileProcessorOptions,
+  type FileProcessorResult,
+  type ProcessingProgressEvent,
+  type ProcessBatchMessage,
+  type ProcessBatchResultMessage,
+} from "./file-processor-types.js";
 
-/**
- * Options for file processor
- */
-export interface FileProcessorOptions {
-  /** Maximum number of worker threads (default: 4) */
-  maxWorkers?: number;
-  /** Batch size per worker (default: 50) */
-  batchSize?: number;
-  /** Timeout per file in ms (default: 10000) */
-  timeoutMs?: number;
-  /** Enable worker threads (default: true if available) */
-  useWorkers?: boolean;
-  /** Repo root for relative path computation */
-  repoRoot: string;
-  /** Enable streaming mode for large repos (default: true for 5000+ files) */
-  streamingMode?: boolean;
-  /** Chunk size for memory-efficient processing (default: 500) */
-  chunkSize?: number;
-  /** Enable progress reporting (default: false) */
-  verbose?: boolean;
-  /** Enable lazy symbol loading (default: true for large repos) */
-  lazySymbols?: boolean;
-}
+import {
+  processBatch,
+  createBatches,
+  getOptimizedBatchSize,
+  extractImportsQuickly,
+} from "./batch-processor.js";
 
-/**
- * Progress event for large repo processing
- */
-export interface ProcessingProgressEvent {
-  /** Current phase of processing */
-  phase: "discovery" | "batch-processing" | "graph-building" | "complete";
-  /** Total files to process */
-  totalFiles: number;
-  /** Files processed so far */
-  processedFiles: number;
-  /** Current batch number */
-  batchNumber: number;
-  /** Total batches */
-  totalBatches: number;
-  /** Time elapsed in ms */
-  elapsedMs: number;
-  /** Estimated remaining time in ms */
-  estimatedRemainingMs: number;
-  /** Files per second rate */
-  filesPerSecond: number;
-}
-
-/**
- * Result of processing a single file
- */
-export interface FileProcessorResult {
-  /** RepoFile metadata */
-  file: RepoFile;
-  /** Parse result (symbols, relations, diagnostics) */
-  parseResult: ParseResult;
-  /** Processing time in ms */
-  processTimeMs: number;
-  /** Whether processing succeeded */
-  success: boolean;
-  /** Error message if failed */
-  error?: string;
-  /** Whether symbols are lazily loaded (not included in parseResult) */
-  symbolsLazyLoaded?: boolean;
-}
-
-/**
- * Internal batch processing message
- */
-interface ProcessBatchMessage {
-  type: "process-batch";
-  files: Array<{ path: string; content: string; fileId: string }>;
-  repoRoot: string;
-}
-
-/**
- * Internal batch result message
- */
-interface ProcessBatchResultMessage {
-  type: "batch-result";
-  results: FileProcessorResult[];
-}
+// Re-export types for external use
+export {
+  LARGE_REPO_THRESHOLD,
+  FileProcessorOptions,
+  FileProcessorResult,
+  ProcessingProgressEvent,
+};
 
 /**
  * Parallel file processor implementation
@@ -120,16 +50,11 @@ interface ProcessBatchResultMessage {
 export class FileProcessor extends EventEmitter {
   private options: FileProcessorOptions;
   private workers: Worker[] = [];
-  private pendingResults: Map<string, FileProcessorResult[]> = new Map();
   private workerBusy: boolean[] = [];
+  private lazySymbolCache: Map<string, () => ParseResult> = new Map();
   private processingStartTime: number = 0;
   private processedCount: number = 0;
-  private lazySymbolCache: Map<string, () => ParseResult> = new Map();
 
-  /**
-   * Create a new file processor
-   * @param options - Processing options
-   */
   constructor(options: FileProcessorOptions) {
     super();
     this.options = {
@@ -145,67 +70,32 @@ export class FileProcessor extends EventEmitter {
     };
   }
 
-  /**
-   * Check if processing a large repo
-   * @param fileCount - Number of files to process
-   * @returns True if large repo mode should be used
-   */
-  isLargeRepo(fileCount: number): boolean {
-    return fileCount >= LARGE_REPO_THRESHOLD;
-  }
-
-  /**
-   * Get optimized batch size based on file count
-   * @param fileCount - Number of files
-   * @returns Optimized batch size
-   */
-  getOptimizedBatchSize(fileCount: number): number {
-    if (fileCount >= LARGE_REPO_THRESHOLD) {
-      // For large repos, use larger batches for efficiency
-      return Math.min(200, Math.ceil(fileCount / this.options.maxWorkers! / 2));
-    }
-    return this.options.batchSize!;
-  }
-
-  /**
-   * Check if worker threads are available
-   */
   private canUseWorkers(): boolean {
     try {
-      // Check if we're in a worker thread already
-      if (!isMainThread) {
-        return false;
-      }
-      return true;
+      return isMainThread;
     } catch {
       return false;
     }
   }
 
-  /**
-   * Process files in parallel
-   * @param filePaths - Absolute paths to files
-   * @returns Array of processing results
-   */
-  async processFiles(filePaths: string[]): Promise<FileProcessorResult[]> {
-    if (filePaths.length === 0) {
-      return [];
-    }
+  isLargeRepo(fileCount: number): boolean {
+    return fileCount >= LARGE_REPO_THRESHOLD;
+  }
 
-    // For small batches or when workers disabled, use single-thread
+  getOptimizedBatchSize(fileCount: number): number {
+    return getOptimizedBatchSize(fileCount, this.options.maxWorkers!, this.options.batchSize!);
+  }
+
+  async processFiles(filePaths: string[]): Promise<FileProcessorResult[]> {
+    if (filePaths.length === 0) return [];
+
     if (filePaths.length < this.options.batchSize! || !this.options.useWorkers) {
       return this.processFilesSingleThread(filePaths);
     }
 
-    // Use worker threads for larger batches
     return this.processFilesWithWorkers(filePaths);
   }
 
-  /**
-   * Process files in single-thread mode
-   * @param filePaths - Absolute paths to files
-   * @returns Array of processing results
-   */
   private processFilesSingleThread(filePaths: string[]): FileProcessorResult[] {
     const results: FileProcessorResult[] = [];
 
@@ -214,23 +104,16 @@ export class FileProcessor extends EventEmitter {
       const result = this.processFile(filePath);
       result.processTimeMs = Date.now() - startTime;
       results.push(result);
-
       this.emit("file-processed", result);
     }
 
     return results;
   }
 
-  /**
-   * Process files using worker threads
-   * @param filePaths - Absolute paths to files
-   * @returns Array of processing results
-   */
   private async processFilesWithWorkers(filePaths: string[]): Promise<FileProcessorResult[]> {
     const results: FileProcessorResult[] = [];
-    const batches = this.createBatches(filePaths);
+    const batches = createBatches(filePaths, this.options.batchSize!);
 
-    // Create workers
     const workerPath = this.getWorkerPath();
     const numWorkers = Math.min(this.options.maxWorkers!, batches.length);
 
@@ -252,16 +135,13 @@ export class FileProcessor extends EventEmitter {
       });
     }
 
-    // Dispatch batches to workers
     let batchIndex = 0;
     const pendingBatches = [...batches];
 
     while (pendingBatches.length > 0) {
-      // Find available worker
       const availableWorker = this.workerBusy.findIndex((busy) => !busy);
 
       if (availableWorker === -1) {
-        // Wait for a worker to become available
         await new Promise<void>((resolve) => {
           this.once("batch-complete", () => resolve());
         });
@@ -285,7 +165,6 @@ export class FileProcessor extends EventEmitter {
       batchIndex++;
     }
 
-    // Wait for all workers to complete
     await new Promise<void>((resolve) => {
       const checkComplete = () => {
         if (this.workerBusy.every((busy) => !busy)) {
@@ -297,7 +176,6 @@ export class FileProcessor extends EventEmitter {
       checkComplete();
     });
 
-    // Terminate workers
     for (const worker of this.workers) {
       worker.terminate();
     }
@@ -307,36 +185,10 @@ export class FileProcessor extends EventEmitter {
     return results;
   }
 
-  /**
-   * Create batches of files for workers
-   * @param filePaths - File paths to batch
-   * @returns Array of file path batches
-   */
-  private createBatches(filePaths: string[]): string[][] {
-    const batches: string[][] = [];
-    const batchSize = this.options.batchSize!;
-
-    for (let i = 0; i < filePaths.length; i += batchSize) {
-      batches.push(filePaths.slice(i, i + batchSize));
-    }
-
-    return batches;
-  }
-
-  /**
-   * Get worker script path
-   */
   private getWorkerPath(): string {
-    // In production, this would be a compiled worker script
-    // For development, we use a fallback
     return path.join(__dirname, "file-processor-worker.js");
   }
 
-  /**
-   * Process a single file
-   * @param filePath - Absolute path to file
-   * @returns Processing result
-   */
   processFile(filePath: string): FileProcessorResult {
     try {
       const relPath = toPosix(path.relative(this.options.repoRoot, filePath));
@@ -347,7 +199,6 @@ export class FileProcessor extends EventEmitter {
       const role = detectRole(relPath);
       const hash = sha256(content);
 
-      // Parse based on language
       let parseResult: ParseResult;
 
       if (language === "ts" || language === "tsx") {
@@ -361,7 +212,6 @@ export class FileProcessor extends EventEmitter {
       } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language);
       } else {
-        // Fallback for unsupported languages
         parseResult = {
           symbols: [],
           relations: [],
@@ -387,12 +237,7 @@ export class FileProcessor extends EventEmitter {
         },
       };
 
-      return {
-        file,
-        parseResult,
-        processTimeMs: 0, // Set by caller
-        success: true,
-      };
+      return { file, parseResult, processTimeMs: 0, success: true };
     } catch (error) {
       const relPath = toPosix(path.relative(this.options.repoRoot, filePath));
 
@@ -405,10 +250,7 @@ export class FileProcessor extends EventEmitter {
           hash: "",
           sizeBytes: 0,
           lineCount: 0,
-          parser: {
-            status: "failed",
-            errorCode: "PROCESS_ERROR",
-          },
+          parser: { status: "failed", errorCode: "PROCESS_ERROR" },
         },
         parseResult: {
           symbols: [],
@@ -424,88 +266,13 @@ export class FileProcessor extends EventEmitter {
     }
   }
 
-  /**
-   * Static method to process a batch (for worker threads)
-   * @param files - Files to process
-   * @param repoRoot - Repository root
-   * @returns Processing results
-   */
-  static processBatch(
-    files: Array<{ path: string; content: string; fileId: string }>,
-    repoRoot: string
-  ): FileProcessorResult[] {
-    const results: FileProcessorResult[] = [];
+  static processBatch = processBatch;
 
-    for (const fileInfo of files) {
-      const startTime = Date.now();
-      const language = detectLanguage(fileInfo.path);
-      const relPath = toPosix(path.relative(repoRoot, fileInfo.path));
-      const role = detectRole(relPath);
-      const hash = sha256(fileInfo.content);
-
-      let parseResult: ParseResult;
-
-      if (language === "ts" || language === "tsx") {
-        parseResult = parseTypeScriptFile(fileInfo.path, repoRoot, fileInfo.fileId);
-      } else if (language === "js" || language === "jsx") {
-        parseResult = parseJavaScriptFile(fileInfo.path, repoRoot, fileInfo.fileId);
-      } else if (language === "py") {
-        parseResult = parsePythonFile(fileInfo.path, repoRoot, fileInfo.fileId);
-      } else if (language === "rb") {
-        parseResult = parseRubyFile(fileInfo.path, repoRoot, fileInfo.fileId);
-      } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
-        parseResult = parseRegexLanguageFile(fileInfo.path, repoRoot, fileInfo.fileId, language);
-      } else {
-        parseResult = {
-          symbols: [],
-          relations: [],
-          diagnostics: [],
-          parserStatus: "skipped",
-          parserAdapter: "ctg-text-v0",
-        };
-      }
-
-      const file: RepoFile = {
-        id: fileInfo.fileId,
-        path: relPath,
-        language,
-        role,
-        hash,
-        sizeBytes: Buffer.byteLength(fileInfo.content),
-        lineCount: fileInfo.content.split(/\r?\n/).length,
-        moduleId: `module:${relPath}`,
-        parser: {
-          status: parseResult.parserStatus,
-          adapter: parseResult.parserAdapter,
-          errorCode: parseResult.parserStatus === "failed" ? "PARSER_FAILED" : undefined,
-        },
-      };
-
-      results.push({
-        file,
-        parseResult,
-        processTimeMs: Date.now() - startTime,
-        success: true,
-      });
-    }
-
-    return results;
-  }
-
-  /**
-   * Process files in streaming mode for large repos
-   * Yields results in chunks to avoid memory issues
-   * @param filePaths - Absolute paths to files
-   * @param onProgress - Optional progress callback
-   * @returns AsyncGenerator yielding chunks of results
-   */
   async *processFilesStreaming(
     filePaths: string[],
     onProgress?: (progress: ProcessingProgressEvent) => void
   ): AsyncGenerator<FileProcessorResult[], void, unknown> {
-    if (filePaths.length === 0) {
-      return;
-    }
+    if (filePaths.length === 0) return;
 
     this.processingStartTime = Date.now();
     this.processedCount = 0;
@@ -514,71 +281,38 @@ export class FileProcessor extends EventEmitter {
     const totalFiles = filePaths.length;
     const totalChunks = Math.ceil(totalFiles / chunkSize);
     const batchSize = this.getOptimizedBatchSize(totalFiles);
-    const useLazySymbols: boolean = this.isLargeRepo(totalFiles) && (this.options.lazySymbols ?? true);
+    const useLazySymbols = this.isLargeRepo(totalFiles) && (this.options.lazySymbols ?? true);
 
-    // Emit discovery phase
     this.emitProgress("discovery", 0, 0, totalFiles, onProgress);
 
-    // Process in chunks
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       const chunkStart = chunkIndex * chunkSize;
       const chunkEnd = Math.min(chunkStart + chunkSize, totalFiles);
       const chunkFiles = filePaths.slice(chunkStart, chunkEnd);
 
       const chunkResults: FileProcessorResult[] = [];
+      const batches = createBatches(chunkFiles, batchSize);
 
-      // Process chunk in batches
-      const batches = this.createBatchesOptimized(chunkFiles, batchSize);
-      const batchCount = batches.length;
-
-      for (let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
-        const batch = batches[batchIndex];
-        const batchResults = this.processBatchWithLazySymbols(batch, useLazySymbols);
-
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batchResults = this.processBatchWithLazySymbols(batches[batchIndex], useLazySymbols);
         chunkResults.push(...batchResults);
-        this.processedCount += batch.length;
+        this.processedCount += batches[batchIndex].length;
 
-        // Emit progress
         const currentBatch = chunkIndex * Math.ceil(chunkSize / batchSize) + batchIndex + 1;
         const totalBatches = totalChunks * Math.ceil(chunkSize / batchSize);
         this.emitProgress("batch-processing", currentBatch, totalBatches, this.processedCount, onProgress);
       }
 
-      // Yield chunk results
       yield chunkResults;
 
-      // Force garbage collection hint for large repos
       if (this.isLargeRepo(totalFiles) && global.gc) {
         global.gc();
       }
     }
 
-    // Emit completion
     this.emitProgress("complete", 0, 0, totalFiles, onProgress);
   }
 
-  /**
-   * Create batches with optimized size
-   * @param filePaths - File paths to batch
-   * @param batchSize - Batch size to use
-   * @returns Array of file path batches
-   */
-  private createBatchesOptimized(filePaths: string[], batchSize: number): string[][] {
-    const batches: string[][] = [];
-
-    for (let i = 0; i < filePaths.length; i += batchSize) {
-      batches.push(filePaths.slice(i, i + batchSize));
-    }
-
-    return batches;
-  }
-
-  /**
-   * Process a batch with optional lazy symbol loading
-   * @param filePaths - File paths in batch
-   * @param useLazySymbols - Whether to use lazy symbol loading
-   * @returns Processing results
-   */
   private processBatchWithLazySymbols(filePaths: string[], useLazySymbols: boolean): FileProcessorResult[] {
     const results: FileProcessorResult[] = [];
 
@@ -587,19 +321,12 @@ export class FileProcessor extends EventEmitter {
       const result = this.processFileWithLazySymbols(filePath, useLazySymbols);
       result.processTimeMs = Date.now() - startTime;
       results.push(result);
-
       this.emit("file-processed", result);
     }
 
     return results;
   }
 
-  /**
-   * Process a single file with optional lazy symbol loading
-   * @param filePath - Absolute path to file
-   * @param useLazySymbols - Whether to defer symbol extraction
-   * @returns Processing result
-   */
   private processFileWithLazySymbols(filePath: string, useLazySymbols: boolean): FileProcessorResult {
     try {
       const relPath = toPosix(path.relative(this.options.repoRoot, filePath));
@@ -610,15 +337,12 @@ export class FileProcessor extends EventEmitter {
       const role = detectRole(relPath);
       const hash = sha256(content);
 
-      // For lazy symbol loading, only extract basic metadata
       if (useLazySymbols && (language === "ts" || language === "tsx" || language === "js" || language === "jsx")) {
-        // Store lazy loader function
         const lazyLoader = () => {
           if (language === "ts" || language === "tsx") {
             return parseTypeScriptFile(filePath, this.options.repoRoot, fileId);
-          } else {
-            return parseJavaScriptFile(filePath, this.options.repoRoot, fileId);
           }
+          return parseJavaScriptFile(filePath, this.options.repoRoot, fileId);
         };
 
         this.lazySymbolCache.set(fileId, lazyLoader);
@@ -632,31 +356,20 @@ export class FileProcessor extends EventEmitter {
           sizeBytes: Buffer.byteLength(content),
           lineCount: content.split(/\r?\n/).length,
           moduleId: `module:${relPath}`,
-          parser: {
-            status: "parsed",
-            adapter: "ctg-lazy-v0",
-          },
+          parser: { status: "parsed", adapter: "ctg-lazy-v0" },
         };
 
-        // Return minimal parse result (relations from imports can be extracted cheaply)
         const minimalParseResult: ParseResult = {
-          symbols: [], // Will be loaded lazily when needed
-          relations: this.extractImportsQuickly(content, relPath, fileId),
+          symbols: [],
+          relations: extractImportsQuickly(content, relPath, fileId),
           diagnostics: [],
           parserStatus: "parsed",
           parserAdapter: "ctg-lazy-v0",
         };
 
-        return {
-          file,
-          parseResult: minimalParseResult,
-          processTimeMs: 0,
-          success: true,
-          symbolsLazyLoaded: true,
-        };
+        return { file, parseResult: minimalParseResult, processTimeMs: 0, success: true, symbolsLazyLoaded: true };
       }
 
-      // Normal processing when not using lazy loading
       let parseResult: ParseResult;
 
       if (language === "ts" || language === "tsx") {
@@ -670,13 +383,7 @@ export class FileProcessor extends EventEmitter {
       } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language as RegexLanguage);
       } else {
-        parseResult = {
-          symbols: [],
-          relations: [],
-          diagnostics: [],
-          parserStatus: "skipped",
-          parserAdapter: "ctg-text-v0",
-        };
+        parseResult = { symbols: [], relations: [], diagnostics: [], parserStatus: "skipped", parserAdapter: "ctg-text-v0" };
       }
 
       const file: RepoFile = {
@@ -695,13 +402,7 @@ export class FileProcessor extends EventEmitter {
         },
       };
 
-      return {
-        file,
-        parseResult,
-        processTimeMs: 0,
-        success: true,
-        symbolsLazyLoaded: false,
-      };
+      return { file, parseResult, processTimeMs: 0, success: true, symbolsLazyLoaded: false };
     } catch (error) {
       const relPath = toPosix(path.relative(this.options.repoRoot, filePath));
 
@@ -714,18 +415,9 @@ export class FileProcessor extends EventEmitter {
           hash: "",
           sizeBytes: 0,
           lineCount: 0,
-          parser: {
-            status: "failed",
-            errorCode: "PROCESS_ERROR",
-          },
+          parser: { status: "failed", errorCode: "PROCESS_ERROR" },
         },
-        parseResult: {
-          symbols: [],
-          relations: [],
-          diagnostics: [],
-          parserStatus: "failed",
-          parserAdapter: "ctg-text-v0",
-        },
+        parseResult: { symbols: [], relations: [], diagnostics: [], parserStatus: "failed", parserAdapter: "ctg-text-v0" },
         processTimeMs: 0,
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -733,85 +425,32 @@ export class FileProcessor extends EventEmitter {
     }
   }
 
-  /**
-   * Quickly extract import relations without full parsing
-   * Uses regex-based extraction for speed
-   * @param content - File content
-   * @param relPath - Relative file path
-   * @param fileId - File ID
-   * @returns Minimal relations array
-   */
-  private extractImportsQuickly(content: string, relPath: string, fileId: string): ParseResult["relations"] {
-    const relations: ParseResult["relations"] = [];
-
-    // Quick regex-based import extraction
-    const importPatterns = [
-      /import\s+.*?\s+from\s+['"]([^'"]+)['"]/g,
-      /import\s+['"]([^'"]+)['"]/g,
-      /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-    ];
-
-    let importIndex = 0;
-    for (const pattern of importPatterns) {
-      let match;
-      while ((match = pattern.exec(content)) !== null) {
-        importIndex++;
-        const moduleSpecifier = match[1];
-        const lineNumber = content.substring(0, match.index).split("\n").length;
-
-        relations.push({
-          id: `relation:${relPath}:quick-import:${importIndex}`,
-          from: fileId,
-          to: moduleSpecifier,
-          kind: "imports",
-          confidence: 0.9,
-          evidence: [{
-            id: `ev-quick-import-${importIndex}`,
-            path: relPath,
-            startLine: lineNumber,
-            endLine: lineNumber,
-            kind: "text",
-          }],
-        });
-      }
-    }
-
-    return relations;
-  }
-
-  /**
-   * Load symbols lazily for a file
-   * @param fileId - File ID to load symbols for
-   * @returns Parse result with full symbols
-   */
   loadSymbolsLazily(fileId: string): ParseResult | undefined {
     const lazyLoader = this.lazySymbolCache.get(fileId);
-    if (!lazyLoader) {
-      return undefined;
-    }
+    if (!lazyLoader) return undefined;
 
     const result = lazyLoader();
-    this.lazySymbolCache.delete(fileId); // Clear after loading
+    this.lazySymbolCache.delete(fileId);
     return result;
   }
 
-  /**
-   * Check if a file has lazy-loaded symbols
-   * @param fileId - File ID to check
-   * @returns True if symbols are lazily loaded
-   */
   hasLazySymbols(fileId: string): boolean {
     return this.lazySymbolCache.has(fileId);
   }
 
-  /**
-   * Emit progress event
-   * @param phase - Current phase
-   * @param batchNumber - Current batch number
-   * @param totalBatches - Total batches
-   * @param processedFiles - Files processed so far
-   * @param onProgress - Optional progress callback
-   */
+  clearLazySymbolCache(): void {
+    this.lazySymbolCache.clear();
+  }
+
+  terminate(): void {
+    for (const worker of this.workers) {
+      worker.terminate();
+    }
+    this.workers = [];
+    this.workerBusy = [];
+    this.lazySymbolCache.clear();
+  }
+
   private emitProgress(
     phase: ProcessingProgressEvent["phase"],
     batchNumber: number,
@@ -820,101 +459,23 @@ export class FileProcessor extends EventEmitter {
     onProgress?: (progress: ProcessingProgressEvent) => void
   ): void {
     const elapsedMs = Date.now() - this.processingStartTime;
-    const totalFiles = processedFiles; // Use processed count for now
-    const filesPerSecond = elapsedMs > 0 ? processedFiles / (elapsedMs / 1000) : 0;
+    const filesPerSecond = processedFiles > 0 ? (processedFiles / elapsedMs) * 1000 : 0;
+    const estimatedRemainingMs = filesPerSecond > 0 ? ((totalBatches * this.options.batchSize! - processedFiles) / filesPerSecond) * 1000 : 0;
 
     const progress: ProcessingProgressEvent = {
       phase,
-      totalFiles,
+      totalFiles: totalBatches * this.options.batchSize!,
       processedFiles,
       batchNumber,
       totalBatches,
       elapsedMs,
-      estimatedRemainingMs: filesPerSecond > 0 ? Math.ceil((totalFiles - processedFiles) / filesPerSecond * 1000) : 0,
+      estimatedRemainingMs,
       filesPerSecond,
     };
 
     this.emit("progress", progress);
-
     if (onProgress) {
       onProgress(progress);
     }
-
-    // Log progress if verbose mode
-    if (this.options.verbose) {
-      console.log(JSON.stringify({
-        phase,
-        processedFiles,
-        totalFiles,
-        batchNumber,
-        totalBatches,
-        elapsedMs,
-        filesPerSecond: Math.round(filesPerSecond),
-      }));
-    }
-  }
-
-  /**
-   * Process files and build graph in memory-efficient way
-   * @param filePaths - Absolute paths to files
-   * @param graphBuilder - Callback to add results to graph
-   * @param onProgress - Optional progress callback
-   * @returns Total processing time in ms
-   */
-  async processAndBuildGraph(
-    filePaths: string[],
-    graphBuilder: (results: FileProcessorResult[]) => void,
-    onProgress?: (progress: ProcessingProgressEvent) => void
-  ): Promise<number> {
-    const startTime = Date.now();
-
-    for await (const chunkResults of this.processFilesStreaming(filePaths, onProgress)) {
-      // Emit graph-building phase progress
-      this.emitProgress("graph-building", 0, 0, this.processedCount, onProgress);
-
-      // Add results to graph (caller handles graph construction)
-      graphBuilder(chunkResults);
-    }
-
-    return Date.now() - startTime;
-  }
-
-  /**
-   * Get processor statistics with large repo info
-   */
-  getStats(): {
-    workerCount: number;
-    batchSize: number;
-    useWorkers: boolean;
-    lazySymbolCacheSize: number;
-    isLargeRepo: boolean;
-  } {
-    return {
-      workerCount: this.workers.length,
-      batchSize: this.options.batchSize!,
-      useWorkers: this.options.useWorkers!,
-      lazySymbolCacheSize: this.lazySymbolCache.size,
-      isLargeRepo: this.options.chunkSize !== undefined,
-    };
-  }
-
-  /**
-   * Clear lazy symbol cache to free memory
-   */
-  clearLazySymbolCache(): void {
-    this.lazySymbolCache.clear();
-  }
-
-  /**
-   * Terminate all workers
-   */
-  terminate(): void {
-    for (const worker of this.workers) {
-      worker.terminate();
-    }
-    this.workers = [];
-    this.workerBusy = [];
-    this.clearLazySymbolCache();
-    this.processedCount = 0;
   }
 }
