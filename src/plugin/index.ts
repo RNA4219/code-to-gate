@@ -161,11 +161,15 @@ export {
   createDockerSandboxRunner,
   isDockerSandboxAvailable,
   createSandboxRunner,
+} from "./docker-sandbox.js";
+
+// === Docker Utilities ===
+export {
   pullDockerImage,
   listRunningPluginContainers,
   getContainerLogs,
   stopAndRemoveContainer,
-} from "./docker-sandbox.js";
+} from "./docker-exec-utils.js";
 
 // === Utility Functions ===
 

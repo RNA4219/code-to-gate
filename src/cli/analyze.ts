@@ -266,7 +266,15 @@ Provide concise, actionable findings.`,
     }
 
     if (emitFormats.includes("md")) {
-      const reportPath = writeAnalysisReportMd(absoluteOutDir, reportedFindings, riskRegister, graph.repo.root);
+      const reportPath = writeAnalysisReportMd(
+        absoluteOutDir,
+        reportedFindings,
+        riskRegister,
+        graph.repo.root,
+        {
+          suppressedFindings: evalResult?.suppressedFindings ?? [],
+        }
+      );
       generated.push(reportPath);
     }
 

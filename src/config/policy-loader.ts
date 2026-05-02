@@ -15,10 +15,13 @@ import {
 } from "./policy-types.js";
 import { parseYamlPolicy, mergeWithDefaults, parseSuppressionFile } from "./policy-yaml-parser.js";
 
-// Re-export types
+// Re-export types and constants
 export {
   POLICY_VERSION,
   createDefaultPolicy,
+  DEFAULT_BLOCKING_SEVERITY,
+  DEFAULT_BLOCKING_CATEGORY,
+  DEFAULT_CONFIDENCE,
   BlockingSeverityConfig,
   BlockingCategoryConfig,
   BlockingRulesConfig,

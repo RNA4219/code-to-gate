@@ -5,7 +5,7 @@
 
 export const PLUGIN_INPUT_VERSION = "ctg.plugin-input/v1";
 export const PLUGIN_OUTPUT_VERSION = "ctg.plugin-output/v1";
-export const PLUGIN_MANIFEST_VERSION = "ctg/v1alpha1";
+export const PLUGIN_MANIFEST_VERSION = "ctg/v1";
 
 /**
  * Plugin capability types

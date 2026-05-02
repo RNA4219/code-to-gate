@@ -42,6 +42,10 @@ export {
   generateEvidenceHtml,
   generateFilterToolbar,
   FindingViewerConfig,
+} from "./finding-viewer.js";
+
+// Finding utilities (exported from finding-viewer-utils via finding-viewer)
+export {
   sortFindingsBySeverity,
   filterFindingsBySeverity,
   filterFindingsByCategory,
@@ -51,7 +55,7 @@ export {
   countByCategory,
   getSeverityColor,
   getSeverityOrder,
-} from "./finding-viewer.js";
+} from "./finding-viewer-utils.js";
 
 // Styles
 export {

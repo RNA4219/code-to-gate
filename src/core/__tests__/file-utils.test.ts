@@ -504,6 +504,22 @@ describe("file-utils", () => {
       const files = walkDir(emptyDir);
       expect(files).toEqual([]);
     });
+
+    it("ignores .qh* pattern directories", () => {
+      mkdirSync(path.join(tempTestDir, ".qh-custom"), { recursive: true });
+      writeFileSync(path.join(tempTestDir, ".qh-custom", "file.ts"), "test", "utf8");
+
+      const files = walkDir(tempTestDir);
+      expect(files.some((f) => f.includes(".qh-custom"))).toBe(false);
+    });
+
+    it("ignores .test-temp* pattern directories", () => {
+      mkdirSync(path.join(tempTestDir, ".test-temp-smoke"), { recursive: true });
+      writeFileSync(path.join(tempTestDir, ".test-temp-smoke", "file.ts"), "test", "utf8");
+
+      const files = walkDir(tempTestDir);
+      expect(files.some((f) => f.includes(".test-temp-smoke"))).toBe(false);
+    });
   });
 
   describe("isTargetFile", () => {
@@ -822,6 +838,22 @@ describe("file-utils", () => {
 
     it("contains .cache", () => {
       expect(DEFAULT_IGNORED_DIRS.has(".cache")).toBe(true);
+    });
+
+    it("contains .venv", () => {
+      expect(DEFAULT_IGNORED_DIRS.has(".venv")).toBe(true);
+    });
+
+    it("contains venv", () => {
+      expect(DEFAULT_IGNORED_DIRS.has("venv")).toBe(true);
+    });
+
+    it("contains .browser-use-env", () => {
+      expect(DEFAULT_IGNORED_DIRS.has(".browser-use-env")).toBe(true);
+    });
+
+    it("contains .test-temp", () => {
+      expect(DEFAULT_IGNORED_DIRS.has(".test-temp")).toBe(true);
     });
   });
 });

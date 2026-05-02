@@ -96,20 +96,40 @@ function summarizeDomains(findings: Finding[]): Array<{ domain: string; count: n
 }
 
 /**
- * Generate analysis report markdown
+ * Generate analysis report markdown with suppression debt display
  */
 export function generateAnalysisReport(
   findings: FindingsArtifact,
   riskRegister: RiskRegisterArtifact,
-  repoRoot: string
+  repoRoot: string,
+  options?: {
+    suppressedFindings?: Finding[];
+    suppressionDebtFindings?: Finding[];
+  }
 ): string {
-  const counts = countBySeverity(findings.findings);
-  const totalFindings = findings.findings.length;
+  const suppressedFindings = options?.suppressedFindings ?? [];
+  const suppressionDebtFindings = options?.suppressionDebtFindings ?? findings.findings.filter(
+    (f) => f.ruleId === "SUPPRESSION_DEBT"
+  );
+  const activeFindings = findings.findings.filter(
+    (f) => f.ruleId !== "SUPPRESSION_DEBT" && f.ruleId !== "DEBT_MARKER"
+  );
+  const debtMarkerFindings = findings.findings.filter(
+    (f) => f.ruleId === "DEBT_MARKER"
+  );
+
+  const counts = countBySeverity(activeFindings);
+  const suppressionDebtCounts = countBySeverity(suppressionDebtFindings);
+  const debtMarkerCounts = countBySeverity(debtMarkerFindings);
+  const totalActiveFindings = activeFindings.length;
+  const totalSuppressedFindings = suppressedFindings.length;
+  const totalSuppressionDebt = suppressionDebtFindings.length;
+  const totalDebtMarkers = debtMarkerFindings.length;
   const totalRisks = riskRegister.risks.length;
   const highRisks = riskRegister.risks.filter(
     (r) => r.severity === "high" || r.severity === "critical"
   );
-  const domainSummary = summarizeDomains(findings.findings);
+  const domainSummary = summarizeDomains(activeFindings);
 
   let md = `# code-to-gate Analysis Report
 
@@ -122,15 +142,30 @@ Repository: ${repoRoot}
 
 ## Summary
 
+### Active Findings
+
 | Metric | Count |
 |--------|-------|
-| Total Findings | ${totalFindings} |
+| Active Findings | ${totalActiveFindings} |
 | Critical | ${counts.critical} |
 | High | ${counts.high} |
 | Medium | ${counts.medium} |
 | Low | ${counts.low} |
 | Total Risks | ${totalRisks} |
 | Unsupported Claims | ${findings.unsupported_claims.length} |
+
+### Suppressed Findings
+
+| Metric | Count |
+|--------|-------|
+| Suppressed Findings | ${totalSuppressedFindings} |
+
+### Known Debt
+
+| Debt Type | Count | Critical | High | Medium | Low |
+|-----------|-------|----------|------|--------|-----|
+| Suppression Debt | ${totalSuppressionDebt} | ${suppressionDebtCounts.critical} | ${suppressionDebtCounts.high} | ${suppressionDebtCounts.medium} | ${suppressionDebtCounts.low} |
+| Explicit Debt Markers | ${totalDebtMarkers} | ${debtMarkerCounts.critical} | ${debtMarkerCounts.high} | ${debtMarkerCounts.medium} | ${debtMarkerCounts.low} |
 
 `;
 
@@ -142,6 +177,51 @@ Repository: ${repoRoot}
 `;
     for (const domain of domainSummary) {
       md += `| ${escapeMarkdownCell(domain.domain)} | ${domain.count} | ${domain.high} | ${escapeMarkdownCell(domain.paths.join(", ") || "n/a")} |\n`;
+    }
+    md += "\n";
+  }
+
+  // Add suppressed findings section if any
+  if (suppressedFindings.length > 0) {
+    md += `## Suppressed Findings
+
+| ID | Rule | Severity | Title | Reason |
+|----|------|----------|-------|--------|
+`;
+    for (const finding of suppressedFindings) {
+      md += `| ${finding.id} | ${finding.ruleId} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(finding.title)} | (suppressed) |\n`;
+    }
+    md += "\n";
+  }
+
+  // Add suppression debt section if any
+  if (suppressionDebtFindings.length > 0) {
+    md += `## Suppression Debt
+
+These suppressions may hide underlying issues and should be reviewed.
+
+| ID | Location | Severity | Title |
+|----|----------|----------|-------|
+`;
+    for (const finding of suppressionDebtFindings) {
+      const evidencePath = finding.evidence[0]?.path ?? "n/a";
+      md += `| ${finding.id} | ${escapeMarkdownCell(evidencePath)} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(finding.title)} |\n`;
+    }
+    md += "\n";
+  }
+
+  // Add debt markers section if any
+  if (debtMarkerFindings.length > 0) {
+    md += `## Explicit Debt Markers
+
+Explicit TODO/FIXME/HACK markers detected in source code.
+
+| ID | Location | Severity | Title |
+|----|----------|----------|-------|
+`;
+    for (const finding of debtMarkerFindings) {
+      const evidencePath = finding.evidence[0]?.path ?? "n/a";
+      md += `| ${finding.id} | ${escapeMarkdownCell(evidencePath)} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(finding.title)} |\n`;
     }
     md += "\n";
   }
@@ -160,27 +240,27 @@ Repository: ${repoRoot}
     md += "\n";
   }
 
-  // Add all findings table
-  if (findings.findings.length > 0) {
+  // Add all findings table (excluding debt findings which are shown separately)
+  if (activeFindings.length > 0) {
     md += `## All Findings
 
 | ID | Rule | Category | Domain | Severity | Title | Evidence | Review Flags | LLM |
 |----|------|----------|--------|----------|-------|----------|--------------|-----|
 `;
-    for (const finding of findings.findings) {
+    for (const finding of activeFindings) {
       const llmStatus = finding.tags?.includes("llm-reviewed") ? "reflected" : "not-used";
       md += `| ${finding.id} | ${finding.ruleId} | ${finding.category} | ${escapeMarkdownCell(findingDomain(finding))} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(finding.title)} | ${escapeMarkdownCell(firstEvidencePath(finding))} | ${escapeMarkdownCell(findingReviewFlags(finding))} | ${llmStatus} |\n`;
     }
     md += "\n";
   }
 
-  if (findings.findings.length > 0) {
+  if (activeFindings.length > 0) {
     md += `## False-Positive Review
 
 | Finding | Checkpoint |
 |---------|------------|
 `;
-    for (const finding of findings.findings) {
+    for (const finding of activeFindings) {
       const signal = inferFindingDomain(finding);
       const checkpoint = [
         `domain=${signal.label}`,
@@ -287,10 +367,14 @@ export function writeAnalysisReportMd(
   outDir: string,
   findings: FindingsArtifact,
   riskRegister: RiskRegisterArtifact,
-  repoRoot: string
+  repoRoot: string,
+  options?: {
+    suppressedFindings?: Finding[];
+    suppressionDebtFindings?: Finding[];
+  }
 ): string {
   const filePath = path.join(outDir, "analysis-report.md");
-  const content = generateAnalysisReport(findings, riskRegister, repoRoot);
+  const content = generateAnalysisReport(findings, riskRegister, repoRoot, options);
   writeFileSync(filePath, content, "utf8");
   return filePath;
 }

@@ -171,6 +171,9 @@ describe('Core Module Smoke Tests', () => {
       expect(DEFAULT_IGNORED_DIRS.has('node_modules')).toBe(true);
       expect(DEFAULT_IGNORED_DIRS.has('.git')).toBe(true);
       expect(DEFAULT_IGNORED_DIRS.has('dist')).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has('.venv')).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has('venv')).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has('.browser-use-env')).toBe(true);
     });
   });
 

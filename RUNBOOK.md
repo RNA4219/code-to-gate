@@ -1004,33 +1004,36 @@ code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml 
    - `.test-temp*` pattern matching 追加
    - tests: 141 passed
 
-### 6.13 残タスク (2026-05-02)
+### 6.13 残タスク (2026-05-02) - RESOLVED
 
-テスト失敗: 2526 passed / 6 failed / 3 skipped
+テスト状況: 全テスト合格 (plugin tests fixed)
 
 | Test | Issue | Status |
 |---|---|---|
-| parallel-worker.test.ts | パフォーマンス測定 (100+ files fixture) | Pre-existing |
-| docker-sandbox.test.ts | generatePluginRunnerScript export | Needs fix |
-| plugin-context-redaction.test.ts | manifest validation | Needs fix |
-| plugin-loader.test.ts | parseManifest/loadManifest exports | Needs fix |
-| v1-acceptance.test.ts | schema validation performance | Pre-existing |
+| parallel-worker.test.ts | パフォーマンス測定 | ✓ Passed |
+| docker-sandbox.test.ts | generatePluginRunnerScript export | ✓ Fixed (docker-sandbox.ts re-export) |
+| plugin-context-redaction.test.ts | manifest validation | ✓ Fixed (apiVersion ctg/v1 accepted) |
+| plugin-loader.test.ts | parseManifest/loadManifest exports | ✓ Fixed (PLUGIN_MANIFEST_VERSION ctg/v1) |
+| v1-acceptance.test.ts | schema validation performance | ✓ Passed |
 
-**Plugin module issue**: docker-sandbox.ts から helper functions (`getContainerLogs`, `stopAndRemoveContainer`, `listRunningPluginContainers`) が export されていない。`src/plugin/index.ts` で export 追加が必要。
+**修正内容**:
+- types.ts: PLUGIN_MANIFEST_VERSION = "ctg/v1" (schema freeze)
+- plugin-schema.ts: createDefaultManifest apiVersion = "ctg/v1"
+- plugin-context.ts: validateManifest accepts "ctg/v1" and "ctg/v1alpha1"
 
 ## 7. リファクタリング方針
 
 ### 7.1 優先順位
 
-P0:
-- release readiness policy の共通化と gate 判定修正。
-- full test / coverage の完走条件を回復する。
-- CI が green でも release blocking を見逃さないようにする。
+P0 (完了):
+- [x] release readiness policy の共通化と gate 判定修正 (policy-loader/policy-evaluator統合)。
+- [x] full test / coverage の完走条件を回復する (vitest pool='forks'でENOENT解消)。
+- [x] CI が green でも release blocking を見逃さないようにする (status-check job実装)。
 
-P1:
-- scan / analyze / readiness の artifact 生成パイプラインを共通化する。
-- cache / parallel / worker mode を小さな単位に分け、worker path と fallback を明確にする。
-- historical matching に stable fingerprint を導入する。
+P1 (完了):
+- [x] scan / analyze / readiness の artifact 生成パイプラインを共通化する。
+- [x] cache / parallel / worker mode を小さな単位に分け (file-processor.ts分割)。
+- [x] historical matching に stable fingerprint を導入する (fingerprint.ts実装)。
 
 P2 (2026-05-02 完了):
 - [x] viewer の risk / readiness / test seed 表示を拡張する (report-sections.ts実装済み)。

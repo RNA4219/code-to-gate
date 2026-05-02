@@ -485,10 +485,10 @@ describe("DockerSandboxRunner", () => {
     });
   });
 
-  describe("generatePluginRunnerScript", () => {
+  describe("getPluginRunnerScript", () => {
     it("should generate valid Node.js script", () => {
       const runner = createDockerSandboxRunner();
-      const script = runner.generatePluginRunnerScript();
+      const script = runner.getPluginRunnerScript();
 
       expect(script).toContain("CTG_INPUT_FILE");
       expect(script).toContain("CTG_OUTPUT_FILE");

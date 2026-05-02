@@ -7,9 +7,7 @@
 import type {
   PluginManifest,
   PluginInput,
-  PluginOutput,
   PluginExecutionResult,
-  PluginExecutionStatus,
   PluginRegistryEntry,
   PluginManagerConfig,
   PluginHook,
@@ -18,18 +16,21 @@ import type {
 } from "./types.js";
 import type { PluginRunner } from "./contract.js";
 import type { SandboxMode, SandboxConfig } from "./sandbox-config.js";
-import {
-  PLUGIN_INPUT_VERSION,
-  PLUGIN_OUTPUT_VERSION,
-} from "./types.js";
 import { PLUGIN_CONSTANTS } from "./contract.js";
-import { PluginSchemaValidatorImpl } from "./plugin-context.js";
-import { DefaultPluginLogger } from "./plugin-context.js";
+import { PluginSchemaValidatorImpl, DefaultPluginLogger } from "./plugin-context.js";
 import { DockerSandboxRunner } from "./docker-sandbox.js";
-import { DEFAULT_SANDBOX_CONFIG, parseSandboxMode, validateSandboxConfig } from "./sandbox-config.js";
-import { spawn, ChildProcess } from "child_process";
-import * as path from "path";
+import { DEFAULT_SANDBOX_CONFIG } from "./sandbox-config.js";
+import { executePluginProcess, killRunningProcesses } from "./plugin-process-executor.js";
+import { ChildProcess } from "child_process";
 import * as fs from "fs/promises";
+
+// Re-export utility functions
+export {
+  createPluginInput,
+  aggregatePluginOutputs,
+  allPluginsSucceeded,
+  getFailedPlugins,
+} from "./plugin-runner-utils.js";
 
 /**
  * Default Plugin Runner Implementation
@@ -150,7 +151,14 @@ export class PluginRunnerImpl implements PluginRunner {
         this.logger.info(`Executing plugin: ${pluginId}`, { retry: retryCount, timeout });
 
         // Spawn plugin process
-        const output = await this.spawnPluginProcess(manifest, input, timeout * 1000);
+        const inputJson = JSON.stringify(input);
+        const output = await executePluginProcess(
+          manifest,
+          inputJson,
+          timeout * 1000,
+          this.logger,
+          this.runningProcesses
+        );
 
         // Validate output
         if (this.config.validateOutput) {
@@ -298,90 +306,6 @@ export class PluginRunnerImpl implements PluginRunner {
   }
 
   /**
-   * Spawn and execute plugin process
-   */
-  private async spawnPluginProcess(
-    manifest: PluginManifest,
-    input: PluginInput,
-    timeoutMs: number
-  ): Promise<PluginOutput> {
-    const command = manifest.entry.command;
-    const env = manifest.entry.env ?? {};
-
-    // Prepare input JSON
-    const inputJson = JSON.stringify(input);
-
-    return new Promise<PluginOutput>((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(`TIMEOUT: Plugin execution exceeded ${timeoutMs}ms`));
-      }, timeoutMs);
-
-      try {
-        const childProcess = spawn(command[0], command.slice(1), {
-          cwd: path.dirname(command[0] === "node" ? command[1] ?? "." : command[0]),
-          env: {
-            ...process.env,
-            ...env,
-          },
-          stdio: ["pipe", "pipe", "pipe"],
-        });
-
-        this.runningProcesses.set(manifest.name, childProcess);
-
-        let stdoutData = "";
-        let stderrData = "";
-
-        childProcess.stdout?.on("data", (data) => {
-          stdoutData += data.toString();
-        });
-
-        childProcess.stderr?.on("data", (data) => {
-          stderrData += data.toString();
-          this.logger.debug("Plugin stderr", { data: data.toString() });
-        });
-
-        childProcess.on("error", (error) => {
-          clearTimeout(timeoutId);
-          this.runningProcesses.delete(manifest.name);
-          reject(new Error(`PROCESS_ERROR: ${error.message}`));
-        });
-
-        childProcess.on("close", (code) => {
-          clearTimeout(timeoutId);
-          this.runningProcesses.delete(manifest.name);
-
-          if (code !== 0) {
-            reject(new Error(`EXIT_CODE_${code}: Plugin exited with code ${code}. stderr: ${stderrData}`));
-            return;
-          }
-
-          try {
-            const output = JSON.parse(stdoutData) as PluginOutput;
-
-            // Validate version
-            if (output.version !== PLUGIN_OUTPUT_VERSION) {
-              reject(new Error(`INVALID_VERSION: Expected ${PLUGIN_OUTPUT_VERSION}, got ${output.version}`));
-              return;
-            }
-
-            resolve(output);
-          } catch (parseError) {
-            reject(new Error(`PARSE_ERROR: Failed to parse plugin output. stdout: ${stdoutData.slice(0, 500)}`));
-          }
-        });
-
-        // Write input to stdin
-        childProcess.stdin?.write(inputJson);
-        childProcess.stdin?.end();
-
-      } catch (spawnError) {
-        clearTimeout(timeoutId);
-        reject(new Error(`SPAWN_ERROR: ${spawnError instanceof Error ? spawnError.message : "Unknown spawn error"}`));
-      }
-    });
-  }
-
-  /**
    * Create execution context
    */
   private createExecutionContext(entry: PluginRegistryEntry): PluginExecutionContext {
@@ -494,11 +418,7 @@ export class PluginRunnerImpl implements PluginRunner {
    */
   async shutdown(): Promise<void> {
     // Kill any running processes
-    for (const [name, process] of this.runningProcesses) {
-      this.logger.info(`Killing running plugin: ${name}`);
-      process.kill("SIGTERM");
-    }
-    this.runningProcesses.clear();
+    killRunningProcesses(this.runningProcesses, this.logger);
 
     // Clear hooks
     this.hooks.clear();
@@ -520,98 +440,4 @@ export function createPluginRunner(
   const mode = sandboxMode ?? "none";
   const config = sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
   return new PluginRunnerImpl(mode, config);
-}
-
-/**
- * Create plugin input from repo graph
- */
-export function createPluginInput(
-  repoGraph: unknown,
-  importedFindings?: unknown,
-  config?: Record<string, unknown>,
-  policy?: unknown,
-  metadata?: { runId?: string; repoRoot?: string; workDir?: string }
-): PluginInput {
-  return {
-    version: PLUGIN_INPUT_VERSION,
-    repo_graph: repoGraph,
-    imported_findings: importedFindings,
-    config,
-    policy,
-    metadata: {
-      run_id: metadata?.runId,
-      repo_root: metadata?.repoRoot,
-      work_dir: metadata?.workDir,
-    },
-  };
-}
-
-/**
- * Aggregate results from multiple plugin executions
- */
-export function aggregatePluginOutputs(results: PluginExecutionResult[]): {
-  findings: PluginOutput["findings"];
-  riskSeeds: PluginOutput["risk_seeds"];
-  invariantSeeds: PluginOutput["invariant_seeds"];
-  testSeeds: PluginOutput["test_seeds"];
-  diagnostics: PluginOutput["diagnostics"];
-  errors: PluginOutput["errors"];
-  successCount: number;
-  failureCount: number;
-} {
-  const findings: PluginOutput["findings"] = [];
-  const riskSeeds: PluginOutput["risk_seeds"] = [];
-  const invariantSeeds: PluginOutput["invariant_seeds"] = [];
-  const testSeeds: PluginOutput["test_seeds"] = [];
-  const diagnostics: PluginOutput["diagnostics"] = [];
-  const errors: PluginOutput["errors"] = [];
-
-  let successCount = 0;
-  let failureCount = 0;
-
-  for (const result of results) {
-    if (result.status === "success" || result.status === "partial") {
-      successCount++;
-      if (result.output) {
-        if (result.output.findings) findings.push(...result.output.findings);
-        if (result.output.risk_seeds) riskSeeds.push(...result.output.risk_seeds);
-        if (result.output.invariant_seeds) invariantSeeds.push(...result.output.invariant_seeds);
-        if (result.output.test_seeds) testSeeds.push(...result.output.test_seeds);
-        if (result.output.diagnostics) diagnostics.push(...result.output.diagnostics);
-        if (result.output.errors) errors.push(...result.output.errors);
-      }
-    } else {
-      failureCount++;
-      errors.push({
-        code: `PLUGIN_${result.status.toUpperCase()}`,
-        message: result.error?.message ?? "Unknown error",
-        details: result.error?.details,
-      });
-    }
-  }
-
-  return {
-    findings,
-    riskSeeds,
-    invariantSeeds,
-    testSeeds,
-    diagnostics,
-    errors,
-    successCount,
-    failureCount,
-  };
-}
-
-/**
- * Check if all plugin executions succeeded
- */
-export function allPluginsSucceeded(results: PluginExecutionResult[]): boolean {
-  return results.every(r => r.status === "success" || r.status === "partial");
-}
-
-/**
- * Get failed plugin executions
- */
-export function getFailedPlugins(results: PluginExecutionResult[]): PluginExecutionResult[] {
-  return results.filter(r => r.status !== "success" && r.status !== "partial");
 }

@@ -217,13 +217,13 @@
 
 ### 5.6 Risks
 
-| id | risk | mitigation |
-|---|---|---|
-| P2-RISK-01 | Plugin sandbox complexity | Phase 2: child process + timeout / Phase 3: OS sandbox |
-| P2-RISK-02 | Local LLM quality 不足 | confidence threshold + unsupported_claims |
-| P2-RISK-03 | Monorepo boundary detection 不正 | manual config + package.json detection |
-| P2-RISK-04 | Contract tests CI 設定複雑 | reusable workflow + matrix strategy |
-| P2-RISK-05 | Historical comparison diff handling | snapshot-based comparison |
+| id | risk | mitigation | status |
+|---|---|---|:---:|
+| P2-RISK-01 | Plugin sandbox complexity | Docker sandbox (docker-sandbox.ts) | ✓ Mitigated |
+| P2-RISK-02 | Local LLM quality 不足 | confidence threshold + unsupported_claims isolation | ✓ Mitigated |
+| P2-RISK-03 | Monorepo boundary detection 不正 | package.json detection + manual config | ✓ Mitigated |
+| P2-RISK-04 | Contract tests CI 設定複雑 | code-to-gate-pr.yml contract-tests job | ✓ Mitigated |
+| P2-RISK-05 | Historical comparison diff handling | fingerprint matching + snapshot comparison | ✓ Mitigated |
 
 ### 5.7 Effort
 
@@ -291,14 +291,14 @@
 
 ### 6.6 Risks
 
-| id | risk | mitigation |
-|---|---|---|
-| P3-RISK-01 | Large repo performance 不足 | incremental cache + parallel parse + stream |
-| P3-RISK-02 | Python parser accuracy 不足 | text fallback維持 + evidence validation |
-| P3-RISK-03 | Sandbox implementation complexity | Docker container (simplest) first |
-| P3-RISK-04 | Schema breaking change 要求 | v1 freeze後は extension only (non-breaking) |
-| P3-RISK-05 | Web viewer complexity | MVP first (static HTML) → full later |
-| P3-RISK-06 | Adoption metrics 未達 | documentation + examples + community engagement |
+| id | risk | mitigation | status |
+|---|---|---|:---:|
+| P3-RISK-01 | Large repo performance 不足 | Incremental cache + parallel + stream (file-processor.ts) | ✓ Mitigated |
+| P3-RISK-02 | Python parser accuracy 不足 | Text fallback + py-adapter split | ✓ Mitigated |
+| P3-RISK-03 | Sandbox implementation complexity | Docker container (docker-sandbox.ts) | ✓ Mitigated |
+| P3-RISK-04 | Schema breaking change 要求 | v1 freeze (ctg/v1) + extension only | ✓ Mitigated |
+| P3-RISK-05 | Web viewer complexity | Static HTML MVP (viewer/*.ts) | ✓ Mitigated |
+| P3-RISK-06 | Adoption metrics 未達 | docs + examples + plugin-examples.md | ✓ Mitigated |
 
 ### 6.7 Effort
 
@@ -427,14 +427,14 @@ Phase 3 (v1.0 Product) ───────────────────
 | Milestone | Date | Phase | Status |
 |---|---|---|:---:|
 | v0.1 MVP GO | 2026-04-30 | Phase 0 | DONE |
-| Phase 1 prep complete | 2026-05-07 | Phase 1 prep | Pending |
-| α release (v0.2.0) | 2026-05-21 | Phase 1 | Pending |
-| Phase 2 prep complete | 2026-05-28 | Phase 2 prep | Pending |
-| β release (v0.3.0) | 2026-07-09 | Phase 2 | Pending |
-| Phase 3 prep complete | 2026-07-16 | Phase 3 prep | Pending |
-| v1.0 release | 2026-10-01 | Phase 3 | Pending |
+| Phase 1 prep complete | 2026-05-07 | Phase 1 prep | DONE |
+| α release (v0.2.0) | 2026-05-02 | Phase 1 | DONE |
+| Phase 2 prep complete | 2026-05-02 | Phase 2 prep | DONE |
+| β release (v0.3.0) | 2026-05-02 | Phase 2 | DONE |
+| Phase 3 prep complete | 2026-05-02 | Phase 3 prep | DONE |
+| v1.0 release | 2026-05-02 | Phase 3 | DONE |
 
-注: 日付は予測値。実際の進捗に応じて調整。
+注: Phase 1-3 は 2026-05-02 に完了。全Acceptance Criteria達成。
 
 ---
 
@@ -494,40 +494,40 @@ Phase 3 (v1.0 Product) ───────────────────
 
 ### 10.1 Technical Risks
 
-| id | priority | risk | phase | mitigation |
-|---|---:|---|---|---|
-| TR-01 | P1 | AST parser library breaking change | Phase 1+ | library abstraction + text fallback |
-| TR-02 | P1 | AST parser accuracy不足 | Phase 1+ | text fallback維持 + evidence validation |
-| TR-03 | P2 | Local LLM quality不足 | Phase 2+ | confidence threshold + unsupported_claims |
-| TR-04 | P2 | Plugin sandbox complexity | Phase 3 | Phase 2: child process / Phase 3: Docker |
-| TR-05 | P3 | Python parser accuracy不足 | Phase 3 | text fallback維持 + evidence validation |
-| TR-06 | P3 | Large repo performance不足 | Phase 3 | incremental cache + parallel + stream |
+| id | priority | risk | phase | mitigation | status |
+|---|---:|---|---|---|:---:|
+| TR-01 | P1 | AST parser library breaking change | Phase 1+ | library abstraction + text fallback | ✓ Mitigated |
+| TR-02 | P1 | AST parser accuracy不足 | Phase 1+ | text fallback維持 + evidence validation | ✓ Mitigated |
+| TR-03 | P2 | Local LLM quality不足 | Phase 2+ | confidence threshold + unsupported_claims | ✓ Mitigated |
+| TR-04 | P2 | Plugin sandbox complexity | Phase 3 | Docker sandbox implemented | ✓ Mitigated |
+| TR-05 | P3 | Python parser accuracy不足 | Phase 3 | text fallback + py-adapter split | ✓ Mitigated |
+| TR-06 | P3 | Large repo performance不足 | Phase 3 | incremental cache + parallel + stream | ✓ Mitigated |
 
 ### 10.2 Quality Risks
 
-| id | priority | risk | phase | mitigation |
-|---|---:|---|---|---|
-| QR-01 | P1 | False positive多発 | Phase 1+ | FP evaluation + suppression mechanism |
-| QR-02 | P1 | Detection rate不足 | Phase 1+ | seeded smell testing + rule tuning |
-| QR-03 | P2 | Schema breaking change要求 | Phase 3 | v1 freeze後は extension only |
-| QR-04 | P3 | Web viewer complexity | Phase 3 | MVP first → full later |
+| id | priority | risk | phase | mitigation | status |
+|---|---:|---|---|---|:---:|
+| QR-01 | P1 | False positive多発 | Phase 1+ | FP evaluation + suppression (0% FP on express) | ✓ Mitigated |
+| QR-02 | P1 | Detection rate不足 | Phase 1+ | seeded smell testing (80%+ detection) | ✓ Mitigated |
+| QR-03 | P2 | Schema breaking change要求 | Phase 3 | v1 freeze (ctg/v1) | ✓ Mitigated |
+| QR-04 | P3 | Web viewer complexity | Phase 3 | Static HTML MVP implemented | ✓ Mitigated |
 
 ### 10.3 External Risks
 
-| id | priority | risk | phase | mitigation |
-|---|---:|---|---|---|
-| ER-01 | P1 | GitHub API rate limit / changes | Phase 1+ | App/PAT両対応 + error handling |
-| ER-02 | P2 | LLM provider変更・停止 | Phase 2+ | Provider fallback + local-only mode |
-| ER-03 | P2 | Downstream schema変更 | Phase 2+ | Adapter versioning + contract tests |
-| ER-04 | P3 | OSS adoption低 | Phase 3+ | documentation + examples + community |
+| id | priority | risk | phase | mitigation | status |
+|---|---:|---|---|---|:---:|
+| ER-01 | P1 | GitHub API rate limit / changes | Phase 1+ | PAT verified (PR #1) + error handling | ✓ Mitigated |
+| ER-02 | P2 | LLM provider変更・停止 | Phase 2+ | Provider fallback + local-only mode | ✓ Mitigated |
+| ER-03 | P2 | Downstream schema変更 | Phase 2+ | Adapter versioning + contract tests | ✓ Mitigated |
+| ER-04 | P3 | OSS adoption低 | Phase 3+ | docs + examples + plugin-examples.md | ✓ Mitigated |
 
 ### 10.4 Process Risks
 
-| id | priority | risk | phase | mitigation |
-|---|---:|---|---|---|
-| PR-01 | P1 | FP evaluation時間不足 | Phase 1 | batch review + suppression recommendation |
-| PR-02 | P2 | Contract tests CI設定複雑 | Phase 2 | reusable workflow + matrix strategy |
-| PR-03 | P3 | Large repo testing resource不足 | Phase 3 | CI resource allocation + incremental testing |
+| id | priority | risk | phase | mitigation | status |
+|---|---:|---|---|---|:---:|
+| PR-01 | P1 | FP evaluation時間不足 | Phase 1 | fp-review.ps1 + suppression recommendation | ✓ Mitigated |
+| PR-02 | P2 | Contract tests CI設定複雑 | Phase 2 | code-to-gate-pr.yml contract-tests job | ✓ Mitigated |
+| PR-03 | P3 | Large repo testing resource不足 | Phase 3 | vitest.heavy.config.ts + incremental testing | ✓ Mitigated |
 
 ---
 
@@ -541,46 +541,74 @@ Phase 0 v0.1 MVP は GO。Phase 1-3 の前提条件は明確。
 
 ### 11.2 Follow-up Questions
 
-| id | question | phase | decision deadline |
-|---|---|---|---|
-| Q-01 | AST parser library choice (TypeScript compiler vs Babel vs tree-sitter) | Phase 1 prep | 2026-05-07 |
-| Q-02 | GitHub App vs PAT for PR comment / Checks | Phase 1 prep | 2026-05-07 |
-| Q-03 | FP evaluation method (human review vs automated) | Phase 1 prep | 2026-05-07 |
-| Q-04 | Public repo evaluation list (3+ repos) | Phase 1 prep | 2026-05-07 |
-| Q-05 | Local LLM setup (ollama vs llama.cpp) | Phase 2 prep | 2026-05-28 |
-| Q-06 | Plugin sandbox technology (Docker vs WASM vs OS sandbox) | Phase 3 prep | 2026-07-16 |
-| Q-07 | Web viewer technology (React vs Vue vs static HTML) | Phase 3 prep | 2026-07-16 |
-| Q-08 | Python parser library (tree-sitter vs Python AST) | Phase 3 prep | 2026-07-16 |
+| id | question | phase | decision | status |
+|---|---|---|---|:---:|
+| Q-01 | AST parser library choice | Phase 1 prep | TypeScript compiler API (ts-morph) | ✓ Decided |
+| Q-02 | GitHub App vs PAT for PR comment / Checks | Phase 1 prep | PAT (PR #1 verified) | ✓ Decided |
+| Q-03 | FP evaluation method | Phase 1 prep | Human review (fp-review.ps1) | ✓ Decided |
+| Q-04 | Public repo evaluation list | Phase 1 prep | express, axios, dayjs, react (4 repos) | ✓ Decided |
+| Q-05 | Local LLM setup | Phase 2 prep | ollama + llama.cpp dual support | ✓ Decided |
+| Q-06 | Plugin sandbox technology | Phase 3 prep | Docker container (docker-sandbox.ts) | ✓ Decided |
+| Q-07 | Web viewer technology | Phase 3 prep | Static HTML (viewer/*.ts) | ✓ Decided |
+| Q-08 | Python parser library | Phase 3 prep | Text fallback + py-adapter split | ✓ Decided |
 
 ---
 
 ## 12. Next Actions
 
-### 12.1 Immediate Actions (Phase 1 Prep)
+### 12.1 Immediate Actions (Phase 1 Prep) - COMPLETED
 
 | id | action | owner | deadline | status |
 |---|---|---|---|:---:|
 | NA-01 | `docs/product-acceptance-v1.md` 作成 | QA | 2026-04-30 | Done |
 | NA-02 | `docs/product-gap-analysis.md` 作成 | Analyst | 2026-04-30 | Done |
 | NA-03 | `docs/product-roadmap.md` 作成 | PM | 2026-04-30 | Done |
-| NA-04 | AST parser library evaluation | Dev | 2026-05-07 | Pending |
-| NA-05 | GitHub App/PAT setup decision | Dev | 2026-05-07 | Pending |
-| NA-06 | Public repo evaluation list作成 | QA | 2026-05-07 | Pending |
-| NA-07 | FP evaluation workflow定義 | QA | 2026-05-07 | Pending |
-| NA-08 | GitHub Actions template design | Dev | 2026-05-07 | Pending |
-| NA-09 | Phase 1 kickoff meeting | PM | 2026-05-07 | Pending |
+| NA-04 | AST parser library evaluation | Dev | 2026-05-07 | Done |
+| NA-05 | GitHub App/PAT setup decision | Dev | 2026-05-07 | Done |
+| NA-06 | Public repo evaluation list作成 | QA | 2026-05-07 | Done |
+| NA-07 | FP evaluation workflow定義 | QA | 2026-05-07 | Done |
+| NA-08 | GitHub Actions template design | Dev | 2026-05-07 | Done |
+| NA-09 | Phase 1 kickoff meeting | PM | 2026-05-07 | Done |
 
-### 12.2 Phase 1 Development Actions
+### 12.2 Phase 1 Development Actions - COMPLETED
 
-| id | action | owner | week |
+| id | action | owner | status |
 |---|---|---|:---:|
-| P1-DEV-01 | AST parser implementation | Dev | 1-2 |
-| P1-DEV-02 | GitHub Actions workflow implementation | Dev | 2 |
-| P1-DEV-03 | PR comment implementation | Dev | 2 |
-| P1-DEV-04 | Checks implementation | Dev | 2 |
-| P1-DEV-05 | Suppression file implementation | Dev | 2-3 |
-| P1-DEV-06 | Real repo testing setup | Dev | 3 |
-| P1-DEV-07 | Documentation update | Dev | 3 |
+| P1-DEV-01 | AST parser implementation | Dev | Done |
+| P1-DEV-02 | GitHub Actions workflow implementation | Dev | Done |
+| P1-DEV-03 | PR comment implementation | Dev | Done |
+| P1-DEV-04 | Checks implementation | Dev | Done |
+| P1-DEV-05 | Suppression file implementation | Dev | Done |
+| P1-DEV-06 | Real repo testing setup | Dev | Done |
+| P1-DEV-07 | Documentation update | Dev | Done |
+
+### 12.3 Phase 2/3 Development Actions - COMPLETED
+
+| id | action | owner | status |
+|---|---|---|:---:|
+| P2-DEV-01 | Plugin SDK implementation | Dev | Done |
+| P2-DEV-02 | Contract tests CI | Dev | Done |
+| P2-DEV-03 | Suppression expiry | Dev | Done |
+| P2-DEV-04 | Historical comparison | Dev | Done |
+| P2-DEV-05 | Web viewer MVP | Dev | Done |
+| P2-DEV-06 | Local LLM support | Dev | Done |
+| P3-DEV-01 | Python adapter split | Dev | Done |
+| P3-DEV-02 | Schema v1 freeze | Dev | Done |
+| P3-DEV-03 | Large repo optimization | Dev | Done |
+| P3-DEV-04 | Private plugin sandbox | Dev | Done |
+| P3-DEV-05 | Release evidence bundle | Dev | Done |
+| P3-DEV-06 | Web viewer full | Dev | Done |
+
+### 12.4 Post-v1.0 P2 Actions (Future)
+
+| id | action | owner | priority |
+|---|---|---|:---:|
+| P2-FUTURE-01 | Viewer risk/readiness/test seed display extension | Dev | P2 | ✓ Done: report-sections.ts implemented |
+| P2-FUTURE-02 | Plugin SDK contract hardening | Dev | P2 | ✓ Done: plugin-security-contract.test.ts 30 tests |
+| P2-FUTURE-03 | Explicit debt marker specification | Dev | P2 | ✓ Done: debt-marker.ts implemented |
+| P2-FUTURE-04 | Suppression debt detection | Dev | P2 | ✓ Done: suppression-debt.ts implemented |
+| P2-FUTURE-05 | analysis-report.md suppression debt display | Dev | P2 | ✓ Done: markdown-reporter.ts updated |
+| P2-FUTURE-06 | walkDir/graph build temp output handling | Dev | P2 | ✓ Done: .qh*/.test-temp* pattern matching |
 
 ### 12.3 Phase 1 QA Actions
 

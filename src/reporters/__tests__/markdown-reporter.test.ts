@@ -114,12 +114,14 @@ describe("markdown-reporter", () => {
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
       expect(report).toContain("| Metric | Count |");
-      expect(report).toContain("| Total Findings |");
+      expect(report).toContain("| Active Findings |");
       expect(report).toContain("| Critical |");
       expect(report).toContain("| High |");
       expect(report).toContain("| Medium |");
       expect(report).toContain("| Low |");
       expect(report).toContain("| Total Risks |");
+      expect(report).toContain("| Suppressed Findings |");
+      expect(report).toContain("### Known Debt");
     });
 
     it("includes All Findings table when findings exist", () => {
@@ -334,7 +336,7 @@ describe("markdown-reporter", () => {
 
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
-      expect(report).toContain("| Total Findings | 3 |");
+      expect(report).toContain("| Active Findings | 3 |");
       expect(report).toContain("| Critical | 1 |");
       expect(report).toContain("| High | 1 |");
       expect(report).toContain("| Medium | 1 |");

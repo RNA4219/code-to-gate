@@ -29,17 +29,28 @@ export const DEFAULT_IGNORED_DIRS = new Set([
   "__pycache__",
   ".svn",
   ".hg",
+  // Python virtual environments
+  ".venv",
+  "venv",
+  ".env",
+  "env",
+  // Browser-use environment
+  ".browser-use-env",
+  // Test temp directories
+  ".test-temp",
 ]);
 
 /**
  * Check if a directory name should be ignored by pattern
- * Includes .qh* (any directory starting with .qh)
+ * Includes .qh* (any directory starting with .qh) and .test-temp*
  */
 function shouldIgnoreByName(name: string, ignoredSet: Set<string>): boolean {
   // Exact match
   if (ignoredSet.has(name)) return true;
   // Pattern match for .qh* directories (.qh-test, .qh-auth, etc.)
   if (name.startsWith(".qh")) return true;
+  // Pattern match for .test-temp* directories (.test-temp-smoke, etc.)
+  if (name.startsWith(".test-temp")) return true;
   return false;
 }
 

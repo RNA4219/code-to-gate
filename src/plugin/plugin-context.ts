@@ -204,8 +204,8 @@ export class PluginSchemaValidatorImpl implements PluginSchemaValidator {
     }
 
     // Validate apiVersion
-    if (m.apiVersion !== "ctg/v1alpha1") {
-      errors.push({ path: "apiVersion", message: "Invalid apiVersion, must be 'ctg/v1alpha1'" });
+    if (m.apiVersion !== "ctg/v1" && m.apiVersion !== "ctg/v1alpha1") {
+      errors.push({ path: "apiVersion", message: "Invalid apiVersion, must be 'ctg/v1' or 'ctg/v1alpha1'" });
     }
 
     // Validate kind

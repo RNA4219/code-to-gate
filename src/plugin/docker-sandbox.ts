@@ -28,7 +28,9 @@ import {
   DEFAULT_ENV_VAR_FILTER,
 } from "./sandbox-config.js";
 import { DefaultPluginLogger } from "./plugin-context.js";
-import { exec } from "child_process";
+import { execDockerCommand, checkDockerVersion, checkDockerImageExists, getDockerSystemMemory, buildDockerImage as buildDockerImageUtil } from "./docker-exec-utils.js";
+import { generateDockerfile, generatePluginRunnerScript } from "./docker-templates.js";
+import { buildDockerRunCommand, buildPluginExecutionCommand } from "./docker-command-builder.js";
 import * as path from "path";
 import * as fs from "fs/promises";
 import * as os from "os";
@@ -242,7 +244,7 @@ export class DockerSandboxRunner implements PluginRunner {
     );
 
     // Build Docker command
-    const dockerCmd = this.buildDockerRunCommand(
+    const dockerCmd = buildDockerRunCommand(
       manifest,
       config,
       containerName,
@@ -254,7 +256,7 @@ export class DockerSandboxRunner implements PluginRunner {
     this.logger.debug(`Docker command: ${dockerCmd.join(" ")}`);
 
     try {
-      const result = await this.execCommand(dockerCmd, config.timeout * 1000);
+      const result = await execDockerCommand(dockerCmd, config.timeout * 1000);
 
       return {
         success: result.exitCode === 0,
@@ -274,157 +276,7 @@ export class DockerSandboxRunner implements PluginRunner {
     }
   }
 
-  /**
-   * Build Docker run command
-   */
-  private buildDockerRunCommand(
-    manifest: PluginManifest,
-    config: SandboxConfig,
-    containerName: string,
-    mounts: ReturnType<typeof buildVolumeMounts>,
-    inputFile: string,
-    outputFile: string
-  ): string[] {
-    const cmd: string[] = ["docker", "run", "--rm"];
-
-    // Container name
-    cmd.push("--name", containerName);
-
-    // Network isolation (unless explicitly allowed)
-    if (!config.networkAccess) {
-      cmd.push("--network=none");
-    }
-
-    // Memory limit
-    const resources = toDockerResourceLimits(config);
-    cmd.push(`--memory=${resources.memoryBytes}`);
-    cmd.push(`--memory-swap=${resources.memoryBytes}`); // Disable swap
-
-    // CPU limit
-    cmd.push(`--cpu-quota=${resources.cpuQuota}`);
-    cmd.push("--cpu-period=100000");
-
-    // PIDs limit
-    cmd.push(`--pids-limit=${resources.pidsLimit}`);
-
-    // Security options
-    const securityOptions = getDockerSecurityOptions(config);
-    cmd.push(...buildDockerSecurityFlags(securityOptions));
-
-    // Volume mounts
-    cmd.push(...toDockerVolumeFlags(mounts));
-
-    // User
-    cmd.push("--user", config.containerUser);
-
-    // Working directory
-    cmd.push("--workdir", config.containerWorkDir);
-
-    // Environment variables (filtered)
-    const filteredEnv = filterEnvVars(manifest.entry.env ?? {}, DEFAULT_ENV_VAR_FILTER);
-    for (const [key, value] of Object.entries(filteredEnv)) {
-      cmd.push("-e", `${key}=${value}`);
-    }
-
-    // Pass input/output paths as env vars
-    cmd.push("-e", `CTG_INPUT_FILE=${config.ioMountPath}/input.json`);
-    cmd.push("-e", `CTG_OUTPUT_FILE=${config.ioMountPath}/output.json`);
-
-    // Image
-    cmd.push(config.dockerImage);
-
-    // Plugin execution command
-    const pluginCmd = this.buildPluginExecutionCommand(manifest, config);
-    cmd.push(...pluginCmd);
-
-    return cmd;
-  }
-
-  /**
-   * Build plugin execution command for container
-   */
-  private buildPluginExecutionCommand(
-    manifest: PluginManifest,
-    config: SandboxConfig
-  ): string[] {
-    // The container entrypoint reads from CTG_INPUT_FILE and writes to CTG_OUTPUT_FILE
-    // We need to adapt the plugin's command to work within the container
-
-    const originalCmd = manifest.entry.command;
-
-    // For Node.js plugins, we wrap with a runner script
-    if (originalCmd[0] === "node") {
-      const scriptPath = originalCmd[1];
-
-      // Map the script path to container mount path
-      const containerScriptPath = scriptPath
-        ? path.join(config.pluginMountPath, path.basename(scriptPath))
-        : config.pluginMountPath;
-
-      return [
-        "node",
-        containerScriptPath,
-        "--input",
-        `${config.ioMountPath}/input.json`,
-        "--output",
-        `${config.ioMountPath}/output.json`,
-      ];
-    }
-
-    // For other plugins, just use the original command with mapped paths
-    return originalCmd.map(arg => {
-      if (arg.startsWith("/") || arg.startsWith("./")) {
-        return path.join(config.pluginMountPath, path.basename(arg));
-      }
-      return arg;
-    });
-  }
-
-  /**
-   * Execute command with timeout
-   */
-  private async execCommand(
-    cmd: string[],
-    timeoutMs: number
-  ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(`TIMEOUT: Command exceeded ${timeoutMs}ms`));
-      }, timeoutMs);
-
-      exec(
-        cmd.join(" "),
-        { timeout: timeoutMs },
-        (error, stdout, stderr) => {
-          clearTimeout(timeoutId);
-
-          if (error) {
-            // Check if it's a timeout
-            if (error.killed) {
-              resolve({
-                stdout,
-                stderr: stderr + "\nProcess killed due to timeout",
-                exitCode: 137, // SIGKILL
-              });
-            } else {
-              resolve({
-                stdout,
-                stderr,
-                exitCode: error.code ?? 1,
-              });
-            }
-          } else {
-            resolve({
-              stdout,
-              stderr,
-              exitCode: 0,
-            });
-          }
-        }
-      );
-    });
-  }
-
+  
   /**
    * Check Docker status
    */
@@ -433,36 +285,19 @@ export class DockerSandboxRunner implements PluginRunner {
 
     try {
       // Check if Docker is installed and running
-      const dockerVersionResult = await this.execCommand(["docker", "--version"], 5000);
-
-      if (dockerVersionResult.exitCode !== 0) {
+      const dockerCheck = await checkDockerVersion();
+      if (!dockerCheck.available) {
         errors.push("Docker is not installed or not running");
         return { dockerAvailable: false, imageExists: false, errors };
       }
 
-      const dockerVersion = dockerVersionResult.stdout.trim();
+      const dockerVersion = dockerCheck.version ?? "";
 
       // Check if image exists
-      const imageCheckResult = await this.execCommand(
-        ["docker", "image", "inspect", this.config.dockerImage],
-        5000
-      );
-
-      const imageExists = imageCheckResult.exitCode === 0;
+      const imageExists = await checkDockerImageExists(this.config.dockerImage);
 
       // Get available memory
-      const systemInfoResult = await this.execCommand(
-        ["docker", "system", "info", "--format", "{{.MemTotal}}"],
-        5000
-      );
-
-      let availableMemoryMB: number | undefined;
-      if (systemInfoResult.exitCode === 0) {
-        const memTotal = parseInt(systemInfoResult.stdout.trim(), 10);
-        if (!isNaN(memTotal)) {
-          availableMemoryMB = Math.floor(memTotal / (1024 * 1024));
-        }
-      }
+      const availableMemoryMB = await getDockerSystemMemory();
 
       return {
         dockerAvailable: true,
@@ -489,23 +324,20 @@ export class DockerSandboxRunner implements PluginRunner {
       await fs.mkdir(dockerfileDir, { recursive: true });
 
       const dockerfile = path.join(dockerfileDir, "Dockerfile");
-      await fs.writeFile(dockerfile, this.generateDockerfile(), "utf-8");
+      await fs.writeFile(dockerfile, generateDockerfile(), "utf-8");
 
-      // Build the image
-      const result = await this.execCommand(
-        ["docker", "build", "-t", this.config.dockerImage, dockerfileDir],
-        60000 // 60 seconds to build
-      );
+      // Build the image using utility
+      const success = await buildDockerImageUtil(this.config.dockerImage, dockerfileDir);
 
       // Cleanup Dockerfile
       await fs.rm(dockerfileDir, { recursive: true, force: true });
 
-      if (result.exitCode === 0) {
+      if (success) {
         this.imageReady = true;
         this.logger.info(`Docker image built successfully: ${this.config.dockerImage}`);
         return true;
       } else {
-        this.logger.error(`Failed to build Docker image: ${result.stderr}`);
+        this.logger.error(`Failed to build Docker image`);
         return false;
       }
     } catch (error) {
@@ -515,72 +347,10 @@ export class DockerSandboxRunner implements PluginRunner {
   }
 
   /**
-   * Generate Dockerfile for minimal Node.js plugin runner
-   */
-  private generateDockerfile(): string {
-    return `# Minimal Node.js plugin runner for code-to-gate
-FROM node:20-alpine
-
-# Create non-root user for security
-RUN addgroup -S plugin && adduser -S node -G plugin
-
-# Set working directory
-WORKDIR /plugin/work
-
-# Copy plugin runner script
-COPY plugin-runner.js /usr/local/bin/plugin-runner.js
-
-# Set permissions
-RUN chmod 755 /usr/local/bin/plugin-runner.js
-
-# Switch to non-root user
-USER node
-
-# Default entrypoint
-ENTRYPOINT ["node", "/usr/local/bin/plugin-runner.js"]
-`;
-  }
-
-  /**
    * Generate plugin runner script for container
    */
-  generatePluginRunnerScript(): string {
-    return `#!/usr/bin/env node
-/**
- * Plugin Runner Script for Docker Container
- * Reads input from CTG_INPUT_FILE, executes plugin, writes output to CTG_OUTPUT_FILE
- */
-
-const fs = require('fs');
-const path = require('path');
-
-async function run() {
-  const inputFile = process.env.CTG_INPUT_FILE || '/plugin/io/input.json';
-  const outputFile = process.env.CTG_OUTPUT_FILE || '/plugin/io/output.json';
-
-  try {
-    // Read input
-    const input = JSON.parse(fs.readFileSync(inputFile, 'utf-8'));
-
-    // Execute plugin (plugin code is mounted at /plugin/code)
-    const pluginScript = process.argv[2] || '/plugin/code/index.js';
-    const pluginModule = require(pluginScript);
-
-    // Call plugin execute function
-    const output = await pluginModule.execute(input);
-
-    // Write output
-    fs.writeFileSync(outputFile, JSON.stringify(output), 'utf-8');
-
-    process.exit(0);
-  } catch (error) {
-    console.error('Plugin execution failed:', error.message);
-    process.exit(1);
-  }
-}
-
-run();
-`;
+  getPluginRunnerScript(): string {
+    return generatePluginRunnerScript();
   }
 
   /**
@@ -647,7 +417,7 @@ run();
   async shutdown(): Promise<void> {
     // Cleanup any running containers
     try {
-      const result = await this.execCommand(
+      const result = await execDockerCommand(
         ["docker", "ps", "-q", "--filter", `name=${this.config.containerPrefix}`],
         5000
       );
@@ -655,8 +425,8 @@ run();
       if (result.stdout.trim()) {
         const containerIds = result.stdout.trim().split("\n");
         for (const id of containerIds) {
-          await this.execCommand(["docker", "stop", id], 10000);
-          await this.execCommand(["docker", "rm", id], 5000);
+          await execDockerCommand(["docker", "stop", id], 10000);
+          await execDockerCommand(["docker", "rm", id], 5000);
         }
       }
     } catch {
@@ -677,16 +447,8 @@ export function createDockerSandboxRunner(config?: Partial<SandboxConfig>): Dock
  * Check if Docker sandbox is available
  */
 export async function isDockerSandboxAvailable(): Promise<boolean> {
-  try {
-    const result = await new Promise<{ exitCode: number }>((resolve) => {
-      exec("docker --version", { timeout: 5000 }, (error) => {
-        resolve({ exitCode: error ? 1 : 0 });
-      });
-    });
-    return result.exitCode === 0;
-  } catch {
-    return false;
-  }
+  const check = await checkDockerVersion();
+  return check.available;
 }
 
 /**
@@ -702,89 +464,5 @@ export function createSandboxRunner(
   return null; // Use default runner for 'none' mode
 }
 
-/**
- * Pull Docker image from registry
- */
-export async function pullDockerImage(imageName: string): Promise<boolean> {
-  try {
-    const result = await new Promise<{ exitCode: number; stderr: string }>((resolve) => {
-      exec(`docker pull ${imageName}`, { timeout: 120000 }, (error, _stdout, stderr) => {
-        resolve({
-          exitCode: error ? error.code ?? 1 : 0,
-          stderr,
-        });
-      });
-    });
-
-    return result.exitCode === 0;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * List running plugin containers
- */
-export async function listRunningPluginContainers(prefix: string): Promise<string[]> {
-  try {
-    const result = await new Promise<{ stdout: string }>((resolve) => {
-      exec(
-        `docker ps -q --filter "name=${prefix}"`,
-        { timeout: 5000 },
-        (_error, stdout) => {
-          resolve({ stdout });
-        }
-      );
-    });
-
-    return result.stdout.trim().split("\n").filter(id => id.length > 0);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Get container logs
- */
-export async function getContainerLogs(containerId: string): Promise<string> {
-  try {
-    const result = await new Promise<{ stdout: string }>((resolve) => {
-      exec(
-        `docker logs ${containerId}`,
-        { timeout: 5000 },
-        (_error, stdout) => {
-          resolve({ stdout });
-        }
-      );
-    });
-
-    return result.stdout;
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Stop and remove container
- */
-export async function stopAndRemoveContainer(containerId: string): Promise<boolean> {
-  try {
-    await new Promise<void>((resolve, reject) => {
-      exec(`docker stop ${containerId}`, { timeout: 10000 }, (error) => {
-        if (error) reject(error);
-        else resolve();
-      });
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      exec(`docker rm ${containerId}`, { timeout: 5000 }, (error) => {
-        if (error) reject(error);
-        else resolve();
-      });
-    });
-
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Re-export utility functions from docker-exec-utils.ts
+export { pullDockerImage, listRunningPluginContainers, getContainerLogs, stopAndRemoveContainer } from "./docker-exec-utils.js";

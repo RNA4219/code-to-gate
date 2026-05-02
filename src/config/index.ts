@@ -44,15 +44,16 @@ export {
 // Policy loader
 export {
   POLICY_VERSION,
-  DEFAULT_BLOCKING_SEVERITY,
-  DEFAULT_BLOCKING_CATEGORY,
-  DEFAULT_CONFIDENCE,
-  createDefaultPolicy,
   loadPolicyFile,
   loadSuppressionFile,
   validatePolicy,
   isValidPolicyVersion,
   isSuppressed,
+} from "./policy-loader.js";
+
+// Policy types and defaults
+export {
+  createDefaultPolicy,
   type CtgPolicy,
   type BlockingSeverityConfig,
   type BlockingCategoryConfig,
@@ -66,7 +67,7 @@ export {
   type PartialConfig,
   type BaselineConfig,
   type ExitConfig,
-} from "./policy-loader.js";
+} from "./policy-types.js";
 
 // Policy evaluator
 export {
