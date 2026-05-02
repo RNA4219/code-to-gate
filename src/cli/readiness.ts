@@ -14,10 +14,8 @@ import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, t
 import {
   FindingsArtifact,
   RiskRegisterArtifact,
-  CTG_VERSION_V1ALPHA1,
+  CTG_VERSION,
 } from "../types/artifacts.js";
-
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 interface ReadinessOptions {
   VERSION: string;

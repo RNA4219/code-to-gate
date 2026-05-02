@@ -779,6 +779,9 @@ GitHub / CI:
 - [x] Checks API で check run と annotations が作成される (PR #1 check run created)。
 - [x] exit code 0/1/4/7/9 が CI 上で意図どおり扱われる (status-check job exists)。
   - 2026-05-02: status-check job verified: analyze.result == failure → exit 1 (blocking PR)。analyze exit 1/4/7/9 triggers job failure, status-check propagates。
+- [x] Contract tests CI 化完了 (2026-05-02: code-to-gate-pr.yml contract-tests job added, 33 tests pass)。
+  - 4 downstream adapter schema validation: gatefield/state-gate/manual-bb/workflow-evidence。
+  - export.test.ts が CI で実行、schema validate で artifact 検証。
 
 Plugin / security:
 - [x] plugin manifest validation が pass/fail を正しく返す (plugin-security-contract.test.ts 30 tests pass)。

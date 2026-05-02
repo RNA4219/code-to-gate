@@ -9,11 +9,9 @@ import {
   AuditExit,
   FindingsArtifact,
   NormalizedRepoGraph,
-  CTG_VERSION_V1ALPHA1,
+  CTG_VERSION,
 } from "../types/artifacts.js";
 import { CtgPolicy } from "../config/policy-loader.js";
-
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 import { createHash } from "node:crypto";
 import { writeFileSync, readFileSync } from "node:fs";

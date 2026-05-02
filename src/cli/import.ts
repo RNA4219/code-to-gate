@@ -20,10 +20,9 @@ import {
   FindingCategory,
   UpstreamTool,
   UnsupportedClaim,
-  CTG_VERSION_V1ALPHA1,
+  CTG_VERSION,
 } from "../types/artifacts.js";
 
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 import {
   createArtifactHeader,
 } from "../reporters/json-reporter.js";

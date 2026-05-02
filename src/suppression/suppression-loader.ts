@@ -6,9 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parseSimpleYaml } from "../core/config-utils.js";
-import { CTG_VERSION_V1ALPHA1 } from "../types/artifacts.js";
-
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
+import { CTG_VERSION } from "../types/artifacts.js";
 
 /**
  * Default suppression file location

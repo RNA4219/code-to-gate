@@ -16,7 +16,7 @@ import {
   FindingsArtifact,
   Finding,
   EvidenceRef,
-  CTG_VERSION_V1ALPHA1,
+  CTG_VERSION,
 } from "../types/artifacts.js";
 import {
   buildFindingsFromGraph,
@@ -26,8 +26,6 @@ import {
   buildAuditArtifact,
   writeAuditJson,
 } from "../reporters/audit-writer.js";
-
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 interface DiffOptions {
   VERSION: string;

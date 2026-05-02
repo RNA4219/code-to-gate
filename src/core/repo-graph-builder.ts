@@ -7,11 +7,9 @@ import { parseRubyFile } from "../adapters/rb-adapter.js";
 import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
 import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js";
 import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
-import { CTG_VERSION_V1ALPHA1 } from "../types/artifacts.js";
+import { CTG_VERSION } from "../types/artifacts.js";
 import { detectLanguage, detectRole, entrypointKind, isEntrypoint, walkDir } from "./file-utils.js";
 import { sha256, toPosix } from "./path-utils.js";
-
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 
 type AdapterParseResult = ParseResult;
 

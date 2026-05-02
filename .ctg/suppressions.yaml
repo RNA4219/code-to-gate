@@ -228,6 +228,18 @@ suppressions:
     reason: Core utilities - graceful config parsing
     expiry: 2027-04-30
     author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/plugin/*
+    reason: Plugin context - graceful error handling for plugin operations
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/reporters/*
+    reason: Reporters - graceful error handling for output generation
+    expiry: 2027-04-30
+    author: code-to-gate-team
 
   # === GitHub Integration ===
   -

@@ -12,6 +12,44 @@ permissions:
   security-events: write
 
 jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run contract tests (downstream adapters)
+        run: |
+          # Contract tests for 4 downstream adapters: gatefield/state-gate/manual-bb/workflow-evidence
+          npx vitest run src/__tests__/integration/export.test.ts --reporter=verbose
+        timeout-minutes: 5
+
+      - name: Validate adapter schemas
+        run: |
+          # Generate test artifacts and validate schemas
+          node ./dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-contract
+          node ./dist/cli.js export gatefield --from .qh-contract --out .qh-contract/gatefield.json
+          node ./dist/cli.js export state-gate --from .qh-contract --out .qh-contract/state-gate.json
+          node ./dist/cli.js export manual-bb --from .qh-contract --out .qh-contract/manual-bb.json
+          node ./dist/cli.js export workflow-evidence --from .qh-contract --out .qh-contract/workflow.json
+          # Validate all exported artifacts
+          for file in .qh-contract/*.json; do
+            echo "Validating: $file"
+            node ./dist/cli.js schema validate "$file"
+          done
+
   macos-compatibility:
     runs-on: macos-latest
     steps:
@@ -119,13 +157,17 @@ jobs:
 
   status-check:
     runs-on: ubuntu-latest
-    needs: analyze
+    needs: [analyze, contract-tests]
     if: always()
     steps:
-      - name: Check analysis result
+      - name: Check analysis and contract tests result
         run: |
           if [ "${{ needs.analyze.result }}" == "failure" ]; then
             echo "Analysis failed - blocking PR"
             exit 1
           fi
-          echo "Analysis passed"
+          if [ "${{ needs.contract-tests.result }}" == "failure" ]; then
+            echo "Contract tests failed - blocking PR"
+            exit 1
+          fi
+          echo "Analysis and contract tests passed"

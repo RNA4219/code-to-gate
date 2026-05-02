@@ -11,7 +11,7 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
   EmitFormat,
-  CTG_VERSION_V1ALPHA1,
+  CTG_VERSION,
 } from "../types/artifacts.js";
 import {
   CtgPolicy,
@@ -26,7 +26,6 @@ import {
   type ReadinessStatus,
 } from "../config/policy-evaluator.js";
 
-const CTG_VERSION = CTG_VERSION_V1ALPHA1;
 import {
   buildFindingsFromGraph,
   writeFindingsJson,
