@@ -147,7 +147,7 @@ export class DeterministicProvider implements LlmProvider {
 
     // Return a deterministic analysis based on keywords
     const prompt = request.userPrompt.toLowerCase();
-    let content = this.generateDeterministicResponse(prompt);
+    const content = this.generateDeterministicResponse(prompt);
 
     return {
       content,

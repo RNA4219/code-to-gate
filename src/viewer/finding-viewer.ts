@@ -221,7 +221,7 @@ export function generateFindingsExplorer(
   const counts = countBySeverity(findings);
 
   // Generate summary cards
-  let summaryCards = `
+  const summaryCards = `
 <div class="dashboard">
   <div class="card card-critical">
     <div class="card-title">Critical</div>

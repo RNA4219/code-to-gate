@@ -162,7 +162,7 @@ export function parseMethodsInClass(
       });
 
       // Parse calls within method body
-      let relationIndex = 0;
+      const relationIndex = 0;
       parseCallsInBlock(
         lines,
         i,

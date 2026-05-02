@@ -381,7 +381,7 @@ function loadReadinessFromDir(dir: string): ReleaseReadinessArtifact | null {
  */
 function parseYamlLike(content: string): unknown {
   // Remove YAML document markers
-  let cleaned = content.replace(/^---\s*\n/, "").replace(/\n---\s*$/, "");
+  const cleaned = content.replace(/^---\s*\n/, "").replace(/\n---\s*$/, "");
 
   // Try JSON parse first (many YAML files are JSON-compatible)
   try {

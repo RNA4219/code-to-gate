@@ -21,7 +21,7 @@ export function parseFunctions(
   exportedSymbols: Set<string>
 ): void {
   let symbolIndex = 0;
-  let relationIndex = 0;
+  const relationIndex = 0;
 
   // Pattern for: def name(args), async def name(args)
   const funcPattern = /^(async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/;

@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] - 2026-05-03 - Post-v1 Cleanup & Refactoring
+
+### Added
+
+- **ESLint v10 with flat config**: Modern ESLint setup with typescript-eslint
+  - `eslint.config.js`: Flat config format (ESLint v9+ requirement)
+  - Scripts: `npm run lint`, `npm run lint:fix`
+  - Rules: recommended configs + custom overrides for TypeScript
+  - Initial run: 360 issues identified (280 errors, 80 warnings)
+
+### Fixed
+
+- **diff command**: Now generates `diff-analysis.json` even when no changes detected between base and head refs (previously returned early without generating artifact)
+
+- **yaml-reporter**: Changed `recommendedActions` to `recommended-actions` (hyphen format) for YAML key naming consistency
+
+- **parallel-worker tests**: Increased timeout from 60s to 120s for large fixture tests (150+ files)
+
+### Changed
+
+- **Test mock consolidation**: Created centralized test utility module
+  - New: `src/test-utils/mocks.ts` with reusable mock generators
+  - Functions: `createMockFinding`, `createMockFindingsArtifact`, `createMockRiskRegisterArtifact`, `createMockTestSeedsArtifact`, `createMockReleaseReadinessArtifact`, `createMockRisk`, `createMockTestSeed`
+  - Updated 13 test files to use shared mocks instead of duplicated local functions
+  - Reduced ~200 lines of redundant mock code across test files
+
+- **Documentation updated to v1**:
+  - `CLAUDE.md`: Version reference changed from `ctg/v1alpha1` to `ctg/v1`
+  - `GUARDRAILS.md`: Guardrail #5 updated to `ctg/v1`
+  - `.ctg/suppressions.yaml`: Version field changed to `ctg/v1`
+
+### Test Status
+
+- 2550+ tests passing (92 test files)
+- 2 tests failing in `untested-critical-path.test.ts` (pre-existing rule confidence issue, not related to this refactoring)
+
+---
+
 ## [1.0.0] - 2026-04-30 - Schema v1 Stable Freeze
 
 ### Added

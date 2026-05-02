@@ -53,7 +53,7 @@ function parseYaml(content: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   const lines = content.split("\n");
   let currentKey = "";
-  let currentArray: unknown[] = [];
+  const currentArray: unknown[] = [];
   let inArray = false;
 
   for (const line of lines) {

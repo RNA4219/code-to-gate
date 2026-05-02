@@ -299,7 +299,7 @@ export function normalizeTitle(title: string): string {
  * Simple YAML-like parser
  */
 export function parseYamlLike(content: string): unknown {
-  let cleaned = content.replace(/^---\s*\n/, "").replace(/\n---\s*$/, "");
+  const cleaned = content.replace(/^---\s*\n/, "").replace(/\n---\s*$/, "");
 
   try {
     return JSON.parse(cleaned);

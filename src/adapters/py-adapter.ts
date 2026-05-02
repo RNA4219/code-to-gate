@@ -136,8 +136,8 @@ export function parsePythonFile(
 
     // Parse standalone functions (not inside classes)
     // Track indentation to determine if inside a class
-    let inClass = false;
-    let classIndent = 0;
+    const inClass = false;
+    const classIndent = 0;
     const classBodyIndents = new Map<number, string>(); // indent -> className
 
     // Build a map of class start lines and their indentation
@@ -226,7 +226,7 @@ export function parsePythonFile(
         }
 
         // Parse calls within function body
-        let relationIndex = relations.length;
+        const relationIndex = relations.length;
         parseCallsInBlock(lines, i, indent, relPath, symbolId, relations, relationIndex);
       }
     }

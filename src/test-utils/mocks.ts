@@ -20,7 +20,7 @@ import {
 
 const DEFAULT_TOOL: ToolRef = {
   name: "code-to-gate",
-  version: "1.0.0",
+  version: "1.0.1",
   plugin_versions: [],
 };
 
