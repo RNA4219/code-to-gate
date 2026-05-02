@@ -7,6 +7,7 @@ const addFormats = addFormatsImport.default || addFormatsImport;
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import yamlImport from "js-yaml";
 
 const EXIT = {
   OK: 0,
@@ -23,7 +24,35 @@ const SCHEMA_DIR = path.resolve(
 
 function readJson(filePath: string): unknown {
   const content = readFileSync(filePath, "utf8");
+  if (filePath.endsWith(".yaml") || filePath.endsWith(".yml")) {
+    // Use JSON_SCHEMA to prevent YAML type conversions (dates, binary, etc.)
+    const parsed = yamlImport.load(content, { schema: yamlImport.JSON_SCHEMA }) as unknown;
+    // Normalize hyphenated keys to underscore for schema validation
+    return normalizeYamlKeys(parsed);
+  }
   return JSON.parse(content);
+}
+
+/**
+ * Normalize YAML hyphenated keys to JSON schema expected keys
+ */
+function normalizeYamlKeys(obj: unknown): unknown {
+  if (typeof obj !== "object" || obj === null) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeYamlKeys);
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    // Convert hyphenated keys to underscore (not camelCase)
+    // e.g., "generated-at" -> "generated_at", "source-finding-ids" -> "source_finding_ids"
+    const normalizedKey = key.replace(/-/g, "_");
+    result[normalizedKey] = normalizeYamlKeys(value);
+  }
+  return result;
 }
 
 function getSchemaPath(artifactName: string): string {
@@ -50,16 +79,16 @@ function schemaForArtifact(data: unknown): string | null {
   }
 
   // Check for integration version identifiers
-  if (obj.version === "ctg.gatefield/v1alpha1") {
+  if (obj.version === "ctg.gatefield/v1alpha1" || obj.version === "ctg.gatefield/v1") {
     return getIntegrationSchemaPath("gatefield-static-result");
   }
-  if (obj.version === "ctg.state-gate/v1alpha1") {
+  if (obj.version === "ctg.state-gate/v1alpha1" || obj.version === "ctg.state-gate/v1") {
     return getIntegrationSchemaPath("state-gate-evidence");
   }
-  if (obj.version === "ctg.manual-bb/v1alpha1") {
+  if (obj.version === "ctg.manual-bb/v1alpha1" || obj.version === "ctg.manual-bb/v1") {
     return getIntegrationSchemaPath("manual-bb-seed");
   }
-  if (obj.version === "ctg.workflow-evidence/v1alpha1") {
+  if (obj.version === "ctg.workflow-evidence/v1alpha1" || obj.version === "ctg.workflow-evidence/v1") {
     return getIntegrationSchemaPath("workflow-evidence");
   }
 
@@ -92,6 +121,7 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "release-readiness.schema.json",
     "audit.schema.json",
     "evidence-ref.schema.json",
+    "diff-analysis.schema.json",
   ];
 
   for (const file of schemaFiles) {
@@ -161,13 +191,13 @@ export async function schemaValidate(args: string[]): Promise<number> {
     return EXIT.USAGE_ERROR;
   }
 
-  // Read and parse JSON, return SCHEMA_FAILED for parse errors
+  // Read and parse JSON/YAML, return SCHEMA_FAILED for parse errors
   let data: unknown;
   try {
     data = readJson(target);
   } catch (err) {
-    if (err instanceof SyntaxError) {
-      console.error(`invalid JSON: ${targetArg}`);
+    if (err instanceof SyntaxError || err instanceof yamlImport.YAMLException) {
+      console.error(`invalid ${target.endsWith(".yaml") || target.endsWith(".yml") ? "YAML" : "JSON"}: ${targetArg}`);
       console.error(err.message);
       return EXIT.SCHEMA_FAILED;
     }

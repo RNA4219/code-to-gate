@@ -7,6 +7,7 @@
 
 import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
+import { toPosix } from "../core/path-utils.js";
 
 export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
   id: "UNTESTED_CRITICAL_PATH",
@@ -20,13 +21,14 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
   evaluate(context: RuleContext): Finding[] {
     const findings: Finding[] = [];
 
-    // Collect all test files and their targets
+    // Collect all test files and their targets (normalize to posix)
     const testFiles: Set<string> = new Set();
     const testedPaths: Set<string> = new Set();
 
     for (const file of context.graph.files) {
       if (file.role === "test") {
-        testFiles.add(file.path);
+        const posixTestPath = toPosix(file.path);
+        testFiles.add(posixTestPath);
 
         // Infer what the test targets based on naming conventions
         const content = context.getFileContent(file.path);
@@ -39,7 +41,7 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
             if (importedPath.startsWith(".")) {
               // Simple resolution: ../domain/cart -> domain/cart.ts
               const parts = importedPath.split("/");
-              const testParts = file.path.split("/");
+              const testParts = posixTestPath.split("/");
               // Remove test file's directory and go up
               testParts.pop(); // Remove test file name
               if (parts[0] === "..") {
@@ -109,18 +111,44 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
         file.path.includes("api") ||
         file.path.includes("routes");
 
-      // Check for explicit SMELL comment
+      // Check for explicit SMELL comment (must be in comment syntax, not code)
       const hasSmellComment =
-        content.includes("UNTESTED_CRITICAL_PATH") ||
-        content.includes("MISSING: Integration tests") ||
-        content.includes("MISSING: tests");
+        content.includes("// UNTESTED_CRITICAL_PATH") ||
+        content.includes("// MISSING: Integration tests") ||
+        content.includes("// MISSING: tests") ||
+        content.includes("/* UNTESTED_CRITICAL_PATH") ||
+        content.includes("/* MISSING: Integration tests") ||
+        content.includes("/* MISSING: tests") ||
+        content.includes("# UNTESTED_CRITICAL_PATH") ||
+        content.includes("# MISSING: Integration tests") ||
+        content.includes("# MISSING: tests");
 
       // Check if this file has associated tests
-      const hasTests = testedPaths.has(file.path) ||
-        testFiles.has(file.path.replace("src/", "tests/").replace(".ts", ".test.ts")) ||
-        testFiles.has(file.path.replace("src/", "src/tests/").replace(".ts", ".test.ts")) ||
-        testFiles.has(file.path.replace(".ts", ".test.ts")) ||
-        testFiles.has(file.path.replace(".ts", ".spec.ts"));
+      // Normalize path to posix for consistent matching
+      const posixPath = toPosix(file.path);
+      const baseName = posixPath.replace(".ts", "").replace(".tsx", "").replace(".js", "").replace(".jsx", "");
+      const srcPath = posixPath.replace("src/", "");
+
+      const hasTests = testedPaths.has(posixPath) ||
+        // Standard tests/ directory
+        testFiles.has(posixPath.replace("src/", "tests/").replace(".ts", ".test.ts")) ||
+        testFiles.has(posixPath.replace("src/", "tests/").replace(".tsx", ".test.tsx")) ||
+        // test/ directory (vitest/jest common in monorepos)
+        testFiles.has("test/" + srcPath.replace(".ts", ".test.ts")) ||
+        testFiles.has("test/" + srcPath.replace(".tsx", ".test.tsx")) ||
+        testFiles.has(srcPath.replace(".ts", ".test.ts")) ||
+        testFiles.has(srcPath.replace(".tsx", ".test.tsx")) ||
+        // src/tests/ directory
+        testFiles.has(posixPath.replace("src/", "src/tests/").replace(".ts", ".test.ts")) ||
+        // __tests__/ directory (jest convention)
+        testFiles.has(posixPath.replace(/\/([^\/]+)\.ts$/, "/__tests__/$1.test.ts")) ||
+        testFiles.has(posixPath.replace(/\/([^\/]+)\.tsx$/, "/__tests__/$1.test.tsx")) ||
+        // Inline test files
+        testFiles.has(posixPath.replace(".ts", ".test.ts")) ||
+        testFiles.has(posixPath.replace(".tsx", ".test.tsx")) ||
+        // Spec files
+        testFiles.has(posixPath.replace(".ts", ".spec.ts")) ||
+        testFiles.has(posixPath.replace(".tsx", ".spec.tsx"));
 
       if ((isCritical && isEntrypoint && !hasTests) || hasSmellComment) {
         const lines = content.split("\n");

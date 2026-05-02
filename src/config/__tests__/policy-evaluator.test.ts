@@ -16,8 +16,9 @@ import {
   type CtgPolicy,
   type SuppressionEntry,
 } from "../policy-loader.js";
+import { createMockFinding as createMockFindingBase } from "../../test-utils/index.js";
 
-// Helper to create a mock finding
+// Wrapper for policy evaluator tests with specific signature
 function createMockFinding(
   id: string,
   ruleId: string,

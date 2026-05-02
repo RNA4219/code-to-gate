@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/diff-analysis.schema.json",
+  "title": "DiffAnalysisArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "changed_files", "blast_radius", "diff_findings"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string" },
+    "repo": {
+      "type": "object",
+      "required": ["root", "base_ref", "head_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string", "minLength": 1 },
+        "base_ref": { "type": "string" },
+        "head_ref": { "type": "string" }
+      }
+    },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "diff-analysis" },
+    "schema": { "const": "diff-analysis@v1" },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "status", "additions", "deletions"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "status": { "enum": ["added", "modified", "deleted", "renamed"] },
+          "additions": { "type": "integer", "minimum": 0 },
+          "deletions": { "type": "integer", "minimum": 0 },
+          "hunks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["startLine", "endLine"],
+              "properties": {
+                "startLine": { "type": "integer", "minimum": 1 },
+                "endLine": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "added_files": { "type": "array", "items": { "type": "string" } },
+    "deleted_files": { "type": "array", "items": { "type": "string" } },
+    "modified_files": { "type": "array", "items": { "type": "string" } },
+    "blast_radius": {
+      "type": "object",
+      "required": ["affectedFiles", "affectedSymbols", "affectedTests", "affectedEntrypoints"],
+      "additionalProperties": false,
+      "properties": {
+        "affectedFiles": { "type": "array", "items": { "type": "string" } },
+        "affectedSymbols": { "type": "array", "items": { "type": "string" } },
+        "affectedTests": { "type": "array", "items": { "type": "string" } },
+        "affectedEntrypoints": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "diff_findings": {
+      "type": "object",
+      "required": ["new_findings", "potentially_affected_findings", "resolved_findings"],
+      "additionalProperties": false,
+      "properties": {
+        "new_findings": { "type": "array", "items": { "type": "string" } },
+        "potentially_affected_findings": { "type": "array", "items": { "type": "string" } },
+        "resolved_findings": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

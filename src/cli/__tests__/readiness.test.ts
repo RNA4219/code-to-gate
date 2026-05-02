@@ -109,7 +109,8 @@ describe("readiness CLI", () => {
 
   describe("happy path", () => {
     it("generates valid release-readiness.json with all required fields", async () => {
-      const args = [fixturesDir, "--policy", policyFile, "--out", tempOutDir];
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "happy"), []);
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
       const { exitCode, readiness } = await runReadiness(args);
 
       expect(exitCode).toBe(EXIT.OK);
@@ -149,13 +150,15 @@ describe("readiness CLI", () => {
     });
 
     it("handles different fixtures and relative paths", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "demo-shop"), []);
       // demo-shop-ts fixture
-      const args1 = [demoShopDir, "--policy", policyFile, "--out", tempOutDir];
+      const args1 = [demoShopDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
       const result1 = await readinessCommand(args1, { VERSION, EXIT, getOption });
       expect([EXIT.OK, EXIT.READINESS_NOT_CLEAR]).toContain(result1);
 
       // Relative path
-      const args2 = ["../../../fixtures/demo-ci-imports", "--policy", "../../../fixtures/policies/strict.yaml", "--out", tempOutDir];
+      const findingsDir2 = writeFindingsToDir(path.join(tempOutDir, "relative"), []);
+      const args2 = ["../../../fixtures/demo-ci-imports", "--policy", "../../../fixtures/policies/strict.yaml", "--from", findingsDir2, "--out", tempOutDir];
       const result2 = await readinessCommand(args2, { VERSION, EXIT, getOption });
       expect(typeof result2).toBe("number");
     });
@@ -214,12 +217,12 @@ describe("readiness CLI", () => {
     });
 
     it("handles nonexistent --from directory and empty findings", async () => {
-      // Nonexistent --from
+      // Nonexistent --from - now returns POLICY_FAILED (P0-01 fix)
       const args1 = [fixturesDir, "--policy", policyFile, "--from", "/nonexistent", "--out", tempOutDir];
       const result1 = await readinessCommand(args1, { VERSION, EXIT, getOption });
-      expect(result1).toBe(EXIT.OK);
+      expect(result1).toBe(EXIT.POLICY_FAILED);
 
-      // Empty findings
+      // Empty findings - should pass
       const emptyDir = writeFindingsToDir(path.join(tempOutDir, "empty"), []);
       const args2 = [fixturesDir, "--policy", policyFile, "--from", emptyDir, "--out", tempOutDir];
       const { readiness } = await runReadiness(args2);
@@ -278,7 +281,8 @@ describe("readiness CLI", () => {
     });
 
     it("passes when no blocking conditions matched", async () => {
-      const args = [fixturesDir, "--policy", policyFile, "--out", tempOutDir];
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "no-block"), []);
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
       const { readiness } = await runReadiness(args);
 
       if (readiness.counts.critical === 0) {
@@ -289,12 +293,13 @@ describe("readiness CLI", () => {
 
   describe("run metadata", () => {
     it("generates unique run_id per invocation", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "run-meta"), []);
       const out1 = path.join(tempOutDir, "run1");
       const out2 = path.join(tempOutDir, "run2");
 
-      await readinessCommand([fixturesDir, "--policy", policyFile, "--out", out1], { VERSION, EXIT, getOption });
+      await readinessCommand([fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", out1], { VERSION, EXIT, getOption });
       await new Promise(r => setTimeout(r, 100));
-      await readinessCommand([fixturesDir, "--policy", policyFile, "--out", out2], { VERSION, EXIT, getOption });
+      await readinessCommand([fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", out2], { VERSION, EXIT, getOption });
 
       const r1 = JSON.parse(readFileSync(path.join(out1, "release-readiness.json"), "utf8"));
       const r2 = JSON.parse(readFileSync(path.join(out2, "release-readiness.json"), "utf8"));
@@ -329,16 +334,27 @@ describe("readiness CLI", () => {
       writeFileSync(path.join(gitRepo, ".git", "config"), "git config", "utf8");
       writeFileSync(path.join(gitRepo, "src", "index.ts"), "export const x = 1;", "utf8");
 
-      const args = [gitRepo, "--policy", policyFile, "--out", tempOutDir];
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "git-findings"), []);
+      const args = [gitRepo, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
       const result = await readinessCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.OK);
     });
 
-    it("uses default --out (.qh) when not specified", async () => {
-      const args = [fixturesDir, "--policy", policyFile];
+    it("requires --from option (P0-01 fix)", async () => {
+      // Missing --from should return USAGE_ERROR
+      const args = [fixturesDir, "--policy", policyFile, "--out", tempOutDir];
       const result = await readinessCommand(args, { VERSION, EXIT, getOption });
-      expect(result).toBe(EXIT.OK);
-      expect(existsSync(path.join(process.cwd(), ".qh", "release-readiness.json"))).toBe(true);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("fails when findings.json not found in --from directory (P0-01 fix)", async () => {
+      const emptyFromDir = path.join(tempOutDir, "empty-from");
+      mkdirSync(emptyFromDir, { recursive: true });
+      // No findings.json in this directory
+
+      const args = [fixturesDir, "--policy", policyFile, "--from", emptyFromDir, "--out", tempOutDir];
+      const result = await readinessCommand(args, { VERSION, EXIT, getOption });
+      expect(result).toBe(EXIT.POLICY_FAILED);
     });
   });
 });

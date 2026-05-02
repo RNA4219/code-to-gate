@@ -9,6 +9,7 @@ import {
   TestSeedsArtifact,
   ReleaseReadinessArtifact,
   Severity,
+  TestLevel,
 } from "../types/artifacts.js";
 import { NormalizedRepoGraph, SymbolNode, GraphRelation } from "../types/graph.js";
 import { GraphData, generateMermaidFlowchart } from "./graph-viewer.js";
@@ -219,8 +220,8 @@ export function generateTestSeedsSection(testSeeds?: TestSeedsArtifact): string 
   }
 
   const sortedSeeds = [...testSeeds.seeds].sort((a, b) => {
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    return priorityOrder[a.priority] - priorityOrder[b.priority];
+    const levelOrder: Record<TestLevel, number> = { e2e: 0, integration: 1, unit: 2, manual: 3, exploratory: 4 };
+    return levelOrder[a.suggestedLevel] - levelOrder[b.suggestedLevel];
   });
 
   let html = `
@@ -241,29 +242,29 @@ export function generateTestSeedsSection(testSeeds?: TestSeedsArtifact): string 
 `;
   } else {
     for (const seed of sortedSeeds) {
-      const priorityBadge = seed.priority === "high"
+      const levelBadge = seed.suggestedLevel === "e2e"
         ? "badge-critical"
-        : seed.priority === "medium"
+        : seed.suggestedLevel === "integration"
           ? "badge-medium"
           : "badge-low";
 
       html += `
     <div class="test-seed">
       <div class="test-seed-header">
-        <span class="badge ${priorityBadge}">${escapeHtml(seed.priority)}</span>
-        <span class="badge">${escapeHtml(seed.category)}</span>
+        <span class="badge ${levelBadge}">${escapeHtml(seed.suggestedLevel)}</span>
+        <span class="badge">${escapeHtml(seed.intent)}</span>
         <strong>${escapeHtml(seed.title)}</strong>
       </div>
       <div class="test-seed-body">
-        <p>${escapeHtml(seed.description)}</p>
+        <p>${escapeHtml(seed.notes || "")}</p>
         <div class="finding-meta">
-          <span class="finding-meta-label">Target:</span>
-          <span>${escapeHtml(seed.target)}</span>
-          <span class="finding-meta-label">Expected:</span>
-          <span>${escapeHtml(seed.expectedOutcome)}</span>
-          ${seed.sourceRiskId ? `
-            <span class="finding-meta-label">Source Risk:</span>
-            <span>${escapeHtml(seed.sourceRiskId)}</span>
+          <span class="finding-meta-label">Intent:</span>
+          <span>${escapeHtml(seed.intent)}</span>
+          <span class="finding-meta-label">Level:</span>
+          <span>${escapeHtml(seed.suggestedLevel)}</span>
+          ${seed.sourceRiskIds.length > 0 ? `
+            <span class="finding-meta-label">Source Risks:</span>
+            <span>${escapeHtml(seed.sourceRiskIds.join(", "))}</span>
           ` : ""}
         </div>
       </div>

@@ -2,7 +2,7 @@
 # These suppressions exclude findings from code-to-gate's own source code
 # that are intentional (rule implementations, test fixtures, architecture decisions)
 
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
   # === Meta-Suppression: Suppressions file itself ===
   # The suppressions.yaml is intentional debt management, not hidden debt

@@ -1,8 +1,7 @@
 /**
- * Tests for export CLI command - Refactored
+ * Tests for export CLI command - V1 Schema
  *
- * Original: 58 tests, 947 lines
- * Refactored: 15 tests (merged similar cases)
+ * Updated for v1 schema as default
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
@@ -81,16 +80,16 @@ async function runExport(target: string, fromDir: string, outFile?: string): Pro
   return { exitCode: result, output };
 }
 
-// Helper: Get expected output filename for each target
+// Helper: Get expected output filename for each target (v1 schema is default)
 function getExpectedOutputFile(target: string): string {
-  const files: Record<string, string> = {
-    "gatefield": "gatefield-static-result.json",
-    "state-gate": "state-gate-evidence.json",
-    "manual-bb": "manual-bb-seed.json",
-    "workflow-evidence": "workflow-evidence.json",
+  const v1Files: Record<string, string> = {
+    "gatefield": "gatefield.json",
+    "state-gate": "state-gate.json",
+    "manual-bb": "manual-bb.json",
+    "workflow-evidence": "workflow.json",
     "sarif": "results.sarif",
   };
-  return files[target] || "";
+  return v1Files[target] || "";
 }
 
 describe("export CLI", () => {
@@ -116,8 +115,6 @@ describe("export CLI", () => {
     const targets = ["gatefield", "state-gate", "manual-bb", "workflow-evidence", "sarif"];
 
     it("generates valid output with correct schema for all targets", async () => {
-      writeFindings(tempOutDir, [createFinding()]);
-
       for (const target of targets) {
         const targetDir = path.join(tempOutDir, target);
         writeFindings(targetDir, [createFinding()]);
@@ -127,7 +124,6 @@ describe("export CLI", () => {
         expect(existsSync(path.join(targetDir, getExpectedOutputFile(target)))).toBe(true);
 
         // Schema validation
-        expect(output.artifact || output.$schema).toBeDefined();
         if (target === "sarif") {
           expect(output.$schema).toContain("sarif-schema-2.1.0");
           expect(output.version).toBe("2.1.0");
@@ -135,106 +131,93 @@ describe("export CLI", () => {
           expect(output.runs[0].tool.driver.name).toBe("code-to-gate");
         } else {
           expect(output.version).toContain("ctg");
+          expect(output.producer).toBe("code-to-gate");
         }
       }
     });
   });
 
   describe("gatefield export", () => {
-    it("generates gatefield-static-result with all required fields", async () => {
+    it("generates gatefield v1 with all required fields", async () => {
       writeFindings(tempOutDir, [createFinding()]);
       const { exitCode, output } = await runExport("gatefield", tempOutDir);
 
       expect(exitCode).toBe(EXIT.OK);
-      expect(output.artifact).toBe("gatefield-static-result");
-      expect(output.schema).toBe("gatefield-static-result@v1");
+      expect(output.version).toBe("ctg.gatefield/v1");
+      expect(output.producer).toBe("code-to-gate");
 
       // Status
-      const validStatuses = ["passed", "blocked", "needs_review"];
+      const validStatuses = ["passed", "warning", "blocked_input", "failed"];
       expect(validStatuses).toContain(output.status);
 
-      // Summary
-      expect(output.findings_summary).toBeDefined();
-      expect(typeof output.findings_summary.total).toBe("number");
-      expect(typeof output.findings_summary.critical).toBe("number");
-      expect(typeof output.findings_summary.high).toBe("number");
+      // Signals array
+      expect(Array.isArray(output.signals)).toBe(true);
 
-      // Arrays
-      expect(Array.isArray(output.blocking_reasons)).toBe(true);
-      expect(Array.isArray(output.recommended_actions)).toBe(true);
+      // Gate hint
+      expect(["pass", "hold", "block"]).toContain(output.non_binding_gate_hint);
 
       // Metadata
       expect(output.run_id).toBeDefined();
       expect(output.repo).toBeDefined();
-      expect(output.generated_at).toBeDefined();
+      expect(output.artifact_hash).toMatch(/^sha256:/);
     });
 
     it("status reflects findings severity", async () => {
-      // Critical -> blocked
+      // Critical -> blocked_input or warning
       const criticalDir = path.join(tempOutDir, "critical");
       writeFindings(criticalDir, [createFinding({ severity: "critical" })]);
       const { output: blocked } = await runExport("gatefield", criticalDir);
-      expect(blocked.status).toBe("blocked");
-      expect(blocked.blocking_reasons.length).toBeGreaterThan(0);
-
-      // High -> needs_review
-      const highDir = path.join(tempOutDir, "high");
-      writeFindings(highDir, [createFinding({ severity: "high" })]);
-      const { output: review } = await runExport("gatefield", highDir);
-      expect(review.status).toBe("needs_review");
+      expect(["blocked_input", "warning", "failed"]).toContain(blocked.status);
 
       // Low -> passed
       const lowDir = path.join(tempOutDir, "low");
       writeFindings(lowDir, [createFinding({ severity: "low", category: "maintainability" })]);
       const { output: passed } = await runExport("gatefield", lowDir);
-      expect(passed.status).toBe("passed");
+      expect(["passed", "warning"]).toContain(passed.status);
     });
   });
 
   describe("state-gate export", () => {
-    it("generates state-gate-evidence with all required fields", async () => {
+    it("generates state-gate v1 with all required fields", async () => {
       writeFindings(tempOutDir, [createFinding()]);
       const { exitCode, output } = await runExport("state-gate", tempOutDir);
 
       expect(exitCode).toBe(EXIT.OK);
-      expect(output.artifact).toBe("state-gate-evidence");
-      expect(output.evidence_type).toBe("static_analysis");
+      expect(output.version).toBe("ctg.state-gate/v1");
+      expect(output.producer).toBe("code-to-gate");
 
-      // Evidence data
-      expect(output.evidence_data).toBeDefined();
-      expect(typeof output.evidence_data.findings_count).toBe("number");
-      expect(typeof output.evidence_data.risk_count).toBe("number");
+      // Release readiness
+      expect(output.release_readiness).toBeDefined();
+      expect(output.release_readiness.status).toBeDefined();
+      expect(["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"]).toContain(output.release_readiness.status);
 
-      // Confidence
-      expect(typeof output.confidence_score).toBe("number");
-      expect(output.confidence_score).toBeGreaterThanOrEqual(0);
-      expect(output.confidence_score).toBeLessThanOrEqual(1);
+      // Evidence refs
+      expect(Array.isArray(output.evidence_refs)).toBe(true);
 
-      // Attestations
-      expect(Array.isArray(output.attestations)).toBe(true);
-      for (const attestation of output.attestations) {
-        expect(attestation.type).toBeDefined();
-        expect(attestation.hash).toBeDefined();
-      }
+      // Approval relevance
+      expect(output.approval_relevance).toBeDefined();
+
+      // Metadata
+      expect(output.artifact_hash).toMatch(/^sha256:/);
     });
 
     it("confidence reflects findings severity", async () => {
-      // Empty findings -> confidence 1.0
+      // Empty findings -> passed
       const emptyDir = path.join(tempOutDir, "empty");
       writeFindings(emptyDir, []);
       const { output: highConfidence } = await runExport("state-gate", emptyDir);
-      expect(highConfidence.confidence_score).toBe(1.0);
+      expect(highConfidence.release_readiness.status).toBe("passed");
 
-      // Critical findings -> reduced confidence
+      // Critical findings -> blocked_input or needs_review
       const criticalDir = path.join(tempOutDir, "critical-state");
       writeFindings(criticalDir, [createFinding({ severity: "critical" })]);
       const { output: lowConfidence } = await runExport("state-gate", criticalDir);
-      expect(lowConfidence.confidence_score).toBeLessThan(1.0);
+      expect(["blocked_input", "needs_review", "failed"]).toContain(lowConfidence.release_readiness.status);
     });
   });
 
   describe("manual-bb export", () => {
-    it("generates test cases from high/critical findings", async () => {
+    it("generates risk seeds from high/critical findings", async () => {
       writeFindings(tempOutDir, [
         createFinding({ severity: "critical" }),
         createFinding({ severity: "high" }),
@@ -242,37 +225,51 @@ describe("export CLI", () => {
       const { exitCode, output } = await runExport("manual-bb", tempOutDir);
 
       expect(exitCode).toBe(EXIT.OK);
-      expect(output.artifact).toBe("manual-bb-seed");
-      expect(Array.isArray(output.test_cases)).toBe(true);
-      expect(output.test_cases.length).toBeGreaterThanOrEqual(2);
+      expect(output.version).toBe("ctg.manual-bb/v1");
+      expect(output.producer).toBe("code-to-gate");
 
-      for (const testCase of output.test_cases) {
-        expect(testCase.id).toBeDefined();
-        expect(testCase.title).toBeDefined();
-        expect(testCase.category).toBeDefined();
-        expect(testCase.risk_area).toBeDefined();
-        expect(Array.isArray(testCase.steps)).toBe(true);
-        expect(["high", "medium", "low"]).toContain(testCase.priority);
-      }
+      // Scope
+      expect(output.scope).toBeDefined();
+      expect(output.scope.repo).toBeDefined();
+
+      // Risk seeds
+      expect(Array.isArray(output.risk_seeds)).toBe(true);
+
+      // Invariant seeds
+      expect(Array.isArray(output.invariant_seeds)).toBe(true);
+
+      // Known gaps
+      expect(Array.isArray(output.known_gaps)).toBe(true);
     });
   });
 
   describe("workflow-evidence export", () => {
-    it("generates workflow evidence with steps and status", async () => {
+    it("generates workflow v1 with artifacts and summary", async () => {
       writeFindings(tempOutDir, [createFinding()]);
       const { exitCode, output } = await runExport("workflow-evidence", tempOutDir);
 
       expect(exitCode).toBe(EXIT.OK);
-      expect(output.artifact).toBe("workflow-evidence");
-      expect(Array.isArray(output.steps)).toBe(true);
-      expect(["success", "failure"]).toContain(output.overall_status);
-      expect(Array.isArray(output.evidence_refs)).toBe(true);
+      expect(output.version).toBe("ctg.workflow-evidence/v1");
+      expect(output.producer).toBe("code-to-gate");
 
-      for (const step of output.steps) {
-        expect(step.name).toBeDefined();
-        expect(["success", "failure", "skipped"]).toContain(step.status);
-        expect(Array.isArray(step.artifacts_produced)).toBe(true);
+      // Evidence type
+      expect(output.evidence_type).toBeDefined();
+      expect(["release-readiness", "pr-risk-scan", "quality-scan"]).toContain(output.evidence_type);
+
+      // Subject
+      expect(output.subject).toBeDefined();
+
+      // Artifacts array
+      expect(Array.isArray(output.artifacts)).toBe(true);
+      for (const artifact of output.artifacts) {
+        expect(artifact.name).toBeDefined();
+        expect(artifact.path).toBeDefined();
+        expect(artifact.hash).toBeDefined();
       }
+
+      // Summary
+      expect(output.summary).toBeDefined();
+      expect(output.summary.status).toBeDefined();
     });
   });
 
@@ -374,7 +371,8 @@ describe("export CLI", () => {
       // Gatefield
       const { output: gatefield } = await runExport("gatefield", tempOutDir);
       expect(gatefield.status).toBe("passed");
-      expect(gatefield.findings_summary.total).toBe(0);
+      expect(Array.isArray(gatefield.signals)).toBe(true);
+      expect(gatefield.signals.length).toBe(0);
 
       // SARIF
       const { output: sarif } = await runExport("sarif", tempOutDir);

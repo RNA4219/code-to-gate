@@ -8,7 +8,7 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
-import { loadPolicyFile, loadSuppressionFile, type CtgPolicy, type SuppressionEntry } from "../config/policy-loader.js";
+import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, type CtgPolicy, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
 
 import {
@@ -177,8 +177,9 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
   const fromDir = options.getOption(args, "--from");
   const outDir = options.getOption(args, "--out") ?? ".qh";
 
-  if (!repoArg || !policyPath) {
-    console.error("usage: code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir>");
+  if (!repoArg || !policyPath || !fromDir) {
+    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>]");
+    console.error("Note: --from is required. Run 'code-to-gate analyze' first to generate findings.json");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -218,41 +219,27 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
 
     // Load suppressions if configured
     let suppressions: SuppressionEntry[] = [];
+    let expiryWarnings: SuppressionExpiryWarning[] = [];
     if (policy.suppression?.file) {
       const suppressionFile = loadSuppressionFile(policy.suppression.file, cwd);
       suppressions = suppressionFile.suppressions;
+
+      // Check for expired or expiring suppressions
+      const warningDays = policy.suppression?.expiryWarningDays ?? 30;
+      expiryWarnings = checkSuppressionExpiry(suppressions, warningDays);
     }
 
-    // Load findings from --from directory or create empty
-    let findings: FindingsArtifact;
+    // Load findings from --from directory (required)
+    const findingsPath = path.resolve(cwd, fromDir, "findings.json");
 
-    if (fromDir && existsSync(path.resolve(cwd, fromDir, "findings.json"))) {
-      const findingsPath = path.resolve(cwd, fromDir, "findings.json");
-      const findingsContent = readFileSync(findingsPath, "utf8");
-      findings = JSON.parse(findingsContent);
-    } else {
-      // Create empty findings artifact
-      const now = new Date().toISOString();
-      const runId = `readiness-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
-
-      findings = {
-        version: CTG_VERSION,
-        generated_at: now,
-        run_id: runId,
-        repo: { root: repoRoot },
-        tool: {
-          name: "code-to-gate",
-          version: VERSION,
-          policy_id: policy.policyId,
-          plugin_versions: [],
-        },
-        artifact: "findings",
-        schema: "findings@v1",
-        completeness: "complete",
-        findings: [],
-        unsupported_claims: [],
-      };
+    if (!existsSync(findingsPath)) {
+      console.error(`findings.json not found in --from directory: ${fromDir}`);
+      console.error("Run 'code-to-gate analyze' first to generate findings");
+      return options.EXIT.POLICY_FAILED;
     }
+
+    const findingsContent = readFileSync(findingsPath, "utf8");
+    const findings: FindingsArtifact = JSON.parse(findingsContent);
 
     // Evaluate findings against policy using policy-evaluator
     const evalResult = evaluatePolicy(findings.findings, policy, suppressions);
@@ -260,8 +247,21 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     // Map failed conditions to artifact format
     const failedConditions = mapFailedConditions(evalResult);
 
-    // Generate recommended actions
+    // Generate recommended actions (including expiry warnings)
     const recommendedActions = generateRecommendedActions(evalResult);
+
+    // Add expiry warnings to recommended actions
+    for (const warning of expiryWarnings) {
+      if (warning.status === "expired") {
+        recommendedActions.push(
+          `WARNING: Suppression for ${warning.ruleId} at ${warning.path} expired ${warning.daysUntilExpiry} days ago. Review and update or remove.`
+        );
+      } else {
+        recommendedActions.push(
+          `WARNING: Suppression for ${warning.ruleId} at ${warning.path} expires in ${warning.daysUntilExpiry} days. Plan review before expiry.`
+        );
+      }
+    }
 
     // Build readiness artifact
     const now = new Date().toISOString();

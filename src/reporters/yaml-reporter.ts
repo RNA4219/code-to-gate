@@ -234,8 +234,8 @@ export function writeRiskRegisterYaml(outDir: string, artifact: RiskRegisterArti
 # Run ID: ${artifact.run_id}
 
 version: ${artifact.version}
-generated-at: ${artifact.generated_at}
-run-id: ${artifact.run_id}
+generated_at: ${artifact.generated_at}
+run_id: ${artifact.run_id}
 artifact: risk-register
 schema: risk-register@v1
 completeness: ${artifact.completeness}
@@ -246,6 +246,7 @@ repo:
 tool:
   name: ${artifact.tool.name}
   version: ${artifact.tool.version}
+  plugin_versions: []
 
 risks:
 `;
@@ -262,15 +263,26 @@ risks:
     for (const impactItem of risk.impact) {
       yaml += `      - ${impactItem}\n`;
     }
-    yaml += `    source-finding-ids:
+    yaml += `    sourceFindingIds:
 `;
     for (const findingId of risk.sourceFindingIds) {
       yaml += `      - ${findingId}\n`;
     }
-    yaml += `    recommended-actions:
+    yaml += `    evidence:
 `;
+    for (const ev of risk.evidence || []) {
+      yaml += `      - id: ${ev.id}\n        path: ${ev.path}\n        kind: ${ev.kind}\n`;
+      if (ev.startLine) yaml += `        startLine: ${ev.startLine}\n`;
+      if (ev.excerptHash) yaml += `        excerptHash: "${ev.excerptHash}"\n`;
+    }
+    yaml += `    recommended-actions:\n`;
     for (const action of risk.recommendedActions) {
-      yaml += `      - ${action}\n`;
+      // Quote actions that contain colons or special characters
+      if (action.includes(":") || action.includes("#") || action.includes("|")) {
+        yaml += `      - "${action}"\n`;
+      } else {
+        yaml += `      - ${action}\n`;
+      }
     }
     if (risk.narrative) {
       yaml += `    narrative: |

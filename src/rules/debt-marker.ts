@@ -25,7 +25,8 @@ const MARKERS: DebtMarker[] = [
   { label: "TODO", pattern: /\bTODO\b/i, severity: "low", confidence: 0.8 },
   { label: "XXX", pattern: /\bXXX\b/i, severity: "low", confidence: 0.75 },
   { label: "workaround", pattern: /\bwork\s*around\b|\bworkaround\b/i, severity: "medium", confidence: 0.85 },
-  { label: "temporary", pattern: /\btemporary\b|\btemp\b/i, severity: "medium", confidence: 0.8 },
+  // 'temporary' pattern: only match when explicitly flagged as a short-term measure
+  { label: "temporary", pattern: /\btemporary\s+(solution|fix|implementation|code|hack|measure)\b/i, severity: "medium", confidence: 0.85 },
   { label: "technical debt", pattern: /\btech(?:nical)?\s+debt\b/i, severity: "medium", confidence: 0.9 },
 ];
 

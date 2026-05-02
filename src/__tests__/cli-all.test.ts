@@ -316,7 +316,7 @@ describe("CLI Commands Integration", () => {
       const result = await exportCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.OK);
 
-      const outputPath = path.join(tempOutDir, "gatefield-static-result.json");
+      const outputPath = path.join(tempOutDir, "gatefield.json");
       expect(existsSync(outputPath)).toBe(true);
     });
 
@@ -325,7 +325,7 @@ describe("CLI Commands Integration", () => {
       const result = await exportCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.OK);
 
-      const outputPath = path.join(tempOutDir, "state-gate-evidence.json");
+      const outputPath = path.join(tempOutDir, "state-gate.json");
       expect(existsSync(outputPath)).toBe(true);
     });
 
@@ -334,7 +334,7 @@ describe("CLI Commands Integration", () => {
       const result = await exportCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.OK);
 
-      const outputPath = path.join(tempOutDir, "manual-bb-seed.json");
+      const outputPath = path.join(tempOutDir, "manual-bb.json");
       expect(existsSync(outputPath)).toBe(true);
     });
 
@@ -343,7 +343,7 @@ describe("CLI Commands Integration", () => {
       const result = await exportCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.OK);
 
-      const outputPath = path.join(tempOutDir, "workflow-evidence.json");
+      const outputPath = path.join(tempOutDir, "workflow.json");
       expect(existsSync(outputPath)).toBe(true);
     });
 
@@ -456,10 +456,10 @@ describe("CLI Commands Integration", () => {
       }
 
       // Verify all exports
-      expect(existsSync(path.join(tempOutDir, "gatefield-static-result.json"))).toBe(true);
-      expect(existsSync(path.join(tempOutDir, "state-gate-evidence.json"))).toBe(true);
-      expect(existsSync(path.join(tempOutDir, "manual-bb-seed.json"))).toBe(true);
-      expect(existsSync(path.join(tempOutDir, "workflow-evidence.json"))).toBe(true);
+      expect(existsSync(path.join(tempOutDir, "gatefield.json"))).toBe(true);
+      expect(existsSync(path.join(tempOutDir, "state-gate.json"))).toBe(true);
+      expect(existsSync(path.join(tempOutDir, "manual-bb.json"))).toBe(true);
+      expect(existsSync(path.join(tempOutDir, "workflow.json"))).toBe(true);
       expect(existsSync(path.join(tempOutDir, "results.sarif"))).toBe(true);
     });
   });
@@ -512,11 +512,11 @@ describe("CLI Commands Integration", () => {
 
       await exportCommand(["gatefield", "--from", tempOutDir], { VERSION, EXIT, getOption });
 
-      const gatefield = JSON.parse(readFileSync(path.join(tempOutDir, "gatefield-static-result.json"), "utf8"));
+      const gatefield = JSON.parse(readFileSync(path.join(tempOutDir, "gatefield.json"), "utf8"));
 
-      expect(gatefield.version).toBe("ctg.gatefield/v1alpha1");
-      expect(gatefield.artifact).toBe("gatefield-static-result");
-      expect(gatefield.schema).toBe("gatefield-static-result@v1");
+      expect(gatefield.version).toBe("ctg.gatefield/v1");
+      expect(gatefield.producer).toBe("code-to-gate");
+      expect(gatefield.signals).toBeDefined();
     });
 
     it("should generate state-gate artifact with correct schema", async () => {
@@ -540,11 +540,11 @@ describe("CLI Commands Integration", () => {
 
       await exportCommand(["state-gate", "--from", tempOutDir], { VERSION, EXIT, getOption });
 
-      const stateGate = JSON.parse(readFileSync(path.join(tempOutDir, "state-gate-evidence.json"), "utf8"));
+      const stateGate = JSON.parse(readFileSync(path.join(tempOutDir, "state-gate.json"), "utf8"));
 
-      expect(stateGate.version).toBe("ctg.state-gate/v1alpha1");
-      expect(stateGate.artifact).toBe("state-gate-evidence");
-      expect(stateGate.schema).toBe("state-gate-evidence@v1");
+      expect(stateGate.version).toBe("ctg.state-gate/v1");
+      expect(stateGate.producer).toBe("code-to-gate");
+      expect(stateGate.release_readiness).toBeDefined();
     });
 
     it("should generate manual-bb artifact with correct schema", async () => {
@@ -568,11 +568,11 @@ describe("CLI Commands Integration", () => {
 
       await exportCommand(["manual-bb", "--from", tempOutDir], { VERSION, EXIT, getOption });
 
-      const manualBb = JSON.parse(readFileSync(path.join(tempOutDir, "manual-bb-seed.json"), "utf8"));
+      const manualBb = JSON.parse(readFileSync(path.join(tempOutDir, "manual-bb.json"), "utf8"));
 
-      expect(manualBb.version).toBe("ctg.manual-bb/v1alpha1");
-      expect(manualBb.artifact).toBe("manual-bb-seed");
-      expect(manualBb.schema).toBe("manual-bb-seed@v1");
+      expect(manualBb.version).toBe("ctg.manual-bb/v1");
+      expect(manualBb.producer).toBe("code-to-gate");
+      expect(manualBb.scope).toBeDefined();
     });
   });
 
@@ -609,12 +609,12 @@ describe("CLI Commands Integration", () => {
 
       await exportCommand(["gatefield", "--from", tempOutDir], { VERSION, EXIT, getOption });
 
-      const gatefield = JSON.parse(readFileSync(path.join(tempOutDir, "gatefield-static-result.json"), "utf8"));
+      const gatefield = JSON.parse(readFileSync(path.join(tempOutDir, "gatefield.json"), "utf8"));
 
-      expect(gatefield.findings_summary).toBeDefined();
-      expect(gatefield.findings_summary.total).toBe(1);
-      expect(gatefield.findings_summary.critical).toBe(1);
-      expect(gatefield.status).toBe("blocked");
+      expect(gatefield.signals).toBeDefined();
+      expect(Array.isArray(gatefield.signals)).toBe(true);
+      expect(gatefield.signals.length).toBe(1);
+      expect(["blocked_input", "warning", "failed"]).toContain(gatefield.status);
     });
 
     it("should include confidence score in state-gate output", async () => {
@@ -638,12 +638,11 @@ describe("CLI Commands Integration", () => {
 
       await exportCommand(["state-gate", "--from", tempOutDir], { VERSION, EXIT, getOption });
 
-      const stateGate = JSON.parse(readFileSync(path.join(tempOutDir, "state-gate-evidence.json"), "utf8"));
+      const stateGate = JSON.parse(readFileSync(path.join(tempOutDir, "state-gate.json"), "utf8"));
 
-      expect(stateGate.confidence_score).toBeDefined();
-      expect(typeof stateGate.confidence_score).toBe("number");
-      expect(stateGate.confidence_score).toBeGreaterThanOrEqual(0);
-      expect(stateGate.confidence_score).toBeLessThanOrEqual(1);
+      expect(stateGate.release_readiness).toBeDefined();
+      expect(stateGate.release_readiness.status).toBeDefined();
+      expect(stateGate.approval_relevance).toBeDefined();
     });
 
     it("should generate test cases in manual-bb output for findings", async () => {
@@ -678,12 +677,13 @@ describe("CLI Commands Integration", () => {
 
       await exportCommand(["manual-bb", "--from", tempOutDir], { VERSION, EXIT, getOption });
 
-      const manualBb = JSON.parse(readFileSync(path.join(tempOutDir, "manual-bb-seed.json"), "utf8"));
+      const manualBb = JSON.parse(readFileSync(path.join(tempOutDir, "manual-bb.json"), "utf8"));
 
-      expect(manualBb.test_cases).toBeDefined();
-      expect(Array.isArray(manualBb.test_cases)).toBe(true);
-      expect(manualBb.test_cases.length).toBeGreaterThan(0);
-      expect(manualBb.test_cases[0].source_findings).toContain("f-001");
+      expect(manualBb.risk_seeds).toBeDefined();
+      expect(Array.isArray(manualBb.risk_seeds)).toBe(true);
+      expect(manualBb.risk_seeds.length).toBeGreaterThan(0);
+      expect(manualBb.risk_seeds[0].title).toBeDefined();
+      expect(manualBb.risk_seeds[0].severity).toBeDefined();
     });
   });
 });

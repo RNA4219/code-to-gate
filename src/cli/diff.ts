@@ -7,6 +7,7 @@
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import { sha256, toPosix } from "../core/path-utils.js";
 import { detectLanguage, detectRole, walkDir, ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
@@ -17,6 +18,7 @@ import {
   Finding,
   EvidenceRef,
   CTG_VERSION,
+  ToolRef,
 } from "../types/artifacts.js";
 import {
   buildFindingsFromGraph,
@@ -57,6 +59,7 @@ interface DiffAnalysisArtifact {
     base_ref: string;
     head_ref: string;
   };
+  tool: ToolRef;
   artifact: "diff-analysis";
   schema: "diff-analysis@v1";
   changed_files: ChangedFile[];
@@ -72,15 +75,107 @@ interface DiffAnalysisArtifact {
 }
 
 /**
+ * Parse git diff numstat output
+ */
+function parseNumstat(line: string): { additions: number; deletions: number; path: string } | null {
+  const parts = line.split("\t");
+  if (parts.length < 3) return null;
+  const additions = parseInt(parts[0], 10) || 0;
+  const deletions = parseInt(parts[1], 10) || 0;
+  const path = parts[2];
+  return { additions, deletions, path };
+}
+
+/**
+ * Parse git diff hunk headers to get line ranges
+ */
+function parseHunkHeaders(diffOutput: string, filePath: string): Array<{ startLine: number; endLine: number }> {
+  const hunks: Array<{ startLine: number; endLine: number }> = [];
+  const hunkRegex = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/gm;
+  let match;
+  while ((match = hunkRegex.exec(diffOutput)) !== null) {
+    const startLine = parseInt(match[1], 10);
+    // Estimate end line - in real impl would track actual lines
+    hunks.push({ startLine, endLine: startLine + 20 });
+  }
+  return hunks;
+}
+
+/**
  * Get changed files between base and head refs using git
  */
 function getChangedFiles(repoRoot: string, baseRef: string, headRef: string): ChangedFile[] {
-  // In a real implementation, this would use git diff
-  // For now, we simulate by comparing file lists
   const changedFiles: ChangedFile[] = [];
 
-  // Simple simulation: check if files exist and differ
   try {
+    // Check if git is available
+    execSync("git --version", { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
+
+    // Get name-status (A/M/D/R)
+    const nameStatusOutput = execSync(
+      `git diff --name-status "${baseRef}" "${headRef}"`,
+      { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
+    );
+
+    // Get numstat for additions/deletions
+    const numstatOutput = execSync(
+      `git diff --numstat "${baseRef}" "${headRef}"`,
+      { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
+    );
+
+    // Parse name-status
+    const statusMap: Map<string, "added" | "modified" | "deleted" | "renamed"> = new Map();
+    for (const line of nameStatusOutput.split("\n").filter(l => l.trim())) {
+      const parts = line.split("\t");
+      if (parts.length >= 2) {
+        const status = parts[0];
+        const filePath = parts[1];
+        if (status === "A") statusMap.set(filePath, "added");
+        else if (status === "M") statusMap.set(filePath, "modified");
+        else if (status === "D") statusMap.set(filePath, "deleted");
+        else if (status.startsWith("R")) statusMap.set(filePath, "renamed");
+      }
+    }
+
+    // Parse numstat
+    const statsMap: Map<string, { additions: number; deletions: number }> = new Map();
+    for (const line of numstatOutput.split("\n").filter(l => l.trim())) {
+      const parsed = parseNumstat(line);
+      if (parsed) {
+        statsMap.set(parsed.path, { additions: parsed.additions, deletions: parsed.deletions });
+      }
+    }
+
+    // Build changed files list
+    for (const [filePath, status] of statusMap) {
+      const stats = statsMap.get(filePath) || { additions: 0, deletions: 0 };
+      const posixPath = toPosix(filePath);
+
+      // Get hunk info for modified files
+      let hunks: Array<{ startLine: number; endLine: number }> = [];
+      if (status === "modified") {
+        try {
+          const diffOutput = execSync(
+            `git diff "${baseRef}" "${headRef}" -- "${filePath}"`,
+            { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"], maxBuffer: 1024 * 1024 }
+          );
+          hunks = parseHunkHeaders(diffOutput, posixPath);
+        } catch {
+          // If diff fails, use empty hunks
+        }
+      }
+
+      changedFiles.push({
+        path: posixPath,
+        status,
+        additions: stats.additions,
+        deletions: stats.deletions,
+        hunks,
+      });
+    }
+  } catch (error) {
+    // Git not available or not a git repo - fall back to file-based comparison
+    // This is a simplified fallback for non-git directories
     const allFiles = walkDir(repoRoot);
     const targetFiles = allFiles.filter(
       (file) =>
@@ -88,8 +183,7 @@ function getChangedFiles(repoRoot: string, baseRef: string, headRef: string): Ch
         !file.endsWith(".d.ts")
     );
 
-    // Simulate changes based on ref names (in real impl, use git)
-    // For demo, treat some files as "changed"
+    // Treat first few files as "changed" for demo purposes
     for (const file of targetFiles.slice(0, 5)) {
       const rel = toPosix(path.relative(repoRoot, file));
       changedFiles.push({
@@ -100,8 +194,6 @@ function getChangedFiles(repoRoot: string, baseRef: string, headRef: string): Ch
         hunks: [{ startLine: 1, endLine: 20 }],
       });
     }
-  } catch {
-    // Return empty if git not available
   }
 
   return changedFiles;
@@ -393,11 +485,52 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     const changedFiles = getChangedFiles(repoRoot, baseRef, headRef);
 
     if (changedFiles.length === 0) {
+      // Generate empty diff-analysis artifact even when no changes
+      ensureDir(absoluteOutDir);
+
+      const emptyDiffAnalysis: DiffAnalysisArtifact = {
+        version: CTG_VERSION,
+        generated_at: graph.generated_at,
+        run_id: graph.run_id,
+        repo: {
+          root: graph.repo.root,
+          base_ref: baseRef,
+          head_ref: headRef,
+        },
+        tool: {
+          name: "code-to-gate",
+          version: VERSION,
+          plugin_versions: [],
+        },
+        artifact: "diff-analysis",
+        schema: "diff-analysis@v1",
+        changed_files: [],
+        added_files: [],
+        deleted_files: [],
+        modified_files: [],
+        blast_radius: {
+          affectedFiles: [],
+          affectedSymbols: [],
+          affectedTests: [],
+          affectedEntrypoints: [],
+        },
+        diff_findings: {
+          new_findings: [],
+          potentially_affected_findings: [],
+          resolved_findings: [],
+        },
+      };
+
+      const diffAnalysisPath = path.join(absoluteOutDir, "diff-analysis.json");
+      writeFileSync(diffAnalysisPath, JSON.stringify(emptyDiffAnalysis, null, 2) + "\n", "utf8");
+
       console.log(
         JSON.stringify({
           tool: "code-to-gate",
           command: "diff",
           status: "no_changes",
+          run_id: graph.run_id,
+          artifacts: [path.relative(cwd, diffAnalysisPath)],
           message: "No changes detected between base and head",
         })
       );
@@ -421,6 +554,11 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
         root: graph.repo.root,
         base_ref: baseRef,
         head_ref: headRef,
+      },
+      tool: {
+        name: "code-to-gate",
+        version: VERSION,
+        plugin_versions: [],
       },
       artifact: "diff-analysis",
       schema: "diff-analysis@v1",

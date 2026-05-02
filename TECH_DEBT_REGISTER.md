@@ -38,20 +38,19 @@
 | LM-011 | src/parallel/file-processor.ts | 921 | MEDIUM | ✓ DONE (分割済み - 427行) |
 | LM-012 | src/cache/cache-manager.ts | 658 | MEDIUM | ✓ DONE (分割済み - 333行 + cache-validation.ts, cache-types.ts) |
 | LM-013 | src/historical/baseline.ts | 795 | MEDIUM | ✓ DONE (433行 - 500以下) |
-| LM-014 | src/cli/import.ts | 536 | MEDIUM | 微超 (534行) - 30行程度、優先度低 |
-| LM-015 | src/cli/export.ts | 520 | MEDIUM | 微超 (517行) - 20行程度、優先度低 |
+| LM-014 | src/cli/import.ts | 536 | MEDIUM | ✓ DONE (分割済み - 137行 + import-parsers.ts) |
+| LM-015 | src/cli/export.ts | 520 | MEDIUM | ✓ DONE (分割済み - 145行 + export-types.ts, export-generators.ts) |
 | LM-016 | src/viewer/graph-viewer.ts | 603 | MEDIUM | ✓ DONE (分割済み - 323行 + graph-viewer-utils.ts, mermaid-renderer-js.ts) |
 | LM-017 | src/viewer/finding-viewer.ts | 601 | MEDIUM | ✓ DONE (分割済み - 477行 + finding-viewer-utils.ts) |
 | LM-018 | src/plugin/plugin-runner.ts | 617 | MEDIUM | ✓ DONE (分割済み - 442行 + plugin-process-executor.ts, plugin-runner-utils.ts) |
 | LM-019 | src/adapters/js-adapter.ts | 589 | MEDIUM | ✓ DONE (分割済み - 100行 + js-adapter-utils.ts, js-ast-handlers.ts) |
-| LM-020 | src/evaluation/fn-evaluator.ts | 538 | MEDIUM | 微超 (537行) - 40行程度、優先度低 |
-| LM-021 | src/plugin/plugin-loader.ts | 510 | MEDIUM | 微超 (509行) - 10行程度、優先度低 |
+| LM-020 | src/evaluation/fn-evaluator.ts | 538 | MEDIUM | ✓ DONE (分割済み - 260行 + fn-evaluator-types.ts, fn-seeded-smells.ts) |
+| LM-021 | src/plugin/plugin-loader.ts | 510 | MEDIUM | ✓ DONE (分割済み - 361行 + plugin-yaml-parser.ts) |
 | LM-022 | src/plugin/plugin-context.ts | 501 | MEDIUM | ✓ DONE (500行 - 閾値) |
 | LM-023-037 | src/viewer/*.ts, src/cli/*.ts | 500-600 | MEDIUM | 順次対応 |
 
 **解消状況**:
-- 完了: LM-001~LM-019, LM-022 (21件)
-- 微超: LM-014, LM-015, LM-020, LM-021 (4件、30行程度超過)
+- 完了: LM-001~LM-022 (25件 - 全完了)
 
 ### 1.2 TRY_CATCH_SWALLOW (19件) - MEDIUM
 
@@ -202,7 +201,7 @@ suppressions.yaml自体を解析した警告。meta suppression。
 
 | Category | Total | TRUE DEBT | ACCEPTED | NOT DEBT | Resolved |
 |----------|-------|-----------|----------|----------|----------|
-| LARGE_MODULE | 38 | 4 | 0 | 0 | 34 |
+| LARGE_MODULE | 38 | 0 | 0 | 0 | 38 |
 | TRY_CATCH_SWALLOW | 19 | 0 | 0 | 0 | 19 |
 | UNSAFE_DELETE | 14 | 0 | 14 | 0 | 0 |
 | UNTESTED_CRITICAL_PATH | 4 | 0 | 0 | 0 | 4 |
@@ -211,9 +210,9 @@ suppressions.yaml自体を解析した警告。meta suppression。
 | RAW_SQL | 1 | 0 | 1 | 0 | 0 |
 | SUPPRESSION_DEBT | 7 | 0 | 0 | 7 | 0 |
 | DEBT_MARKER | 3 | 0 | 0 | 3 | 0 |
-| **Total** | **106** | **4** | **19** | **28** | **57** |
+| **Total** | **106** | **0** | **19** | **28** | **61** |
 
-**残りTRUE DEBT**: 4件 (LM-014, LM-015, LM-020, LM-021 - 微超30行程度)
+**残りTRUE DEBT**: 0件 (全 LARGE_MODULE 解消完了)
 
 ---
 
@@ -245,8 +244,8 @@ suppressions.yaml自体を解析した警告。meta suppression。
    - LM-019: js-adapter.ts分割済み (100行 + js-adapter-utils.ts, js-ast-handlers.ts)
    - LM-022: plugin-context.ts (500行 - 閾値)
 
-### Phase 4 (Optional)
-- LM-014, LM-015, LM-020, LM-021: 微超ファイル (30行程度超過、優先度低)
+### Phase 4 (Optional) - ✓ DONE
+- LM-014, LM-015, LM-020, LM-021: ✓ DONE (分割済み)
 
 ---
 

@@ -38,6 +38,16 @@ export const DEFAULT_IGNORED_DIRS = new Set([
   ".browser-use-env",
   // Test temp directories
   ".test-temp",
+  // Coverage report directories (pytest-cov, jest)
+  "htmlcov",
+  ".nyc_output",
+  // Build artifacts
+  "build",
+  "out",
+  ".out",
+  // Generated documentation
+  "_build",  // Sphinx
+  "site",    // MkDocs/Jekyll
 ]);
 
 /**

@@ -28,103 +28,20 @@ import { getAllStyles, getBaseStyles } from "../styles.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import {
-  FindingsArtifact,
-  RiskRegisterArtifact,
-  TestSeedsArtifact,
-  ReleaseReadinessArtifact,
-  CTG_VERSION,
-  Severity,
-  FindingCategory,
-} from "../../types/artifacts.js";
 import { NormalizedRepoGraph, SymbolNode, GraphRelation } from "../../types/graph.js";
+import {
+  createMockFinding,
+  createMockFindingsArtifact,
+  createMockRiskRegisterArtifact,
+  createMockTestSeedsArtifact,
+  createMockReleaseReadinessArtifact,
+} from "../../test-utils/index.js";
 
-// Mock artifact generators
-function createMockFindings(overrides?: Partial<FindingsArtifact>): FindingsArtifact {
-  const base: FindingsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "findings",
-    schema: "findings@v1",
-    completeness: "complete",
-    findings: [],
-    unsupported_claims: [],
-  };
-  return { ...base, ...overrides } as FindingsArtifact;
-}
-
-function createMockRiskRegister(overrides?: Partial<RiskRegisterArtifact>): RiskRegisterArtifact {
-  const base: RiskRegisterArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "risk-register",
-    schema: "risk-register@v1",
-    completeness: "complete",
-    risks: [],
-  };
-  return { ...base, ...overrides } as RiskRegisterArtifact;
-}
-
-function createMockTestSeeds(overrides?: Partial<TestSeedsArtifact>): TestSeedsArtifact {
-  const base: TestSeedsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "test-seeds",
-    schema: "test-seeds@v1",
-    completeness: "complete",
-    seeds: [],
-  };
-  return { ...base, ...overrides } as TestSeedsArtifact;
-}
-
-function createMockReadiness(overrides?: Partial<ReleaseReadinessArtifact>): ReleaseReadinessArtifact {
-  const base: ReleaseReadinessArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "release-readiness",
-    schema: "release-readiness@v1",
-    completeness: "complete",
-    status: "passed",
-    summary: "All checks passed",
-    blockers: [],
-    warnings: [],
-    passedChecks: [],
-    metrics: {
-      criticalFindings: 0,
-      highFindings: 0,
-      mediumFindings: 0,
-      lowFindings: 0,
-      riskCount: 0,
-      testSeedCount: 0,
-    },
-  };
-  return { ...base, ...overrides } as ReleaseReadinessArtifact;
-}
-
-function createMockFinding(sev: Severity, cat: FindingCategory): Finding {
-  return {
-    id: `finding-${sev}-${cat}`,
-    ruleId: `RULE-${cat}`,
-    category: cat,
-    severity: sev,
-    confidence: 0.85,
-    title: `Test finding ${sev} ${cat}`,
-    summary: `Test summary for ${sev} ${cat}`,
-    evidence: [],
-  };
-}
+// Local alias for convenience (matches existing test usage)
+const createMockFindings = createMockFindingsArtifact;
+const createMockRiskRegister = createMockRiskRegisterArtifact;
+const createMockTestSeeds = createMockTestSeedsArtifact;
+const createMockReadiness = createMockReleaseReadinessArtifact;
 
 describe("report-viewer", () => {
   let tempOutDir: string;
@@ -309,12 +226,11 @@ describe("report-viewer", () => {
           {
             id: "seed-001",
             title: "Test Seed",
-            category: "security",
-            target: "auth.ts",
-            description: "Test description",
-            inputs: {},
-            expectedOutcome: "Pass",
-            priority: "high",
+            intent: "regression",
+            sourceRiskIds: [],
+            sourceFindingIds: [],
+            evidence: [],
+            suggestedLevel: "e2e",
           },
         ],
       });
@@ -325,7 +241,6 @@ describe("report-viewer", () => {
 
       expect(html).toContain("Test Seeds");
       expect(html).toContain("Test Seed");
-      expect(html).toContain("auth.ts");
     });
 
     it("shows empty state when no seeds", () => {

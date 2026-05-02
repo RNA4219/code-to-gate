@@ -2,7 +2,7 @@
  * Analyze command - generates findings, risk-register, analysis-report, and audit
  */
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { sha256 } from "../core/path-utils.js";
 import { ensureDir } from "../core/file-utils.js";
@@ -12,6 +12,7 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import {
   EmitFormat,
   CTG_VERSION,
+  FindingsArtifact,
 } from "../types/artifacts.js";
 import {
   CtgPolicy,
@@ -41,6 +42,14 @@ import {
   buildAuditArtifact,
   writeAuditJson,
 } from "../reporters/audit-writer.js";
+import {
+  buildTestSeedsFromFindings,
+  writeTestSeedsJson,
+} from "../reporters/test-seed-generator.js";
+import {
+  buildInvariantsFromFindings,
+  writeInvariantsJson,
+} from "../reporters/invariant-generator.js";
 import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
 import { LlmProviderType, LlmConfig, LlmAnalysisRequest } from "../llm/types.js";
 import { createProvider, createProviderWithFallback } from "../llm/providers/index.js";
@@ -92,6 +101,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const llmModel = options.getOption(args, "--llm-model");
   const llmPort = options.getOption(args, "--llm-port");
   const requireLlm = args.includes("--require-llm");
+  const fromImports = args.includes("--from-imports");
 
   // Validate LLM options
   if (llmProvider && !VALID_LLM_PROVIDERS.includes(llmProvider as LlmProviderType)) {
@@ -108,7 +118,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
 
   // Validate repo argument
   if (!repoArg) {
-    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>]");
+    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--from-imports]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -236,6 +246,25 @@ Provide concise, actionable findings.`,
       llmProviderName
     );
 
+    // Load imported findings if --from-imports is specified (P1-04)
+    if (fromImports) {
+      const importsDir = path.join(absoluteOutDir, "imports");
+      if (existsSync(importsDir)) {
+        const importFiles = ["eslint-findings.json", "semgrep-findings.json", "tsc-findings.json", "coverage-findings.json", "test-findings.json"];
+        for (const importFile of importFiles) {
+          const importPath = path.join(importsDir, importFile);
+          if (existsSync(importPath)) {
+            try {
+              const importedData = JSON.parse(readFileSync(importPath, "utf8")) as FindingsArtifact;
+              findings.findings.push(...importedData.findings);
+            } catch {
+              console.error(`Warning: Failed to load import file: ${importFile}`);
+            }
+          }
+        }
+      }
+    }
+
     // Evaluate policy using shared evaluator (unified with readiness)
     const evalResult = policy ? evaluatePolicy(findings.findings, policy, suppressions) : undefined;
     const readinessStatus = evalResult?.status ?? "passed";
@@ -277,6 +306,21 @@ Provide concise, actionable findings.`,
       );
       generated.push(reportPath);
     }
+
+    // Generate test-seeds.json (P1-01)
+    const testSeeds = buildTestSeedsFromFindings(reportedFindings, graph.run_id, graph.repo.root, policy?.policyId);
+    const testSeedsPath = writeTestSeedsJson(absoluteOutDir, testSeeds);
+    generated.push(testSeedsPath);
+
+    // Generate invariants.json (P1-01)
+    const invariants = buildInvariantsFromFindings(reportedFindings, graph.run_id, graph.repo.root, policy?.policyId);
+    const invariantsPath = writeInvariantsJson(absoluteOutDir, invariants);
+    generated.push(invariantsPath);
+
+    // Generate repo-graph.json (P1-02)
+    const repoGraphPath = path.join(absoluteOutDir, "repo-graph.json");
+    writeFileSync(repoGraphPath, JSON.stringify(graph, null, 2) + "\n", "utf8");
+    generated.push(repoGraphPath);
 
     // Generate audit summary message
     let auditSummary: string;

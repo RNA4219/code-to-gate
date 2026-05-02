@@ -7,62 +7,20 @@ import {
   generateHtmlReport,
   writeHtmlReport,
 } from "../html-reporter.js";
-import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { Severity } from "../../types/artifacts.js";
 import {
-  FindingsArtifact,
-  RiskRegisterArtifact,
-  TestSeedsArtifact,
-  CTG_VERSION,
-  Severity,
-} from "../../types/artifacts.js";
+  createMockFindingsArtifact,
+  createMockRiskRegisterArtifact,
+  createMockTestSeedsArtifact,
+} from "../../test-utils/index.js";
 
-function createMockFindings(overrides?: Partial<FindingsArtifact>): FindingsArtifact {
-  const base: FindingsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
-    artifact: "findings",
-    schema: "findings@v1",
-    completeness: "complete",
-    findings: [],
-    unsupported_claims: [],
-  };
-  return { ...base, ...overrides } as FindingsArtifact;
-}
-
-function createMockRiskRegister(overrides?: Partial<RiskRegisterArtifact>): RiskRegisterArtifact {
-  const base: RiskRegisterArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
-    artifact: "risk-register",
-    schema: "risk-register@v1",
-    completeness: "complete",
-    risks: [],
-  };
-  return { ...base, ...overrides } as RiskRegisterArtifact;
-}
-
-function createMockTestSeeds(overrides?: Partial<TestSeedsArtifact>): TestSeedsArtifact {
-  const base: TestSeedsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
-    artifact: "test-seeds",
-    schema: "test-seeds@v1",
-    completeness: "complete",
-    seeds: [],
-  };
-  return { ...base, ...overrides } as TestSeedsArtifact;
-}
+// Local aliases for convenience
+const createMockFindings = createMockFindingsArtifact;
+const createMockRiskRegister = createMockRiskRegisterArtifact;
+const createMockTestSeeds = createMockTestSeedsArtifact;
 
 describe("html-reporter", () => {
   let tempOutDir: string;
@@ -206,7 +164,7 @@ describe("html-reporter", () => {
       const findings = createMockFindings();
       const testSeeds = createMockTestSeeds({
         seeds: [
-          { id: "seed-001", title: "Test Seed", category: "positive", target: "target.ts", description: "desc", inputs: {}, expectedOutcome: "pass", priority: "high" },
+          { id: "seed-001", title: "Test Seed", intent: "regression", sourceRiskIds: [], sourceFindingIds: [], evidence: [], suggestedLevel: "e2e" },
         ],
       });
       const html = generateHtmlReport(findings, undefined, testSeeds);
@@ -438,7 +396,7 @@ describe("html-reporter", () => {
       const findings = createMockFindings();
       const testSeeds = createMockTestSeeds({
         seeds: [
-          { id: "seed-001", title: "Test Seed", category: "positive", target: "target.ts", description: "desc", inputs: {}, expectedOutcome: "pass", priority: "high" },
+          { id: "seed-001", title: "Test Seed", intent: "regression", sourceRiskIds: [], sourceFindingIds: [], evidence: [], suggestedLevel: "e2e" },
         ],
       });
       const html = generateHtmlReport(findings, undefined, testSeeds);
@@ -450,7 +408,7 @@ describe("html-reporter", () => {
       const findings = createMockFindings();
       const testSeeds = createMockTestSeeds({
         seeds: [
-          { id: "seed-001", title: "Authentication test", category: "positive", target: "target.ts", description: "desc", inputs: {}, expectedOutcome: "pass", priority: "high" },
+          { id: "seed-001", title: "Authentication test", intent: "regression", sourceRiskIds: [], sourceFindingIds: [], evidence: [], suggestedLevel: "e2e" },
         ],
       });
       const html = generateHtmlReport(findings, undefined, testSeeds);
@@ -459,30 +417,28 @@ describe("html-reporter", () => {
       expect(html).toContain("badge-critical"); // high priority uses critical badge style
     });
 
-    it("displays seed category badge", () => {
+    it("displays seed intent badge", () => {
       const findings = createMockFindings();
       const testSeeds = createMockTestSeeds({
         seeds: [
-          { id: "seed-001", title: "Test", category: "security", target: "target.ts", description: "desc", inputs: {}, expectedOutcome: "pass", priority: "high" },
+          { id: "seed-001", title: "Test", intent: "regression", sourceRiskIds: [], sourceFindingIds: [], evidence: [], suggestedLevel: "e2e" },
         ],
       });
       const html = generateHtmlReport(findings, undefined, testSeeds);
 
-      expect(html).toContain("security");
+      expect(html).toContain("regression");
     });
 
-    it("displays seed description and expected outcome", () => {
+    it("displays seed notes", () => {
       const findings = createMockFindings();
       const testSeeds = createMockTestSeeds({
         seeds: [
-          { id: "seed-001", title: "Test", category: "positive", target: "auth.ts", description: "Test authentication flow", inputs: {}, expectedOutcome: "User authenticated successfully", priority: "medium" },
+          { id: "seed-001", title: "Test", intent: "regression", sourceRiskIds: [], sourceFindingIds: [], evidence: [], suggestedLevel: "integration", notes: "Test authentication flow" },
         ],
       });
       const html = generateHtmlReport(findings, undefined, testSeeds);
 
       expect(html).toContain("Test authentication flow");
-      expect(html).toContain("User authenticated successfully");
-      expect(html).toContain("auth.ts");
     });
 
     it("shows no test seeds message when empty", () => {
@@ -553,7 +509,7 @@ describe("html-reporter", () => {
       });
       const testSeeds = createMockTestSeeds({
         seeds: [
-          { id: "seed-001", title: "Seed", category: "positive", target: "t.ts", description: "d", inputs: {}, expectedOutcome: "pass", priority: "high" },
+          { id: "seed-001", title: "Seed", intent: "regression", sourceRiskIds: [], sourceFindingIds: [], evidence: [], suggestedLevel: "e2e" },
         ],
       });
 

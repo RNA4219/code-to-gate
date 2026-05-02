@@ -3,7 +3,7 @@
   "$id": "https://code-to-gate.local/schemas/integrations/manual-bb-seed.schema.json",
   "title": "ManualBbSeed",
   "type": "object",
-  "required": ["version", "producer", "run_id", "scope", "risk_seeds", "invariant_seeds", "test_seed_refs", "known_gaps"],
+  "required": ["version", "producer", "run_id", "scope", "risk_seeds", "invariant_seeds", "test_seed_refs", "known_gaps", "oracle_gaps"],
   "additionalProperties": false,
   "properties": {
     "version": { "const": "ctg.manual-bb/v1" },
@@ -49,6 +49,7 @@
       }
     },
     "test_seed_refs": { "type": "array", "items": { "type": "string" } },
-    "known_gaps": { "type": "array", "items": { "type": "string" } }
+    "known_gaps": { "type": "array", "items": { "type": "string" } },
+    "oracle_gaps": { "type": "array", "items": { "type": "string" } }
   }
 }

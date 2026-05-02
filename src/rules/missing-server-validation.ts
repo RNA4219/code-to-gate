@@ -35,12 +35,12 @@ export const MISSING_SERVER_VALIDATION_RULE: RulePlugin = {
 
       // Pattern: import from pricing/validation modules
       const importPatterns = [
-        /import\s+.*\s+from\s+['"].*pricing['"]/g,
-        /import\s+.*\s+from\s+['"].*validation['"]/g,
-        /import\s+.*\s+from\s+['"].*validate['"]/g,
-        /import\s+.*\s+from\s+['"].*auth['"]/g,
-        /require\s*\(['"].*pricing['"]\)/g,
-        /require\s*\(['"].*validation['"]\)/g,
+        /import\s+.*\s+from\s+['"].*pricing.*['"]/g,
+        /import\s+.*\s+from\s+['"].*validation.*['"]/g,
+        /import\s+.*\s+from\s+['"].*validate.*['"]/g,
+        /import\s+.*\s+from\s+['"].*sanitize.*['"]/g,
+        /require\s*\(['"].*pricing.*['"]\)/g,
+        /require\s*\(['"].*validation.*['"]\)/g,
       ];
 
       for (const pattern of importPatterns) {

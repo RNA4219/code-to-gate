@@ -4,9 +4,117 @@
 
 import type { Severity } from "../types/artifacts.js";
 
+// === V1 Schema Types (P0-02/P0-03 fix) ===
+
 /**
- * Export target types
+ * Gatefield V1 Schema - Integration adapter output
  */
+export interface GatefieldStaticResultV1 {
+  version: "ctg.gatefield/v1";
+  producer: "code-to-gate";
+  run_id: string;
+  artifact_hash: string;
+  repo: {
+    root: string;
+    revision?: string;
+    branch?: string;
+  };
+  status: "passed" | "warning" | "blocked_input" | "failed";
+  summary: string;
+  signals: Array<{
+    id: string;
+    kind: "sast" | "secret" | "quality" | "test_gap" | "release_risk";
+    severity: Severity;
+    confidence: number;
+    finding_id: string;
+    evidence: string[];
+  }>;
+  non_binding_gate_hint: "pass" | "hold" | "block";
+}
+
+/**
+ * State Gate V1 Schema - Integration adapter output
+ */
+export interface StateGateEvidenceV1 {
+  version: "ctg.state-gate/v1";
+  producer: "code-to-gate";
+  run_id: string;
+  artifact_hash: string;
+  release_readiness: {
+    status: "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
+    summary: string;
+    failed_conditions: string[];
+  };
+  evidence_refs: Array<{
+    artifact: "findings" | "risk-register" | "invariants" | "test-seeds" | "audit";
+    path: string;
+    hash: string;
+  }>;
+  approval_relevance: {
+    requires_human_attention: boolean;
+    reasons: string[];
+  };
+}
+
+/**
+ * Manual BB V1 Schema - Integration adapter output
+ */
+export interface ManualBbSeedV1 {
+  version: "ctg.manual-bb/v1";
+  producer: "code-to-gate";
+  run_id: string;
+  scope: {
+    repo: string;
+    changed_files: string[];
+    affected_entrypoints: string[];
+  };
+  risk_seeds: Array<{
+    id: string;
+    title: string;
+    severity: Severity;
+    evidence: string[];
+    suggested_test_intents: Array<"regression" | "boundary" | "negative" | "abuse" | "smoke" | "compatibility">;
+  }>;
+  invariant_seeds: Array<{
+    id: string;
+    statement: string;
+    confidence: number;
+    evidence: string[];
+  }>;
+  test_seed_refs: string[];
+  known_gaps: string[];
+  oracle_gaps: string[];
+}
+
+/**
+ * Workflow Evidence V1 Schema - Integration adapter output
+ */
+export interface WorkflowEvidenceV1 {
+  version: "ctg.workflow-evidence/v1";
+  producer: "code-to-gate";
+  run_id: string;
+  intent_id?: string;
+  evidence_type: "release-readiness" | "pr-risk-scan" | "quality-scan";
+  subject: {
+    repo: string;
+    revision?: string;
+    branch?: string;
+  };
+  artifacts: Array<{
+    name: string;
+    path: string;
+    hash: string;
+    schema: string;
+  }>;
+  summary: {
+    status: string;
+    critical_count: number;
+    high_count: number;
+    needs_review: boolean;
+  };
+}
+
+// === Legacy V1alpha1 Types (deprecated) ===
 
 export interface GatefieldStaticResult {
   version: "ctg.gatefield/v1alpha1";
@@ -135,4 +243,54 @@ export function mapSeverityToSarifLevel(severity: Severity): "error" | "warning"
     default:
       return "note";
   }
+}
+
+/**
+ * Map finding category to signal kind
+ */
+export function mapCategoryToSignalKind(category: string): "sast" | "secret" | "quality" | "test_gap" | "release_risk" {
+  if (category === "security" || category === "auth" || category === "data") {
+    return "sast";
+  }
+  if (category === "testing") {
+    return "test_gap";
+  }
+  if (category === "maintainability" || category === "compatibility") {
+    return "quality";
+  }
+  return "release_risk";
+}
+
+/**
+ * Map test intents based on rule and category
+ */
+export function mapToTestIntents(ruleId: string, category: string): Array<"regression" | "boundary" | "negative" | "abuse" | "smoke" | "compatibility"> {
+  const intents: Array<"regression" | "boundary" | "negative" | "abuse" | "smoke" | "compatibility"> = [];
+
+  // Security/auth findings need negative and abuse tests
+  if (category === "security" || category === "auth") {
+    intents.push("negative", "abuse");
+  }
+
+  // Payment findings need boundary tests
+  if (category === "payment") {
+    intents.push("boundary", "negative", "abuse");
+  }
+
+  // Validation findings need boundary tests
+  if (category === "validation") {
+    intents.push("boundary", "negative");
+  }
+
+  // Testing gaps need smoke tests
+  if (category === "testing") {
+    intents.push("smoke", "regression");
+  }
+
+  // Default fallback
+  if (intents.length === 0) {
+    intents.push("regression", "smoke");
+  }
+
+  return intents;
 }

@@ -127,6 +127,25 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
+      - name: Run readiness evaluation
+        run: |
+          node ./dist/cli.js readiness . \
+            --policy .github/ctg-policy.yaml \
+            --from .qh \
+            --out .qh
+
+      - name: Check readiness status
+        run: |
+          status=$(jq -r '.status' .qh/release-readiness.json)
+          echo "Readiness status: $status"
+          if [ "$status" = "blocked_input" ]; then
+            echo "::error::Release blocked by critical findings"
+            exit 1
+          fi
+          if [ "$status" = "needs_review" ]; then
+            echo "::warning::Release needs review - proceed with caution"
+          fi
+
       - name: Export SARIF
         run: node ./dist/cli.js export sarif --from .qh --out .qh/results.sarif
 

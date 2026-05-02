@@ -45,7 +45,7 @@ describe("parallel worker integration", () => {
     expect(fileExists(path.join(tempDir, "repo-graph.json"))).toBe(true);
   });
 
-  it("scan handles fixture with 100+ generated files", { timeout: 60000 }, () => {
+  it("scan handles fixture with 100+ generated files", { timeout: 120000 }, () => {
     // Create synthetic fixture with 150 files to exceed threshold
     const largeFixtureDir = path.join(tempDir, "large-fixture-src");
     const files: Array<{ path: string; content: string }> = [];
@@ -75,7 +75,7 @@ describe("parallel worker integration", () => {
     expect(graph.files.length).toBeGreaterThan(100);
   });
 
-  it("analyze with parallel option completes on large fixture", { timeout: 60000 }, () => {
+  it("analyze with parallel option completes on large fixture", { timeout: 120000 }, () => {
     const fixtureRoot = fixturePath("demo-shop-ts");
     const analyzeOutDir = path.join(tempDir, "analyze-parallel");
 

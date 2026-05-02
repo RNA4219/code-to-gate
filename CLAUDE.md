@@ -51,7 +51,7 @@ Repository → scan → repo-graph.json → analyze → findings.json → readin
 
 ## Schema Versioning
 
-**Current version**: `ctg/v1alpha1`
+**Current version**: `ctg/v1`
 
 All artifacts use stable schemas in `schemas/`:
 - `findings.schema.json` - Quality findings

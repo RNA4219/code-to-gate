@@ -732,7 +732,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         expect(fs.existsSync(outFile)).toBe(true);
 
         const gatefield = readJsonArtifact(TEMP_DIR, 'gatefield-export.json');
-        expect(gatefield.artifact).toBe('gatefield-static-result');
+        expect(gatefield.version).toBe('ctg.gatefield/v1');
       });
 
       it('should export to state-gate', () => {
@@ -743,7 +743,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         expect(fs.existsSync(outFile)).toBe(true);
 
         const stateGate = readJsonArtifact(TEMP_DIR, 'state-gate-export.json');
-        expect(stateGate.artifact).toBe('state-gate-evidence');
+        expect(stateGate.version).toBe('ctg.state-gate/v1');
       });
 
       it('should export to manual-bb', () => {
@@ -754,7 +754,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         expect(fs.existsSync(outFile)).toBe(true);
 
         const manualBb = readJsonArtifact(TEMP_DIR, 'manual-bb-export.json');
-        expect(manualBb.artifact).toBe('manual-bb-seed');
+        expect(manualBb.version).toBe('ctg.manual-bb/v1');
       });
 
       it('should export to workflow-evidence', () => {
@@ -765,7 +765,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         expect(fs.existsSync(outFile)).toBe(true);
 
         const workflow = readJsonArtifact(TEMP_DIR, 'workflow-evidence-export.json');
-        expect(workflow.artifact).toBe('workflow-evidence');
+        expect(workflow.version).toBe('ctg.workflow-evidence/v1');
       });
 
       it('should export to SARIF', () => {

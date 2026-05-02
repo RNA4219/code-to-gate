@@ -94,4 +94,46 @@ describe("DEBT_MARKER_RULE", () => {
 
     expect(findings).toHaveLength(0);
   });
+
+  it("detects 'temporary solution' marker", () => {
+    const content = [
+      "export function process() {",
+      "  // temporary solution: replace after API v2 launch",
+      "  return fallback();",
+      "}",
+    ].join("\n");
+    const files = [createMockFile("src/process.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/process.ts", content]])));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("medium");
+  });
+
+  it("ignores 'temp' in directory names and descriptions", () => {
+    const content = [
+      "// Test temp directories",
+      "// Includes .test-temp* directories",
+      "// Pattern match for .test-temp* directories",
+      "const tempDir = '.test-temp';",
+    ].join("\n");
+    const files = [createMockFile("src/utils.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/utils.ts", content]])));
+
+    expect(findings).toHaveLength(0);
+  });
+
+  it("ignores 'temporary' without actionable context", () => {
+    const content = [
+      "export function setup() {",
+      "  // temporary directory for caching",
+      "  // temporary storage during migration",
+      "  return init();",
+      "}",
+    ].join("\n");
+    const files = [createMockFile("src/setup.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/setup.ts", content]])));
+
+    // Should not detect 'temporary' when it's just describing a directory/storage
+    expect(findings).toHaveLength(0);
+  });
 });

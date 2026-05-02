@@ -171,3 +171,55 @@ export function isSuppressed(
 
   return { suppressed: false };
 }
+
+/**
+ * Suppression expiry status
+ */
+export interface SuppressionExpiryWarning {
+  path: string;
+  ruleId: string;
+  expiry: string;
+  status: "expired" | "expiring_soon";
+  daysUntilExpiry?: number;
+}
+
+/**
+ * Check suppressions for expiry issues
+ * Returns warnings for expired suppressions and those expiring within warningDays
+ */
+export function checkSuppressionExpiry(
+  suppressions: SuppressionEntry[],
+  warningDays: number = 30
+): SuppressionExpiryWarning[] {
+  const warnings: SuppressionExpiryWarning[] = [];
+  const now = new Date();
+
+  for (const suppression of suppressions) {
+    if (!suppression.expiry) {
+      continue;
+    }
+
+    const expiryDate = new Date(suppression.expiry);
+    const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilExpiry < 0) {
+      warnings.push({
+        path: suppression.path,
+        ruleId: suppression.ruleId,
+        expiry: suppression.expiry,
+        status: "expired",
+        daysUntilExpiry: Math.abs(daysUntilExpiry),
+      });
+    } else if (daysUntilExpiry <= warningDays) {
+      warnings.push({
+        path: suppression.path,
+        ruleId: suppression.ruleId,
+        expiry: suppression.expiry,
+        status: "expiring_soon",
+        daysUntilExpiry,
+      });
+    }
+  }
+
+  return warnings;
+}

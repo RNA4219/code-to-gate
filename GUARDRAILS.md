@@ -63,7 +63,7 @@ next_review_due: 2026-05-15
 
 | # | 必須 | 理由 |
 |---:|---|---|
-| 5 | artifact は `ctg/v1alpha1` version 持つ | 互換性 |
+| 5 | artifact は `ctg/v1` version 持つ | 互換性 |
 | 6 | artifact は schema validation 通る | 契約遵守 |
 | 7 | schema 破壊変更は version up | 互換性 |
 

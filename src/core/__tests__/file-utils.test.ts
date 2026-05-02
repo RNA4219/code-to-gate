@@ -855,5 +855,21 @@ describe("file-utils", () => {
     it("contains .test-temp", () => {
       expect(DEFAULT_IGNORED_DIRS.has(".test-temp")).toBe(true);
     });
+
+    it("contains htmlcov", () => {
+      expect(DEFAULT_IGNORED_DIRS.has("htmlcov")).toBe(true);
+    });
+
+    it("contains .nyc_output", () => {
+      expect(DEFAULT_IGNORED_DIRS.has(".nyc_output")).toBe(true);
+    });
+
+    it("contains build", () => {
+      expect(DEFAULT_IGNORED_DIRS.has("build")).toBe(true);
+    });
+
+    it("contains _build", () => {
+      expect(DEFAULT_IGNORED_DIRS.has("_build")).toBe(true);
+    });
   });
 });

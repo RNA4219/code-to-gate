@@ -178,16 +178,26 @@ export interface RiskRegisterArtifact extends ArtifactHeader {
 
 // === Test Seeds ===
 
+export type TestIntent = "regression" | "boundary" | "negative" | "abuse" | "smoke" | "compatibility";
+export type TestLevel = "unit" | "integration" | "e2e" | "manual" | "exploratory";
+
+export interface TestSeedEvidence {
+  id: string;
+  path: string;
+  startLine?: number;
+  endLine?: number;
+  kind: "ast" | "text" | "import" | "external" | "test" | "coverage" | "diff";
+}
+
 export interface TestSeed {
   id: string;
   title: string;
-  category: "positive" | "negative" | "edge" | "security";
-  target: string;
-  description: string;
-  inputs: Record<string, unknown>;
-  expectedOutcome: string;
-  sourceRiskId?: string;
-  priority: "high" | "medium" | "low";
+  intent: TestIntent;
+  sourceRiskIds: string[];
+  sourceFindingIds: string[];
+  evidence: TestSeedEvidence[];
+  suggestedLevel: TestLevel;
+  notes?: string;
 }
 
 export interface TestSeedsArtifact extends ArtifactHeader {
@@ -195,6 +205,38 @@ export interface TestSeedsArtifact extends ArtifactHeader {
   schema: "test-seeds@v1";
   completeness: Completeness;
   seeds: TestSeed[];
+  oracle_gaps?: string[]; // Seeds without strong expected result evidence
+  known_gaps?: string[];  // Seeds needing manual verification
+}
+
+// === Invariants ===
+
+export type InvariantKind = "business" | "technical" | "security" | "data" | "api";
+
+export interface InvariantEvidence {
+  id: string;
+  path: string;
+  startLine?: number;
+  endLine?: number;
+  kind: "ast" | "text" | "import" | "external" | "test" | "coverage" | "diff";
+}
+
+export interface Invariant {
+  id: string;
+  statement: string;
+  kind: InvariantKind;
+  confidence: number;
+  sourceFindingIds: string[];
+  evidence: InvariantEvidence[];
+  rationale?: string;
+  tags?: string[];
+}
+
+export interface InvariantsArtifact extends ArtifactHeader {
+  artifact: "invariants";
+  schema: "invariants@v1";
+  completeness: Completeness;
+  invariants: Invariant[];
 }
 
 // === Release Readiness ===

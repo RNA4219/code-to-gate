@@ -22,7 +22,7 @@ import {
   isValidSemver,
   isValidSchemaRef,
 } from "./plugin-schema.js";
-import { parseJsonFile } from "../core/index.js";
+import { parseYamlContent } from "./plugin-yaml-parser.js";
 import * as fs from "fs/promises";
 import * as path from "path";
 
@@ -30,14 +30,10 @@ import * as path from "path";
  * Default Plugin Loader Implementation
  */
 export class PluginLoaderImpl implements PluginLoader {
-  /**
-   * Load plugin manifest from path
-   */
   async loadManifest(pluginPath: string): Promise<PluginLoadResult> {
     const errors: Array<{ code: string; message: string; path?: string }> = [];
 
     try {
-      // Check if path exists
       const stat = await fs.stat(pluginPath);
       if (!stat.isDirectory()) {
         return {
@@ -48,7 +44,6 @@ export class PluginLoaderImpl implements PluginLoader {
         };
       }
 
-      // Try to find manifest file
       const manifestFiles = [
         "plugin-manifest.yaml",
         "plugin-manifest.yml",
@@ -72,7 +67,7 @@ export class PluginLoaderImpl implements PluginLoader {
           manifestFormat = filename.endsWith(".json") ? "json" : "yaml";
           break;
         } catch {
-          // Continue to next candidate
+          continue;
         }
       }
 
@@ -85,7 +80,6 @@ export class PluginLoaderImpl implements PluginLoader {
         };
       }
 
-      // Parse manifest
       const manifest = await this.parseManifest(manifestContent, manifestFormat);
 
       if (!manifest) {
@@ -97,7 +91,6 @@ export class PluginLoaderImpl implements PluginLoader {
         };
       }
 
-      // Validate manifest
       const validation = await this.validateManifest(manifest);
 
       if (!validation.valid) {
@@ -129,9 +122,6 @@ export class PluginLoaderImpl implements PluginLoader {
     }
   }
 
-  /**
-   * Validate manifest structure
-   */
   async validateManifest(manifest: unknown): Promise<{
     valid: boolean;
     errors?: Array<{ code: string; message: string; path?: string }>;
@@ -144,7 +134,6 @@ export class PluginLoaderImpl implements PluginLoader {
 
     const m = manifest as Record<string, unknown>;
 
-    // Required fields
     const requiredFields = ["apiVersion", "kind", "name", "version", "visibility", "entry", "capabilities", "receives", "returns"];
     for (const field of requiredFields) {
       if (!(field in m)) {
@@ -152,7 +141,6 @@ export class PluginLoaderImpl implements PluginLoader {
       }
     }
 
-    // Validate apiVersion
     if (m.apiVersion !== PLUGIN_MANIFEST_VERSION) {
       errors.push({
         code: "INVALID_VERSION",
@@ -161,7 +149,6 @@ export class PluginLoaderImpl implements PluginLoader {
       });
     }
 
-    // Validate kind
     if (!VALID_PLUGIN_KINDS.includes(m.kind as PluginKind)) {
       errors.push({
         code: "INVALID_KIND",
@@ -170,7 +157,6 @@ export class PluginLoaderImpl implements PluginLoader {
       });
     }
 
-    // Validate name
     if (typeof m.name === "string" && !isValidPluginName(m.name)) {
       errors.push({
         code: "INVALID_NAME",
@@ -179,7 +165,6 @@ export class PluginLoaderImpl implements PluginLoader {
       });
     }
 
-    // Validate version
     if (typeof m.version === "string" && !isValidSemver(m.version)) {
       errors.push({
         code: "INVALID_VERSION_FORMAT",
@@ -188,7 +173,6 @@ export class PluginLoaderImpl implements PluginLoader {
       });
     }
 
-    // Validate visibility
     if (!VALID_PLUGIN_VISIBILITY.includes(m.visibility as PluginVisibility)) {
       errors.push({
         code: "INVALID_VISIBILITY",
@@ -197,7 +181,6 @@ export class PluginLoaderImpl implements PluginLoader {
       });
     }
 
-    // Validate entry
     if (m.entry && typeof m.entry === "object") {
       const entry = m.entry as Record<string, unknown>;
       if (!entry.command || !Array.isArray(entry.command) || entry.command.length === 0) {
@@ -223,7 +206,6 @@ export class PluginLoaderImpl implements PluginLoader {
       }
     }
 
-    // Validate capabilities
     if (m.capabilities && Array.isArray(m.capabilities)) {
       for (const cap of m.capabilities) {
         if (!VALID_PLUGIN_CAPABILITIES.includes(cap as PluginCapability)) {
@@ -243,7 +225,6 @@ export class PluginLoaderImpl implements PluginLoader {
       }
     }
 
-    // Validate receives
     if (m.receives && Array.isArray(m.receives)) {
       for (const ref of m.receives) {
         if (!isValidSchemaRef(ref as string)) {
@@ -256,7 +237,6 @@ export class PluginLoaderImpl implements PluginLoader {
       }
     }
 
-    // Validate returns
     if (m.returns && Array.isArray(m.returns)) {
       if (m.returns.length === 0) {
         errors.push({
@@ -276,7 +256,6 @@ export class PluginLoaderImpl implements PluginLoader {
       }
     }
 
-    // Validate security if present
     if (m.security && typeof m.security === "object") {
       const security = m.security as Record<string, unknown>;
       if (security.network !== undefined && typeof security.network !== "boolean") {
@@ -294,138 +273,18 @@ export class PluginLoaderImpl implements PluginLoader {
     };
   }
 
-  /**
-   * Parse YAML or JSON manifest
-   */
   async parseManifest(content: string, format: "yaml" | "json"): Promise<PluginManifest | null> {
     try {
       if (format === "json") {
         return JSON.parse(content) as PluginManifest;
       }
 
-      // Simple YAML parser (basic implementation)
-      // For production, use a proper YAML parser library
-      const lines = content.split("\n");
-      const result: Record<string, unknown> = {};
-      let currentKey = "";
-      let currentArray: unknown[] | null = null;
-      let currentObject: Record<string, unknown> | null = null;
-      let inNestedObject = false;
-
-      for (const line of lines) {
-        // Skip empty lines and comments
-        if (line.trim() === "" || line.trim().startsWith("#")) {
-          continue;
-        }
-
-        const indent = line.search(/\S/);
-        const trimmed = line.trim();
-
-        // Check for key-value pair
-        const colonIndex = trimmed.indexOf(":");
-        if (colonIndex > 0) {
-          const key = trimmed.substring(0, colonIndex).trim();
-          const value = trimmed.substring(colonIndex + 1).trim();
-
-          if (indent === 0) {
-            // Top-level key
-            currentKey = key;
-            inNestedObject = false;
-            currentArray = null;
-            currentObject = null;
-
-            if (value === "") {
-              // Empty value - may be nested object or array
-              result[key] = {};
-              currentObject = result[key] as Record<string, unknown>;
-              inNestedObject = true;
-            } else if (value.startsWith("[")) {
-              // Inline array
-              result[key] = this.parseYamlArray(value);
-            } else if (value.startsWith('"') || value.startsWith("'")) {
-              // Quoted string
-              result[key] = value.slice(1, -1);
-            } else if (value === "true" || value === "false") {
-              result[key] = value === "true";
-            } else if (!isNaN(Number(value))) {
-              result[key] = Number(value);
-            } else {
-              result[key] = value;
-            }
-          } else if (inNestedObject && currentObject) {
-            // Nested key
-            if (value === "") {
-              currentObject[key] = {};
-              currentObject = currentObject[key] as Record<string, unknown>;
-            } else if (value.startsWith("[")) {
-              currentObject[key] = this.parseYamlArray(value);
-            } else if (value.startsWith('"') || value.startsWith("'")) {
-              currentObject[key] = value.slice(1, -1);
-            } else if (value === "true" || value === "false") {
-              currentObject[key] = value === "true";
-            } else if (!isNaN(Number(value))) {
-              currentObject[key] = Number(value);
-            } else {
-              currentObject[key] = value;
-            }
-          }
-        } else if (trimmed.startsWith("- ")) {
-          // Array item
-          const value = trimmed.substring(2).trim();
-          if (currentKey && !currentArray) {
-            currentArray = [];
-            result[currentKey] = currentArray;
-            inNestedObject = false;
-          }
-          if (currentArray) {
-            if (value.startsWith('"') || value.startsWith("'")) {
-              currentArray.push(value.slice(1, -1));
-            } else if (value === "true" || value === "false") {
-              currentArray.push(value === "true");
-            } else if (!isNaN(Number(value))) {
-              currentArray.push(Number(value));
-            } else {
-              currentArray.push(value);
-            }
-          }
-        }
-      }
-
-      return result as unknown as PluginManifest;
-    } catch (error) {
+      return parseYamlContent(content) as unknown as PluginManifest;
+    } catch {
       return null;
     }
   }
 
-  /**
-   * Parse inline YAML array
-   */
-  private parseYamlArray(value: string): unknown[] {
-    // Remove brackets
-    const inner = value.slice(1, -1).trim();
-    if (inner === "") {
-      return [];
-    }
-
-    // Split by comma and parse each item
-    return inner.split(",").map(item => {
-      const trimmed = item.trim();
-      if (trimmed.startsWith('"') || trimmed.startsWith("'")) {
-        return trimmed.slice(1, -1);
-      }
-      if (trimmed === "true" || trimmed === "false") {
-        return trimmed === "true";
-      }
-      if (!isNaN(Number(trimmed))) {
-        return Number(trimmed);
-      }
-      return trimmed;
-    });
-  }
-
-  /**
-   * Check plugin capabilities match requirements
-   */
   checkCapabilities(
     manifest: PluginManifest,
     requiredCapabilities: PluginCapability[]
@@ -438,9 +297,6 @@ export class PluginLoaderImpl implements PluginLoader {
     return true;
   }
 
-  /**
-   * Resolve plugin dependencies
-   */
   async resolveDependencies(manifest: PluginManifest): Promise<{
     resolved: boolean;
     missing?: string[];
@@ -455,10 +311,6 @@ export class PluginLoaderImpl implements PluginLoader {
       if (dep.optional) {
         continue;
       }
-
-      // In a real implementation, we would check if the dependency
-      // is available in the plugin registry or file system
-      // For now, we assume all dependencies are resolved
     }
 
     return {

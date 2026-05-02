@@ -24,7 +24,6 @@ import {
   ReleaseReadinessArtifact,
   Finding,
   RiskSeed,
-  CTG_VERSION,
 } from "../../types/artifacts.js";
 
 import {
@@ -33,25 +32,44 @@ import {
 } from "../types.js";
 
 import { generateFindingFingerprint } from "../../utils/fingerprint.js";
+import {
+  createMockFindingsArtifact as createMockFindingsArtifactBase,
+  createMockRiskRegisterArtifact as createMockRiskRegisterArtifactBase,
+  createMockReleaseReadinessArtifact as createMockReadinessBase,
+} from "../../test-utils/index.js";
 
-// Test fixtures
+// Test fixtures - wrappers with specific signatures for this test file
 function createMockFindingsArtifact(
   runId: string,
   findings: Finding[]
 ): FindingsArtifact {
-  const now = new Date().toISOString();
-  return {
-    version: CTG_VERSION,
-    generated_at: now,
+  return createMockFindingsArtifactBase({
     run_id: runId,
     repo: { root: "/test/repo" },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "findings",
-    schema: "findings@v1",
-    completeness: "complete",
     findings,
-    unsupported_claims: [],
-  };
+  });
+}
+
+function createMockRiskRegisterArtifact(
+  runId: string,
+  risks: RiskSeed[]
+): RiskRegisterArtifact {
+  return createMockRiskRegisterArtifactBase({
+    run_id: runId,
+    repo: { root: "/test/repo" },
+    risks,
+  });
+}
+
+function createMockReadinessArtifact(
+  runId: string,
+  status: "passed" | "blocked" | "needs_review"
+): ReleaseReadinessArtifact {
+  return createMockReadinessBase({
+    run_id: runId,
+    repo: { root: "/test/repo" },
+    status,
+  });
 }
 
 function createMockFinding(

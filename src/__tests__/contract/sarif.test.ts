@@ -17,9 +17,9 @@ const addFormats = addFormatsImport.default || addFormatsImport;
 
 import {
   generateSarif,
-  SarifResult,
 } from "../../cli/export.js";
-import { FindingsArtifact, CTG_VERSION, Severity } from "../../types/artifacts.js";
+import { Severity } from "../../types/artifacts.js";
+import { createMockFindingsArtifact } from "../../test-utils/index.js";
 
 const SCHEMA_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -31,21 +31,7 @@ const SARIF_SCHEMA_URL = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec
 
 let ajv: InstanceType<typeof Ajv>;
 
-function createMockFindings(overrides?: Partial<FindingsArtifact>): FindingsArtifact {
-  const base: FindingsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
-    artifact: "findings",
-    schema: "findings@v1",
-    completeness: "complete",
-    findings: [],
-    unsupported_claims: [],
-  };
-  return { ...base, ...overrides } as FindingsArtifact;
-}
+const createMockFindings = createMockFindingsArtifact;
 
 describe("SARIF Export Adapter Contract Tests", () => {
   beforeAll(async () => {

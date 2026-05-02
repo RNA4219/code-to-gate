@@ -22,31 +22,18 @@ import {
 } from "../finding-viewer.js";
 import { getAllStyles } from "../styles.js";
 import {
-  FindingsArtifact,
-  ReleaseReadinessArtifact,
-  CTG_VERSION,
   Severity,
   FindingCategory,
   Finding,
 } from "../../types/artifacts.js";
 import { NormalizedRepoGraph } from "../../types/graph.js";
+import {
+  createMockFindingsArtifact,
+  createMockReleaseReadinessArtifact,
+  createMockFinding,
+} from "../../test-utils/index.js";
 
-// Mock artifact generators
-function createMockFindings(overrides?: Partial<FindingsArtifact>): FindingsArtifact {
-  const base: FindingsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "findings",
-    schema: "findings@v1",
-    completeness: "complete",
-    findings: [],
-    unsupported_claims: [],
-  };
-  return { ...base, ...overrides } as FindingsArtifact;
-}
+const createMockFindings = createMockFindingsArtifact;
 
 function createMockFinding(sev: Severity, cat: FindingCategory): Finding {
   return {

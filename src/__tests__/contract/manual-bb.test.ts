@@ -9,25 +9,10 @@
 import { describe, it, expect } from "vitest";
 import {
   generateManualBbSeed,
-  ManualBbSeed,
 } from "../../cli/export.js";
-import { FindingsArtifact, CTG_VERSION } from "../../types/artifacts.js";
+import { createMockFindingsArtifact } from "../../test-utils/index.js";
 
-function createMockFindings(overrides?: Partial<FindingsArtifact>): FindingsArtifact {
-  const base: FindingsArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
-    artifact: "findings",
-    schema: "findings@v1",
-    completeness: "complete",
-    findings: [],
-    unsupported_claims: [],
-  };
-  return { ...base, ...overrides } as FindingsArtifact;
-}
+const createMockFindings = createMockFindingsArtifact;
 
 describe("Manual-bb Adapter Contract Tests", () => {
   describe("Required fields validation", () => {

@@ -174,6 +174,9 @@ describe('Core Module Smoke Tests', () => {
       expect(DEFAULT_IGNORED_DIRS.has('.venv')).toBe(true);
       expect(DEFAULT_IGNORED_DIRS.has('venv')).toBe(true);
       expect(DEFAULT_IGNORED_DIRS.has('.browser-use-env')).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has('htmlcov')).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has('.nyc_output')).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has('build')).toBe(true);
     });
   });
 

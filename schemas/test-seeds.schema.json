@@ -43,6 +43,8 @@
           "notes": { "type": "string" }
         }
       }
-    }
+    },
+    "oracle_gaps": { "type": "array", "items": { "type": "string" } },
+    "known_gaps": { "type": "array", "items": { "type": "string" } }
   }
 }
