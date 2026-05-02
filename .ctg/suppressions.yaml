@@ -218,7 +218,7 @@ suppressions:
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
-    path: src/llm/*
+    path: src/llm/**
     reason: LLM providers - graceful fallback for provider failures
     expiry: 2027-04-30
     author: code-to-gate-team
@@ -264,7 +264,7 @@ suppressions:
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
-    path: src/llm/*
+    path: src/llm/**
     reason: LLM providers - provider health and fallback logic
     expiry: 2027-04-30
     author: code-to-gate-team

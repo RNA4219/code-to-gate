@@ -789,6 +789,10 @@ Plugin / security:
 - [x] plugin sandbox が private data を保護する (sandbox file system escape test)。
 - [x] plugin provenance / visibility が audit に残る (provenance info, visibility tests)。
 - [x] company-specific rule が OSS core に混入しない (private plugin isolation test)。
+- [x] Plugin SDK documented (docs/plugin-development.md, plugin-examples.md, plugin-security-contract.md, plugin-sandbox.md)。
+- [x] Sample plugin creation + execution 動作 (sample-plugin-execution.test.ts 11 tests pass)。
+  - 2026-05-02: plugins/example-custom-rule, plugins/example-language-python 実行検証。
+  - plugin-manifest.yaml validation, entry point execution, output schema validation。
 
 Viewer / operability / docs:
 - [x] quickstart が 5-step で初回利用者に通る (docs/quickstart.md exists)。

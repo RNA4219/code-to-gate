@@ -5,6 +5,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { minimatch } from "minimatch";
 import type { Severity, FindingCategory } from "../types/artifacts.js";
 
 export const POLICY_VERSION = "ctg/v1alpha1";
@@ -612,32 +613,26 @@ export function isSuppressed(
       continue;
     }
 
-    // Match path (glob pattern)
-    const pattern = suppression.path;
-    const regexPattern = pattern
-      .replace(/\*/g, ".*")
-      .replace(/\?/g, ".")
-      .replace(/\[/g, "[")
-      .replace(/\]/g, "]");
-
-    const regex = new RegExp(`^${regexPattern}$`);
-    if (regex.test(findingPath)) {
-      // Check expiry
-      if (suppression.expiry) {
-        const expiryDate = new Date(suppression.expiry);
-        const now = new Date();
-        if (now > expiryDate) {
-          // Suppression expired - not suppressed
-          continue;
-        }
-      }
-
-      return {
-        suppressed: true,
-        reason: suppression.reason,
-        expiry: suppression.expiry,
-      };
+    // Match path (glob pattern using minimatch)
+    if (!minimatch(findingPath, suppression.path)) {
+      continue;
     }
+
+    // Check expiry
+    if (suppression.expiry) {
+      const expiryDate = new Date(suppression.expiry);
+      const now = new Date();
+      if (now > expiryDate) {
+        // Suppression expired - not suppressed
+        continue;
+      }
+    }
+
+    return {
+      suppressed: true,
+      reason: suppression.reason,
+      expiry: suppression.expiry,
+    };
   }
 
   return { suppressed: false };
