@@ -1803,11 +1803,14 @@ FN Evaluation:
 
 ## 26. Next Actions
 
-| id | action | owner | phase |
-|---|---|---|---|
-| SN-01 | `docs/product-acceptance-v1.md` 作成 | QA | Immediate |
-| SN-02 | `docs/product-gap-analysis.md` 作成 | Analyst | Immediate |
-| SN-03 | `docs/product-roadmap.md` 作成 | PM | Immediate |
-| SN-04 | AST parser library evaluation | Dev | Phase 1 prep |
-| SN-05 | GitHub Actions template design | Dev | Phase 1 prep |
-| SN-06 | Contract test CI setup | QA | Phase 1 prep |
+| id | action | owner | phase | status |
+|---|---|---|---|---|
+| SN-01 | `docs/product-acceptance-v1.md` 作成 | QA | Immediate | ✅ DONE |
+| SN-02 | `docs/product-gap-analysis.md` 作成 | Analyst | Immediate | ✅ DONE |
+| SN-03 | `docs/product-roadmap.md` 作成 | PM | Immediate | ✅ DONE |
+| SN-04 | AST parser library evaluation | Dev | Phase 1 prep | ✅ DONE (docs/ast-parser-evaluation.md) |
+| SN-05 | GitHub Actions template design | Dev | Phase 1 prep | ✅ DONE (template exists) |
+| SN-06 | Contract test CI setup | QA | Phase 1 prep | ✅ DONE (workflow job exists) |
+
+**Completed**: SN-01~03, SN-05~06
+**Remaining**: SN-04 (AST parser evaluation for Phase 1)

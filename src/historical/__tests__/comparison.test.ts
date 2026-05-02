@@ -61,17 +61,6 @@ function createMockRiskRegisterArtifact(
   });
 }
 
-function createMockReadinessArtifact(
-  runId: string,
-  status: "passed" | "blocked" | "needs_review"
-): ReleaseReadinessArtifact {
-  return createMockReadinessBase({
-    run_id: runId,
-    repo: { root: "/test/repo" },
-    status,
-  });
-}
-
 function createMockFinding(
   id: string,
   ruleId: string,
@@ -129,23 +118,8 @@ function createMockFindingWithExcerpt(
   };
 }
 
-function createMockRiskRegister(
-  runId: string,
-  risks: RiskSeed[]
-): RiskRegisterArtifact {
-  const now = new Date().toISOString();
-  return {
-    version: CTG_VERSION,
-    generated_at: now,
-    run_id: runId,
-    repo: { root: "/test/repo" },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "risk-register",
-    schema: "risk-register@v1",
-    completeness: "complete",
-    risks,
-  };
-}
+// Alias for test compatibility
+const createMockRiskRegister = createMockRiskRegisterArtifact;
 
 function createMockReadiness(
   runId: string,
@@ -153,30 +127,19 @@ function createMockReadiness(
   critical: number,
   high: number
 ): ReleaseReadinessArtifact {
-  const now = new Date().toISOString();
-  return {
-    version: CTG_VERSION,
-    generated_at: now,
+  return createMockReadinessBase({
     run_id: runId,
     repo: { root: "/test/repo" },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "release-readiness",
-    schema: "release-readiness@v1",
-    completeness: "complete",
     status,
-    summary: `Readiness summary`,
-    blockers: [],
-    warnings: [],
-    passedChecks: [],
     metrics: {
       criticalFindings: critical,
       highFindings: high,
-      mediumFindings: 5,
-      lowFindings: 10,
-      riskCount: 3,
-      testSeedCount: 5,
+      mediumFindings: 0,
+      lowFindings: 0,
+      riskCount: 0,
+      testSeedCount: 0,
     },
-  };
+  });
 }
 
 function createMockRunReference(artifactDir: string, runId: string): RunReference {

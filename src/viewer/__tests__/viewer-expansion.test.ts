@@ -25,6 +25,7 @@ import {
   Severity,
   FindingCategory,
   Finding,
+  ReleaseReadinessArtifact,
 } from "../../types/artifacts.js";
 import { NormalizedRepoGraph } from "../../types/graph.js";
 import {
@@ -32,8 +33,10 @@ import {
   createMockReleaseReadinessArtifact,
   createMockFinding,
 } from "../../test-utils/index.js";
+import { CTG_VERSION } from "../../types/artifacts.js";
 
 const createMockFindings = createMockFindingsArtifact;
+const createMockReadiness = createMockReleaseReadinessArtifact;
 
 function createMockFinding(sev: Severity, cat: FindingCategory): Finding {
   return {
@@ -48,32 +51,7 @@ function createMockFinding(sev: Severity, cat: FindingCategory): Finding {
   };
 }
 
-function createMockReadiness(overrides?: Partial<ReleaseReadinessArtifact>): ReleaseReadinessArtifact {
-  const base: ReleaseReadinessArtifact = {
-    version: CTG_VERSION,
-    generated_at: new Date().toISOString(),
-    run_id: "ctg-test-run-001",
-    repo: { root: "." },
-    tool: { name: "code-to-gate", version: "0.2.0", plugin_versions: [] },
-    artifact: "release-readiness",
-    schema: "release-readiness@v1",
-    completeness: "complete",
-    status: "passed",
-    summary: "All checks passed",
-    blockers: [],
-    warnings: [],
-    passedChecks: [],
-    metrics: {
-      criticalFindings: 0,
-      highFindings: 0,
-      mediumFindings: 0,
-      lowFindings: 0,
-      riskCount: 0,
-      testSeedCount: 0,
-    },
-  };
-  return { ...base, ...overrides } as ReleaseReadinessArtifact;
-}
+// createMockReadiness is now imported as alias from test-utils
 
 function createMockGraph(fileCount: number): NormalizedRepoGraph {
   const files = [];
