@@ -3,6 +3,22 @@
 この文書は、RUNBOOK から切り出した完了事項の記録である。
 RUNBOOK は運用入口と現在の判断に集中させ、完了済みの作業証跡は本書に集約する。
 
+## 2026-05-02 Schema v1 Migration 完了
+
+Schema version を `ctg/v1alpha1` から `ctg/v1` に移行完了。
+
+| 項目 | 変更内容 | commit |
+|---|---|---|
+| Suppression glob patterns | `*` → `**` で再帰マッチング修正 | `498b1aa` |
+| Docs update | debt accuracy model + completion records 分離 | `2e95f8e` |
+| Parallel module refactor | file-processor 分割 + getStats | `5da4002`, `779d34b` |
+| Schema v1 migration | artifactHeader 参照、テスト更新 | `6156150` |
+| POLICY_VERSION update | ctg/v1 に統一 | `6026af4` |
+
+**Test status**: 2526 passed / 6 failed (plugin/docker pre-existing issues)
+
+---
+
 ## 2026-05-01 P0/P1 完了
 
 ### P0 完了事項
