@@ -915,6 +915,19 @@ PR workflow検証 (PR #1):
 
 **All P1 tasks completed. Gate status: go (pending P2 tasks)**
 
+### 6.10.1 完了事項の分離 (2026-05-02)
+
+完了済みの P0/P1/P2/P3 項目と分割完了事項は `docs/completion-record.md` に分離した。
+
+RUNBOOK では現在の運用判断と未解決事項だけを扱い、完了済み証跡の詳細は次を参照する。
+
+- `docs/completion-record.md`
+- Phase 2 OSS beta 完了事項
+- Phase 3 v1.0 Product 完了事項
+- `py-adapter.ts` 分割完了記録
+
+現在の判定: Phase 2/3 の主要項目は完了済み。Gate status は go。
+
 ### 6.11 自己解析負債 (2026-05-02)
 
 code-to-gate 自身を `code-to-gate analyze . --out .qh-self` で解析した結果。
@@ -998,7 +1011,7 @@ Top Files by Findings:
 - [x] または analyze 時の自己除外条件実装 (suppressions.yaml で全 rule category 対応済み)。
 
 **High**:
-- [~] py-adapter.ts分割 (1295行) (P2: architecture decision, suppression set)。
+- [x] py-adapter.ts分割完了 (2026-05-02)。詳細は `docs/completion-record.md` の「Python Adapter 分割完了」を参照。
 - [x] RAW_SQL-041 確認 (src/plugin/plugin-context.ts) (suppressions.yaml: example patterns for plugin development)。
 - [x] UNSAFE_DELETE-046~059 安全性確認 (14件) (suppressions.yaml: cache/cli/parallel/plugin/reporters cleanup documented)。
   - [x] cache削除: rmSync recursive force の正当性確認。
@@ -1019,6 +1032,38 @@ Top Files by Findings:
 - `.qh-self/findings.json` (98 findings)
 - `.qh-self/risk-register.yaml` (18 risks)
 - `.qh-self/analysis-report.md` (詳細レポート)
+
+### 6.12 負債解析精度の再調査メモ (2026-05-02)
+
+ユーザー指摘: 「解析機能がお粗末」「負債についての精度が甘い」。
+
+#### 再調査で見えた課題
+
+| 課題 | 影響 | 対応方針 |
+|---|---|---|
+| `LARGE_MODULE` 中心で、負債をサイズ/関数数に寄せすぎている | 明示的な TODO/workaround/temporary などの既知負債を拾いにくい | explicit debt marker を仕様化する |
+| suppression 適用後の `0 findings` が「負債なし」に見える | 実際には broad/long-lived suppression が残っていても見逃す | suppression debt を別枠で可視化する |
+| suppressions の reason が generic でも通る | 「architecture decision」「intentional」だけで負債が固定化される | reason/expiry/path scope の品質条件を定義する |
+| 自己解析で rule implementation / fixtures 由来の FP が多い | 実コード負債と検出器由来ノイズが混ざる | fixture/rule-implementation タグ、低 confidence、または専用除外ルールを検討する |
+| 解析対象に一時生成物が混ざると結果が不安定になる | `.test-temp` や過去出力の読み込みでノイズ/失敗が起きる | generated/temp output の探索方針を仕様化する |
+
+#### 仕様更新
+
+- 正本: `docs/product-spec-v1.md` の `12.5 Technical Debt Accuracy Model`。
+- debt signal を `explicit debt marker` / `structural debt` / `suppression debt` に分ける。
+- `0 active findings` と `0 known debt` を混同しないよう、summary は `active findings`、`suppressed findings`、`suppression debt` を分離する。
+- broad suppression (`src/**`, `fixtures/**`, whole-rule suppression など) は、元 finding が suppress されても別の負債として扱う。
+
+#### 実装方針メモ
+
+この時点では実装しない。先に仕様・RUNBOOK 上で期待挙動と acceptance criteria を固める。
+
+実装に入る場合の候補:
+
+1. `DEBT_MARKER`: source comment の TODO/FIXME/HACK/workaround/temporary/refactor note を line evidence 付きで検出する。
+2. `SUPPRESSION_DEBT`: suppression file の broad path、長すぎる expiry、missing expiry、generic reason を検出する。
+3. `analysis-report.md`: active/suppressed/suppression-debt を別集計で表示する。
+4. `walkDir`/graph build: `.qh*`、一時生成物、過去出力、読み込み中に消えたファイルの扱いを安定化する。
 
 ## 7. リファクタリング方針
 

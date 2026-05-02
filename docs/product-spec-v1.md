@@ -1054,6 +1054,44 @@ if expiry set:
     ├─ Warning: suppression expiring soon
 ```
 
+### 12.5 Technical Debt Accuracy Model
+
+Technical debt findings MUST NOT rely only on file size or raw pattern hits.
+The analyzer should separate three debt signal types and keep each signal
+evidence-backed:
+
+| signal | 内容 | required evidence | expected category |
+|---|---|---|---|
+| Explicit debt marker | source comments that intentionally mark future work, workaround, temporary code, known limitation, or refactor need | file path + line range + excerpt hash | `maintainability` |
+| Structural debt | oversized modules, excessive function/class count, complex entrypoint/module shape, or high fanout that raises review/test cost | repo graph metrics + representative file evidence | `maintainability` |
+| Suppression debt | broad, long-lived, expired, missing-expiry, or generic-reason suppressions that can hide real findings | suppression file path + suppression entry line | `maintainability` or `release-risk` |
+
+Debt precision rules:
+
+- Comment-like markers inside string literals or fixture data MUST NOT be reported as explicit debt markers.
+- Test files, public fixtures, generated output, and rule implementation examples SHOULD be handled with lower confidence or dedicated fixture/rule-implementation tags.
+- Broad suppressions such as `src/**`, `fixtures/**`, or whole-rule suppressions MUST be reported separately from the suppressed underlying findings.
+- A suppression SHOULD be considered debt when it has no expiry, an expiry longer than the policy limit, a generic reason, or a path glob that covers more than one ownership boundary.
+- Analysis reports MUST show both active findings and suppression debt so that "0 active findings" does not imply "0 known debt".
+
+Recommended policy knobs:
+
+| policy field | default | 内容 |
+|---|---:|---|
+| `debt.marker.enabled` | `true` | explicit debt marker detection |
+| `debt.suppression.enabled` | `true` | suppression debt detection |
+| `debt.suppression.maxExpiryDays` | `180` | long-lived suppression threshold |
+| `debt.suppression.maxBroadSuppressions` | `0` | allowed broad suppressions before warning |
+| `debt.structural.maxLines` | `500` | structural line threshold |
+| `debt.structural.maxFunctions` | `20` | structural function/class threshold |
+
+Acceptance criteria:
+
+- A repo with actionable source comments such as known workaround/refactor notes produces maintainability findings with line evidence.
+- A repo with broad or long-lived suppressions produces suppression debt findings even when all original findings are suppressed.
+- A clean repo with no explicit markers, narrow suppressions, and files below structural thresholds produces no debt findings.
+- The summary distinguishes `active findings`, `suppressed findings`, and `suppression debt`.
+
 ---
 
 ## 13. Baseline / Diff / Regression Model
