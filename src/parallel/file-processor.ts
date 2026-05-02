@@ -451,6 +451,18 @@ export class FileProcessor extends EventEmitter {
     this.lazySymbolCache.clear();
   }
 
+  getStats(): {
+    workerCount: number;
+    lazySymbolCacheSize: number;
+    options: FileProcessorOptions;
+  } {
+    return {
+      workerCount: this.workers.length,
+      lazySymbolCacheSize: this.lazySymbolCache.size,
+      options: this.options,
+    };
+  }
+
   private emitProgress(
     phase: ProcessingProgressEvent["phase"],
     batchNumber: number,
