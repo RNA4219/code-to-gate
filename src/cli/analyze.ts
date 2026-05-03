@@ -6,7 +6,7 @@ import { existsSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { sha256 } from "../core/path-utils.js";
 import { ensureDir } from "../core/file-utils.js";
-import { buildGraph } from "../core/repo-graph-builder.js";
+import { buildGraph, initTreeSitterParsers } from "../core/repo-graph-builder.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
@@ -102,6 +102,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const llmPort = options.getOption(args, "--llm-port");
   const requireLlm = args.includes("--require-llm");
   const fromImports = args.includes("--from-imports");
+  const useTreeSitter = args.includes("--tree-sitter");
 
   // Validate LLM options
   if (llmProvider && !VALID_LLM_PROVIDERS.includes(llmProvider as LlmProviderType)) {
@@ -118,7 +119,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
 
   // Validate repo argument
   if (!repoArg) {
-    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--from-imports]");
+    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--from-imports] [--tree-sitter]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -138,9 +139,14 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const emitFormats = parseEmitOption(emitValue);
   const absoluteOutDir = path.resolve(cwd, outDir);
 
+  // Initialize tree-sitter parsers if requested
+  if (useTreeSitter) {
+    await initTreeSitterParsers();
+  }
+
   try {
     // Build repo graph
-    const graph = buildGraph(repoRoot, VERSION);
+    const graph = buildGraph(repoRoot, VERSION, useTreeSitter);
 
     if (graph.files.length === 0) {
       console.error(`repo contains no target files: ${repoArg}`);
