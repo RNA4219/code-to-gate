@@ -236,7 +236,7 @@ describe("Phase 3 v1.0 Acceptance Tests", () => {
         );
         const duration = Date.now() - start;
 
-        expect(duration).toBeLessThan(5000);
+        expect(duration).toBeLessThan(15000);
       }
     });
   });

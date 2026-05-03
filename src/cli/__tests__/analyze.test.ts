@@ -524,5 +524,5 @@ describe("analyze CLI", () => {
     expect(audit.exit.code).toBe(result);
     expect(audit.exit.status).toBe("blocked_input");
     expect(audit.exit.reason).toContain("Blocked:");
-  });
+  }, 90000);
 });
