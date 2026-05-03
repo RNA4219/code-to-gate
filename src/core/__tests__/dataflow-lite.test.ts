@@ -13,6 +13,12 @@ import {
   isClientTrustedSource,
   flowsToPayment,
   buildDataflowGraph,
+  extractBranchDataflow,
+  extractMemberAccessDataflow,
+  extractCallChainDataflow,
+  trackCallChainFull,
+  flowsThroughValidation,
+  buildDataflowGraphFull,
 } from "../dataflow-lite.js";
 import type { SymbolNode, GraphRelation } from "../../types/graph.js";
 
@@ -353,6 +359,268 @@ describe("Dataflow-lite", () => {
 
       expect(graph.nodes.length).toBe(0);
       expect(graph.relations.length).toBe(0);
+    });
+  });
+
+  // Dataflow-full tests (Phase 5+)
+  describe("extractBranchDataflow", () => {
+    it("creates branch dataflow node", () => {
+      const node = extractBranchDataflow(
+        "isValid",
+        ["symbol:branch-true", "symbol:branch-false"],
+        "symbol:merge-point",
+        filePath,
+        20,
+        25
+      );
+
+      expect(node.kind).toBe("branch");
+      expect(node.source).toBe("isValid");
+      expect(node.branchInfo?.condition).toBe("isValid");
+      expect(node.branchInfo?.branches.length).toBe(2);
+    });
+  });
+
+  describe("extractMemberAccessDataflow", () => {
+    it("creates member access dataflow node", () => {
+      const node = extractMemberAccessDataflow(
+        "symbol:src/user.ts:user",
+        "name",
+        filePath,
+        10,
+        10
+      );
+
+      expect(node.kind).toBe("member");
+      expect(node.source).toBe("symbol:src/user.ts:user");
+      expect(node.target).toBe("symbol:src/user.ts:user.name");
+    });
+  });
+
+  describe("extractCallChainDataflow", () => {
+    it("creates call chain dataflow node", () => {
+      const node = extractCallChainDataflow(
+        ["symbol:input", "symbol:sanitize", "symbol:process"],
+        filePath,
+        10,
+        15
+      );
+
+      expect(node.kind).toBe("call_chain");
+      expect(node.source).toBe("symbol:input");
+      expect(node.target).toBe("symbol:process");
+      expect(node.callChain?.length).toBe(3);
+    });
+  });
+
+  describe("trackCallChainFull", () => {
+    it("tracks multi-hop call chain", () => {
+      const symbols: SymbolNode[] = [
+        {
+          id: "symbol:input",
+          fileId: "file:input.ts",
+          name: "input",
+          kind: "function",
+          exported: false,
+          location: { startLine: 1, endLine: 5 },
+          evidence: [],
+        },
+        {
+          id: "symbol:sanitize",
+          fileId: "file:sanitize.ts",
+          name: "sanitize",
+          kind: "function",
+          exported: false,
+          location: { startLine: 10, endLine: 15 },
+          evidence: [],
+        },
+        {
+          id: "symbol:process",
+          fileId: "file:process.ts",
+          name: "process",
+          kind: "function",
+          exported: false,
+          location: { startLine: 20, endLine: 25 },
+          evidence: [],
+        },
+      ];
+
+      const callRelations: GraphRelation[] = [
+        {
+          id: "rel:1",
+          from: "symbol:input",
+          to: "symbol:sanitize",
+          kind: "calls",
+          confidence: 0.7,
+          evidence: [],
+        },
+        {
+          id: "rel:2",
+          from: "symbol:sanitize",
+          to: "symbol:process",
+          kind: "calls",
+          confidence: 0.7,
+          evidence: [],
+        },
+      ];
+
+      const chains = trackCallChainFull("symbol:input", 5, callRelations, symbols, filePath);
+
+      expect(chains.length).toBeGreaterThan(0);
+      // Should have chain: input -> sanitize -> process
+      const fullChain = chains.find(c => c.callChain?.length === 3);
+      expect(fullChain).toBeDefined();
+    });
+  });
+
+  describe("flowsThroughValidation", () => {
+    it("detects validation in call chain", () => {
+      const symbols: SymbolNode[] = [
+        {
+          id: "symbol:userInput",
+          fileId: "file:input.ts",
+          name: "userInput",
+          kind: "function",
+          exported: false,
+          location: { startLine: 1, endLine: 5 },
+          evidence: [],
+        },
+        {
+          id: "symbol:validateInput",
+          fileId: "file:validate.ts",
+          name: "validateInput",
+          kind: "function",
+          exported: false,
+          location: { startLine: 10, endLine: 15 },
+          evidence: [],
+        },
+      ];
+
+      const callRelations: GraphRelation[] = [
+        {
+          id: "rel:1",
+          from: "symbol:userInput",
+          to: "symbol:validateInput",
+          kind: "calls",
+          confidence: 0.7,
+          evidence: [],
+        },
+      ];
+
+      const result = flowsThroughValidation("symbol:userInput", callRelations, symbols, filePath);
+
+      expect(result).toBe(true);
+    });
+
+    it("returns false when no validation in chain", () => {
+      const symbols: SymbolNode[] = [
+        {
+          id: "symbol:input",
+          fileId: "file:input.ts",
+          name: "input",
+          kind: "function",
+          exported: false,
+          location: { startLine: 1, endLine: 5 },
+          evidence: [],
+        },
+        {
+          id: "symbol:output",
+          fileId: "file:output.ts",
+          name: "output",
+          kind: "function",
+          exported: false,
+          location: { startLine: 10, endLine: 15 },
+          evidence: [],
+        },
+      ];
+
+      const callRelations: GraphRelation[] = [
+        {
+          id: "rel:1",
+          from: "symbol:input",
+          to: "symbol:output",
+          kind: "calls",
+          confidence: 0.7,
+          evidence: [],
+        },
+      ];
+
+      const result = flowsThroughValidation("symbol:input", callRelations, symbols, filePath);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("buildDataflowGraphFull", () => {
+    it("builds full dataflow graph with call chains", () => {
+      const symbols: SymbolNode[] = [
+        {
+          id: "symbol:handler",
+          fileId: "file:handler.ts",
+          name: "handler",
+          kind: "function",
+          exported: false,
+          location: { startLine: 1, endLine: 10 },
+          evidence: [],
+        },
+        {
+          id: "symbol:service",
+          fileId: "file:service.ts",
+          name: "service",
+          kind: "function",
+          exported: false,
+          location: { startLine: 15, endLine: 20 },
+          evidence: [],
+        },
+      ];
+
+      const relations: GraphRelation[] = [
+        {
+          id: "rel:1",
+          from: "symbol:handler",
+          to: "symbol:service",
+          kind: "calls",
+          confidence: 0.7,
+          evidence: [],
+        },
+      ];
+
+      const graph = buildDataflowGraphFull(symbols, relations, filePath, { maxCallHops: 3 });
+
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      // Should have both return node and call chain node
+      const callChainNode = graph.nodes.find(n => n.kind === "call_chain");
+      expect(callChainNode).toBeDefined();
+    });
+
+    it("tracks member access when enabled", () => {
+      const symbols: SymbolNode[] = [
+        {
+          id: "symbol:user",
+          fileId: "file:user.ts",
+          name: "user",
+          kind: "function",
+          exported: false,
+          location: { startLine: 1, endLine: 10 },
+          evidence: [],
+        },
+      ];
+
+      const relations: GraphRelation[] = [
+        {
+          id: "rel:1",
+          from: "symbol:user",
+          to: "user.name",
+          kind: "accesses",
+          confidence: 0.7,
+          evidence: [],
+        },
+      ];
+
+      const graph = buildDataflowGraphFull(symbols, relations, filePath, { trackMembers: true });
+
+      const memberNode = graph.nodes.find(n => n.kind === "member");
+      expect(memberNode).toBeDefined();
     });
   });
 });

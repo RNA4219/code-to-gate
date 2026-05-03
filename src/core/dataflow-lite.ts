@@ -5,6 +5,9 @@
  * - Variable assignment tracking
  * - Function argument flow
  * - Return value flow
+ * - Conditional branch flow (if/else/switch)
+ * - Field/member access tracking
+ * - Call chain tracking (multi-hop)
  *
  * Used for:
  * - CLIENT_TRUSTED_PRICE detection accuracy
@@ -16,6 +19,38 @@ import type { DataflowNode, DataflowRelation, DataflowGraph, EvidenceRef, Symbol
 import { sha256 } from "./path-utils.js";
 
 export type { DataflowNode, DataflowRelation, DataflowGraph };
+
+/**
+ * Dataflow node kinds (extended for full analysis)
+ */
+export type DataflowNodeKind =
+  | "assign"      // Variable assignment
+  | "param"       // Function parameter
+  | "return"      // Return value
+  | "branch"      // Conditional branch (if/else)
+  | "member"      // Field/member access
+  | "call_chain"  // Multi-hop call chain
+  | "merge"       // Branch merge point
+  | "loop"        // Loop iteration
+  | "closure"     // Closure capture;
+
+/**
+ * Branch information for conditional dataflow
+ */
+export interface BranchInfo {
+  condition: string;
+  branches: string[];  // Branch target IDs
+  mergePoint?: string; // Where branches converge
+}
+
+/**
+ * Extended dataflow node with branch info
+ */
+export interface ExtendedDataflowNode extends DataflowNode {
+  branchInfo?: BranchInfo;
+  callChain?: string[];  // Ordered list of call IDs in chain
+  capturedVars?: string[]; // Variables captured by closure
+}
 
 /**
  * Extract dataflow from symbol assignments
@@ -347,6 +382,275 @@ export function buildDataflowGraph(
 
     // Create dataflow relation
     dfRelations.push(createDataflowRelation(call.to, call.from, filePath, call.confidence));
+  }
+
+  return {
+    nodes,
+    relations: dfRelations,
+  };
+}
+
+/**
+ * Extract conditional branch dataflow
+ * Used for tracking data flow through if/else/switch statements
+ */
+export function extractBranchDataflow(
+  conditionExpr: string,
+  branchTargets: string[],
+  mergePoint: string | undefined,
+  filePath: string,
+  startLine: number,
+  endLine: number
+): ExtendedDataflowNode {
+  return {
+    id: `df:${sha256(`${filePath}:${conditionExpr}:branch`).slice(0, 8)}`,
+    kind: "branch",
+    source: conditionExpr,
+    target: mergePoint || "",
+    filePath,
+    location: { startLine, endLine },
+    evidence: [
+      {
+        id: `ev-df-branch-${sha256(`${filePath}:${startLine}`).slice(0, 8)}`,
+        path: filePath,
+        startLine,
+        endLine,
+        kind: "ast",
+        excerptHash: sha256(`${filePath}:${startLine}-${endLine}`),
+      },
+    ],
+    branchInfo: {
+      condition: conditionExpr,
+      branches: branchTargets,
+      mergePoint,
+    },
+  };
+}
+
+/**
+ * Extract field/member access dataflow
+ * Used for tracking obj.field access patterns
+ */
+export function extractMemberAccessDataflow(
+  objectId: string,
+  fieldName: string,
+  filePath: string,
+  startLine: number,
+  endLine: number
+): ExtendedDataflowNode {
+  return {
+    id: `df:${sha256(`${filePath}:${objectId}.${fieldName}:member`).slice(0, 8)}`,
+    kind: "member",
+    source: objectId,
+    target: `${objectId}.${fieldName}`,
+    filePath,
+    location: { startLine, endLine },
+    evidence: [
+      {
+        id: `ev-df-member-${sha256(`${filePath}:${objectId}.${fieldName}`).slice(0, 8)}`,
+        path: filePath,
+        startLine,
+        endLine,
+        kind: "ast",
+        excerptHash: sha256(`${filePath}:${startLine}-${endLine}`),
+        symbolId: objectId,
+      },
+    ],
+  };
+}
+
+/**
+ * Extract call chain dataflow (multi-hop)
+ * Used for tracking data through multiple function calls
+ * Example: userInput -> sanitize() -> validate() -> process()
+ */
+export function extractCallChainDataflow(
+  chainSymbols: string[], // Ordered list of symbol IDs in the call chain
+  filePath: string,
+  startLine: number,
+  endLine: number
+): ExtendedDataflowNode {
+  const chainId = chainSymbols.join("->");
+  return {
+    id: `df:${sha256(`${filePath}:${chainId}:chain`).slice(0, 8)}`,
+    kind: "call_chain",
+    source: chainSymbols[0] || "",
+    target: chainSymbols[chainSymbols.length - 1] || "",
+    filePath,
+    location: { startLine, endLine },
+    evidence: [
+      {
+        id: `ev-df-chain-${sha256(`${filePath}:${chainId}`).slice(0, 8)}`,
+        path: filePath,
+        startLine,
+        endLine,
+        kind: "ast",
+        excerptHash: sha256(`${filePath}:${startLine}-${endLine}`),
+      },
+    ],
+    callChain: chainSymbols,
+  };
+}
+
+/**
+ * Track call chain from source through multiple hops
+ * Enhanced version of trackDataflowChain with better multi-hop tracking
+ */
+export function trackCallChainFull(
+  startSymbolId: string,
+  maxHops: number = 5,
+  callRelations: GraphRelation[],
+  symbols: SymbolNode[],
+  filePath: string
+): ExtendedDataflowNode[] {
+  const chains: ExtendedDataflowNode[] = [];
+  const visited = new Set<string>();
+
+  // BFS to find all reachable symbols within maxHops
+  const hopQueue: Array<{ symbolId: string; path: string[]; hops: number }> = [
+    { symbolId: startSymbolId, path: [startSymbolId], hops: 0 }
+  ];
+
+  while (hopQueue.length > 0) {
+    const current = hopQueue.shift() || { symbolId: "", path: [], hops: 0 };
+
+    if (visited.has(current.symbolId) || current.hops >= maxHops) continue;
+    visited.add(current.symbolId);
+
+    // Find calls from current symbol
+    const outgoingCalls = callRelations.filter(
+      r => r.from === current.symbolId && r.kind === "calls"
+    );
+
+    for (const call of outgoingCalls) {
+      const newPath = [...current.path, call.to];
+
+      // Create call chain node if path > 1
+      if (newPath.length > 1) {
+        const targetSymbol = symbols.find(s => s.id === call.to);
+        if (targetSymbol) {
+          chains.push(extractCallChainDataflow(
+            newPath,
+            filePath,
+            targetSymbol.location?.startLine || 1,
+            targetSymbol.location?.endLine || 1
+          ));
+        }
+      }
+
+      // Continue BFS
+      if (!visited.has(call.to)) {
+        hopQueue.push({
+          symbolId: call.to,
+          path: newPath,
+          hops: current.hops + 1,
+        });
+      }
+    }
+  }
+
+  return chains;
+}
+
+/**
+ * Check if data flows through validation/sanitization
+ * Used for determining if user input is properly handled
+ */
+export function flowsThroughValidation(
+  startSymbolId: string,
+  callRelations: GraphRelation[],
+  symbols: SymbolNode[],
+  filePath: string
+): boolean {
+  const validationPatterns = ["validate", "sanitize", "check", "verify", "assert", "escape", "encode"];
+
+  const chains = trackCallChainFull(startSymbolId, 10, callRelations, symbols, filePath);
+
+  for (const chain of chains) {
+    const callChain = chain.callChain || [];
+    for (const symbolId of callChain) {
+      const symbolName = symbolId.split(":").pop() || "";
+      if (validationPatterns.some(p => symbolName.toLowerCase().includes(p))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Build complete dataflow graph with extended analysis
+ * Includes branches, member access, and call chains
+ */
+export function buildDataflowGraphFull(
+  symbols: SymbolNode[],
+  relations: GraphRelation[],
+  filePath: string,
+  options: { maxCallHops?: number; trackBranches?: boolean; trackMembers?: boolean } = {}
+): DataflowGraph {
+  const nodes: DataflowNode[] = [];
+  const dfRelations: DataflowRelation[] = [];
+  const maxHops = options.maxCallHops ?? 5;
+
+  const callRelations = relations.filter(r => r.kind === "calls");
+
+  // 1. Basic call-based dataflow
+  for (const call of callRelations) {
+    const callerSymbol = symbols.find(s => s.id === call.from);
+    if (!callerSymbol) continue;
+
+    const returnNode = extractReturnDataflow(
+      call.from,
+      call.to,
+      filePath,
+      callerSymbol.location?.startLine || 1,
+      callerSymbol.location?.endLine || 1
+    );
+    nodes.push(returnNode);
+
+    dfRelations.push(createDataflowRelation(call.to, call.from, filePath, call.confidence));
+  }
+
+  // 2. Call chain tracking
+  const functionSymbols = symbols.filter(s => s.kind === "function" || s.kind === "method");
+  for (const func of functionSymbols) {
+    const chains = trackCallChainFull(func.id, maxHops, callRelations, symbols, filePath);
+    for (const chain of chains) {
+      nodes.push(chain);
+
+      // Create relations between chain elements
+      const callChain = chain.callChain || [];
+      for (let i = 0; i < callChain.length - 1; i++) {
+        dfRelations.push(createDataflowRelation(
+          callChain[i],
+          callChain[i + 1],
+          filePath,
+          0.7 // Chain confidence
+        ));
+      }
+    }
+  }
+
+  // 3. Member access tracking (if enabled)
+  if (options.trackMembers) {
+    const memberRelations = relations.filter(r => r.kind === "accesses");
+    for (const member of memberRelations) {
+      const sourceSymbol = symbols.find(s => s.id === member.from);
+      if (!sourceSymbol) continue;
+
+      const memberName = member.to.split(".").pop() || "";
+      const memberNode = extractMemberAccessDataflow(
+        member.from,
+        memberName,
+        filePath,
+        sourceSymbol.location?.startLine || 1,
+        sourceSymbol.location?.endLine || 1
+      );
+      nodes.push(memberNode);
+
+      dfRelations.push(createDataflowRelation(member.from, member.to, filePath, member.confidence));
+    }
   }
 
   return {

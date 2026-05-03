@@ -85,7 +85,8 @@ export interface GraphRelation {
     | "references"
     | "tests"
     | "configures"
-    | "depends_on";
+    | "depends_on"
+    | "accesses";
   confidence: number;
   evidence: EvidenceRef[];
 }
@@ -166,9 +167,10 @@ export interface EvidenceRef {
 }
 
 // Dataflow-lite types (Phase 4)
+// Extended in Phase 5+ for dataflow-full
 export interface DataflowNode {
   id: string;
-  kind: "assign" | "param" | "return" | "prop_access" | "literal";
+  kind: "assign" | "param" | "return" | "prop_access" | "literal" | "branch" | "member" | "call_chain" | "merge" | "loop" | "closure";
   source: string; // symbolId or literal value
   target: string; // symbolId
   filePath: string;
@@ -177,6 +179,14 @@ export interface DataflowNode {
     endLine: number;
   };
   evidence: EvidenceRef[];
+  // Extended fields for dataflow-full
+  branchInfo?: {
+    condition: string;
+    branches: string[];
+    mergePoint?: string;
+  };
+  callChain?: string[];
+  capturedVars?: string[];
 }
 
 export interface DataflowRelation {
