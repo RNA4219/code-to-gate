@@ -50,6 +50,19 @@
     },
     "test_seed_refs": { "type": "array", "items": { "type": "string" } },
     "known_gaps": { "type": "array", "items": { "type": "string" } },
-    "oracle_gaps": { "type": "array", "items": { "type": "string" } }
+    "oracle_gaps": { "type": "array", "items": { "type": "string" } },
+    "breaking_change_log": {
+      "type": "array",
+      "description": "Log of breaking changes for downstream compatibility tracking",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": { "type": "string" },
+          "change": { "type": "string" },
+          "impact": { "enum": ["added", "removed", "changed", "deprecated"] },
+          "date": { "type": "string", "format": "date" }
+        }
+      }
+    }
   }
 }

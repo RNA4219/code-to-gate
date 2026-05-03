@@ -38,6 +38,19 @@
         }
       }
     },
-    "non_binding_gate_hint": { "enum": ["pass", "hold", "block"] }
+    "non_binding_gate_hint": { "enum": ["pass", "hold", "block"] },
+    "breaking_change_log": {
+      "type": "array",
+      "description": "Log of breaking changes for downstream compatibility tracking",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": { "type": "string" },
+          "change": { "type": "string" },
+          "impact": { "enum": ["added", "removed", "changed", "deprecated"] },
+          "date": { "type": "string", "format": "date" }
+        }
+      }
+    }
   }
 }

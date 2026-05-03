@@ -41,6 +41,19 @@
         "requires_human_attention": { "type": "boolean" },
         "reasons": { "type": "array", "items": { "type": "string" } }
       }
+    },
+    "breaking_change_log": {
+      "type": "array",
+      "description": "Log of breaking changes for downstream compatibility tracking",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": { "type": "string" },
+          "change": { "type": "string" },
+          "impact": { "enum": ["added", "removed", "changed", "deprecated"] },
+          "date": { "type": "string", "format": "date" }
+        }
+      }
     }
   }
 }

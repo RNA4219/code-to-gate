@@ -45,6 +45,19 @@
         "high_count": { "type": "integer", "minimum": 0 },
         "needs_review": { "type": "boolean" }
       }
+    },
+    "breaking_change_log": {
+      "type": "array",
+      "description": "Log of breaking changes for downstream compatibility tracking",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": { "type": "string" },
+          "change": { "type": "string" },
+          "impact": { "enum": ["added", "removed", "changed", "deprecated"] },
+          "date": { "type": "string", "format": "date" }
+        }
+      }
     }
   }
 }
