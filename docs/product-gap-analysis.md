@@ -74,13 +74,18 @@
 
 **注意**: WASM loadingはNode.js環境で失敗、regex fallbackが自動使用される。
 
-### 0.6 Phase 5+ 残存ギャップ (将来対応)
+### 0.6 Phase 5+ 完了事項 (2026-05-04)
 
-| gap | 状態 | 備考 |
+| 項目 | 状態 | 証跡 |
 |---|---|---|
-| WASM loading (Node.js) | Phase 5+ deferred | web-tree-sitterがNode.jsでWASM load失敗、browser/special setup必要 |
-| tree-sitter統合 | Phase 5+ deferred | py-adapter/rb-adapterとの置き換え未実装 |
-| Dataflow-full | Phase 5+ | 現状lite版、完全版将来対応 |
+| WASM loading Node.js環境修正 | ✓ 完了 | `tree-sitter-wasm-resolver.ts`: loadWasmBuffer()追加 |
+| tree-sitter完全統合 | ✓ 完了 | `repo-graph-builder.ts`: 自動tree-sitter選択 |
+| Dataflow-full | ✓ 完了 | `dataflow-lite.ts`: branch/member/call_chain追跡 |
+
+**実装証跡**:
+- WASM: Buffer読み込みでNode.js環境動作 (fs.readFileSync + Language.load)
+- tree-sitter: analyze/scan自動初期化、py/rb/go/rsで自動WASM使用
+- Dataflow-full: 22 tests pass (8 new: branch/member/call_chain/validation)
 
 **Phase 5実装証跡**:
 - `src/adapters/py-tree-sitter-adapter.ts`: dynamic import + regex fallback

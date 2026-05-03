@@ -141,6 +141,7 @@ next_review_due: 2026-05-15
 | Phase 4 | Dataflow-lite、Type inference | ✓完了 |
 | Phase 5 | Python/Ruby/Go/Rust tree-sitter WASM | ✓完了 |
 | Phase 6 | repo-graph-builder統合、CLI接続 | ✓完了 |
+| Phase 7 | WASM Node.js修正、tree-sitter自動化、Dataflow-full | ✓完了 |
 
 ## 9. 参照
 
