@@ -25,7 +25,7 @@ export interface ParseResult {
   parserAdapter: string;
 }
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath } from "./tree-sitter-wasm-resolver.js";
+import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
 
 // Dynamic import for web-tree-sitter
 let ParserClass: any = null;
@@ -51,9 +51,16 @@ export async function initRustParser(): Promise<boolean> {
     await ParserClass.init();
     parserInstance = new ParserClass();
 
-    // Load Rust grammar
-    const wasmUrl = resolveWasmPath("rust");
-    rustLanguage = await LanguageClass.load(wasmUrl);
+    // Load Rust grammar - use Buffer in Node.js, URL in browser
+    const wasmBuffer = loadWasmBuffer("rust");
+    if (wasmBuffer) {
+      // Node.js: load WASM from Buffer
+      rustLanguage = await LanguageClass.load(wasmBuffer);
+    } else {
+      // Browser or fallback: load from URL
+      const wasmUrl = resolveWasmPath("rust");
+      rustLanguage = await LanguageClass.load(wasmUrl);
+    }
     parserInstance.setLanguage(rustLanguage);
 
     isInitialized = true;

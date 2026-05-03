@@ -25,7 +25,7 @@ export interface ParseResult {
   parserAdapter: string;
 }
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath } from "./tree-sitter-wasm-resolver.js";
+import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
 
 // Dynamic import for web-tree-sitter
 let ParserClass: any = null;
@@ -51,9 +51,16 @@ export async function initRubyParser(): Promise<boolean> {
     await ParserClass.init();
     parserInstance = new ParserClass();
 
-    // Load Ruby grammar - use local file in Node.js, CDN in browser
-    const wasmUrl = resolveWasmPath("ruby");
-    rubyLanguage = await LanguageClass.load(wasmUrl);
+    // Load Ruby grammar - use Buffer in Node.js, URL in browser
+    const wasmBuffer = loadWasmBuffer("ruby");
+    if (wasmBuffer) {
+      // Node.js: load WASM from Buffer
+      rubyLanguage = await LanguageClass.load(wasmBuffer);
+    } else {
+      // Browser or fallback: load from URL
+      const wasmUrl = resolveWasmPath("ruby");
+      rubyLanguage = await LanguageClass.load(wasmUrl);
+    }
     parserInstance.setLanguage(rubyLanguage);
 
     isInitialized = true;

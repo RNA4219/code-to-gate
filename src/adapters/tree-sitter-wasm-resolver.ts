@@ -5,6 +5,7 @@
  */
 
 import path from "node:path";
+import fs from "node:fs";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -36,6 +37,28 @@ export function resolveWasmPath(language: string): string {
 
   // Browser environment: use CDN
   return getWasmCdnUrl(language);
+}
+
+/**
+ * Load WASM grammar as Buffer (Node.js only)
+ *
+ * In Node.js: reads WASM file from node_modules and returns Buffer
+ * In browser: returns null (use URL-based loading)
+ */
+export function loadWasmBuffer(language: string): Buffer | null {
+  if (typeof process === "undefined" || !process.versions?.node) {
+    return null; // Browser environment - use URL
+  }
+
+  try {
+    const wasmPath = resolveWasmPath(language);
+    if (fs.existsSync(wasmPath)) {
+      return fs.readFileSync(wasmPath);
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -258,9 +258,10 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
     return options.EXIT.USAGE_ERROR;
   }
 
-  // Initialize tree-sitter parsers if requested
+  // Initialize tree-sitter parsers automatically
+  // Falls back to regex if WASM packages not installed
   let treeSitterAvailable = false;
-  if (useTreeSitter) {
+  try {
     const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
       initPythonParser(),
       initRubyParser(),
@@ -279,6 +280,8 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
         available: treeSitterAvailable,
       }));
     }
+  } catch {
+    // Silently continue with regex fallback
   }
 
   // Parse options

@@ -160,13 +160,23 @@ function getCachedParseResult(
     return undefined;
   }
 
-  const cacheKey = `${language}:${file}:${bodyHash}:${useTreeSitter}`;
+  const cacheKey = `${language}:${file}:${bodyHash}:${useTreeSitter}:${treeSitterInitialized}`;
   const cached = parseCache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  // Try tree-sitter first if requested and available
+  // Try tree-sitter first if available (automatic when initialized)
+  // This enables tree-sitter for py/rb/go/rs even without --tree-sitter flag
+  if (treeSitterInitialized && ["py", "rb", "go", "rs"].includes(language)) {
+    const tsResult = tryTreeSitterParse(language, file, repoRoot, fileId);
+    if (tsResult) {
+      parseCache.set(cacheKey, tsResult);
+      return tsResult;
+    }
+  }
+
+  // Try tree-sitter if explicitly requested
   if (useTreeSitter) {
     const tsResult = tryTreeSitterParse(language, file, repoRoot, fileId);
     if (tsResult) {

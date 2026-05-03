@@ -139,13 +139,17 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const emitFormats = parseEmitOption(emitValue);
   const absoluteOutDir = path.resolve(cwd, outDir);
 
-  // Initialize tree-sitter parsers if requested
-  if (useTreeSitter) {
+  // Initialize tree-sitter parsers automatically
+  // This enables WASM parsing for py/rb/go/rs when available
+  // Falls back to regex if WASM packages not installed
+  try {
     await initTreeSitterParsers();
+  } catch {
+    // Silently continue with regex fallback
   }
 
   try {
-    // Build repo graph
+    // Build repo graph (tree-sitter used automatically if initialized)
     const graph = buildGraph(repoRoot, VERSION, useTreeSitter);
 
     if (graph.files.length === 0) {

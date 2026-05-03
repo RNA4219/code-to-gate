@@ -25,7 +25,7 @@ export interface ParseResult {
   parserAdapter: string;
 }
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath } from "./tree-sitter-wasm-resolver.js";
+import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
 
 // Dynamic import for web-tree-sitter
 let ParserClass: any = null;
@@ -51,9 +51,16 @@ export async function initPythonParser(): Promise<boolean> {
     await ParserClass.init();
     parserInstance = new ParserClass();
 
-    // Load Python grammar - use local file in Node.js, CDN in browser
-    const wasmUrl = resolveWasmPath("python");
-    pythonLanguage = await LanguageClass.load(wasmUrl);
+    // Load Python grammar - use Buffer in Node.js, URL in browser
+    const wasmBuffer = loadWasmBuffer("python");
+    if (wasmBuffer) {
+      // Node.js: load WASM from Buffer
+      pythonLanguage = await LanguageClass.load(wasmBuffer);
+    } else {
+      // Browser or fallback: load from URL
+      const wasmUrl = resolveWasmPath("python");
+      pythonLanguage = await LanguageClass.load(wasmUrl);
+    }
     parserInstance.setLanguage(pythonLanguage);
 
     isInitialized = true;
