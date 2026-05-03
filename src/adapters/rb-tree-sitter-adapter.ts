@@ -128,41 +128,44 @@ function extractRequiresTreeSitter(
   const callNodes = (node.children || []).filter((child: any) => child.type === "call");
 
   for (const callNode of callNodes) {
-    const receiverNode = callNode.childForFieldName?.("receiver");
-    const methodNode = callNode.childForFieldName?.("method");
-    const argsNode = callNode.childForFieldName?.("arguments");
+    // Find method name and arguments
+    let methodName = "";
+    let moduleName = "";
+    const line = callNode.startPosition?.row + 1 || 1;
 
-    if (methodNode) {
-      const methodName = methodNode.text;
-      if (methodName === "require" || methodName === "require_relative") {
-        if (argsNode) {
-          const arg = (argsNode.children || []).find(
-            (c: any) => c.type === "simple_symbol" || c.type === "string"
-          );
-          if (arg) {
-            let moduleName = arg.text;
-            // Remove quotes
+    for (const child of callNode.children || []) {
+      if (child.type === "identifier") {
+        methodName = child.text;
+      } else if (child.type === "argument_list") {
+        // Find the argument (simple_symbol or string)
+        for (const arg of child.children || []) {
+          if (arg.type === "simple_symbol" || arg.type === "string") {
+            moduleName = arg.text;
+            // Clean up the module name
             moduleName = moduleName.replace(/^['"]|['"]$/g, "").replace(/^:/, "");
-
-            const line = callNode.startPosition?.row + 1 || 1;
-            relations.push({
-              id: `rel:${filePath}:requires:${moduleName}`,
-              from: `file:${filePath}`,
-              to: `module:${moduleName}`,
-              kind: "imports",
-              confidence: methodName === "require" ? 1.0 : 0.9,
-              evidence: [
-                {
-                  id: `ev-rel-${sha256(moduleName).slice(0, 8)}`,
-                  path: filePath,
-                  startLine: line,
-                  endLine: line,
-                  kind: "ast",
-                },
-              ],
-            });
           }
         }
+      }
+    }
+
+    if (methodName === "require" || methodName === "require_relative") {
+      if (moduleName) {
+        relations.push({
+          id: `rel:${filePath}:requires:${moduleName}`,
+          from: `file:${filePath}`,
+          to: `module:${moduleName}`,
+          kind: "imports",
+          confidence: methodName === "require" ? 1.0 : 0.9,
+          evidence: [
+            {
+              id: `ev-rel-${sha256(moduleName).slice(0, 8)}`,
+              path: filePath,
+              startLine: line,
+              endLine: line,
+              kind: "ast",
+            },
+          ],
+        });
       }
     }
   }
@@ -179,12 +182,19 @@ function extractMethodsRuby(
   const methodNodes = (node.children || []).filter((child: any) => child.type === "method");
 
   for (const methodNode of methodNodes) {
-    const nameNode = methodNode.childForFieldName?.("name");
-    if (!nameNode) continue;
-
-    const name = nameNode.text;
+    let name = "";
     const line = methodNode.startPosition?.row + 1 || 1;
     const endLine = methodNode.endPosition?.row + 1 || line;
+
+    for (const child of methodNode.children || []) {
+      if (child.type === "identifier") {
+        name = child.text;
+        break;
+      }
+    }
+
+    if (!name) continue;
+
     const symbolId = `symbol:${filePath}:method:${name}`;
 
     symbols.push({
@@ -211,13 +221,19 @@ function extractMethodsRuby(
     (child: any) => child.type === "singleton_method"
   );
   for (const singletonNode of singletonNodes) {
-    const nameNode = singletonNode.childForFieldName?.("name");
-    const objectNode = singletonNode.childForFieldName?.("object");
+    let objectName = "";
+    let methodName = "";
 
-    if (nameNode && objectNode) {
-      const objectName = objectNode.text;
-      const methodName = nameNode.text;
-      const fullName = `${objectName}.${methodName}`;
+    for (const child of singletonNode.children || []) {
+      if (child.type === "self") {
+        objectName = "self";
+      } else if (child.type === "identifier") {
+        methodName = child.text;
+      }
+    }
+
+    if (methodName) {
+      const fullName = objectName ? `${objectName}.${methodName}` : methodName;
       const line = singletonNode.startPosition?.row + 1 || 1;
       const symbolId = `symbol:${filePath}:method:${fullName}`;
 
@@ -253,20 +269,37 @@ function extractClassesRuby(
   const classNodes = (node.children || []).filter((child: any) => child.type === "class");
 
   for (const classNode of classNodes) {
-    const nameNode = classNode.childForFieldName?.("name");
-    if (!nameNode) continue;
+    let name = "";
+    const inherits: string[] = [];
 
-    const name = nameNode.text;
+    for (const child of classNode.children || []) {
+      if (child.type === "constant") {
+        name = child.text;
+      } else if (child.type === "superclass") {
+        // superclass text is "< BaseClass" or has children
+        for (const sc of child.children || []) {
+          if (sc.type === "constant") {
+            inherits.push(sc.text);
+          }
+        }
+        // If no children, extract from text
+        if (inherits.length === 0 && child.text) {
+          const match = child.text.match(/<\s*(\w+)/);
+          if (match) {
+            inherits.push(match[1]);
+          }
+        }
+      } else if (child.type === "body_statement") {
+        // Extract methods from class body
+        extractMethodsRuby(child, filePath, symbols);
+      }
+    }
+
+    if (!name) continue;
+
     const line = classNode.startPosition?.row + 1 || 1;
     const endLine = classNode.endPosition?.row + 1 || line;
     const symbolId = `symbol:${filePath}:class:${name}`;
-
-    // Get parent class
-    const inherits: string[] = [];
-    const superClassNode = classNode.childForFieldName?.("superclass");
-    if (superClassNode) {
-      inherits.push(superClassNode.text);
-    }
 
     symbols.push({
       id: symbolId,
@@ -284,25 +317,23 @@ function extractClassesRuby(
           kind: "ast",
         },
       ],
-      typeInfo: {
-        implements: inherits,
-      },
+      typeInfo: inherits.length > 0 ? { implements: inherits } : undefined,
     });
-
-    // Extract methods from class body
-    const bodyNode = classNode.childForFieldName?.("body");
-    if (bodyNode) {
-      extractMethodsRuby(bodyNode, filePath, symbols);
-    }
   }
 
   // Ruby modules
   const moduleNodes = (node.children || []).filter((child: any) => child.type === "module");
   for (const moduleNode of moduleNodes) {
-    const nameNode = moduleNode.childForFieldName?.("name");
-    if (!nameNode) continue;
+    let name = "";
 
-    const name = nameNode.text;
+    for (const child of moduleNode.children || []) {
+      if (child.type === "constant") {
+        name = child.text;
+      }
+    }
+
+    if (!name) continue;
+
     const line = moduleNode.startPosition?.row + 1 || 1;
     const symbolId = `symbol:${filePath}:module:${name}`;
 

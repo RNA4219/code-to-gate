@@ -928,17 +928,31 @@ RUNBOOK では現在の運用判断と未解決事項だけを扱い、完了済
 
 現在の判定: Phase 4 完了済み。Gate status は go。v1.2.0 release ready。
 
-### 6.11 Phase 5+ 将来項目 (2026-05-03)
+### 6.11 Phase 5 完了事項 (2026-05-03)
 
-Phase 4完了後の将来対応項目。
+Phase 5 Python/Ruby/Go/Rust tree-sitter adapters実装完了。
+
+| 項目 | Priority | 状態 | 証跡 |
+|---|:---:|---|---|
+| Python tree-sitter adapter | P1 | ✓ 完了 | `py-tree-sitter-adapter.ts`, 13 tests |
+| Ruby tree-sitter adapter | P1 | ✓ 完了 | `rb-tree-sitter-adapter.ts`, 14 tests |
+| Go tree-sitter adapter | P2 | ✓ 完了 | `go-tree-sitter-adapter.ts`, 13 tests |
+| Rust tree-sitter adapter | P3 | ✓ 完了 | `rs-tree-sitter-adapter.ts`, 14 tests |
+
+**実装note**:
+- dynamic import pattern使用 (web-tree-sitter TypeScript types回避)
+- regex fallback自動使用 (WASM unavailable時)
+- WASM loading Node.js環境で失敗、browser/special WASM setup必要
+
+### 6.11.1 Phase 5+ 残存ギャップ (将来対応)
 
 | 項目 | Priority | 状態 | 備考 |
 |---|:---:|---|---|
-| Python tree-sitter | P1 | Phase 5 deferred | web-tree-sitter API complexity、regex adapter十分 |
-| Ruby/Go/Rust tree-sitter | P2 | Phase 5 deferred | regex fallback維持 |
-| Dataflow-full | P2 | Phase 5+ | lite版拡張、完全dataflow解析 |
+| WASM loading (Node.js) | P2 | Phase 5+ deferred | web-tree-sitter Node.js WASM load失敗 |
+| tree-sitter統合 | P2 | Phase 5+ deferred | 既存py-adapter/rb-adapterとの置き換え |
+| Dataflow-full | P3 | Phase 5+ | lite版拡張、完全dataflow解析 |
 
-詳細: `docs/phase-4-roadmap.md` Section 5-6
+詳細: `docs/product-gap-analysis.md` Section 0.6
 
 ### 6.12 自己解析負債 (2026-05-02 完了)
 

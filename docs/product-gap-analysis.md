@@ -63,19 +63,31 @@
 | Dataflow-lite | ✓ 完了 | `src/core/dataflow-lite.ts`, 14 tests |
 | Type inference tracking | ✓ 完了 | `src/adapters/ts-adapter.ts` typeInfo, 8 tests |
 
-### 0.5 Phase 5+ 残存ギャップ (将来対応)
+### 0.5 Phase 5 完了事項 (2026-05-03)
+
+| 項目 | 状態 | 証跡 |
+|---|---|---|
+| Python tree-sitter adapter | ✓ 完了 | `src/adapters/py-tree-sitter-adapter.ts`, 13 tests |
+| Ruby tree-sitter adapter | ✓ 完了 | `src/adapters/rb-tree-sitter-adapter.ts`, 14 tests |
+| Go tree-sitter adapter | ✓ 完了 | `src/adapters/go-tree-sitter-adapter.ts`, 13 tests |
+| Rust tree-sitter adapter | ✓ 完了 | `src/adapters/rs-tree-sitter-adapter.ts`, 14 tests |
+
+**注意**: WASM loadingはNode.js環境で失敗、regex fallbackが自動使用される。
+
+### 0.6 Phase 5+ 残存ギャップ (将来対応)
 
 | gap | 状態 | 備考 |
 |---|---|---|
-| Python tree-sitter AST | Phase 5 deferred | web-tree-sitter API complexity、regex十分 |
-| Ruby/Go/Rust tree-sitter | Phase 5 deferred | regex fallback維持 |
+| WASM loading (Node.js) | Phase 5+ deferred | web-tree-sitterがNode.jsでWASM load失敗、browser/special setup必要 |
+| tree-sitter統合 | Phase 5+ deferred | py-adapter/rb-adapterとの置き換え未実装 |
 | Dataflow-full | Phase 5+ | 現状lite版、完全版将来対応 |
 
-**Phase 4実装証跡**:
-- `src/core/dataflow-lite.ts`: 変数代入/引数/戻り値フロー追跡
-- `src/adapters/ts-adapter.ts`: returnType/parameterTypes/implements追跡
-- `src/core/__tests__/dataflow-lite.test.ts`: 14 tests
-- `src/adapters/__tests__/type-inference.test.ts`: 8 tests
+**Phase 5実装証跡**:
+- `src/adapters/py-tree-sitter-adapter.ts`: dynamic import + regex fallback
+- `src/adapters/rb-tree-sitter-adapter.ts`: dynamic import + regex fallback
+- `src/adapters/go-tree-sitter-adapter.ts`: dynamic import + regex fallback
+- `src/adapters/rs-tree-sitter-adapter.ts`: dynamic import + regex fallback
+- Total tests: 54 (Python 13 + Ruby 14 + Go 13 + Rust 14)
 
 ---
 

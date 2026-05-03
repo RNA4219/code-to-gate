@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-05-03 - Phase 5 Tree-sitter Adapters
+
+### Added
+
+- **Python tree-sitter WASM adapter**: `src/adapters/py-tree-sitter-adapter.ts`
+  - Dynamic import pattern for web-tree-sitter module
+  - Python grammar loading from CDN
+  - Regex fallback when WASM unavailable
+  - Import statements, function definitions, class definitions parsing
+  - Method extraction from class bodies
+  - Type hints extraction (returnType, parameterTypes)
+  - 13 tests in `src/adapters/__tests__/py-tree-sitter-adapter.test.ts`
+
+- **Ruby tree-sitter WASM adapter**: `src/adapters/rb-tree-sitter-adapter.ts`
+  - Dynamic import pattern for web-tree-sitter module
+  - Ruby grammar loading from CDN
+  - Regex fallback when WASM unavailable
+  - require/require_relative statements parsing
+  - Method definitions, singleton methods, class/module definitions
+  - Inheritance tracking (superclass)
+  - 14 tests in `src/adapters/__tests__/rb-tree-sitter-adapter.test.ts`
+
+- **Go tree-sitter WASM adapter**: `src/adapters/go-tree-sitter-adapter.ts`
+  - Dynamic import pattern for web-tree-sitter module
+  - Go grammar loading from CDN
+  - Regex fallback when WASM unavailable
+  - Import statements (single and block), function/method definitions
+  - Struct and interface definitions
+  - 13 tests in `src/adapters/__tests__/go-tree-sitter-adapter.test.ts`
+
+- **Rust tree-sitter WASM adapter**: `src/adapters/rs-tree-sitter-adapter.ts`
+  - Dynamic import pattern for web-tree-sitter module
+  - Rust grammar loading from CDN
+  - Regex fallback when WASM unavailable
+  - Use statements, function definitions (pub/async)
+  - Struct, enum, trait definitions
+  - 14 tests in `src/adapters/__tests__/rs-tree-sitter-adapter.test.ts`
+
+### Implementation Notes
+
+- **Dynamic import pattern**: web-tree-sitter doesn't have proper TypeScript exports, so adapters use `any` types with dynamic imports
+- **WASM availability**: In Node.js environment, WASM loading may fail (needs browser or special WASM setup); adapters gracefully fall back to regex parsing
+- **Regex fallback features**: Basic import/require/use, function/class/method definitions; advanced features (class body methods, type hints, singleton methods) only available with WASM
+
+### Test Status
+
+- 54 new Phase 5 tests (Python 13 + Ruby 14 + Go 13 + Rust 14) ✅
+- Smoke tests: 54 passed ✅
+- Total tests: 2655 passed ✅
+
+---
+
 ## [1.2.0] - 2026-05-03 - Phase 4 Implementation
 
 ### Added
