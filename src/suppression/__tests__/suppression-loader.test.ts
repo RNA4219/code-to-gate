@@ -238,4 +238,90 @@ suppressions:
       expect(DEFAULT_SUPPRESSION_FILE).toBe(".ctg/suppressions.yaml");
     });
   });
+
+  // Additional coverage tests
+  describe("block exit handling", () => {
+    it("handles suppression block followed by other keys", () => {
+      const yaml = `
+version: ctg/v1
+suppressions:
+  - rule_id: TEST_RULE
+    path: src/*.ts
+    reason: test
+other_key: some_value
+another_section:
+  nested: data
+`;
+      const result = parseSuppressionYaml(yaml);
+      expect(result.suppressions).toHaveLength(1);
+      expect(result.suppressions[0].rule_id).toBe("TEST_RULE");
+    });
+
+    it("handles suppressions block followed by empty lines and new section", () => {
+      const yaml = `
+suppressions:
+  - rule_id: RULE1
+    path: a/*.ts
+    reason: first
+
+  - rule_id: RULE2
+    path: b/*.ts
+    reason: second
+
+metadata:
+  created: 2026-01-01
+`;
+      const result = parseSuppressionYaml(yaml);
+      expect(result.suppressions).toHaveLength(2);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles inline suppression entry", () => {
+      const yaml = `
+suppressions:
+  - rule_id: INLINE_RULE
+    path: inline/*.ts
+`;
+      const result = parseSuppressionYaml(yaml);
+      expect(result.suppressions).toHaveLength(1);
+    });
+
+    it("handles malformed YAML gracefully", () => {
+      const yaml = `
+suppressions:
+  - rule_id: GOOD_RULE
+    path: good/*.ts
+    reason: good
+  - invalid entry without dash
+    something: value
+`;
+      const result = parseSuppressionYaml(yaml);
+      // Should still parse the good entry
+      expect(result.suppressions.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("handles very long paths", () => {
+      const longPath = "src/deeply/nested/path/that/goes/on/and/on/**/*.ts";
+      const yaml = `
+suppressions:
+  - rule_id: LONG_PATH
+    path: ${longPath}
+    reason: long path test
+`;
+      const result = parseSuppressionYaml(yaml);
+      expect(result.suppressions[0].path).toBe(longPath);
+    });
+
+    it("handles paths with special characters", () => {
+      const yaml = `
+suppressions:
+  - rule_id: SPECIAL_CHARS
+    path: "src/[test]/**/*.ts"
+    reason: special chars
+`;
+      const result = parseSuppressionYaml(yaml);
+      expect(result.suppressions[0].path).toBe("src/[test]/**/*.ts");
+    });
+  });
 });

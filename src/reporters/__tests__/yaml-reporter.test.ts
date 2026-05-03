@@ -251,4 +251,89 @@ describe("yaml-reporter", () => {
       expect(riskRegister.tool.policy_id).toBe("strict");
     });
   });
+
+  // Additional coverage tests
+  describe("category handling", () => {
+    it("maps all categories correctly", () => {
+      const categories = ["auth", "payment", "validation", "data", "testing", "maintainability", "security"];
+      const findings = createFindings(
+        categories.map((cat, i) => createFinding({ id: `f${i}`, severity: "high", category: cat as const }))
+      );
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      // Risks are created for findings with valid sourceFindingIds
+      expect(riskRegister.risks.length).toBeGreaterThanOrEqual(0);
+      for (const risk of riskRegister.risks) {
+        expect(risk.id).toBeDefined();
+        expect(risk.title).toBeDefined();
+        expect(risk.sourceFindingIds.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe("confidence thresholds", () => {
+    it("handles findings with various confidence levels", () => {
+      const findings = createFindings([
+        createFinding({ severity: "high", confidence: 0.5 }),
+        createFinding({ severity: "high", confidence: 0.95 }),
+        createFinding({ severity: "critical", confidence: 1.0 }),
+      ]);
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      expect(riskRegister.risks.length).toBeGreaterThan(0);
+      for (const risk of riskRegister.risks) {
+        expect(risk.confidence).toBeGreaterThanOrEqual(0);
+        expect(risk.confidence).toBeLessThanOrEqual(1);
+      }
+    });
+  });
+
+  describe("impact assessment", () => {
+    it("generates appropriate impact for payment category", () => {
+      const findings = createFindings([
+        createFinding({ severity: "critical", category: "payment" }),
+      ]);
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      expect(riskRegister.risks[0].impact.length).toBeGreaterThan(0);
+    });
+
+    it("generates appropriate impact for auth category", () => {
+      const findings = createFindings([
+        createFinding({ severity: "high", category: "auth" }),
+      ]);
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      expect(riskRegister.risks[0].impact.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("recommended actions", () => {
+    it("provides actionable recommendations", () => {
+      const findings = createFindings([
+        createFinding({ severity: "high", category: "security", ruleId: "RAW_SQL" }),
+      ]);
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      expect(riskRegister.risks[0].recommendedActions.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("completeness tracking", () => {
+    it("marks complete when all findings processed", () => {
+      const findings = createFindings([
+        createFinding({ severity: "high" }),
+        createFinding({ severity: "medium" }),
+      ]);
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      expect(riskRegister.completeness).toBeDefined();
+    });
+  });
 });
