@@ -32,7 +32,7 @@ next_review_due: 2026-05-15
 ### In Scope
 
 - TypeScript / JavaScript repo scan
-- Python adapter (次段)
+- Python / Ruby / Go / Rust adapter (tree-sitter WASM)
 - AST / import / export / symbol / call / test 抽出
 - changed files / PR diff 解析
 - dependency graph / blast radius 推定
@@ -132,12 +132,15 @@ next_review_due: 2026-05-15
 
 ## 8. 実装優先度
 
-| Phase | 内容 |
-|---|---|
-| Phase 0 | Schema foundation、fixtures、repo walker |
-| Phase 1 | TS/JS adapter、NormalizedRepoGraph、core rules |
-| Phase 2 | LLM engine、structured output、risk/invariant/test seed |
-| Phase 3 | Readiness policy、downstream exporters |
+| Phase | 内容 | 状態 |
+|---|---|:---:|
+| Phase 0 | Schema foundation、fixtures、repo walker | ✓完了 |
+| Phase 1 | TS/JS adapter、NormalizedRepoGraph、core rules | ✓完了 |
+| Phase 2 | LLM engine、structured output、risk/invariant/test seed | ✓完了 |
+| Phase 3 | Readiness policy、downstream exporters | ✓完了 |
+| Phase 4 | Dataflow-lite、Type inference | ✓完了 |
+| Phase 5 | Python/Ruby/Go/Rust tree-sitter WASM | ✓完了 |
+| Phase 6 | repo-graph-builder統合、CLI接続 | 未完了 |
 
 ## 9. 参照
 

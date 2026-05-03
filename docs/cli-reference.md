@@ -52,6 +52,7 @@ code-to-gate scan <repo-path> --out <output-dir>
 |--------|---------|-------------|
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
 | `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx,py,rb,go,rs,java,php`) |
+| `--tree-sitter` | false | Use tree-sitter WASM parser for Python/Ruby/Go/Rust (more accurate AST parsing) |
 | `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns (comma-separated) |
 | `--verbose` | false | Enable verbose logging |
 
@@ -77,6 +78,9 @@ code-to-gate scan ./my-repo --out .qh
 
 # Scan TypeScript files only
 code-to-gate scan ./my-repo --out .qh --lang ts,tsx
+
+# Use tree-sitter for Python/Ruby/Go/Rust
+code-to-gate scan ./my-repo --out .qh --lang py,rb,go,rs --tree-sitter
 
 # Exclude additional directories
 code-to-gate scan ./my-repo --out .qh --ignore node_modules,dist,coverage,.env

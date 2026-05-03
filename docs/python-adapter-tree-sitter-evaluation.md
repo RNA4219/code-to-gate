@@ -1,41 +1,40 @@
 # Python Adapter Tree-sitter Evaluation
 
 **作成日**: 2026-05-03
-**対象**: Phase 3 - Python adapter tree-sitter implementation
+**更新日**: 2026-05-03
+**対象**: Phase 5 - Python tree-sitter 実装完了
 
 ---
 
-## 1. Current State
+## 1. 実装完了状態
 
-### 1.1 Regex-based Implementation
+**状態**: ✅ 完了 (Phase 5)
+
+詳細: [docs/phase-5-tree-sitter-implementation.md](phase-5-tree-sitter-implementation.md)
+
+### 1.1 tree-sitter WASM Adapter
 
 | Module | Purpose | Lines |
 |--------|---------|-------|
-| py-adapter.ts | Orchestrator | ~150 |
-| py-parser-imports.ts | Import parsing | ~80 |
-| py-parser-classes.ts | Class/method parsing | ~100 |
-| py-parser-functions.ts | Function parsing | ~80 |
-| py-parser-variables.ts | Variable parsing | ~60 |
-| py-parser-entrypoints.ts | Entrypoint detection | ~80 |
+| py-tree-sitter-adapter.ts | tree-sitter WASM adapter | ~500 |
+| tree-sitter-wasm-resolver.ts | WASM path resolver | ~90 |
 
-**Total**: ~470 lines of regex-based parsing
+### 1.2 Capabilities (実装完了)
 
-### 1.2 Capabilities
-
-| Feature | Regex-based | tree-sitter |
-|---------|-------------|-------------|
-| import X | ✅ Basic | ✅ Accurate |
-| from X import Y | ✅ Basic | ✅ Accurate |
-| from X import Y as Z | ✅ Basic | ✅ Accurate |
-| def name() | ✅ | ✅ |
-| async def name() | ✅ | ✅ |
-| class Name | ✅ | ✅ |
-| class Name(Base) | ✅ | ✅ |
-| methods | ✅ | ✅ |
-| decorators | ✅ | ✅ |
-| syntax error recovery | ⚠️ Limited | ✅ Strong |
-| partial parse | ❌ No | ✅ Yes |
-| nested structures | ⚠️ Basic | ✅ Accurate |
+| Feature | Regex-based | tree-sitter | 状態 |
+|---------|-------------|-------------|:---:|
+| import X | ✅ Basic | ✅ Accurate | ✓ |
+| from X import Y | ✅ Basic | ✅ Accurate | ✓ |
+| from X import Y as Z | ✅ Basic | ✅ Accurate | ✓ |
+| def name() | ✅ | ✅ | ✓ |
+| async def name() | ✅ | ✅ | ✓ |
+| class Name | ✅ | ✅ | ✓ |
+| class Name(Base) | ✅ | ✅ | ✓ |
+| methods | ✅ | ✅ | ✓ |
+| decorators | ✅ | ✅ | ✓ |
+| syntax error recovery | ⚠️ Limited | ✅ Strong | ✓ |
+| partial parse | ❌ No | ✅ Yes | ✓ |
+| nested structures | ⚠️ Basic | ✅ Accurate | ✓ |
 
 ---
 
@@ -102,112 +101,99 @@ python -c "import ast; print(ast.dump(open('file.py').read()))"
 
 ---
 
-## 3. Recommendation
+## 3. 実装結果
 
-### 3.1 Short-term (Phase 3)
+### 3.1 技術解決
 
-**Keep regex-based parser with improvements**:
-- Error recovery enhancement
-- Better nested structure handling
-- More comprehensive test coverage
+| 問題 | 解決方法 |
+|------|----------|
+| `Parser.Language` undefined | `module.Parser` / `module.Language` 分離取得 |
+| `childForFieldName()` null | `node.children` 直接イテレート |
+| WASM loading in Node.js | npm package + `tree-sitter-wasm-resolver.ts` |
 
-**Reason**: 
-- Native dependencies add complexity
-- Regex parser works for 90% of cases
-- OSS users may lack build tools
+### 3.2 実装コード
 
-### 3.2 Long-term (Phase 4+)
-
-**Integrate tree-sitter WASM**:
-- No native compilation
-- Platform independent
-- Accurate parsing
-
-**Implementation**:
 ```typescript
 // src/adapters/py-tree-sitter-adapter.ts
-import { Parser } from "web-tree-sitter";
+const module = await import("web-tree-sitter");
+ParserClass = module.Parser;
+LanguageClass = module.Language;
 
-export async function parsePythonTreeSitter(content: string): ParseResult {
-  const parser = new Parser();
-  await Parser.init();
-  parser.setLanguage(await Parser.Language.load("python.wasm"));
-  
-  const tree = parser.parse(content);
-  // Extract symbols/relations from tree
+await ParserClass.init();
+parserInstance = new ParserClass();
+const wasmUrl = resolveWasmPath("python");
+pythonLanguage = await LanguageClass.load(wasmUrl);
+parserInstance.setLanguage(pythonLanguage);
+```
+
+### 3.3 WASM Package
+
+```json
+{
+  "devDependencies": {
+    "web-tree-sitter": "^0.22.6",
+    "tree-sitter-python": "^0.25.0"
+  }
 }
 ```
 
 ---
 
-## 4. Implementation Plan
+## 4. 統合状況
 
-### 4.1 Phase 3 Regex Improvements
+### 4.1 完了項目
 
-1. **Error recovery**: Better handling of syntax errors
-2. **Decorator parsing**: Full decorator chain extraction
-3. **Type hints**: `def func(x: int) -> str` parsing
-4. **Async comprehensions**: `async for`, `async with`
-5. **Match statements**: Python 3.10 pattern matching
+| 項目 | 状態 |
+|---|:---:|
+| tree-sitter WASM adapter | ✓ |
+| テスト (13 tests) | ✓ |
+| Regex fallback維持 | ✓ |
 
-### 4.2 tree-sitter Integration (Optional)
+### 4.2 未完了項目（負債）
 
-If tree-sitter is required:
-
-```bash
-# 1. Add dependency
-npm install web-tree-sitter
-
-# 2. Download WASM grammar
-wget https://tree-sitter.github.io/tree-sitter/wasm/python.wasm
-
-# 3. Implement adapter
-# src/adapters/py-wasm-adapter.ts
-```
+| 項目 | 状態 |
+|---|:---:|
+| repo-graph-builder統合 | 未 |
+| CLI --tree-sitter接続 | 未 |
 
 ---
 
 ## 5. Test Coverage
 
-### 5.1 Current Tests
+### 5.1 tree-sitter Tests
 
 | Test | Coverage |
 |------|----------|
-| py-adapter.test.ts | Import/function/class |
-| demo-python fixture | Real Python files |
-
-### 5.2 Additional Tests Needed
-
-- Decorator chains
-- Type hints
-- Async features
-- Syntax error recovery
-- Nested classes/functions
+| initPythonParser | WASM初期化 |
+| import statements | import/from |
+| function definitions | def/async |
+| class definitions | inheritance |
+| syntax errors | error recovery |
+| regex fallback | 代替動作 |
 
 ---
 
 ## 6. Conclusion
 
-**Python Adapter Status**: ✅ FUNCTIONAL (regex-based)
+**Python Adapter Status**: ✅ tree-sitter WASM 完了
 
-**Phase 3 Action**: 
-- Improve regex parser (error recovery, type hints)
-- NOT implement tree-sitter (complexity > benefit)
-
-**Phase 4+ Option**: tree-sitter WASM for full accuracy
+**Phase 5 Action**: 
+- ✓ tree-sitter WASM実装完了 (13 tests)
+- ✓ Regex fallback維持
+- 未 repo-graph-builder統合
 
 ---
 
-## 7. Current Implementation Quality
+## 7. tree-sitter Implementation Quality
 
 | Aspect | Rating | Notes |
 |--------|--------|-------|
-| Import detection | ★★★★☆ | Handles most patterns |
-| Function detection | ★★★★☆ | def + async def |
-| Class detection | ★★★★☆ | With inheritance |
-| Method detection | ★★★★☆ | Within classes |
-| Entrypoint detection | ★★★★☆ | __main__ + Flask/FastAPI |
-| Error handling | ★★★☆☆ | Basic syntax balance |
-| Nested structures | ★★★☆☆ | Limited depth |
+| Import detection | ★★★★★ | AST accurate |
+| Function detection | ★★★★★ | def + async def + params |
+| Class detection | ★★★★★ | inheritance + methods |
+| Method detection | ★★★★★ | Within class body |
+| Error handling | ★★★★★ | tree-sitter error recovery |
+| Nested structures | ★★★★★ | Full depth support |
+| WASM fallback | ★★★★★ | Regex when WASM unavailable |
 
-**Overall**: ★★★★☆ (4/5) - Good for OSS use
+**Overall**: ★★★★★ (5/5) - Full AST accuracy

@@ -20,6 +20,8 @@ import { parseRubyFile } from "../adapters/rb-adapter.js";
 import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
 import { parsePythonFileSync, isTreeSitterAvailable as isPyTreeSitterAvailable } from "../adapters/py-tree-sitter-adapter.js";
 import { parseRubyFileSync, isRubyTreeSitterAvailable as isRbTreeSitterAvailable } from "../adapters/rb-tree-sitter-adapter.js";
+import { parseGoFileSync, isGoTreeSitterAvailable } from "../adapters/go-tree-sitter-adapter.js";
+import { parseRustFileSync, isRustTreeSitterAvailable } from "../adapters/rs-tree-sitter-adapter.js";
 import type { RepoFile } from "../types/artifacts.js";
 
 import {
@@ -221,7 +223,21 @@ export class FileProcessor extends EventEmitter {
         } else {
           parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
         }
-      } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
+      } else if (language === "go") {
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isGoTreeSitterAvailable()) {
+          parseResult = parseGoFileSync(content, relPath);
+        } else {
+          parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, "go");
+        }
+      } else if (language === "rs") {
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isRustTreeSitterAvailable()) {
+          parseResult = parseRustFileSync(content, relPath);
+        } else {
+          parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, "rs");
+        }
+      } else if (language === "java" || language === "php") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language);
       } else {
         parseResult = {
@@ -402,7 +418,21 @@ export class FileProcessor extends EventEmitter {
         } else {
           parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
         }
-      } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
+      } else if (language === "go") {
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isGoTreeSitterAvailable()) {
+          parseResult = parseGoFileSync(content, relPath);
+        } else {
+          parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, "go");
+        }
+      } else if (language === "rs") {
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isRustTreeSitterAvailable()) {
+          parseResult = parseRustFileSync(content, relPath);
+        } else {
+          parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, "rs");
+        }
+      } else if (language === "java" || language === "php") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language as RegexLanguage);
       } else {
         parseResult = { symbols: [], relations: [], diagnostics: [], parserStatus: "skipped", parserAdapter: "ctg-text-v0" };

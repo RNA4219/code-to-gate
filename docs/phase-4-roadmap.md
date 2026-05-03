@@ -2,18 +2,20 @@
 
 **作成日**: 2026-05-03
 **更新日**: 2026-05-03
-**位置づけ**: v1.2.0 Phase 4 完了後の状態反映
+**位置づけ**: Phase 5 tree-sitter完了後の状態反映
 
 ---
 
-## 1. Phase 4 完了状態
+## 1. Phase 4+5 完了状態
 
 | 項目 | Priority | 状態 | 証跡 |
 |---|:---:|:---:|---|
 | Dataflow-lite | P1 | ✓ 完了 | `src/core/dataflow-lite.ts`, 14 tests |
 | Type inference tracking | P1 | ✓ 完了 | `src/adapters/ts-adapter.ts` typeInfo, 8 tests |
-| Python tree-sitter | P1 | Phase 5 deferred | web-tree-sitter API complexity |
-| Ruby/Go/Rust tree-sitter | P2 | Phase 5 deferred | regex fallback維持 |
+| Python tree-sitter | P1 | ✓ 完了 | `py-tree-sitter-adapter.ts`, 13 tests |
+| Ruby tree-sitter | P2 | ✓ 完了 | `rb-tree-sitter-adapter.ts`, 14 tests |
+| Go tree-sitter | P2 | ✓ 完了 | `go-tree-sitter-adapter.ts`, 14 tests |
+| Rust tree-sitter | P2 | ✓ 完了 | `rs-tree-sitter-adapter.ts`, 19 tests |
 
 ---
 
@@ -85,49 +87,61 @@ interface SymbolNode {
 
 ---
 
-## 5. Python tree-sitter (Phase 5 deferred)
+## 5. Python/Ruby/Go/Rust tree-sitter (完了)
 
-**理由**: web-tree-sitter API complexity
+**状態**: ✅ 完了 (Phase 5)
 
-- Parser.init() API不一致
-- WASM loading complexity
-- 現状regex adapter十分機能
+詳細: [docs/phase-5-tree-sitter-implementation.md](phase-5-tree-sitter-implementation.md)
 
-**Phase 5再評価条件**:
-- regex adapter精度問題発生
-- OSS利用者からの要望
-- tree-sitter API安定化
+### 5.1 実装概要
+
+| Adapter | Tests | WASM | Notes |
+|---|:---:|:---:|---|
+| Python | 13 | ✓ | import/function/class/async |
+| Ruby | 14 | ✓ | require/method/class/module |
+| Go | 14 | ✓ | import/function/struct/interface |
+| Rust | 19 | ✓ | use/function/struct/enum/trait/async |
+
+### 5.2 技術解決
+
+- ESM import: `module.Parser` / `module.Language` 分離取得
+- AST traversal: `node.children` 直接イテレート
+- WASM loading: npm package + fallback
 
 ---
 
-## 6. Phase 5+ 将来項目
+## 6. Phase 6+ 将来項目
 
 | 項目 | 状態 | 実装アプローチ |
 |---|---|---|
-| Python tree-sitter | Phase 5 | web-tree-sitter WASM binding |
-| Ruby/Go/Rust tree-sitter | Phase 5 | regex fallback維持、必要時導入 |
-| Dataflow-full | Phase 5+ | 完全dataflow解析（lite版拡張） |
+| repo-graph-builder統合 | 未完了 | tree-sitter adapter自動選択 |
+| CLI --tree-sitter接続 | 未完了 | 言語判定ロジック |
+| Dataflow-full | Phase 6 | 完全dataflow解析（lite版拡張） |
+| Java/C/C++ adapter | Phase 6+ | tree-sitter WASM |
 
 ---
 
 ## 7. Gate Criteria
 
-Phase 4完了判定: ✅ PASS
+Phase 4+5完了判定: ✅ PASS
 
 | 項目 | Gate条件 | 状態 |
 |---|---|:---:|
 | Dataflow-lite | module + tests | ✓ pass |
 | Type inference | ts-morph API + tests | ✓ pass |
-| Test coverage | 20+ tests | ✓ 22 tests |
+| Python tree-sitter | 10+ tests | ✓ 13 tests |
+| Ruby tree-sitter | 10+ tests | ✓ 14 tests |
+| Go tree-sitter | 10+ tests | ✓ 14 tests |
+| Rust tree-sitter | 15+ tests | ✓ 19 tests |
 
 ---
 
 ## 8. Conclusion
 
-**v1.2.0完了**: Phase 4実装完了
+**Phase 4+5完了**: 
 
 - Dataflow-lite: ✓ 完了 (14 tests)
 - Type inference: ✓ 完了 (8 tests)
-- Python tree-sitter: Phase 5 deferred
+- Python/Ruby/Go/Rust tree-sitter: ✓ 完了 (60 tests)
 
-**Gate status**: go, v1.2.0 release ready
+**Gate status**: go, Phase 5 tree-sitter complete

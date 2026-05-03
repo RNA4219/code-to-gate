@@ -14,6 +14,8 @@ import { FileProcessor, type ProcessingProgressEvent } from "../parallel/index.j
 import type { NormalizedRepoGraph } from "../types/artifacts.js";
 import { initPythonParser, isTreeSitterAvailable } from "../adapters/py-tree-sitter-adapter.js";
 import { initRubyParser, isRubyTreeSitterAvailable } from "../adapters/rb-tree-sitter-adapter.js";
+import { initGoParser, isGoTreeSitterAvailable } from "../adapters/go-tree-sitter-adapter.js";
+import { initRustParser, isRustTreeSitterAvailable } from "../adapters/rs-tree-sitter-adapter.js";
 
 /**
  * Threshold for large repo processing
@@ -259,17 +261,21 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
   // Initialize tree-sitter parsers if requested
   let treeSitterAvailable = false;
   if (useTreeSitter) {
-    const [pyAvailable, rbAvailable] = await Promise.all([
+    const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
       initPythonParser(),
       initRubyParser(),
+      initGoParser(),
+      initRustParser(),
     ]);
-    treeSitterAvailable = pyAvailable || rbAvailable;
+    treeSitterAvailable = pyAvailable || rbAvailable || goAvailable || rsAvailable;
 
     if (verbose) {
       console.log(JSON.stringify({
         phase: "tree-sitter-init",
         python: pyAvailable,
         ruby: rbAvailable,
+        go: goAvailable,
+        rust: rsAvailable,
         available: treeSitterAvailable,
       }));
     }

@@ -94,56 +94,56 @@ describe("CLI Commands Integration", () => {
   });
 
   describe("scan command", () => {
-    it("should return OK for valid repo", () => {
+    it("should return OK for valid repo", async () => {
       if (!existsSync(demoCiImportsDir)) {
         return; // Skip if fixture not available
       }
 
       const args = [demoCiImportsDir, "--out", tempOutDir];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.OK);
     });
 
-    it("should generate repo-graph.json", () => {
+    it("should generate repo-graph.json", async () => {
       if (!existsSync(demoCiImportsDir)) {
         return;
       }
 
       const args = [demoCiImportsDir, "--out", tempOutDir];
-      scanCommand(args, { VERSION, EXIT, getOption });
+      await scanCommand(args, { VERSION, EXIT, getOption });
 
       const graphPath = path.join(tempOutDir, "repo-graph.json");
       expect(existsSync(graphPath)).toBe(true);
     });
 
-    it("should return USAGE_ERROR when repo argument missing", () => {
+    it("should return USAGE_ERROR when repo argument missing", async () => {
       const args: string[] = [];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.USAGE_ERROR);
     });
 
-    it("should return USAGE_ERROR when repo does not exist", () => {
+    it("should return USAGE_ERROR when repo does not exist", async () => {
       const args = ["/nonexistent/path", "--out", tempOutDir];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.USAGE_ERROR);
     });
 
-    it("should return SCAN_FAILED for empty repo", () => {
+    it("should return SCAN_FAILED for empty repo", async () => {
       const emptyRepo = path.join(tempOutDir, "empty-repo");
       mkdirSync(emptyRepo, { recursive: true });
 
       const args = [emptyRepo, "--out", tempOutDir];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       expect(result).toBe(EXIT.SCAN_FAILED);
     });
 
-    it("should generate valid normalized repo graph schema", () => {
+    it("should generate valid normalized repo graph schema", async () => {
       if (!existsSync(demoCiImportsDir)) {
         return;
       }
 
       const args = [demoCiImportsDir, "--out", tempOutDir];
-      scanCommand(args, { VERSION, EXIT, getOption });
+      await scanCommand(args, { VERSION, EXIT, getOption });
 
       const graphPath = path.join(tempOutDir, "repo-graph.json");
       const graph = JSON.parse(readFileSync(graphPath, "utf8"));
@@ -397,7 +397,7 @@ describe("CLI Commands Integration", () => {
 
       // Step 1: Scan
       const scanArgs = [demoCiImportsDir, "--out", tempOutDir];
-      const scanResult = scanCommand(scanArgs, { VERSION, EXIT, getOption });
+      const scanResult = await scanCommand(scanArgs, { VERSION, EXIT, getOption });
       expect(scanResult).toBe(EXIT.OK);
 
       // Verify repo-graph.json was created
@@ -704,7 +704,7 @@ describe("CLI Edge Cases", () => {
     }
   });
 
-  it("should handle very long file paths", () => {
+  it("should handle very long file paths", async () => {
     const deepPath = path.join(
       tempDir,
       "very",
@@ -721,11 +721,11 @@ describe("CLI Edge Cases", () => {
     writeFileSync(filePath, "export const x = 1;", "utf8");
 
     const args = [deepPath, "--out", tempDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 
-  it("should handle special characters in file names", () => {
+  it("should handle special characters in file names", async () => {
     const specialDir = path.join(tempDir, "special-test");
     mkdirSync(specialDir, { recursive: true });
 
@@ -733,11 +733,11 @@ describe("CLI Edge Cases", () => {
     writeFileSync(filePath, "export const x = 1;", "utf8");
 
     const args = [specialDir, "--out", tempDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(typeof result).toBe("number");
   });
 
-  it("should handle Unicode in file content", () => {
+  it("should handle Unicode in file content", async () => {
     const unicodeDir = path.join(tempDir, "unicode");
     mkdirSync(unicodeDir, { recursive: true });
 
@@ -749,11 +749,11 @@ export const greeting = "Hello World!";
     writeFileSync(filePath, unicodeContent, "utf8");
 
     const args = [unicodeDir, "--out", tempDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 
-  it("should handle moderate number of files", () => {
+  it("should handle moderate number of files", async () => {
     const moderateDir = path.join(tempDir, "moderate");
     mkdirSync(moderateDir, { recursive: true });
 
@@ -763,7 +763,7 @@ export const greeting = "Hello World!";
     }
 
     const args = [moderateDir, "--out", tempDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
 
     const graphPath = path.join(tempDir, "repo-graph.json");
@@ -771,7 +771,7 @@ export const greeting = "Hello World!";
     expect(graph.files.length).toBe(20);
   }, 60000);
 
-  it("should handle empty file content", () => {
+  it("should handle empty file content", async () => {
     const emptyDir = path.join(tempDir, "empty-files");
     mkdirSync(emptyDir, { recursive: true });
 
@@ -779,7 +779,7 @@ export const greeting = "Hello World!";
     writeFileSync(filePath, "", "utf8");
 
     const args = [emptyDir, "--out", tempDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 });
