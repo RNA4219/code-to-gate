@@ -2,7 +2,7 @@
 intent_id: BP-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-04-30
+last_reviewed_at: 2026-05-03
 next_review_due: 2026-05-15
 ---
 
@@ -140,7 +140,7 @@ next_review_due: 2026-05-15
 | Phase 3 | Readiness policy、downstream exporters | ✓完了 |
 | Phase 4 | Dataflow-lite、Type inference | ✓完了 |
 | Phase 5 | Python/Ruby/Go/Rust tree-sitter WASM | ✓完了 |
-| Phase 6 | repo-graph-builder統合、CLI接続 | 未完了 |
+| Phase 6 | repo-graph-builder統合、CLI接続 | ✓完了 |
 
 ## 9. 参照
 

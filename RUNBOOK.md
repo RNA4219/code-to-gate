@@ -2,7 +2,7 @@
 intent_id: RUN-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-04-30
+last_reviewed_at: 2026-05-03
 next_review_due: 2026-05-15
 ---
 
