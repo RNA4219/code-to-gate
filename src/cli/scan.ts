@@ -12,6 +12,8 @@ import { EXIT, getOption, VERSION, parseCacheMode, parseParallelWorkers, isVerbo
 import { CacheManager, type CacheMode, LARGE_REPO_THRESHOLD } from "../cache/index.js";
 import { FileProcessor, type ProcessingProgressEvent } from "../parallel/index.js";
 import type { NormalizedRepoGraph } from "../types/artifacts.js";
+import { initPythonParser, isTreeSitterAvailable } from "../adapters/py-tree-sitter-adapter.js";
+import { initRubyParser, isRubyTreeSitterAvailable } from "../adapters/rb-tree-sitter-adapter.js";
 
 /**
  * Threshold for large repo processing
@@ -32,7 +34,9 @@ function buildGraphWithCache(
   repoRoot: string,
   cacheManager: CacheManager,
   parallelWorkers: number,
-  verbose: boolean
+  verbose: boolean,
+  useTreeSitter: boolean = false,
+  treeSitterAvailable: boolean = false
 ): NormalizedRepoGraph {
   const startTime = Date.now();
   const graph = createEmptyRepoGraph(repoRoot, VERSION);
@@ -77,6 +81,8 @@ function buildGraphWithCache(
     streamingMode: isLargeRepo,
     verbose,
     lazySymbols: isLargeRepo,
+    useTreeSitter,
+    treeSitterAvailable,
   });
 
   const parseStart = Date.now();
@@ -224,15 +230,16 @@ function buildGraphWithCache(
   return graph;
 }
 
-export function scanCommand(args: string[], options: ScanOptions): number {
+export async function scanCommand(args: string[], options: ScanOptions): Promise<number> {
   const repoArg = args[0];
   const outDir = options.getOption(args, "--out") ?? ".qh";
   const cacheModeValue = options.getOption(args, "--cache");
   const parallelValue = options.getOption(args, "--parallel");
+  const useTreeSitter = args.includes("--tree-sitter");
   const verbose = isVerbose(args);
 
   if (!repoArg) {
-    console.error("usage: code-to-gate scan <repo> --out <dir> [--cache <mode>] [--parallel <n>] [--verbose]");
+    console.error("usage: code-to-gate scan <repo> --out <dir> [--cache <mode>] [--parallel <n>] [--tree-sitter] [--verbose]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -247,6 +254,25 @@ export function scanCommand(args: string[], options: ScanOptions): number {
   if (!statSync(repoRoot).isDirectory()) {
     console.error(`repo is not a directory: ${repoArg}`);
     return options.EXIT.USAGE_ERROR;
+  }
+
+  // Initialize tree-sitter parsers if requested
+  let treeSitterAvailable = false;
+  if (useTreeSitter) {
+    const [pyAvailable, rbAvailable] = await Promise.all([
+      initPythonParser(),
+      initRubyParser(),
+    ]);
+    treeSitterAvailable = pyAvailable || rbAvailable;
+
+    if (verbose) {
+      console.log(JSON.stringify({
+        phase: "tree-sitter-init",
+        python: pyAvailable,
+        ruby: rbAvailable,
+        available: treeSitterAvailable,
+      }));
+    }
   }
 
   // Parse options
@@ -270,7 +296,7 @@ export function scanCommand(args: string[], options: ScanOptions): number {
 
   try {
     // Build graph with cache support
-    const graph = buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose);
+    const graph = buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose, useTreeSitter, treeSitterAvailable);
 
     writeJson(path.join(absoluteOutDir, "repo-graph.json"), graph);
 

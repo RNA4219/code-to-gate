@@ -104,7 +104,7 @@ async function main(): Promise<number> {
     }
 
     if (command === "scan") {
-      return scanCommand(args, { VERSION, EXIT, getOption });
+      return await scanCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "analyze") {

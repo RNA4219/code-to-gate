@@ -52,12 +52,12 @@ describe("scan CLI - fixtures graph", () => {
   let graph: Record<string, unknown>;
   let graphPath: string;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     rmSync(tempOutDir, { recursive: true, force: true });
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [fixturesDir, "--out", tempOutDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
 
     graphPath = path.join(tempOutDir, "repo-graph.json");
@@ -243,12 +243,12 @@ describe("scan CLI - fixtures graph", () => {
 });
 
 describe("scan CLI - Ruby graph", () => {
-  it("parses Ruby files and includes Ruby symbols", () => {
+  it("parses Ruby files and includes Ruby symbols", async () => {
     const outDir = path.join(tempOutDir, "ruby");
     rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });
 
-    const result = scanCommand([demoRubyDir, "--out", outDir], { VERSION, EXIT, getOption });
+    const result = await scanCommand([demoRubyDir, "--out", outDir], { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
 
     const graph = JSON.parse(readFileSync(path.join(outDir, "repo-graph.json"), "utf8")) as {
@@ -265,12 +265,12 @@ describe("scan CLI - Ruby graph", () => {
 });
 
 describe("scan CLI - additional language graph", () => {
-  it("parses Go, Rust, Java, and PHP files", () => {
+  it("parses Go, Rust, Java, and PHP files", async () => {
     const outDir = path.join(tempOutDir, "multilang");
     rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });
 
-    const result = scanCommand([demoMultilangDir, "--out", outDir], { VERSION, EXIT, getOption });
+    const result = await scanCommand([demoMultilangDir, "--out", outDir], { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
 
     const graph = JSON.parse(readFileSync(path.join(outDir, "repo-graph.json"), "utf8")) as {
@@ -293,12 +293,12 @@ describe("scan CLI - additional language graph", () => {
 describe("scan CLI - demo shop entrypoints", () => {
   let graph: Record<string, unknown>;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     rmSync(tempOutDir, { recursive: true, force: true });
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [demoShopDir, "--out", tempOutDir];
-    scanCommand(args, { VERSION, EXIT, getOption });
+    await scanCommand(args, { VERSION, EXIT, getOption });
 
     graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
   }, 60000);
@@ -316,22 +316,22 @@ describe("scan CLI - demo shop entrypoints", () => {
 
 // Group 3: Error cases (fast, no actual scan needed)
 describe("scan CLI - error cases", () => {
-  it("exit code USAGE_ERROR when repo argument missing", () => {
+  it("exit code USAGE_ERROR when repo argument missing", async () => {
     const args: string[] = [];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.USAGE_ERROR);
   });
 
-  it("exit code USAGE_ERROR when repo does not exist", () => {
+  it("exit code USAGE_ERROR when repo does not exist", async () => {
     const args = ["/nonexistent/path", "--out", tempOutDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.USAGE_ERROR);
   });
 });
 
 // Group 4: Edge cases (require small fixtures)
 describe("scan CLI - edge cases", () => {
-  it("exit code SCAN_FAILED for empty repo", () => {
+  it("exit code SCAN_FAILED for empty repo", async () => {
     rmSync(tempOutDir, { recursive: true, force: true });
     mkdirSync(tempOutDir, { recursive: true });
 
@@ -339,11 +339,11 @@ describe("scan CLI - edge cases", () => {
     mkdirSync(emptyRepo, { recursive: true });
 
     const args = [emptyRepo, "--out", tempOutDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.SCAN_FAILED);
   });
 
-  it("exit code USAGE_ERROR when repo path is a file (not directory)", () => {
+  it("exit code USAGE_ERROR when repo path is a file (not directory)", async () => {
     rmSync(tempOutDir, { recursive: true, force: true });
     mkdirSync(tempOutDir, { recursive: true });
 
@@ -351,27 +351,27 @@ describe("scan CLI - edge cases", () => {
     writeFileSync(filePath, "test content", "utf8");
 
     const args = [filePath, "--out", tempOutDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.USAGE_ERROR);
   });
 
-  it("custom --out directory is created", () => {
+  it("custom --out directory is created", async () => {
     rmSync(tempOutDir, { recursive: true, force: true });
     mkdirSync(tempOutDir, { recursive: true });
 
     const customOutDir = path.join(tempOutDir, "custom-output");
     const args = [fixturesDir, "--out", customOutDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
     expect(existsSync(path.join(customOutDir, "repo-graph.json"))).toBe(true);
   });
 
-  it("default --out is .qh", () => {
+  it("default --out is .qh", async () => {
     rmSync(tempOutDir, { recursive: true, force: true });
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [fixturesDir];
-    const result = scanCommand(args, { VERSION, EXIT, getOption });
+    const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
     const defaultOutPath = path.join(process.cwd(), ".qh", "repo-graph.json");
     expect(existsSync(defaultOutPath)).toBe(true);
@@ -381,7 +381,7 @@ describe("scan CLI - edge cases", () => {
 
 // Group 5: Small fixture tests (parallelizable)
 describe("scan CLI - small fixtures", () => {
-  it("language detection for JavaScript files", () => {
+  it("language detection for JavaScript files", async () => {
     const jsFixture = path.join(tmpdir(), `ctg-js-fixture-${Date.now()}`);
     mkdirSync(jsFixture, { recursive: true });
     mkdirSync(path.join(jsFixture, "src"), { recursive: true });
@@ -391,7 +391,7 @@ describe("scan CLI - small fixtures", () => {
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [jsFixture, "--out", tempOutDir];
-    scanCommand(args, { VERSION, EXIT, getOption });
+    await scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
     rmSync(jsFixture, { recursive: true, force: true });
@@ -402,7 +402,7 @@ describe("scan CLI - small fixtures", () => {
     }
   });
 
-  it("ignores .git directory", () => {
+  it("ignores .git directory", async () => {
     const gitRepo = path.join(tmpdir(), `ctg-git-repo-${Date.now()}`);
     mkdirSync(gitRepo, { recursive: true });
     mkdirSync(path.join(gitRepo, ".git"), { recursive: true });
@@ -414,7 +414,7 @@ describe("scan CLI - small fixtures", () => {
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [gitRepo, "--out", tempOutDir];
-    scanCommand(args, { VERSION, EXIT, getOption });
+    await scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
     rmSync(gitRepo, { recursive: true, force: true });
@@ -422,7 +422,7 @@ describe("scan CLI - small fixtures", () => {
     expect(gitFiles.length).toBe(0);
   });
 
-  it("ignores node_modules directory", () => {
+  it("ignores node_modules directory", async () => {
     const nmRepo = path.join(tmpdir(), `ctg-nm-repo-${Date.now()}`);
     mkdirSync(nmRepo, { recursive: true });
     mkdirSync(path.join(nmRepo, "node_modules"), { recursive: true });
@@ -434,7 +434,7 @@ describe("scan CLI - small fixtures", () => {
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [nmRepo, "--out", tempOutDir];
-    scanCommand(args, { VERSION, EXIT, getOption });
+    await scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
     rmSync(nmRepo, { recursive: true, force: true });
@@ -442,7 +442,7 @@ describe("scan CLI - small fixtures", () => {
     expect(nmFiles.length).toBe(0);
   });
 
-  it("role detection for fixture files", () => {
+  it("role detection for fixture files", async () => {
     // Create fixture outside tempOutDir to avoid deletion
     const fixtureRepo = path.join(tmpdir(), `ctg-fixture-repo-${Date.now()}`);
     mkdirSync(fixtureRepo, { recursive: true });
@@ -453,7 +453,7 @@ describe("scan CLI - small fixtures", () => {
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [fixtureRepo, "--out", tempOutDir];
-    scanCommand(args, { VERSION, EXIT, getOption });
+    await scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
     rmSync(fixtureRepo, { recursive: true, force: true });
@@ -461,7 +461,7 @@ describe("scan CLI - small fixtures", () => {
     expect(fixtureFiles.length).toBeGreaterThan(0);
   });
 
-  it("role detection for docs files", () => {
+  it("role detection for docs files", async () => {
     const docsRepo = path.join(tmpdir(), `ctg-docs-repo-${Date.now()}`);
     mkdirSync(docsRepo, { recursive: true });
     mkdirSync(path.join(docsRepo, "docs"), { recursive: true });
@@ -471,7 +471,7 @@ describe("scan CLI - small fixtures", () => {
     mkdirSync(tempOutDir, { recursive: true });
 
     const args = [docsRepo, "--out", tempOutDir];
-    scanCommand(args, { VERSION, EXIT, getOption });
+    await scanCommand(args, { VERSION, EXIT, getOption });
 
     const graph = JSON.parse(readFileSync(path.join(tempOutDir, "repo-graph.json"), "utf8"));
     rmSync(docsRepo, { recursive: true, force: true });

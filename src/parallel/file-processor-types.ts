@@ -33,6 +33,10 @@ export interface FileProcessorOptions {
   verbose?: boolean;
   /** Enable lazy symbol loading (default: true for large repos) */
   lazySymbols?: boolean;
+  /** Use tree-sitter parser if available (default: false) */
+  useTreeSitter?: boolean;
+  /** Tree-sitter is initialized and available */
+  treeSitterAvailable?: boolean;
 }
 
 /**

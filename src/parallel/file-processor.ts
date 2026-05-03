@@ -18,6 +18,8 @@ import { parseJavaScriptFile } from "../adapters/js-adapter.js";
 import { parsePythonFile } from "../adapters/py-adapter.js";
 import { parseRubyFile } from "../adapters/rb-adapter.js";
 import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
+import { parsePythonFileSync, isTreeSitterAvailable as isPyTreeSitterAvailable } from "../adapters/py-tree-sitter-adapter.js";
+import { parseRubyFileSync, isRubyTreeSitterAvailable as isRbTreeSitterAvailable } from "../adapters/rb-tree-sitter-adapter.js";
 import type { RepoFile } from "../types/artifacts.js";
 
 import {
@@ -206,9 +208,19 @@ export class FileProcessor extends EventEmitter {
       } else if (language === "js" || language === "jsx") {
         parseResult = parseJavaScriptFile(filePath, this.options.repoRoot, fileId);
       } else if (language === "py") {
-        parseResult = parsePythonFile(filePath, this.options.repoRoot, fileId);
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isPyTreeSitterAvailable()) {
+          parseResult = parsePythonFileSync(content, relPath);
+        } else {
+          parseResult = parsePythonFile(filePath, this.options.repoRoot, fileId);
+        }
       } else if (language === "rb") {
-        parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isRbTreeSitterAvailable()) {
+          parseResult = parseRubyFileSync(content, relPath);
+        } else {
+          parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
+        }
       } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language);
       } else {
@@ -377,9 +389,19 @@ export class FileProcessor extends EventEmitter {
       } else if (language === "js" || language === "jsx") {
         parseResult = parseJavaScriptFile(filePath, this.options.repoRoot, fileId);
       } else if (language === "py") {
-        parseResult = parsePythonFile(filePath, this.options.repoRoot, fileId);
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isPyTreeSitterAvailable()) {
+          parseResult = parsePythonFileSync(content, relPath);
+        } else {
+          parseResult = parsePythonFile(filePath, this.options.repoRoot, fileId);
+        }
       } else if (language === "rb") {
-        parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
+        // Use tree-sitter if requested and available
+        if (this.options.useTreeSitter && this.options.treeSitterAvailable && isRbTreeSitterAvailable()) {
+          parseResult = parseRubyFileSync(content, relPath);
+        } else {
+          parseResult = parseRubyFile(filePath, this.options.repoRoot, fileId);
+        }
       } else if (language === "go" || language === "rs" || language === "java" || language === "php") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language as RegexLanguage);
       } else {
