@@ -177,14 +177,13 @@ if (!parserInstance || !language) {
 | テスト作成 | ✓ 60 tests |
 | WASM package依存追加 | ✓ |
 | Regex fallback維持 | ✓ |
+| repo-graph-builder統合 | ✓ |
+| CLI --tree-sitter接続 | ✓ |
+| ドキュメント更新 | ✓ |
 
-### 6.2 未完了項目（負債）
+### 6.2 負債状況
 
-| 項目 | 状態 | 必要作業 |
-|---|:---:|---|
-| repo-graph-builder統合 | 未 | tree-sitter adapter使用 |
-| CLI --tree-sitter接続 | 未 | 言語自動選択ロジック |
-| ドキュメント更新 | 今 | 本ドキュメント作成中 |
+**なし** - Phase 5 全項目完了
 
 ---
 

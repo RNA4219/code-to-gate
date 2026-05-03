@@ -587,14 +587,20 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         expect(graph.artifact).toBe('normalized-repo-graph');
       });
 
-      it.skip('should output JSON summary', () => {
-        // Skipped due to parallel test execution race condition
-        const result = runCli(`scan "${fixturePath}" --out "${outDir}"`);
+      it('should output JSON summary', () => {
+        // Use unique output directory to avoid race condition with parallel tests
+        const summaryOutDir = path.join(TEMP_DIR, `scan-summary-${Date.now()}`);
+        fs.mkdirSync(summaryOutDir, { recursive: true });
+
+        const result = runCli(`scan "${fixturePath}" --out "${summaryOutDir}"`);
 
         const summary = JSON.parse(result.stdout);
         expect(summary.tool).toBe('code-to-gate');
         expect(summary.command).toBe('scan');
         expect(summary.fileCount).toBeDefined();
+
+        // Cleanup
+        fs.rmSync(summaryOutDir, { recursive: true, force: true });
       });
 
       it('should fail for non-existent repo', () => {

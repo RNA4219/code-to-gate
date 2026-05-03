@@ -753,23 +753,30 @@ export const greeting = "Hello World!";
     expect(result).toBe(EXIT.OK);
   });
 
-  it.skip("should handle moderate number of files", async () => {
-    // Skipped due to timeout in parallel test execution
-    const moderateDir = path.join(tempDir, "moderate-files");
+  it("should handle moderate number of files", async () => {
+    // Use unique output directory to avoid race condition with parallel tests
+    const moderateOutDir = createTempDir("moderate-files-out");
+    mkdirSync(moderateOutDir, { recursive: true });
+
+    const moderateDir = createTempDir("moderate-files-src");
     mkdirSync(moderateDir, { recursive: true });
 
-    // Create 10 files to avoid timeout in parallel test execution
+    // Create 10 files
     for (let i = 0; i < 10; i++) {
       writeFileSync(path.join(moderateDir, `file${i}.ts`), `export const x${i} = ${i};`, "utf8");
     }
 
-    const args = [moderateDir, "--out", tempDir];
+    const args = [moderateDir, "--out", moderateOutDir];
     const result = await scanCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
 
-    const graphPath = path.join(tempDir, "repo-graph.json");
+    const graphPath = path.join(moderateOutDir, "repo-graph.json");
     const graph = JSON.parse(readFileSync(graphPath, "utf8"));
     expect(graph.files.length).toBe(10);
+
+    // Cleanup
+    rmSync(moderateDir, { recursive: true, force: true });
+    rmSync(moderateOutDir, { recursive: true, force: true });
   });
 
   it("should handle empty file content", async () => {

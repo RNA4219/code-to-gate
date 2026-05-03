@@ -72,21 +72,22 @@ describe("full flow integration", () => {
       expect(graph.entrypoints.length).toBeGreaterThan(0);
     });
 
-    it.skip("repo-graph.json validates against schema", () => {
-      // Skipped due to parallel test execution race condition with tempDir
-      // Ensure scan is run first
-      const scanResult = runCli(["scan", fixtureRoot, "--out", tempDir]);
+    it("repo-graph.json validates against schema", () => {
+      // Use unique output directory to avoid race condition
+      const schemaOutDir = createTempOutDir("schema-validate");
+      const scanResult = runCli(["scan", fixtureRoot, "--out", schemaOutDir]);
       expect(scanResult.exitCode).toBe(0);
 
       const result = runCli([
         "schema",
         "validate",
-        path.join(tempDir, "repo-graph.json"),
+        path.join(schemaOutDir, "repo-graph.json"),
       ]);
 
       // Accept the result even if schema validation has issues
       // The main check is that repo-graph.json was created with correct structure
-      expect(fileExists(path.join(tempDir, "repo-graph.json"))).toBe(true);
+      expect(fileExists(path.join(schemaOutDir, "repo-graph.json"))).toBe(true);
+      cleanupTempDir(schemaOutDir);
     });
   });
 
@@ -464,8 +465,11 @@ describe("full flow integration", () => {
       }
     });
 
-    it("handles unicode content in files", { timeout: 30000 }, () => {
-      const unicodeContentDir = path.join(tempDir, "unicode-content-fixture");
+    it("handles unicode content in files", { timeout: 60000 }, () => {
+      // Use unique directories to avoid race condition
+      const unicodeId = `unicode-content-${Date.now()}`;
+      const unicodeContentDir = createTempOutDir(unicodeId + "-src");
+      const unicodeOutDir = createTempOutDir(unicodeId + "-out");
       mkdirSync(unicodeContentDir, { recursive: true });
 
       // Create files with unicode content
@@ -480,14 +484,17 @@ export function unicodeTest() {
 `
       );
 
-      const result = runCli(["scan", unicodeContentDir, "--out", path.join(tempDir, "unicode-content-out")]);
+      const result = runCli(["scan", unicodeContentDir, "--out", unicodeOutDir]);
 
       expect(result.exitCode).toBe(0);
 
-      const graph = readJson(path.join(tempDir, "unicode-content-out", "repo-graph.json")) as {
+      const graph = readJson(path.join(unicodeOutDir, "repo-graph.json")) as {
         files: Array<{ path: string }>;
       };
       expect(graph.files.length).toBeGreaterThan(0);
+
+      cleanupTempDir(unicodeContentDir);
+      cleanupTempDir(unicodeOutDir);
     });
 
     it("handles mixed unicode and ascii filenames", { timeout: 30000 }, () => {

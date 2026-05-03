@@ -114,8 +114,8 @@ interface SymbolNode {
 
 | 項目 | 状態 | 実装アプローチ |
 |---|---|---|
-| repo-graph-builder統合 | 未完了 | tree-sitter adapter自動選択 |
-| CLI --tree-sitter接続 | 未完了 | 言語判定ロジック |
+| repo-graph-builder統合 | ✓完了 | tree-sitter adapter自動選択 |
+| CLI --tree-sitter接続 | ✓完了 | 言語判定ロジック |
 | Dataflow-full | Phase 6 | 完全dataflow解析（lite版拡張） |
 | Java/C/C++ adapter | Phase 6+ | tree-sitter WASM |
 
