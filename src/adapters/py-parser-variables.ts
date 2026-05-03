@@ -21,7 +21,7 @@ export function parseVariables(
 
   // Pattern for: name = value, name: Type = value
   const varPattern =
-    /^([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[:]\s*[a-zA-Z_][a-zA-Z0-9_\[\],\s]*)?\s*=/;
+    /^([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:[:]\s*[a-zA-Z_][a-zA-Z0-9_[\],\s]*)?\s*=/;
 
   // Skip patterns that are not simple assignments
   const skipPatterns = [

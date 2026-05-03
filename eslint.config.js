@@ -42,10 +42,12 @@ export default tseslint.config(
         "warn",
         {
           argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
+          varsIgnorePattern: "^_|^T$|^Mock|^Fake|^Stub",
           caughtErrorsIgnorePattern: "^_",
           vars: "all",
           args: "after-used",
+          ignoreRestSiblings: true,
+          destructuredArrayIgnorePattern: "^_",
         },
       ],
       "@typescript-eslint/explicit-function-return-type": "off",
@@ -54,6 +56,14 @@ export default tseslint.config(
       "@typescript-eslint/no-require-imports": "warn",
       "no-console": "off",
       "no-constant-condition": "warn",
+      "prefer-const": "warn",
+    },
+  },
+  // Test files: relax any warnings for test convenience
+  {
+    files: ["**/__tests__/**/*.ts", "**/*.test.ts", "tests/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   }
 );

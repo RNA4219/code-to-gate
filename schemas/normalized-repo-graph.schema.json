@@ -64,7 +64,24 @@
               "endLine": { "type": "integer", "minimum": 1 }
             }
           },
-          "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } }
+          "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } },
+          "typeInfo": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "returnType": { "type": "string" },
+              "parameterTypes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "type": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

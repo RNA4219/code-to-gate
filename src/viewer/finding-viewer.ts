@@ -272,7 +272,7 @@ export function generateFindingsExplorer(
 `;
 
   // Generate findings list
-  let findingsList = "";
+  let findingsList: string;
 
   if (findings.length === 0) {
     findingsList = `

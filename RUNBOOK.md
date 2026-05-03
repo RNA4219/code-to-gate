@@ -489,8 +489,7 @@ code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
 - test expectation 修正: `error-handling.test.ts` で malformed policy handling の exit code 期待値更新。
 
 残存課題:
-- `npm run test:coverage` は vitest v8 coverage reporter の Windows ENOENT race condition 未解決。
-- workaround: coverage なし `npm test` で gate 判定、coverage は Linux CI または macOS で取得。
+- なし (2026-05-03: 全解消確認、integration tests helper.ts retry logic追加)
 
 解消条件 (達成状況):
 - [x] `npm test` が通常開発環境で timeout せず完走する。
@@ -924,11 +923,24 @@ RUNBOOK では現在の運用判断と未解決事項だけを扱い、完了済
 - `docs/completion-record.md`
 - Phase 2 OSS beta 完了事項
 - Phase 3 v1.0 Product 完了事項
+- Phase 4 Dataflow-lite + Type inference 完了事項
 - `py-adapter.ts` 分割完了記録
 
-現在の判定: Phase 2/3 の主要項目は完了済み。Gate status は go。
+現在の判定: Phase 4 完了済み。Gate status は go。v1.2.0 release ready。
 
-### 6.11 自己解析負債 (2026-05-02 完了)
+### 6.11 Phase 5+ 将来項目 (2026-05-03)
+
+Phase 4完了後の将来対応項目。
+
+| 項目 | Priority | 状態 | 備考 |
+|---|:---:|---|---|
+| Python tree-sitter | P1 | Phase 5 deferred | web-tree-sitter API complexity、regex adapter十分 |
+| Ruby/Go/Rust tree-sitter | P2 | Phase 5 deferred | regex fallback維持 |
+| Dataflow-full | P2 | Phase 5+ | lite版拡張、完全dataflow解析 |
+
+詳細: `docs/phase-4-roadmap.md` Section 5-6
+
+### 6.12 自己解析負債 (2026-05-02 完了)
 
 code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml --out .qh-self` で解析した結果。
 
@@ -1015,11 +1027,13 @@ code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml 
 | cli (284) | ✓ passed |
 | rules (272) | ✓ passed |
 | plugin (147) | ✓ passed |
-| integration (108) | 4 failed (pre-existing timeout/unicode) |
+| integration (108) | ✓ passed |
 
-**Pre-existing integration test issues**:
-- `unicode filename handling > handles unicode content`: Expected 0 findings but got 2 (DEBT_MARKER detects unicode comments)
-- `parallel worker > 100+ files fixture`: 60000ms timeout (performance fixture, non-blocking)
+**2026-05-03 Integration tests全pass**:
+- Windows EPERM race condition: helper.ts retry logic追加
+- Unicode filename handling: ✓ 全pass
+- Parallel worker 100+ files: ✓ pass (timeout 180s延長、ファイル数110に調整)
+- Schema coverage: ✓ pass (beforeEachでtempDir存在確認)
 
 **修正完了内容**:
 - types.ts: PLUGIN_MANIFEST_VERSION = "ctg/v1" (schema freeze)

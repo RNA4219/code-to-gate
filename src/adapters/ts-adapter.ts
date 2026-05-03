@@ -22,6 +22,52 @@ export interface ParseResult {
 // Syntax error codes for detection
 const SYNTAX_ERROR_CODES = [1003, 1005, 1009, 1109, 1110, 1128, 1134, 1131, 1135, 1136, 1137, 1138, 1139, 1140];
 
+// Type inference extraction (Phase 4)
+import type { FunctionDeclaration, MethodDeclaration, ClassDeclaration } from "ts-morph";
+
+function extractTypeInformation(func: FunctionDeclaration): SymbolNode["typeInfo"] {
+  try {
+    const returnType = func.getReturnType();
+    const parameters = func.getParameters();
+
+    return {
+      returnType: returnType?.getText() || undefined,
+      parameterTypes: parameters.map(p => ({
+        name: p.getName(),
+        type: p.getType().getText(),
+      })),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function extractMethodTypeInformation(method: MethodDeclaration): SymbolNode["typeInfo"] {
+  try {
+    const returnType = method.getReturnType();
+    const parameters = method.getParameters();
+
+    return {
+      returnType: returnType?.getText() || undefined,
+      parameterTypes: parameters.map(p => ({
+        name: p.getName(),
+        type: p.getType().getText(),
+      })),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function extractClassImplements(cls: ClassDeclaration): string[] {
+  try {
+    const implementsExpr = cls.getImplements();
+    return implementsExpr.map(i => i.getText());
+  } catch {
+    return [];
+  }
+}
+
 function getSymbolKind(node: Node, name: string, filePath: string): SymbolNode["kind"] {
   if (filePath.includes("/tests/") || filePath.includes(".test.") || filePath.includes(".spec.")) {
     return "test";
@@ -139,6 +185,9 @@ function extractFunctions(sourceFile: SourceFile, fileId: string, relPath: strin
     const endLine = func.getEndLineNumber();
     const symbolId = `symbol:${relPath}:${name}`;
 
+    // Extract type information (Phase 4)
+    const typeInfo = extractTypeInformation(func);
+
     symbols.push({
       id: symbolId,
       fileId,
@@ -148,6 +197,7 @@ function extractFunctions(sourceFile: SourceFile, fileId: string, relPath: strin
       async: func.isAsync(),
       location: { startLine, endLine },
       evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, startLine, endLine, undefined, symbolId)],
+      typeInfo,
     });
 
     const callExpressions = func.getDescendantsOfKind(SyntaxKind.CallExpression);
@@ -180,6 +230,9 @@ function extractClasses(sourceFile: SourceFile, fileId: string, relPath: string)
     const isExported = cls.isExported();
     const classSymbolId = `symbol:${relPath}:${name}`;
 
+    // Extract implements (Phase 4)
+    const implementsList = extractClassImplements(cls);
+
     symbols.push({
       id: classSymbolId,
       fileId,
@@ -188,11 +241,15 @@ function extractClasses(sourceFile: SourceFile, fileId: string, relPath: string)
       exported: isExported,
       location: { startLine, endLine },
       evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, startLine, endLine, undefined, classSymbolId)],
+      typeInfo: implementsList.length > 0 ? { implements: implementsList } : undefined,
     });
 
     for (const method of cls.getMethods()) {
       const methodName = method.getName();
       const methodSymbolId = `symbol:${relPath}:${name}.${methodName}`;
+
+      // Extract method type information (Phase 4)
+      const methodTypeInfo = extractMethodTypeInformation(method);
 
       symbols.push({
         id: methodSymbolId,
@@ -203,6 +260,7 @@ function extractClasses(sourceFile: SourceFile, fileId: string, relPath: string)
         async: method.isAsync(),
         location: { startLine: method.getStartLineNumber(), endLine: method.getEndLineNumber() },
         evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}.${methodName}`).slice(0, 8)}`, relPath, method.getStartLineNumber(), method.getEndLineNumber(), undefined, methodSymbolId)],
+        typeInfo: methodTypeInfo,
       });
 
       const methodCalls = method.getDescendantsOfKind(SyntaxKind.CallExpression);

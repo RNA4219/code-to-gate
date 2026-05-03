@@ -1,9 +1,81 @@
 # code-to-gate プロダクトギャップ分析
 
-**バージョン**: v1.0  
+**バージョン**: v1.1.1  
 **作成日**: 2026-04-30  
-**対象**: v0.1 MVP からプロダクトレベルへの移行  
-**位置づけ**: 本書は v0.1 MVP とプロダクトレベル要件の差分分析。
+**更新日**: 2026-05-03  
+**対象**: v0.1 MVP から v1.0 Product までの移行  
+**位置づけ**: 本書は v0.1 MVP とプロダクトレベル要件の差分分析（Phase 1-3 完了後の現状反映版）。
+
+---
+
+## 0. 現状サマリー (2026-05-03 更新)
+
+**Phase 1-3 完了済み**。以下のギャップは解消済み。
+
+### 0.1 Phase 1 完了事項 (OSS Alpha)
+
+| gap | 完了状態 | 証跡 |
+|---|:---:|---|
+| TS/JS AST parser | ✓ 完了 | ts-morph adapter実装、`src/adapters/ts-morph-adapter.ts` |
+| GitHub Actions workflow template | ✓ 完了 | `.github/workflows/code-to-gate-pr.yml` |
+| PR comment | ✓ 完了 | `src/github/pr-comment.ts`、PR #1 verified |
+| GitHub Checks | ✓ 完了 | `src/github/checks.ts`、PR #1 verified |
+| SARIF export + upload | ✓ 完了 | `src/reporters/sarif-reporter.ts`、111 alerts visible |
+| Basic suppression | ✓ 完了 | `.ctg/suppressions.yaml`、163 suppressions |
+| Contract tests CI | ✓ 完了 | `.github/workflows/code-to-gate-pr.yml` contract-tests job |
+| Real repo tests | ✓ 完了 | express/axios/dayjs 3 repos pass |
+| Quickstart + CLI reference | ✓ 完了 | `docs/quickstart.md`、`docs/cli-reference.md` |
+| Redaction implementation | ✓ 完了 | `src/llm/redaction.ts` |
+| Evidence validator module | ✓ 完了 | `src/rules/evidence-validator.ts` |
+| Unsupported claims isolation | ✓ 完了 | `findings.json` unsupported_claims field |
+
+### 0.2 Phase 2 完了事項 (OSS Beta)
+
+| gap | 完了状態 | 証跡 |
+|---|:---:|---|
+| Plugin SDK | ✓ 完了 | `src/plugin/`、plugin-manifest.json schema |
+| Suppression expiry + audit | ✓ 完了 | expiry warning + audit record |
+| Historical comparison | ✓ 完了 | `src/historical/comparison.ts` |
+| Baseline mode | ✓ 完了 | `--baseline` option実装 |
+| Local LLM (ollama/llama.cpp) | ✓ 完了 | `src/llm/ollama-provider.ts`、`llamacpp-provider.ts` |
+| Local-only mode | ✓ 完了 | `--llm-mode local-only` option |
+| Monorepo support | ✓ 完了 | package.json detection + workspace |
+| FP/FN evaluation workflow | ✓ 完了 | `scripts/fp-review.ps1`、express 0% FP |
+| Web viewer MVP | ✓ 完了 | `src/viewer/`、static HTML output |
+| Incremental cache | ✓ 完了 | `--cache enabled` option |
+
+### 0.3 Phase 3 完了事項 (v1.0 Product)
+
+| gap | 完了状態 | 証跡 |
+|---|:---:|---|
+| Python adapter | ✓ 完了 | `src/adapters/py-adapter.ts` regex-based |
+| Stable schema v1 | ✓ 完了 | ctg/v1 schema freeze、6 months stable guarantee |
+| Large repo optimization | ✓ 完了 | parallel processing、stream processing |
+| Plugin sandbox | ✓ 完了 | Docker sandbox (`src/plugin/docker-sandbox.ts`) |
+| Web viewer full | ✓ 完了 | report/graph/finding sections |
+| Schema migration guide | ✓ 完了 | `docs/schema-migration-v1alpha1-to-v1.md` |
+
+### 0.4 Phase 4 完了事項 (2026-05-03)
+
+| 項目 | 状態 | 証跡 |
+|---|---|---|
+| Call graph extraction | ✓ 完了 | ts/js/py/rb adapter全て `kind: "calls"` |
+| Dataflow-lite | ✓ 完了 | `src/core/dataflow-lite.ts`, 14 tests |
+| Type inference tracking | ✓ 完了 | `src/adapters/ts-adapter.ts` typeInfo, 8 tests |
+
+### 0.5 Phase 5+ 残存ギャップ (将来対応)
+
+| gap | 状態 | 備考 |
+|---|---|---|
+| Python tree-sitter AST | Phase 5 deferred | web-tree-sitter API complexity、regex十分 |
+| Ruby/Go/Rust tree-sitter | Phase 5 deferred | regex fallback維持 |
+| Dataflow-full | Phase 5+ | 現状lite版、完全版将来対応 |
+
+**Phase 4実装証跡**:
+- `src/core/dataflow-lite.ts`: 変数代入/引数/戻り値フロー追跡
+- `src/adapters/ts-adapter.ts`: returnType/parameterTypes/implements追跡
+- `src/core/__tests__/dataflow-lite.test.ts`: 14 tests
+- `src/adapters/__tests__/type-inference.test.ts`: 8 tests
 
 ---
 

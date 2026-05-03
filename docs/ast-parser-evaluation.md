@@ -12,10 +12,12 @@
 |----------|---------|---------|--------|-------|
 | TypeScript | ts-morph | 25.0.1 | ✅ 完了 | TypeScript compiler API wrapper |
 | JavaScript | acorn | 8.14.1 | ✅ 完了 | ECMA AST parser |
-| Python | regex-based | - | ⚠️ Text fallback | tree-sitter未実装 |
-| Ruby | regex-based | - | ⚠️ Text fallback | tree-sitter未実装 |
-| Go | - | - | ❌ 未実装 | Phase 3予定 |
-| Rust | - | - | ❌ 未実装 | Phase 3予定 |
+| Python | regex-based | - | ✅ 完了 | py-adapter.ts分割実装、tree-sitter Phase 4+ |
+| Ruby | regex-based | - | ✅ 完了 | Phase 4+でtree-sitter検討 |
+| Go | regex-based | - | ⚠️ Text fallback | Phase 4+予定 |
+| Rust | regex-based | - | ⚠️ Text fallback | Phase 4+予定 |
+| Java | regex-based | - | ⚠️ Text fallback | Phase 4+予定 |
+| PHP | regex-based | - | ⚠️ Text fallback | Phase 4+予定 |
 
 ---
 
@@ -177,21 +179,29 @@ node ./dist/cli.js scan fixtures/demo-shop-ts --out .qh-bench
 - ✅ acorn実装完了
 - ✅ adapter test suite存在
 
-### 5.2 Phase 3 (予定)
+### 5.2 Phase 3 完了 (2026-05-02)
 
-1. **tree-sitter導入**
+| 項目 | 状態 | 証跡 |
+|---|:---:|---|
+| Python adapter (regex) | ✓ 完了 | `src/adapters/py-adapter.ts` 分割実装 |
+| py-parser-imports.ts | ✓ 完了 | import extraction |
+| py-parser-classes.ts | ✓ 完了 | class/method extraction |
+| py-parser-functions.ts | ✓ 完了 | function extraction |
+| py-parser-entrypoints.ts | ✓ 完了 | __main__ + Flask/FastAPI detection |
+| Ruby adapter (regex) | ✓ 完了 | `src/adapters/rb-adapter.ts` |
+
+### 5.3 Phase 4+ 将来対応
+
+1. **Python tree-sitter導入** (Phase 4+)
    ```bash
-   npm install tree-sitter tree-sitter-python tree-sitter-ruby
+   npm install web-tree-sitter
    ```
+   - 詳細: `docs/python-adapter-tree-sitter-evaluation.md`
+   - 現状: regex-basedでOSS利用十分
    
-2. **py-adapter.ts改修**
-   - regex-based → tree-sitter-based
-   - 構文エラー回復強化
-   - partial parse対応
-
-3. **rb-adapter.ts改修**
-   - regex-based → tree-sitter-based
-   - Ruby構文完全対応
+2. **Ruby/Go/Rust tree-sitter** (Phase 4+)
+   - 現状: regex fallbackで基本的なimport/function/class抽出可能
+   - 将来: tree-sitter導入で精度向上
 
 ### 5.3 Optional
 
@@ -202,15 +212,44 @@ node ./dist/cli.js scan fixtures/demo-shop-ts --out .qh-bench
 
 ## 6. Conclusion
 
-**SN-04完了判定**: ✅ DONE
+**SN-04完了判定**: ✅ DONE (Phase 3完了)
 
 - TypeScript/JavaScript AST parser実装済み（ts-morph/acorn）
-- Python/Ruby regex fallback許容（Phase 3で改善）
-- 移行コスト判定: ts-morph/acorn維持が最適解
+- Python/Ruby regex adapter実装済み（Phase 3完了）
+- Go/Rust/Java/PHP regex fallback許容（Phase 4+で改善検討）
+- 移行コスト判定: 現状維持が最適解
+
+**Phase 3 Gate status**: go, tree-sitter導入はPhase 4+将来対応
 
 ---
 
-## Appendix: Adapter Test Coverage
+## Appendix A: Call Graph Extraction Status
+
+**実装状態**: ✅ 完了 (全adapter)
+
+| Adapter | Call Graph | 実装箇所 |
+|---------|:---:|---|
+| ts-adapter.ts | ✓ | `getDescendantsOfKind(SyntaxKind.CallExpression)` lines 153-164, 208-218 |
+| js-ast-handlers.ts | ✓ | CallExpression walker line 453 |
+| py-parser-functions.ts | ✓ | regex-based call detection line 140 |
+| rb-adapter.ts | ✓ | regex-based call detection line 291 |
+
+**GraphRelation kind**: `"calls"` (confidence: 0.7)
+
+---
+
+## Appendix B: Phase 4+ Future Items
+
+| 項目 | 状態 | 実装アプローチ |
+|---|---|---|
+| Python tree-sitter | Phase 4+ | web-tree-sitter WASM binding |
+| Ruby/Go/Rust tree-sitter | Phase 4+ | regex fallback維持、必要時導入 |
+| Dataflow-lite | Phase 4+ | 新module `src/core/dataflow-lite.ts` |
+| Type inference | Phase 4+ | ts-morph `getType()` API活用 |
+
+---
+
+## Appendix C: Adapter Test Coverage
 
 | Adapter | Tests | Coverage |
 |---------|-------|----------|

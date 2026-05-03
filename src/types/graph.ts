@@ -65,6 +65,13 @@ export interface SymbolNode {
     endLine: number;
   };
   evidence: EvidenceRef[];
+  // Type inference (Phase 4)
+  typeInfo?: {
+    returnType?: string;
+    parameterTypes?: Array<{ name: string; type: string }>;
+    inferredType?: string;
+    implements?: string[];
+  };
 }
 
 export interface GraphRelation {
@@ -156,4 +163,34 @@ export interface EvidenceRef {
     ruleId?: string;
     url?: string;
   };
+}
+
+// Dataflow-lite types (Phase 4)
+export interface DataflowNode {
+  id: string;
+  kind: "assign" | "param" | "return" | "prop_access" | "literal";
+  source: string; // symbolId or literal value
+  target: string; // symbolId
+  filePath: string;
+  location: {
+    startLine: number;
+    endLine: number;
+  };
+  evidence: EvidenceRef[];
+}
+
+export interface DataflowRelation {
+  id: string;
+  from: string; // DataflowNode.id or SymbolNode.id
+  to: string; // DataflowNode.id or SymbolNode.id
+  kind: "flows_to" | "flows_from" | "transforms";
+  confidence: number;
+  evidence: EvidenceRef[];
+}
+
+export interface DataflowGraph {
+  nodes: DataflowNode[];
+  relations: DataflowRelation[];
+  sourceSymbolId?: string; // tracked source symbol
+  targetSymbolId?: string; // tracked target symbol
 }

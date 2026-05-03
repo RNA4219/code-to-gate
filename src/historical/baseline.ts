@@ -391,7 +391,7 @@ function parseYamlLike(content: string): unknown {
     // This is a simplified implementation
     const lines = cleaned.split("\n");
     const result: Record<string, unknown> = {};
-    let currentKey = "";
+    let currentKey: string;
     let currentArray: unknown[] | null = null;
 
     for (const line of lines) {

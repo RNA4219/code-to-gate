@@ -21,7 +21,7 @@ export interface RunResult {
 /**
  * Run the code-to-gate CLI with given arguments
  */
-export function runCli(args: string[], cwd: string = PROJECT_ROOT): RunResult {
+export function runCli(args: string[], cwd: string = PROJECT_ROOT, timeoutMs: number = 60000): RunResult {
   const cmd = `node "${DIST_CLI}" ${args.join(" ")}`;
 
   let stdout = "";
@@ -33,6 +33,7 @@ export function runCli(args: string[], cwd: string = PROJECT_ROOT): RunResult {
       cwd,
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
+      timeout: timeoutMs,
     });
   } catch (error: unknown) {
     const execError = error as { stdout?: string; stderr?: string; status?: number };
@@ -103,22 +104,59 @@ export function readYaml(filePath: string): Record<string, unknown> {
 
 /**
  * Create a temporary output directory for tests
+ * Includes retry logic for Windows EPERM race conditions
  */
-export function createTempOutDir(testName: string): string {
+export function createTempOutDir(testName: string, retries = 3, delayMs = 100): string {
   const tempDir = path.join(PROJECT_ROOT, ".test-temp", testName);
+
   if (existsSync(tempDir)) {
-    rmSync(tempDir, { recursive: true, force: true });
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        rmSync(tempDir, { recursive: true, force: true });
+        break;
+      } catch (err: any) {
+        if (err.code === "EPERM" && attempt < retries - 1) {
+          // Windows file lock race condition - wait and retry
+          const waitMs = delayMs * (attempt + 1);
+          // Busy-wait for small delay (sync function)
+          const start = Date.now();
+          while (Date.now() - start < waitMs) {}
+          continue;
+        }
+        // On final attempt, try to proceed anyway - directory may be usable
+        if (attempt === retries - 1) {
+          console.warn(`Warning: Could not remove ${tempDir} (EPERM), proceeding anyway`);
+        }
+      }
+    }
   }
+
   mkdirSync(tempDir, { recursive: true });
   return tempDir;
 }
 
 /**
  * Clean up temporary output directory
+ * Includes retry logic for Windows EPERM race conditions
  */
-export function cleanupTempDir(tempDir: string): void {
+export function cleanupTempDir(tempDir: string, retries = 3, delayMs = 100): void {
   if (existsSync(tempDir)) {
-    rmSync(tempDir, { recursive: true, force: true });
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        rmSync(tempDir, { recursive: true, force: true });
+        return;
+      } catch (err: any) {
+        if (err.code === "EPERM" && attempt < retries - 1) {
+          const waitMs = delayMs * (attempt + 1);
+          const start = Date.now();
+          while (Date.now() - start < waitMs) {}
+          continue;
+        }
+        // Silent fail on cleanup - not critical
+        console.warn(`Warning: Could not cleanup ${tempDir}: ${err.code}`);
+        return;
+      }
+    }
   }
 }
 

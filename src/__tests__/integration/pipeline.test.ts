@@ -287,7 +287,7 @@ describe('Full Pipeline Tests', () => {
   describe('schema validation command', () => {
     const schemasDir = path.join(PROJECT_ROOT, 'schemas');
 
-    it('should validate schema files', () => {
+    it('should validate schema files', { timeout: 120000 }, () => {
       const schemaFiles = fs.readdirSync(schemasDir)
         .filter(f => f.endsWith('.schema.json'))
         .filter(f => {

@@ -8,7 +8,7 @@
  * - Edge cases in schema validation
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
   runCli,
   schemaPath,
@@ -19,7 +19,7 @@ import {
   getProjectRoot,
 } from "./helper.js";
 import path from "node:path";
-import { writeFileSync, existsSync, readdirSync } from "node:fs";
+import { writeFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 
 describe("schema coverage integration", () => {
   let tempDir: string;
@@ -990,6 +990,13 @@ describe("schema coverage integration", () => {
   });
 
   describe("unsupported_claims validation", () => {
+    beforeEach(() => {
+      // Ensure tempDir exists (race condition protection)
+      if (!existsSync(tempDir)) {
+        mkdirSync(tempDir, { recursive: true });
+      }
+    });
+
     it("validates valid unsupported_claims", () => {
       const validUnsupportedPath = path.join(tempDir, "valid-unsupported.json");
       writeFileSync(

@@ -114,10 +114,7 @@ export async function login(req) {
     const content = `
 import { createOrder } from "../db/orders";
 
-/**
- * SMELL: UNTESTED_CRITICAL_PATH
- * MISSING: Integration tests for this payment handler
- */
+// SMELL: UNTESTED_CRITICAL_PATH - MISSING: Integration tests for this payment handler
 export async function createOrderRoute(req) {
   const order = await createOrder(req.body);
   return { status: 201, body: order };
@@ -741,10 +738,7 @@ describe("Order", () => {
     const content = `
 import { createOrder } from "../db/orders";
 
-/**
- * SMELL: UNTESTED_CRITICAL_PATH
- * MISSING: Integration tests for payment
- */
+// SMELL: UNTESTED_CRITICAL_PATH - MISSING: Integration tests for payment
 export async function createOrderRoute(req) {
   const order = await createOrder(req.body);
   return { status: 201 };

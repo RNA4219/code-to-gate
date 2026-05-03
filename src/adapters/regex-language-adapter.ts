@@ -131,7 +131,7 @@ function detectSymbols(line: string, language: RegexLanguage): Array<{ name: str
   } else if (language === "java") {
     match = line.match(/^\s*(?:public|private|protected)?\s*(?:abstract\s+|final\s+)?(?:class|interface|enum)\s+([A-Z][A-Za-z0-9_]*)/);
     if (match) symbols.push({ name: match[1], kind: "class" });
-    match = line.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?(?:final\s+)?[A-Za-z0-9_<>\[\], ?]+\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^;]*\)\s*\{/);
+    match = line.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?(?:final\s+)?[A-Za-z0-9_<>[?, ?]+\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\([^;]*\)\s*\{/);
     if (match && !["if", "for", "while", "switch", "catch"].includes(match[1])) symbols.push({ name: match[1], kind: "method" });
   } else if (language === "php") {
     match = line.match(/^\s*(?:final\s+|abstract\s+)?(?:class|interface|trait)\s+([A-Za-z_][A-Za-z0-9_]*)/);

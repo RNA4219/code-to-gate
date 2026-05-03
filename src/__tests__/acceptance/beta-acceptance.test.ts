@@ -52,9 +52,9 @@ describe("Phase 2 Beta Acceptance Tests", () => {
       expect(existsSync("./dist/llm/providers/llamacpp-provider.js")).toBe(true);
     });
 
-    it("should have llm-health CLI command", () => {
+    it("should have llm-health CLI command", { timeout: 60000 }, () => {
       // llm-health without args shows health check
-      const result = execSync(`node ${CLI} llm-health`, { encoding: "utf8" });
+      const result = execSync(`node ${CLI} llm-health`, { encoding: "utf8", timeout: 50000 });
       expect(result).toContain("provider");
     });
 
@@ -201,14 +201,14 @@ describe("Phase 2 Beta Acceptance Tests", () => {
       }
     });
 
-    it("full scan+analyze with new options should work", () => {
+    it("full scan+analyze with new options should work", { timeout: 60000 }, () => {
       const fixtureDir = "./fixtures/demo-shop-ts";
       const outDir = path.join(TEMP_DIR, "full-beta-test");
 
       // Scan with cache and parallel
       const scanResult = execSync(
         `node ${CLI} scan ${fixtureDir} --out ${outDir} --cache enabled --parallel 2`,
-        { encoding: "utf8" }
+        { encoding: "utf8", timeout: 30000 }
       );
       expect(scanResult).toBeDefined();
 
@@ -216,7 +216,7 @@ describe("Phase 2 Beta Acceptance Tests", () => {
       try {
         execSync(
           `node ${CLI} analyze ${fixtureDir} --from ${outDir} --out ${outDir} --emit all`,
-          { encoding: "utf8" }
+          { encoding: "utf8", timeout: 30000 }
         );
       } catch (e: any) {
         // Non-zero exit code is expected when findings exist

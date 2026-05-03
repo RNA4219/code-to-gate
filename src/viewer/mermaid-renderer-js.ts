@@ -29,7 +29,7 @@ export function getMermaidRendererJavaScript(): string {
       if (trimmed.startsWith('subgraph')) continue;
       if (trimmed === 'end') continue;
 
-      const edgeMatch = trimmed.match(/(\\w+)\\s*(-[-.>]+)\\s*(?:\\|"([^"]*)\"\\|)?\\s*(\\w+)/);
+      const edgeMatch = trimmed.match(/(\\w+)\\s*(-[-.>]+)\\s*(?:\\|"([^"]*)"\\|)?\\s*(\\w+)/);
       if (edgeMatch) {
         edges.push({
           from: edgeMatch[1],

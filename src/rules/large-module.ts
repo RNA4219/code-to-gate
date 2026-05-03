@@ -181,7 +181,7 @@ function countFunctions(content: string, language: string): number {
           : language === "rs"
             ? content.match(/^\s*(?:pub\s+)?fn\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(/gm)
             : language === "java"
-              ? content.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?[A-Za-z0-9_<>\[\], ?]+\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^;]*\)\s*\{/gm)
+              ? content.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?[A-Za-z0-9_<>[?, ?]+\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\([^;]*\)\s*\{/gm)
               : content.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?function\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/gm);
     count = defMatches ? defMatches.length : 0;
   } else {

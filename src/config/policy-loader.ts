@@ -89,8 +89,8 @@ export function loadPolicyFile(
   cwd: string
 ): { policy: CtgPolicy; source: string; errors: string[] } {
   const errors: string[] = [];
-  let parsedPolicy: Partial<CtgPolicy> = {};
-  let source = "";
+  let parsedPolicy: Partial<CtgPolicy>;
+  let source: string;
 
   const absolutePath = path.resolve(cwd, policyPath);
 

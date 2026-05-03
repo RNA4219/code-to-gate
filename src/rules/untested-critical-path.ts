@@ -113,12 +113,15 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
 
       // Check for explicit SMELL comment (must be in comment syntax, not code)
       const hasSmellComment =
+        content.includes("// SMELL: UNTESTED_CRITICAL_PATH") ||
         content.includes("// UNTESTED_CRITICAL_PATH") ||
         content.includes("// MISSING: Integration tests") ||
         content.includes("// MISSING: tests") ||
+        content.includes("/* SMELL: UNTESTED_CRITICAL_PATH") ||
         content.includes("/* UNTESTED_CRITICAL_PATH") ||
         content.includes("/* MISSING: Integration tests") ||
         content.includes("/* MISSING: tests") ||
+        content.includes("# SMELL: UNTESTED_CRITICAL_PATH") ||
         content.includes("# UNTESTED_CRITICAL_PATH") ||
         content.includes("# MISSING: Integration tests") ||
         content.includes("# MISSING: tests");
@@ -141,8 +144,8 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
         // src/tests/ directory
         testFiles.has(posixPath.replace("src/", "src/tests/").replace(".ts", ".test.ts")) ||
         // __tests__/ directory (jest convention)
-        testFiles.has(posixPath.replace(/\/([^\/]+)\.ts$/, "/__tests__/$1.test.ts")) ||
-        testFiles.has(posixPath.replace(/\/([^\/]+)\.tsx$/, "/__tests__/$1.test.tsx")) ||
+        testFiles.has(posixPath.replace(/\/([^/]+)\.ts$/, "/__tests__/$1.test.ts")) ||
+        testFiles.has(posixPath.replace(/\/([^/]+)\.tsx$/, "/__tests__/$1.test.tsx")) ||
         // Inline test files
         testFiles.has(posixPath.replace(".ts", ".test.ts")) ||
         testFiles.has(posixPath.replace(".tsx", ".test.tsx")) ||
