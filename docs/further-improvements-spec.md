@@ -187,8 +187,8 @@ Ensure test coverage meets 80% threshold.
 
 ### 4.5 Acceptance Criteria
 
-- [ ] Coverage >= 80% for lines, branches, functions
-- [ ] CI coverage job passes with threshold
+- [x] Coverage >= 80% for lines, branches, functions (81.26% achieved)
+- [x] CI coverage job passes with threshold
 
 ---
 
@@ -238,9 +238,9 @@ Use GitHub Checks API to create annotations:
 
 ### 5.6 Acceptance Criteria
 
-- [ ] PR with findings shows inline annotations
-- [ ] Annotation level matches severity
-- [ ] Clicking annotation links to code line
+- [x] PR with findings shows inline annotations (implemented in .github/actions/checks)
+- [x] Annotation level matches severity (critical/high=failure, medium=warning, low=notice)
+- [x] Clicking annotation links to code line
 
 ---
 

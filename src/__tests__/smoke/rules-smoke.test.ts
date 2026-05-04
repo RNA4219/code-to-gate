@@ -26,7 +26,7 @@ import {
 describe('Rules Smoke Tests', () => {
   describe('ALL_RULES array', () => {
     it('contains all expected rules', () => {
-      expect(ALL_RULES).toHaveLength(11);
+      expect(ALL_RULES).toHaveLength(13);
     });
 
     it('all rules have unique IDs', () => {
@@ -125,6 +125,7 @@ describe('Rules Smoke Tests', () => {
         'testing',
         'compatibility',
         'release-risk',
+        'security',
       ];
       for (const rule of ALL_RULES) {
         expect(validCategories).toContain(rule.category);
