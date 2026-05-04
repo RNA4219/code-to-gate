@@ -5,9 +5,13 @@
  */
 
 import type { RepoFile, Finding, EvidenceRef, FindingCategory, Severity, UpstreamTool } from "../types/artifacts.js";
+import { createRuleEvidence, hashExcerpt } from "../core/evidence-utils.js";
 
 // Re-export types for rule implementations
 export type { Finding, EvidenceRef, FindingCategory, Severity, UpstreamTool };
+
+// Re-export evidence utilities for rules
+export { createRuleEvidence as createEvidence, hashExcerpt };
 
 /**
  * Simple graph structure for rule evaluation
@@ -59,50 +63,12 @@ export interface RulePlugin {
 }
 
 /**
- * Create a hash for evidence excerpt
- */
-export function hashExcerpt(text: string): string {
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    const char = text.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(16).padStart(8, "0");
-}
-
-/**
  * Generate a unique finding ID
  */
 export function generateFindingId(ruleId: string, path: string, line?: number): string {
   const linePart = line !== undefined ? `:L${line}` : "";
   const pathHash = hashExcerpt(path);
   return `finding:${ruleId}:${pathHash}${linePart}`;
-}
-
-/**
- * Create an evidence reference
- */
-export function createEvidence(
-  path: string,
-  startLine: number,
-  endLine: number,
-  kind: EvidenceRef["kind"] = "text",
-  excerpt?: string
-): EvidenceRef {
-  const evidence: EvidenceRef = {
-    id: `evidence:${path}:${startLine}-${endLine}`,
-    path,
-    startLine,
-    endLine,
-    kind,
-  };
-
-  if (kind === "text" && excerpt) {
-    evidence.excerptHash = hashExcerpt(excerpt);
-  }
-
-  return evidence;
 }
 
 // === Rule Exports ===
@@ -122,6 +88,10 @@ export { LARGE_MODULE_RULE } from "./large-module.js";
 export { DEBT_MARKER_RULE } from "./debt-marker.js";
 export { SUPPRESSION_DEBT_RULE } from "./suppression-debt.js";
 
+// New rules (Phase 2 - Security Enhancement)
+export { HARDCODED_SECRET_RULE } from "./hardcoded-secret.js";
+export { MISSING_RATE_LIMIT_RULE } from "./missing-rate-limit.js";
+
 // All rules array for easy import
 import { CLIENT_TRUSTED_PRICE_RULE } from "./client-trusted-price.js";
 import { WEAK_AUTH_GUARD_RULE } from "./weak-auth-guard.js";
@@ -134,6 +104,8 @@ import { UNSAFE_DELETE_RULE } from "./unsafe-delete.js";
 import { LARGE_MODULE_RULE } from "./large-module.js";
 import { DEBT_MARKER_RULE } from "./debt-marker.js";
 import { SUPPRESSION_DEBT_RULE } from "./suppression-debt.js";
+import { HARDCODED_SECRET_RULE } from "./hardcoded-secret.js";
+import { MISSING_RATE_LIMIT_RULE } from "./missing-rate-limit.js";
 
 export const ALL_RULES: RulePlugin[] = [
   CLIENT_TRUSTED_PRICE_RULE,
@@ -147,4 +119,6 @@ export const ALL_RULES: RulePlugin[] = [
   LARGE_MODULE_RULE,
   DEBT_MARKER_RULE,
   SUPPRESSION_DEBT_RULE,
+  HARDCODED_SECRET_RULE,
+  MISSING_RATE_LIMIT_RULE,
 ];

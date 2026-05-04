@@ -38,7 +38,7 @@ const EXIT_CODES = {
 };
 
 // Status values from docs/product-acceptance-v1.md Section 12.3
-const EXPECTED_STATUSES = ['passed', 'passed_with_risk', 'needs_review', 'blocked_input', 'failed'];
+const _EXPECTED_STATUSES = ['passed', 'passed_with_risk', 'needs_review', 'blocked_input', 'failed'];
 
 /**
  * Helper to run CLI commands and capture output/exit code
