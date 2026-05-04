@@ -11,7 +11,7 @@
  *   code-to-gate historical --current <dir> --previous <dir> --out <file>
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { EXIT, getOption } from "./exit-codes.js";
 

@@ -5,7 +5,7 @@
 
 import { sha256, toPosix } from "../core/path-utils.js";
 import { createAstEvidence } from "../core/evidence-utils.js";
-import { _EvidenceRef } from "./py-parser-types.js";
+import { EvidenceRef } from "./py-parser-types.js";
 
 // Re-export utilities for backward compatibility
 export { sha256, toPosix, createAstEvidence as createEvidence };

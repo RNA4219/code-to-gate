@@ -6,7 +6,7 @@
  * - FastAPI/Flask routes without rate limiting decorators
  */
 
-import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 // Route patterns by language

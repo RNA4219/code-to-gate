@@ -11,7 +11,7 @@ import {
   ReadinessComparisonResult,
   FindingComparison,
   RiskComparison,
-  type _RiskTrendAnalysis,
+  RiskTrendAnalysis,
   RiskTrendPoint,
   HistoricalSummaryReport,
   RunReference,
@@ -22,16 +22,16 @@ import {
   RiskSeed,
   RiskRegisterArtifact,
   ReleaseReadinessArtifact,
-  type _Severity,
+  Severity,
   CTG_VERSION,
 } from "../types/artifacts.js";
-import { detectRegressions, type _generateRegressionReport, RegressionConfig } from "./regression.js";
+import { detectRegressions, generateRegressionReport, RegressionConfig } from "./regression.js";
 import { buildFingerprintLookupMap } from "../utils/fingerprint.js";
 import {
-  type _loadFindings,
-  type _loadRisks,
-  type _loadReadiness,
-  type _discoverHistoricalRuns,
+  loadFindings,
+  loadRisks,
+  loadReadiness,
+  discoverHistoricalRuns,
   buildFindingLookupMap,
   takeNextFinding,
   getFindingPrimaryPath,

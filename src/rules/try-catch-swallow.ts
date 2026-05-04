@@ -7,7 +7,7 @@
  * - Catch blocks with no logging
  */
 
-import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {

@@ -2,7 +2,7 @@
  * FN Seeded Smells - Predefined seeded smells for FN evaluation
  */
 
-import type { _Severity, _FindingCategory } from "../types/artifacts.js";
+import type { Severity, FindingCategory } from "../types/artifacts.js";
 import type { SeededSmell } from "./fn-evaluator-types.js";
 
 /**

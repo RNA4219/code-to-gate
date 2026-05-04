@@ -405,7 +405,7 @@ function parseYamlLike(content: string): unknown {
 
         if (value === "") {
           // Empty value, might be array or nested object
-          currentArray = null;
+          _currentArray = null;
         } else if (value.startsWith("[") || value.startsWith("{")) {
           // JSON-like value
           try {

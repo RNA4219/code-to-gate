@@ -9,29 +9,29 @@ import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js
 // Tree-sitter adapters
 import {
   initPythonParser,
-  type _parsePythonTreeSitter,
+  parsePythonTreeSitter,
   parsePythonFileSync,
   isTreeSitterAvailable as isPythonTreeSitterAvailable,
 } from "../adapters/py-tree-sitter-adapter.js";
 import {
   initRubyParser,
-  type _parseRubyTreeSitter,
+  parseRubyTreeSitter,
   parseRubyFileSync,
   isRubyTreeSitterAvailable as isRubyTreeSitterAvailable,
 } from "../adapters/rb-tree-sitter-adapter.js";
 import {
   initGoParser,
-  type _parseGoTreeSitter,
+  parseGoTreeSitter,
   parseGoFileSync,
   isGoTreeSitterAvailable,
 } from "../adapters/go-tree-sitter-adapter.js";
 import {
   initRustParser,
-  type _parseRustTreeSitter,
+  parseRustTreeSitter,
   parseRustFileSync,
   isRustTreeSitterAvailable,
 } from "../adapters/rs-tree-sitter-adapter.js";
-import type { NormalizedRepoGraph, type _RepoFile } from "../types/artifacts.js";
+import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
 import { detectLanguage, detectRole, entrypointKind, isEntrypoint, walkDir } from "./file-utils.js";
 import { sha256, toPosix } from "./path-utils.js";

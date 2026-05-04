@@ -5,7 +5,7 @@
  * Critical paths like payment/order processing should have integration tests.
  */
 
-import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 import { toPosix } from "../core/path-utils.js";
 

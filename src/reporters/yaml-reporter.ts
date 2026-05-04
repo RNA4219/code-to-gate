@@ -6,7 +6,7 @@ import {
   RiskSeed,
   RiskRegisterArtifact,
   FindingsArtifact,
-  type _Finding,
+  Finding,
   Severity,
   Likelihood,
 } from "../types/artifacts.js";

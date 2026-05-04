@@ -7,7 +7,7 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import {
   createPluginLoader,
   createPluginRunner,
-  type _createPluginInput,
+  createPluginInput,
   parseSandboxMode,
   validateSandboxConfig,
   DEFAULT_SANDBOX_CONFIG,

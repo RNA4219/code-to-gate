@@ -3,7 +3,7 @@
  * Based on docs/product-spec-v1.md section 4
  */
 
-import type { _Severity, _FindingCategory } from "../types/artifacts.js";
+import type { Severity, FindingCategory } from "../types/artifacts.js";
 
 export const CONFIG_VERSION = "ctg/v1alpha1";
 

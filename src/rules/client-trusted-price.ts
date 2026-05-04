@@ -7,7 +7,7 @@
  * This is a critical security vulnerability that allows price manipulation attacks.
  */
 
-import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 export const CLIENT_TRUSTED_PRICE_RULE: RulePlugin = {

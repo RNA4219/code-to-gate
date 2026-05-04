@@ -9,6 +9,8 @@ import type {
   PluginLoadResult,
   PluginLoadStatus,
   PluginCapability,
+  PluginKind,
+  PluginVisibility,
 } from "./types.js";
 import type { PluginLoader } from "./contract.js";
 import { PLUGIN_MANIFEST_VERSION } from "./types.js";

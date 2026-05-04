@@ -5,7 +5,7 @@
  */
 
 import type {
-  type _PluginManifest,
+  PluginManifest,
   PluginInput,
   PluginExecutionResult,
   PluginRegistryEntry,

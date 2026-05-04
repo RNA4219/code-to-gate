@@ -7,7 +7,7 @@
  * - Unvalidated config from environment
  */
 
-import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {

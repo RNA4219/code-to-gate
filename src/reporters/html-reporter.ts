@@ -11,11 +11,11 @@ import {
   RiskRegisterArtifact,
   TestSeedsArtifact,
   Finding,
-  type _RiskSeed,
-  type _TestSeed,
+  RiskSeed,
+  TestSeed,
   Severity,
 } from "../types/artifacts.js";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { getHtmlStyles } from "./html-reporter-styles.js";
 
