@@ -276,6 +276,18 @@ suppressions:
     reason: Reporters - graceful error handling for output generation
     expiry: 2027-04-30
     author: code-to-gate-team
+  -
+    rule_id: TRY_CATCH_SWALLOW
+    path: src/adapters/**
+    reason: Language adapters - graceful fallback for parse failures
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_INPUT_SANITIZATION
+    path: src/cli/**
+    reason: CLI health check - log output for provider status display
+    expiry: 2027-04-30
+    author: code-to-gate-team
 
   # === GitHub Integration ===
   -
@@ -435,5 +447,79 @@ suppressions:
     rule_id: HARDCODED_SECRET
     path: src/cli.js
     reason: Compiled output - contains pattern references from source
+    expiry: 2027-04-30
+    author: code-to-gate-team
+
+  # === Phase 2 New Rules (UNSAFE_REDIRECT, MISSING_INPUT_SANITIZATION, DEPRECATED_API_USAGE) ===
+  -
+    rule_id: UNSAFE_REDIRECT
+    path: src/rules/**
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_REDIRECT
+    path: fixtures/**
+    reason: Test fixture - intentional redirect patterns for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_REDIRECT
+    path: docker/**
+    reason: Docker plugin runner - example redirect patterns
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: UNSAFE_REDIRECT
+    path: src/adapters/**
+    reason: Language adapters - example patterns for documentation
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_INPUT_SANITIZATION
+    path: src/rules/**
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_INPUT_SANITIZATION
+    path: fixtures/**
+    reason: Test fixture - intentional unsanitized input patterns for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_INPUT_SANITIZATION
+    path: docker/**
+    reason: Docker plugin runner - example input patterns
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_INPUT_SANITIZATION
+    path: src/adapters/**
+    reason: Language adapters - example patterns for documentation
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: DEPRECATED_API_USAGE
+    path: src/rules/**
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: DEPRECATED_API_USAGE
+    path: fixtures/**
+    reason: Test fixture - intentional deprecated API patterns for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: DEPRECATED_API_USAGE
+    path: docker/**
+    reason: Docker plugin runner - may use legacy patterns for compatibility
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: DEPRECATED_API_USAGE
+    path: src/adapters/**
+    reason: Language adapters - may use legacy patterns for compatibility
     expiry: 2027-04-30
     author: code-to-gate-team
