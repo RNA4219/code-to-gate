@@ -388,3 +388,40 @@ suppressions:
     reason: Docker plugin runner - standalone utility
     expiry: 2027-04-30
     author: code-to-gate-team
+  # === New Security Rules (Phase 2) ===
+  -
+    rule_id: HARDCODED_SECRET
+    path: src/rules/**
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: HARDCODED_SECRET
+    path: src/plugin/**
+    reason: Plugin schemas - contains example patterns for plugin development
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: HARDCODED_SECRET
+    path: fixtures/**
+    reason: Test fixture - intentional secret patterns for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_RATE_LIMIT
+    path: src/rules/**
+    reason: Rule implementation - contains detection patterns for testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_RATE_LIMIT
+    path: fixtures/**
+    reason: Test fixture - intentional rate limit patterns for rule testing
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: MISSING_RATE_LIMIT
+    path: src/github/**
+    reason: GitHub API client - rate limiting handled by GitHub SDK
+    expiry: 2027-04-30
+    author: code-to-gate-team
