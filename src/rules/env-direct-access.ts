@@ -7,7 +7,7 @@
  * - Unvalidated config from environment
  */
 
-import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {
@@ -87,7 +87,7 @@ export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {
         content.includes("validateEnv");
 
       let inSmellComment = false;
-      let smellStartLine = 0;
+      let _smellStartLine = 0;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -96,7 +96,7 @@ export const ENV_DIRECT_ACCESS_RULE: RulePlugin = {
         // Check for SMELL comment markers
         if (line.includes("SMELL: ENV_DIRECT_ACCESS") || line.includes("SMELL - Lines")) {
           inSmellComment = true;
-          smellStartLine = lineNum;
+          _smellStartLine = lineNum;
           continue;
         }
 

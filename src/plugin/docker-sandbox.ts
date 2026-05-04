@@ -17,20 +17,14 @@ import {
   type SandboxExecutionResult,
   type SandboxStatusCheck,
   DEFAULT_SANDBOX_CONFIG,
-  toDockerResourceLimits,
-  getDockerSecurityOptions,
-  buildDockerSecurityFlags,
   buildVolumeMounts,
-  toDockerVolumeFlags,
-  filterEnvVars,
   createSandboxConfigFromManifest,
   validateSandboxConfig,
-  DEFAULT_ENV_VAR_FILTER,
 } from "./sandbox-config.js";
 import { DefaultPluginLogger } from "./plugin-context.js";
 import { execDockerCommand, checkDockerVersion, checkDockerImageExists, getDockerSystemMemory, buildDockerImage as buildDockerImageUtil } from "./docker-exec-utils.js";
 import { generateDockerfile, generatePluginRunnerScript } from "./docker-templates.js";
-import { buildDockerRunCommand, buildPluginExecutionCommand } from "./docker-command-builder.js";
+import { buildDockerRunCommand } from "./docker-command-builder.js";
 import * as path from "path";
 import * as fs from "fs/promises";
 import * as os from "os";

@@ -9,21 +9,10 @@ import type {
   SymbolNode,
   GraphRelation,
   EvidenceRef,
+  ParseResult,
 } from "../types/graph.js";
 
-export interface ParseResult {
-  symbols: SymbolNode[];
-  relations: GraphRelation[];
-  diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }>;
-  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
-  parserAdapter: string;
-}
+export type { SymbolNode, GraphRelation, EvidenceRef, ParseResult };
 import { sha256 } from "../core/path-utils.js";
 import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
 
@@ -435,7 +424,7 @@ function extractTypesTreeSitter(
       if (child.type === "type_spec") {
         let name = "";
         let kind: "class" | "interface" = "class";
-        let implMethods: string[] = [];
+        const implMethods: string[] = [];
 
         for (const specChild of child.children || []) {
           if (specChild.type === "type_identifier") {

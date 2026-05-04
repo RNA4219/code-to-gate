@@ -8,6 +8,7 @@
  * - smoke: testing gaps
  */
 
+import { VERSION } from "../cli/exit-codes.js";
 import {
   ArtifactHeader,
   Finding,
@@ -19,14 +20,12 @@ import {
   TestSeedEvidence,
   EvidenceRef,
   CTG_VERSION,
-  Completeness,
+  type _Completeness,
 } from "../types/artifacts.js";
 
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-
-const VERSION = "1.0.0";
 
 /**
  * Map finding category to test intent

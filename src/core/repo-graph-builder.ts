@@ -9,29 +9,29 @@ import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js
 // Tree-sitter adapters
 import {
   initPythonParser,
-  parsePythonTreeSitter,
+  type _parsePythonTreeSitter,
   parsePythonFileSync,
   isTreeSitterAvailable as isPythonTreeSitterAvailable,
 } from "../adapters/py-tree-sitter-adapter.js";
 import {
   initRubyParser,
-  parseRubyTreeSitter,
+  type _parseRubyTreeSitter,
   parseRubyFileSync,
   isRubyTreeSitterAvailable as isRubyTreeSitterAvailable,
 } from "../adapters/rb-tree-sitter-adapter.js";
 import {
   initGoParser,
-  parseGoTreeSitter,
+  type _parseGoTreeSitter,
   parseGoFileSync,
   isGoTreeSitterAvailable,
 } from "../adapters/go-tree-sitter-adapter.js";
 import {
   initRustParser,
-  parseRustTreeSitter,
+  type _parseRustTreeSitter,
   parseRustFileSync,
   isRustTreeSitterAvailable,
 } from "../adapters/rs-tree-sitter-adapter.js";
-import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
+import type { NormalizedRepoGraph, type _RepoFile } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
 import { detectLanguage, detectRole, entrypointKind, isEntrypoint, walkDir } from "./file-utils.js";
 import { sha256, toPosix } from "./path-utils.js";
@@ -205,7 +205,7 @@ function tryTreeSitterParse(
   language: string,
   file: string,
   repoRoot: string,
-  fileId: string
+  _fileId: string
 ): AdapterParseResult | undefined {
   const body = readFileSync(file, "utf8");
   const relPath = toPosix(path.relative(repoRoot, file));

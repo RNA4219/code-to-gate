@@ -246,7 +246,7 @@ export async function listPlugins(paths: string[]): Promise<Array<{
   status: string;
   path: string;
 }>> {
-  const loader = createPluginLoader();
+  const _loader = createPluginLoader();
   const results = await loadPluginManifests(paths);
 
   return results.map(r => ({

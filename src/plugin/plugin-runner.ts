@@ -5,7 +5,7 @@
  */
 
 import type {
-  PluginManifest,
+  type _PluginManifest,
   PluginInput,
   PluginExecutionResult,
   PluginRegistryEntry,
@@ -308,7 +308,7 @@ export class PluginRunnerImpl implements PluginRunner {
   /**
    * Create execution context
    */
-  private createExecutionContext(entry: PluginRegistryEntry): PluginExecutionContext {
+  private createExecutionContext(_entry: PluginRegistryEntry): PluginExecutionContext {
     return {
       runId: `plugin-run-${Date.now()}`,
       repoRoot: process.cwd(),

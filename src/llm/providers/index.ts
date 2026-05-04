@@ -70,8 +70,9 @@ export async function createAutoProvider(): Promise<LlmProvider> {
       if (isAvailable) {
         return provider;
       }
-    } catch {
-      // Continue to next provider
+    } catch (error) {
+      // Provider check failed, try next
+      console.warn(`Provider ${providerType} check failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

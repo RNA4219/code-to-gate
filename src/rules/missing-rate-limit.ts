@@ -6,7 +6,7 @@
  * - FastAPI/Flask routes without rate limiting decorators
  */
 
-import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 // Route patterns by language
@@ -73,8 +73,8 @@ export const MISSING_RATE_LIMIT_RULE: RulePlugin = {
   evaluate(context: RuleContext): Finding[] {
     const findings: Finding[] = [];
     const lang = getLanguage(context.graph.files[0]?.path || "ts");
-    const routePatterns = ROUTE_PATTERNS_BY_LANG[lang] || ROUTE_PATTERNS_BY_LANG.ts;
-    const rateLimitPatterns = RATE_LIMIT_BY_LANG[lang] || RATE_LIMIT_BY_LANG.ts;
+    const _routePatterns = ROUTE_PATTERNS_BY_LANG[lang] || ROUTE_PATTERNS_BY_LANG.ts;
+    const _rateLimitPatterns = RATE_LIMIT_BY_LANG[lang] || RATE_LIMIT_BY_LANG.ts;
 
     for (const file of context.graph.files) {
       if (file.role !== "source") continue;

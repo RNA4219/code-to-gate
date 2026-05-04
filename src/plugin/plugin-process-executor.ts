@@ -76,7 +76,7 @@ export async function executePluginProcess(
           }
 
           resolve(output);
-        } catch (parseError) {
+        } catch (_parseError) {
           reject(new Error(`PARSE_ERROR: Failed to parse plugin output. stdout: ${stdoutData.slice(0, 500)}`));
         }
       });

@@ -4,6 +4,7 @@
  */
 
 import { SymbolNode } from "./py-parser-types.js";
+import { getBaseSymbolKind } from "./symbol-kind-utils.js";
 
 /**
  * Check if a decorator indicates a route handler
@@ -55,42 +56,14 @@ export function getSymbolKind(
   isMethod: boolean,
   decorator?: string
 ): SymbolNode["kind"] {
-  // Check if it's a test file
-  if (
-    filePath.includes("/tests/") ||
-    filePath.includes("/test/") ||
-    filePath.includes("_test.py") ||
-    filePath.includes("test_") ||
-    filePath.endsWith(".spec.py")
-  ) {
-    return "test";
-  }
-
-  // Check decorators for route handlers
+  // Check decorators for route handlers (Python-specific)
   if (decorator && isRouteDecorator(decorator)) {
-    return "route";
-  }
-
-  // Check if function name contains 'route'
-  if (name.includes("route") || name.includes("handler") || name.includes("endpoint")) {
     return "route";
   }
 
   // Check if it's a test method
   if (isMethod && (name.startsWith("test_") || name.startsWith("test"))) {
     return "test";
-  }
-
-  // Check if it's a route method (common patterns)
-  if (
-    isMethod &&
-    (name === "get" ||
-      name === "post" ||
-      name === "put" ||
-      name === "delete" ||
-      name === "patch")
-  ) {
-    return "route";
   }
 
   // Check common test function patterns
@@ -104,6 +77,10 @@ export function getSymbolKind(
   ) {
     return "test";
   }
+
+  // Use shared utility for base kind detection
+  const baseKind = getBaseSymbolKind(filePath, name);
+  if (baseKind) return baseKind;
 
   // Methods inside classes
   if (isMethod) {

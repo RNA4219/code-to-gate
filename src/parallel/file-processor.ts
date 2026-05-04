@@ -139,7 +139,7 @@ export class FileProcessor extends EventEmitter {
       });
     }
 
-    let batchIndex = 0;
+    let _batchIndex = 0;
     const pendingBatches = [...batches];
 
     while (pendingBatches.length > 0) {
@@ -166,7 +166,7 @@ export class FileProcessor extends EventEmitter {
       };
 
       this.workers[availableWorker].postMessage(message);
-      batchIndex++;
+      _batchIndex++;
     }
 
     await new Promise<void>((resolve) => {

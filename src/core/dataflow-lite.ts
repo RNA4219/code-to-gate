@@ -15,7 +15,7 @@
  * - Blast radius estimation accuracy
  */
 
-import type { DataflowNode, DataflowRelation, DataflowGraph, EvidenceRef, SymbolNode, GraphRelation } from "../types/graph.js";
+import type { DataflowNode, DataflowRelation, DataflowGraph, SymbolNode, GraphRelation } from "../types/graph.js";
 import { sha256 } from "./path-utils.js";
 
 export type { DataflowNode, DataflowRelation, DataflowGraph };

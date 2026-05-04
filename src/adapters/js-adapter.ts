@@ -6,25 +6,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import * as acorn from "acorn";
 import { sha256, toPosix } from "../core/path-utils.js";
-import type { EvidenceRef, SymbolNode, GraphRelation } from "../types/graph.js";
+import type { EvidenceRef, SymbolNode, GraphRelation, ParseResult } from "../types/graph.js";
 import { walkNode, HandlerContext } from "./js-ast-handlers.js";
-import { getNodeLoc } from "./js-adapter-utils.js";
 
-export type { EvidenceRef, SymbolNode, GraphRelation };
-
-export interface ParseResult {
-  symbols: SymbolNode[];
-  relations: GraphRelation[];
-  diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }>;
-  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
-  parserAdapter: string;
-}
+export type { EvidenceRef, SymbolNode, GraphRelation, ParseResult };
 
 /**
  * Parse a JavaScript file and extract symbols/relations

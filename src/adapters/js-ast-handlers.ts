@@ -4,7 +4,7 @@
  */
 
 import { sha256 } from "../core/path-utils.js";
-import type { EvidenceRef, SymbolNode, GraphRelation } from "../types/graph.js";
+import type { SymbolNode, GraphRelation } from "../types/graph.js";
 import { createEvidence, getNodeLoc, getIdName, getSymbolKind } from "./js-adapter-utils.js";
 
 /**

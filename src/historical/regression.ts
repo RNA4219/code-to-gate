@@ -12,7 +12,7 @@ import {
   RegressionConfig,
   RegressionReport,
 } from "./types.js";
-import { Severity, Finding } from "../types/artifacts.js";
+import { Severity } from "../types/artifacts.js";
 
 // Re-export RegressionConfig for convenience
 export { RegressionConfig } from "./types.js";

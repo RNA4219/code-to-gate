@@ -1,43 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
-import type { EvidenceRef, GraphRelation, SymbolNode } from "../types/graph.js";
+import { createAstEvidence } from "../core/evidence-utils.js";
+import type { EvidenceRef, GraphRelation, SymbolNode, ParseResult } from "../types/graph.js";
 
+export type { EvidenceRef, GraphRelation, SymbolNode, ParseResult };
 export type RegexLanguage = "go" | "rs" | "java" | "php";
-
-export interface ParseResult {
-  symbols: SymbolNode[];
-  relations: GraphRelation[];
-  diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }>;
-  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
-  parserAdapter: string;
-}
-
-function createEvidence(
-  id: string,
-  filePath: string,
-  startLine: number,
-  endLine: number,
-  nodeId?: string,
-  symbolId?: string
-): EvidenceRef {
-  return {
-    id,
-    path: filePath,
-    startLine,
-    endLine,
-    kind: "ast",
-    excerptHash: sha256(`${filePath}:${startLine}-${endLine}`),
-    nodeId,
-    symbolId,
-  };
-}
 
 function isTestPath(relPath: string, language: RegexLanguage): boolean {
   if (relPath.includes("/test/") || relPath.includes("/tests/") || relPath.includes("__tests__/")) return true;
@@ -192,7 +160,7 @@ export function parseRegexLanguageFile(
           kind: "imports",
           confidence: 0.95,
           evidence: [
-            createEvidence(`ev-import-${sha256(`${relPath}:${relationIndex}`).slice(0, 8)}`, relPath, lineNum, lineNum),
+            createAstEvidence(`ev-import-${sha256(`${relPath}:${relationIndex}`).slice(0, 8)}`, relPath, lineNum, lineNum),
           ],
         });
       }
@@ -211,7 +179,7 @@ export function parseRegexLanguageFile(
           exported: true,
           location: { startLine: lineNum, endLine },
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-symbol-${sha256(`${relPath}:${detected.name}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -234,7 +202,7 @@ export function parseRegexLanguageFile(
           kind: "configures",
           confidence: 0.8,
           evidence: [
-            createEvidence(`ev-route-${sha256(`${relPath}:${lineNum}`).slice(0, 8)}`, relPath, lineNum, lineNum),
+            createAstEvidence(`ev-route-${sha256(`${relPath}:${lineNum}`).slice(0, 8)}`, relPath, lineNum, lineNum),
           ],
         });
       }
@@ -252,7 +220,7 @@ export function parseRegexLanguageFile(
         kind: "exports",
         confidence: 0.9,
         evidence: [
-          createEvidence(
+          createAstEvidence(
             `ev-export-${sha256(`${relPath}:${name}`).slice(0, 8)}`,
             relPath,
             symbol.location?.startLine ?? 1,

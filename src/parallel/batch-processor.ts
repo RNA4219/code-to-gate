@@ -3,7 +3,6 @@
  * Used by FileProcessor for parallel processing
  */
 
-import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { sha256, toPosix } from "../core/path-utils.js";
@@ -12,7 +11,7 @@ import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js
 import { parseJavaScriptFile } from "../adapters/js-adapter.js";
 import { parsePythonFile } from "../adapters/py-adapter.js";
 import { parseRubyFile } from "../adapters/rb-adapter.js";
-import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
+import { parseRegexLanguageFile, type _RegexLanguage } from "../adapters/regex-language-adapter.js";
 import type { RepoFile } from "../types/artifacts.js";
 import type { FileProcessorResult } from "./file-processor-types.js";
 

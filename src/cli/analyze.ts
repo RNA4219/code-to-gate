@@ -11,7 +11,6 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
   EmitFormat,
-  CTG_VERSION,
   FindingsArtifact,
 } from "../types/artifacts.js";
 import {
@@ -19,7 +18,7 @@ import {
   loadPolicyFile,
   SuppressionEntry,
 } from "../config/policy-loader.js";
-import { loadSuppressions, DEFAULT_SUPPRESSION_FILE } from "../suppression/suppression-loader.js";
+import { loadSuppressions } from "../suppression/suppression-loader.js";
 import {
   evaluatePolicy,
   generateBlockingSummary,

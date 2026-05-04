@@ -45,7 +45,7 @@ export interface FindingViewerConfig {
  */
 export function generateEvidenceHtml(
   evidence: EvidenceRef[],
-  config: FindingViewerConfig = {}
+  _config: FindingViewerConfig = {}
 ): string {
   if (evidence.length === 0) {
     return '<div class="empty-state"><span class="empty-state-icon">-</span><p>No evidence available</p></div>';

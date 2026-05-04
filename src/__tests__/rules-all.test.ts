@@ -167,8 +167,8 @@ export const util30 = () => {};
 
 describe("All Rules System", () => {
   describe("Rule Registration", () => {
-    it("should have exactly 11 rules registered", () => {
-      expect(ALL_RULES.length).toBe(11);
+    it("should have exactly 17 rules registered", () => {
+      expect(ALL_RULES.length).toBe(17);
     });
 
     it("should have all expected rule IDs", () => {

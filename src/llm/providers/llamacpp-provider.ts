@@ -38,7 +38,7 @@ interface LlamacppCompletionResponse {
   };
 }
 
-interface LlamacppChatResponse {
+interface _LlamacppChatResponse {
   content: string;
   tokens_evaluated?: number;
   tokens_predicted?: number;

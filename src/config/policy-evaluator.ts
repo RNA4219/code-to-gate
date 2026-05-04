@@ -54,7 +54,7 @@ export interface PolicyEvaluationResult {
 /**
  * Severity order for comparison
  */
-const SEVERITY_ORDER: Record<Severity, number> = {
+const _SEVERITY_ORDER: Record<Severity, number> = {
   critical: 4,
   high: 3,
   medium: 2,

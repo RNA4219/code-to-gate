@@ -1,23 +1,11 @@
 import { Project, SourceFile, SyntaxKind, Node } from "ts-morph";
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
-import type { EvidenceRef, SymbolNode, GraphRelation } from "../types/graph.js";
+import { createAstEvidence } from "../core/evidence-utils.js";
+import { getBaseSymbolKind } from "./symbol-kind-utils.js";
+import type { EvidenceRef, SymbolNode, GraphRelation, ParseResult } from "../types/graph.js";
 
-export type { EvidenceRef, SymbolNode, GraphRelation };
-
-export interface ParseResult {
-  symbols: SymbolNode[];
-  relations: GraphRelation[];
-  diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }>;
-  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
-  parserAdapter: string;
-}
+export type { EvidenceRef, SymbolNode, GraphRelation, ParseResult };
 
 // Syntax error codes for detection
 const SYNTAX_ERROR_CODES = [1003, 1005, 1009, 1109, 1110, 1128, 1134, 1131, 1135, 1136, 1137, 1138, 1139, 1140];
@@ -69,14 +57,10 @@ function extractClassImplements(cls: ClassDeclaration): string[] {
 }
 
 function getSymbolKind(node: Node, name: string, filePath: string): SymbolNode["kind"] {
-  if (filePath.includes("/tests/") || filePath.includes(".test.") || filePath.includes(".spec.")) {
-    return "test";
-  }
+  const baseKind = getBaseSymbolKind(filePath, name);
+  if (baseKind) return baseKind;
 
-  if (name.toLowerCase().includes("route") || name.toLowerCase().includes("handler") || name.toLowerCase().includes("controller")) {
-    return "route";
-  }
-
+  // ts-morph specific type checks
   if (Node.isFunctionDeclaration(node) || Node.isArrowFunction(node)) return "function";
   if (Node.isClassDeclaration(node)) return "class";
   if (Node.isMethodDeclaration(node)) return "method";
@@ -89,19 +73,6 @@ function getSymbolKind(node: Node, name: string, filePath: string): SymbolNode["
   }
 
   return "unknown";
-}
-
-function createEvidence(id: string, filePath: string, startLine: number, endLine: number, nodeId?: string, symbolId?: string): EvidenceRef {
-  return {
-    id,
-    path: filePath,
-    startLine,
-    endLine,
-    kind: "ast",
-    excerptHash: sha256(`${filePath}:${startLine}-${endLine}`),
-    nodeId,
-    symbolId,
-  };
 }
 
 function extractImports(sourceFile: SourceFile, fileId: string, relPath: string): GraphRelation[] {
@@ -120,7 +91,7 @@ function extractImports(sourceFile: SourceFile, fileId: string, relPath: string)
       to: moduleSpecifier,
       kind: "imports",
       confidence: 1.0,
-      evidence: [createEvidence(`ev-import-${sha256(`${relPath}:${i + 1}`).slice(0, 8)}`, relPath, startLine, endLine)],
+      evidence: [createAstEvidence(`ev-import-${sha256(`${relPath}:${i + 1}`).slice(0, 8)}`, relPath, startLine, endLine)],
     });
 
     for (const namedImport of importDecl.getNamedImports()) {
@@ -131,7 +102,7 @@ function extractImports(sourceFile: SourceFile, fileId: string, relPath: string)
         to: `symbol:${moduleSpecifier}:${importName}`,
         kind: "references",
         confidence: 0.9,
-        evidence: [createEvidence(`ev-import-symbol-${sha256(`${relPath}:${importName}`).slice(0, 8)}`, relPath, namedImport.getStartLineNumber(), namedImport.getEndLineNumber())],
+        evidence: [createAstEvidence(`ev-import-symbol-${sha256(`${relPath}:${importName}`).slice(0, 8)}`, relPath, namedImport.getStartLineNumber(), namedImport.getEndLineNumber())],
       });
     }
 
@@ -143,7 +114,7 @@ function extractImports(sourceFile: SourceFile, fileId: string, relPath: string)
         to: `symbol:${moduleSpecifier}:default`,
         kind: "references",
         confidence: 0.9,
-        evidence: [createEvidence(`ev-import-default-${sha256(`${relPath}:${i + 1}`).slice(0, 8)}`, relPath, defaultImport.getStartLineNumber(), defaultImport.getEndLineNumber())],
+        evidence: [createAstEvidence(`ev-import-default-${sha256(`${relPath}:${i + 1}`).slice(0, 8)}`, relPath, defaultImport.getStartLineNumber(), defaultImport.getEndLineNumber())],
       });
     }
   }
@@ -165,7 +136,7 @@ function extractExports(sourceFile: SourceFile, fileId: string, relPath: string)
         to: moduleSpecifier,
         kind: "exports",
         confidence: 1.0,
-        evidence: [createEvidence(`ev-export-${sha256(`${relPath}:${i + 1}`).slice(0, 8)}`, relPath, exportDecl.getStartLineNumber(), exportDecl.getEndLineNumber())],
+        evidence: [createAstEvidence(`ev-export-${sha256(`${relPath}:${i + 1}`).slice(0, 8)}`, relPath, exportDecl.getStartLineNumber(), exportDecl.getEndLineNumber())],
       });
     }
   }
@@ -196,7 +167,7 @@ function extractFunctions(sourceFile: SourceFile, fileId: string, relPath: strin
       exported: func.isExported(),
       async: func.isAsync(),
       location: { startLine, endLine },
-      evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, startLine, endLine, undefined, symbolId)],
+      evidence: [createAstEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, startLine, endLine, undefined, symbolId)],
       typeInfo,
     });
 
@@ -209,7 +180,7 @@ function extractFunctions(sourceFile: SourceFile, fileId: string, relPath: strin
         to: `symbol:${callExpr.getExpression().getText()}`,
         kind: "calls",
         confidence: 0.7,
-        evidence: [createEvidence(`ev-call-${sha256(`${relPath}:${name}:${j + 1}`).slice(0, 8)}`, relPath, callExpr.getStartLineNumber(), callExpr.getEndLineNumber())],
+        evidence: [createAstEvidence(`ev-call-${sha256(`${relPath}:${name}:${j + 1}`).slice(0, 8)}`, relPath, callExpr.getStartLineNumber(), callExpr.getEndLineNumber())],
       });
     }
   }
@@ -240,7 +211,7 @@ function extractClasses(sourceFile: SourceFile, fileId: string, relPath: string)
       kind: "class",
       exported: isExported,
       location: { startLine, endLine },
-      evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, startLine, endLine, undefined, classSymbolId)],
+      evidence: [createAstEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, startLine, endLine, undefined, classSymbolId)],
       typeInfo: implementsList.length > 0 ? { implements: implementsList } : undefined,
     });
 
@@ -259,7 +230,7 @@ function extractClasses(sourceFile: SourceFile, fileId: string, relPath: string)
         exported: isExported,
         async: method.isAsync(),
         location: { startLine: method.getStartLineNumber(), endLine: method.getEndLineNumber() },
-        evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}.${methodName}`).slice(0, 8)}`, relPath, method.getStartLineNumber(), method.getEndLineNumber(), undefined, methodSymbolId)],
+        evidence: [createAstEvidence(`ev-symbol-${sha256(`${relPath}:${name}.${methodName}`).slice(0, 8)}`, relPath, method.getStartLineNumber(), method.getEndLineNumber(), undefined, methodSymbolId)],
         typeInfo: methodTypeInfo,
       });
 
@@ -272,7 +243,7 @@ function extractClasses(sourceFile: SourceFile, fileId: string, relPath: string)
           to: `symbol:${callExpr.getExpression().getText()}`,
           kind: "calls",
           confidence: 0.7,
-          evidence: [createEvidence(`ev-call-${sha256(`${relPath}:${name}.${methodName}:${k + 1}`).slice(0, 8)}`, relPath, callExpr.getStartLineNumber(), callExpr.getEndLineNumber())],
+          evidence: [createAstEvidence(`ev-call-${sha256(`${relPath}:${name}.${methodName}:${k + 1}`).slice(0, 8)}`, relPath, callExpr.getStartLineNumber(), callExpr.getEndLineNumber())],
         });
       }
     }
@@ -295,7 +266,7 @@ function extractInterfaces(sourceFile: SourceFile, fileId: string, relPath: stri
       kind: "interface",
       exported: iface.isExported(),
       location: { startLine: iface.getStartLineNumber(), endLine: iface.getEndLineNumber() },
-      evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, iface.getStartLineNumber(), iface.getEndLineNumber(), undefined, symbolId)],
+      evidence: [createAstEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, iface.getStartLineNumber(), iface.getEndLineNumber(), undefined, symbolId)],
     });
   }
 
@@ -316,7 +287,7 @@ function extractTypeAliases(sourceFile: SourceFile, fileId: string, relPath: str
       kind: "type",
       exported: typeAlias.isExported(),
       location: { startLine: typeAlias.getStartLineNumber(), endLine: typeAlias.getEndLineNumber() },
-      evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, typeAlias.getStartLineNumber(), typeAlias.getEndLineNumber(), undefined, symbolId)],
+      evidence: [createAstEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, typeAlias.getStartLineNumber(), typeAlias.getEndLineNumber(), undefined, symbolId)],
     });
   }
 
@@ -343,13 +314,13 @@ function extractVariables(sourceFile: SourceFile, fileId: string, relPath: strin
 
     const initializer = varDecl.getInitializer();
     let isAsync = false;
-    let symbolKind: SymbolNode["kind"] = "variable";
+    let _symbolKind: SymbolNode["kind"] = "variable";
     if (initializer) {
       if (Node.isArrowFunction(initializer)) {
-        symbolKind = "function";
+        _symbolKind = "function";
         isAsync = initializer.isAsync();
       } else if (Node.isFunctionExpression(initializer)) {
-        symbolKind = "function";
+        _symbolKind = "function";
         isAsync = initializer.isAsync();
       }
     }
@@ -362,7 +333,7 @@ function extractVariables(sourceFile: SourceFile, fileId: string, relPath: strin
       exported: isExported,
       async: isAsync,
       location: { startLine: varDecl.getStartLineNumber(), endLine: varDecl.getEndLineNumber() },
-      evidence: [createEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, varDecl.getStartLineNumber(), varDecl.getEndLineNumber(), undefined, symbolId)],
+      evidence: [createAstEvidence(`ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, varDecl.getStartLineNumber(), varDecl.getEndLineNumber(), undefined, symbolId)],
     });
   }
 
@@ -382,7 +353,7 @@ function extractExportedDeclarations(sourceFile: SourceFile, fileId: string, rel
           to: `symbol:${relPath}:${name}`,
           kind: "exports",
           confidence: 1.0,
-          evidence: [createEvidence(`ev-export-local-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, decl.getStartLineNumber(), decl.getEndLineNumber())],
+          evidence: [createAstEvidence(`ev-export-local-${sha256(`${relPath}:${name}`).slice(0, 8)}`, relPath, decl.getStartLineNumber(), decl.getEndLineNumber())],
         });
       }
     }
@@ -414,7 +385,7 @@ export function parseTypeScriptFile(filePath: string, repoRoot: string, fileId: 
           severity: "error",
           code: "PARSER_FAILED",
           message: `Syntax error: ${diag.getMessageText().toString()}`,
-          evidence: [createEvidence(`ev-syntax-error-${sha256(`${relPath}:${line}`).slice(0, 8)}`, relPath, line, line)],
+          evidence: [createAstEvidence(`ev-syntax-error-${sha256(`${relPath}:${line}`).slice(0, 8)}`, relPath, line, line)],
         });
       }
       return { symbols, relations, diagnostics, parserStatus: "failed", parserAdapter: "ts-morph-v0" };

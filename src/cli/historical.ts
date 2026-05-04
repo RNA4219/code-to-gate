@@ -11,13 +11,11 @@
  *   code-to-gate historical --current <dir> --previous <dir> --out <file>
  */
 
-import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { EXIT, getOption, VERSION } from "./exit-codes.js";
+import { EXIT, getOption } from "./exit-codes.js";
 
 import {
-  HistoricalOptions,
-  HistoricalSummaryReport,
   RunReference,
   RiskTrendPoint,
 } from "../historical/types.js";
@@ -29,7 +27,6 @@ import {
   compareFindings,
   compareRisks,
   compareReadiness,
-  analyzeRiskTrends,
   generateHistoricalReport,
 } from "../historical/comparison.js";
 
@@ -232,7 +229,7 @@ export async function historicalCommand(
   );
 
   // Generate regression report for additional insights
-  const regressionReport = generateRegressionReport(
+  generateRegressionReport(
     findingsComparison.new,
     findingsComparison.resolved,
     findingsComparison.unchanged,

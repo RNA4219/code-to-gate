@@ -11,7 +11,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import type { Finding, FindingsArtifact } from "../types/artifacts.js";
+import type { Finding } from "../types/artifacts.js";
 
 /**
  * Entry for cached findings per file

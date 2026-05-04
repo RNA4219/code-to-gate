@@ -16,7 +16,6 @@ import {
   NormalizedRepoGraph,
   FindingsArtifact,
   Finding,
-  EvidenceRef,
   CTG_VERSION,
   ToolRef,
 } from "../types/artifacts.js";
@@ -89,7 +88,7 @@ function parseNumstat(line: string): { additions: number; deletions: number; pat
 /**
  * Parse git diff hunk headers to get line ranges
  */
-function parseHunkHeaders(diffOutput: string, filePath: string): Array<{ startLine: number; endLine: number }> {
+function parseHunkHeaders(diffOutput: string, _filePath: string): Array<{ startLine: number; endLine: number }> {
   const hunks: Array<{ startLine: number; endLine: number }> = [];
   const hunkRegex = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/gm;
   let match;
@@ -173,7 +172,7 @@ function getChangedFiles(repoRoot: string, baseRef: string, headRef: string): Ch
         hunks,
       });
     }
-  } catch (error) {
+  } catch (_error) {
     // Git not available or not a git repo - fall back to file-based comparison
     // This is a simplified fallback for non-git directories
     const allFiles = walkDir(repoRoot);

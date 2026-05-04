@@ -9,8 +9,6 @@ import type {
   PluginLoadResult,
   PluginLoadStatus,
   PluginCapability,
-  PluginKind,
-  PluginVisibility,
 } from "./types.js";
 import type { PluginLoader } from "./contract.js";
 import { PLUGIN_MANIFEST_VERSION } from "./types.js";
@@ -31,7 +29,7 @@ import * as path from "path";
  */
 export class PluginLoaderImpl implements PluginLoader {
   async loadManifest(pluginPath: string): Promise<PluginLoadResult> {
-    const errors: Array<{ code: string; message: string; path?: string }> = [];
+    const _errors: Array<{ code: string; message: string; path?: string }> = [];
 
     try {
       const stat = await fs.stat(pluginPath);

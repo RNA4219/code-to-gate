@@ -7,7 +7,7 @@
  * - Catch blocks with no logging
  */
 
-import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
@@ -33,10 +33,10 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
       const lines = content.split("\n");
 
       // Track try-catch block boundaries
-      let tryStartLine = 0;
-      let catchStartLine = 0;
+      let _tryStartLine = 0;
+      let _catchStartLine = 0;
       let braceDepth = 0;
-      let inTryBlock = false;
+      let _inTryBlock = false;
       let inCatchBlock = false;
 
       for (let i = 0; i < lines.length; i++) {
@@ -48,36 +48,36 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
         if (trimmed.startsWith("//") || trimmed.startsWith("#")) {
           if (trimmed.includes("SMELL: TRY_CATCH_SWALLOW")) {
             inCatchBlock = true;
-            catchStartLine = lineNum;
+            _catchStartLine = lineNum;
           }
           continue;
         }
 
         // Track try keyword
         if (trimmed.startsWith("try") || trimmed === "try:") {
-          tryStartLine = lineNum;
-          inTryBlock = true;
+          _tryStartLine = lineNum;
+          _inTryBlock = true;
         }
 
         // Track catch keyword (JS/TS)
         if (trimmed.startsWith("catch") && (trimmed.includes("{") || lines[i + 1]?.trim().startsWith("{"))) {
-          inTryBlock = false;
+          _inTryBlock = false;
           inCatchBlock = true;
-          catchStartLine = lineNum;
+          _catchStartLine = lineNum;
         }
 
         // Track except keyword (Python)
         if (trimmed.startsWith("except") && !trimmed.includes("Exception as")) {
-          inTryBlock = false;
+          _inTryBlock = false;
           inCatchBlock = true;
-          catchStartLine = lineNum;
+          _catchStartLine = lineNum;
         }
 
         // Track Ruby rescue keyword
         if (trimmed.startsWith("rescue") && !trimmed.includes("=>")) {
-          inTryBlock = false;
+          _inTryBlock = false;
           inCatchBlock = true;
-          catchStartLine = lineNum;
+          _catchStartLine = lineNum;
         }
 
         // Count braces to track block depth

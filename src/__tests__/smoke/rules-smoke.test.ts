@@ -26,7 +26,7 @@ import {
 describe('Rules Smoke Tests', () => {
   describe('ALL_RULES array', () => {
     it('contains all expected rules', () => {
-      expect(ALL_RULES).toHaveLength(13);
+      expect(ALL_RULES).toHaveLength(17);
     });
 
     it('all rules have unique IDs', () => {

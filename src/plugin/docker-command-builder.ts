@@ -7,11 +7,6 @@ import type { PluginManifest } from "./types.js";
 import type { SandboxConfig } from "./sandbox-config.js";
 import {
   toDockerResourceLimits,
-  getDockerSecurityOptions,
-  buildDockerSecurityFlags,
-  toDockerVolumeFlags,
-  filterEnvVars,
-  DEFAULT_ENV_VAR_FILTER,
   type VolumeMount,
 } from "./sandbox-config.js";
 import * as path from "path";
@@ -24,8 +19,8 @@ export function buildDockerRunCommand(
   config: SandboxConfig,
   containerName: string,
   mounts: VolumeMount[],
-  inputFile: string,
-  outputFile: string
+  _inputFile: string,
+  _outputFile: string
 ): string[] {
   const cmd: string[] = ["docker", "run", "--rm"];
 

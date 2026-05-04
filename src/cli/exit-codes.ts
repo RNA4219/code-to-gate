@@ -2,6 +2,12 @@
  * Centralized exit codes for CLI commands
  */
 
+import { createRequire } from "module";
+import { getOption } from "../core/config-utils.js";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../../package.json");
+
 export interface ExitCodes {
   OK: number;
   READINESS_NOT_CLEAR: number;
@@ -30,18 +36,13 @@ export const EXIT: ExitCodes = {
   INTERNAL_ERROR: 10,
 };
 
-/**
- * Standard getOption function for CLI argument parsing
- */
-export function getOption(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
-}
+// Re-export getOption for backward compatibility
+export { getOption };
 
 /**
- * Standard VERSION constant
+ * VERSION from package.json
  */
-export const VERSION = "1.0.0";
+export const VERSION = pkg.version;
 
 /**
  * Cache mode options

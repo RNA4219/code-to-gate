@@ -3,11 +3,11 @@
  * Handles plugin-related CLI operations including sandbox execution
  */
 
-import { EXIT, getOption } from "./exit-codes.js";
+import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import {
   createPluginLoader,
   createPluginRunner,
-  createPluginInput,
+  type _createPluginInput,
   parseSandboxMode,
   validateSandboxConfig,
   DEFAULT_SANDBOX_CONFIG,
@@ -16,8 +16,6 @@ import {
 import type { PluginRegistryEntry, SandboxConfig } from "../plugin/index.js";
 import * as path from "path";
 import * as fs from "fs/promises";
-
-const VERSION = "1.0.0";
 
 interface PluginOptions {
   VERSION: string;

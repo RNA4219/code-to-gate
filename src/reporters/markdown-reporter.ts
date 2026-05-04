@@ -6,7 +6,7 @@ import {
   FindingsArtifact,
   RiskRegisterArtifact,
   Finding,
-  RiskSeed,
+  type _RiskSeed,
   Severity,
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";

@@ -13,13 +13,9 @@
  * - Blast radius estimation accuracy improvement
  */
 
-import type { DataflowNode, DataflowRelation, DataflowGraph, EvidenceRef, SymbolNode, GraphRelation, NormalizedRepoGraph } from "../types/graph.js";
+import type { DataflowNode, DataflowRelation, DataflowGraph, SymbolNode, GraphRelation, NormalizedRepoGraph } from "../types/graph.js";
 import { sha256 } from "./path-utils.js";
 import {
-  extractAssignDataflow,
-  extractParamDataflow,
-  extractReturnDataflow,
-  createDataflowRelation,
   buildDataflowGraph,
 } from "./dataflow-lite.js";
 
@@ -39,7 +35,7 @@ export function extractCrossFileDataflow(
 
   // Find import/export relations
   const importRelations = graph.relations.filter(r => r.kind === "imports");
-  const exportRelations = graph.relations.filter(r => r.kind === "exports");
+  const _exportRelations = graph.relations.filter(r => r.kind === "exports");
 
   // Build cross-file flow chain
   const sourceSymbol = graph.symbols.find(s => s.id === sourceSymbolId);

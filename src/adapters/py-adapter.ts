@@ -30,8 +30,8 @@ import { getSymbolKind, extractDecorators } from "./py-parser-syntax.js";
 
 // Parsers
 import { parseImports } from "./py-parser-imports.js";
-import { parseClasses, parseMethodsInClass } from "./py-parser-classes.js";
-import { parseFunctions, parseCallsInBlock } from "./py-parser-functions.js";
+import { parseClasses } from "./py-parser-classes.js";
+import { parseCallsInBlock } from "./py-parser-functions.js";
 import { parseVariables, parseTypes } from "./py-parser-variables.js";
 import { parseEntrypoints } from "./py-parser-entrypoints.js";
 
@@ -136,8 +136,8 @@ export function parsePythonFile(
 
     // Parse standalone functions (not inside classes)
     // Track indentation to determine if inside a class
-    const inClass = false;
-    const classIndent = 0;
+    const _inClass = false;
+    const _classIndent = 0;
     const classBodyIndents = new Map<number, string>(); // indent -> className
 
     // Build a map of class start lines and their indentation
@@ -241,9 +241,7 @@ export function parsePythonFile(
     parseEntrypoints(lines, relPath, fileId, relations);
 
     // Add export relations for exported symbols
-    let exportIndex = 0;
     for (const symName of exportedSymbols) {
-      exportIndex++;
       const symbol = symbols.find((s) => s.name === symName);
       if (symbol) {
         relations.push({

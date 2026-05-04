@@ -6,7 +6,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { Finding, EvidenceRef } from "../types/artifacts.js";
+import { Finding } from "../types/artifacts.js";
 
 /**
  * Generate a stable fingerprint for a finding

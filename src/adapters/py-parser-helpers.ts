@@ -3,46 +3,12 @@
  * Utility functions for Python file parsing
  */
 
-import { createHash } from "node:crypto";
-import { EvidenceRef } from "./py-parser-types.js";
+import { sha256, toPosix } from "../core/path-utils.js";
+import { createAstEvidence } from "../core/evidence-utils.js";
+import { _EvidenceRef } from "./py-parser-types.js";
 
-/**
- * Generate SHA-256 hash
- */
-export function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-/**
- * Convert path to POSIX format
- */
-export function toPosix(value: string): string {
-  return value.replace(/\\/g, "/");
-}
-
-/**
- * Create an evidence reference
- */
-export function createEvidence(
-  id: string,
-  filePath: string,
-  startLine: number,
-  endLine: number,
-  nodeId?: string,
-  symbolId?: string
-): EvidenceRef {
-  const excerptHash = sha256(`${filePath}:${startLine}-${endLine}`);
-  return {
-    id,
-    path: filePath,
-    startLine,
-    endLine,
-    kind: "ast",
-    excerptHash,
-    nodeId,
-    symbolId,
-  };
-}
+// Re-export utilities for backward compatibility
+export { sha256, toPosix, createAstEvidence as createEvidence };
 
 /**
  * Find the end line of a code block based on indentation

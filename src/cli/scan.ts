@@ -9,13 +9,13 @@ import {
   discoverGraphFiles,
 } from "../core/repo-graph-builder.js";
 import { EXIT, getOption, VERSION, parseCacheMode, parseParallelWorkers, isVerbose } from "./exit-codes.js";
-import { CacheManager, type CacheMode, LARGE_REPO_THRESHOLD } from "../cache/index.js";
+import { CacheManager, LARGE_REPO_THRESHOLD } from "../cache/index.js";
 import { FileProcessor, type ProcessingProgressEvent } from "../parallel/index.js";
 import type { NormalizedRepoGraph } from "../types/artifacts.js";
-import { initPythonParser, isTreeSitterAvailable } from "../adapters/py-tree-sitter-adapter.js";
-import { initRubyParser, isRubyTreeSitterAvailable } from "../adapters/rb-tree-sitter-adapter.js";
-import { initGoParser, isGoTreeSitterAvailable } from "../adapters/go-tree-sitter-adapter.js";
-import { initRustParser, isRustTreeSitterAvailable } from "../adapters/rs-tree-sitter-adapter.js";
+import { initPythonParser } from "../adapters/py-tree-sitter-adapter.js";
+import { initRubyParser } from "../adapters/rb-tree-sitter-adapter.js";
+import { initGoParser } from "../adapters/go-tree-sitter-adapter.js";
+import { initRustParser } from "../adapters/rs-tree-sitter-adapter.js";
 
 /**
  * Threshold for large repo processing
@@ -94,7 +94,7 @@ function buildGraphWithCache(
     : cacheResult.changedFiles;
 
   // Progress callback for large repos
-  const onProgress = (progress: ProcessingProgressEvent) => {
+  const _onProgress = (progress: ProcessingProgressEvent) => {
     if (verbose && isLargeRepo) {
       console.log(JSON.stringify({
         phase: progress.phase,

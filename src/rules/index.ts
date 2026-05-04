@@ -91,6 +91,10 @@ export { SUPPRESSION_DEBT_RULE } from "./suppression-debt.js";
 // New rules (Phase 2 - Security Enhancement)
 export { HARDCODED_SECRET_RULE } from "./hardcoded-secret.js";
 export { MISSING_RATE_LIMIT_RULE } from "./missing-rate-limit.js";
+export { UNSAFE_REDIRECT_RULE } from "./unsafe-redirect.js";
+export { DEPRECATED_API_USAGE_RULE } from "./deprecated-api.js";
+export { CIRCULAR_DEPENDENCY_RULE } from "./circular-dependency.js";
+export { MISSING_INPUT_SANITIZATION_RULE } from "./missing-input-sanitization.js";
 
 // All rules array for easy import
 import { CLIENT_TRUSTED_PRICE_RULE } from "./client-trusted-price.js";
@@ -106,6 +110,10 @@ import { DEBT_MARKER_RULE } from "./debt-marker.js";
 import { SUPPRESSION_DEBT_RULE } from "./suppression-debt.js";
 import { HARDCODED_SECRET_RULE } from "./hardcoded-secret.js";
 import { MISSING_RATE_LIMIT_RULE } from "./missing-rate-limit.js";
+import { UNSAFE_REDIRECT_RULE } from "./unsafe-redirect.js";
+import { DEPRECATED_API_USAGE_RULE } from "./deprecated-api.js";
+import { CIRCULAR_DEPENDENCY_RULE } from "./circular-dependency.js";
+import { MISSING_INPUT_SANITIZATION_RULE } from "./missing-input-sanitization.js";
 
 export const ALL_RULES: RulePlugin[] = [
   CLIENT_TRUSTED_PRICE_RULE,
@@ -121,4 +129,8 @@ export const ALL_RULES: RulePlugin[] = [
   SUPPRESSION_DEBT_RULE,
   HARDCODED_SECRET_RULE,
   MISSING_RATE_LIMIT_RULE,
+  UNSAFE_REDIRECT_RULE,
+  DEPRECATED_API_USAGE_RULE,
+  CIRCULAR_DEPENDENCY_RULE,
+  MISSING_INPUT_SANITIZATION_RULE,
 ];

@@ -8,6 +8,7 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 
+import { VERSION } from "./exit-codes.js";
 import {
   FindingsArtifact,
   RiskRegisterArtifact,
@@ -20,8 +21,6 @@ import {
   LoadedArtifacts,
   ReportViewerConfig,
 } from "../viewer/index.js";
-
-const VERSION = "1.0.0";
 
 export interface ExitCodes {
   OK: number;

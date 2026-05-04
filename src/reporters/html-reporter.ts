@@ -5,20 +5,19 @@
  * for viewing analysis results without external dependencies.
  */
 
+import { VERSION } from "../cli/exit-codes.js";
 import {
   FindingsArtifact,
   RiskRegisterArtifact,
   TestSeedsArtifact,
   Finding,
-  RiskSeed,
-  TestSeed,
+  type _RiskSeed,
+  type _TestSeed,
   Severity,
 } from "../types/artifacts.js";
-import { writeFileSync, readFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { getHtmlStyles } from "./html-reporter-styles.js";
-
-const VERSION = "0.1.0";
 
 /**
  * Escape HTML special characters to prevent XSS
@@ -33,9 +32,9 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * Severity color mapping for CSS
+ * Severity color mapping for CSS (unused - kept for future use)
  */
-function severityColor(severity: Severity): string {
+function _severityColor(severity: Severity): string {
   switch (severity) {
     case "critical":
       return "#dc3545"; // Red
@@ -51,9 +50,9 @@ function severityColor(severity: Severity): string {
 }
 
 /**
- * Severity badge class
+ * Severity badge class (unused - kept for future use)
  */
-function severityBadgeClass(severity: Severity): string {
+function _severityBadgeClass(severity: Severity): string {
   return `badge badge-${severity}`;
 }
 

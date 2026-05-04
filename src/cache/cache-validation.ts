@@ -8,7 +8,7 @@ import path from "node:path";
 import { toPosix } from "../core/path-utils.js";
 import type { FileHashCache } from "./file-cache.js";
 import type { GraphCache } from "./graph-cache.js";
-import type { CacheValidationResult, CacheProgressEvent, CacheOptions } from "./cache-manager.js";
+import type { CacheProgressEvent, CacheOptions } from "./cache-manager.js";
 
 /**
  * Standard cache validation for smaller repos
@@ -17,8 +17,8 @@ export function validateCacheStandard(
   allFiles: string[],
   repoRoot: string,
   fileCache: FileHashCache,
-  computeBlastRadius: boolean,
-  blastRadiusFn: (files: string[]) => string[]
+  _computeBlastRadius: boolean,
+  _blastRadiusFn: (files: string[]) => string[]
 ): { changedFiles: string[]; unchangedFiles: string[]; hitCount: number; missCount: number } {
   const changedFiles: string[] = [];
   const unchangedFiles: string[] = [];
@@ -51,7 +51,7 @@ export function validateCacheStreaming(
   fileCache: FileHashCache,
   options: CacheOptions,
   emitProgress: (phase: CacheProgressEvent["phase"], batch: number, total: number, files: number) => void,
-  startTime: number
+  _startTime: number
 ): { changedFiles: string[]; unchangedFiles: string[]; hitCount: number; missCount: number } {
   const batchSize = options.batchSize ?? 500;
   const changedFiles: string[] = [];

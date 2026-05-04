@@ -11,9 +11,7 @@ import { llmHealthCommand } from "./cli/llm-health.js";
 import { historicalCommand } from "./cli/historical.js";
 import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
-import { EXIT, getOption } from "./cli/exit-codes.js";
-
-const VERSION = "1.0.1";
+import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 
 function printHelp(): void {
   console.log(`code-to-gate ${VERSION}

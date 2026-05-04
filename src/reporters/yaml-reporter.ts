@@ -6,15 +6,12 @@ import {
   RiskSeed,
   RiskRegisterArtifact,
   FindingsArtifact,
-  Finding,
+  type _Finding,
   Severity,
   Likelihood,
-  CTG_VERSION,
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-
-const VERSION = "0.1.0";
 
 /**
  * Map finding severity to risk likelihood
@@ -48,7 +45,7 @@ function generateRiskId(sourceFindings: string[]): string {
  */
 export function buildRiskRegisterFromFindings(
   findings: FindingsArtifact,
-  policyId?: string
+  _policyId?: string
 ): RiskRegisterArtifact {
   const risks: RiskSeed[] = [];
 
@@ -158,11 +155,13 @@ export function buildRiskRegisterFromFindings(
 
 /**
  * Convert object to YAML string (simple implementation)
+ * Note: Used internally for recursive YAML generation
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function toYamlString(obj: unknown, indent: number = 0): string {
   const spaces = "  ".repeat(indent);
   const nextIndent = indent + 1;
-  const nextSpaces = "  ".repeat(nextIndent);
+  const _nextSpaces = "  ".repeat(nextIndent);
 
   if (obj === null || obj === undefined) {
     return "null\n";

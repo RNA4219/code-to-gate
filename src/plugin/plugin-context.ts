@@ -10,7 +10,7 @@ import type {
 import type { PluginContext, PluginLogger, PluginFileSystem, PluginSchemaValidator } from "./contract.js";
 import { PLUGIN_CONSTANTS } from "./contract.js";
 import { isValidSeverity, isValidCategory } from "./plugin-schema.js";
-import { sha256, toPosix } from "../core/index.js";
+import { type _sha256, toPosix } from "../core/index.js";
 import * as fs from "fs/promises";
 import * as path from "path";
 
@@ -264,7 +264,7 @@ export class PluginSchemaValidatorImpl implements PluginSchemaValidator {
 
   async validateOutput(
     output: unknown,
-    expectedSchemas: string[]
+    _expectedSchemas: string[]
   ): Promise<{
     valid: boolean;
     errors?: Array<{ path: string; message: string }>;

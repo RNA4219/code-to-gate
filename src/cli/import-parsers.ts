@@ -103,7 +103,7 @@ export function mapTSCSeverity(category: number | undefined): Severity {
 /**
  * Infer category from rule ID
  */
-export function inferCategoryFromRule(ruleId: string, tool: string): FindingCategory {
+export function inferCategoryFromRule(ruleId: string, _tool: string): FindingCategory {
   if (ruleId.includes("security") || ruleId.includes("no-eval") || ruleId.includes("no-implied-eval")) {
     return "security" as FindingCategory;
   }

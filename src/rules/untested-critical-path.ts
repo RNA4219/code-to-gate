@@ -5,7 +5,7 @@
  * Critical paths like payment/order processing should have integration tests.
  */
 
-import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 import { toPosix } from "../core/path-utils.js";
 
@@ -129,7 +129,7 @@ export const UNTESTED_CRITICAL_PATH_RULE: RulePlugin = {
       // Check if this file has associated tests
       // Normalize path to posix for consistent matching
       const posixPath = toPosix(file.path);
-      const baseName = posixPath.replace(".ts", "").replace(".tsx", "").replace(".js", "").replace(".jsx", "");
+      const _baseName = posixPath.replace(".ts", "").replace(".tsx", "").replace(".js", "").replace(".jsx", "");
       const srcPath = posixPath.replace("src/", "");
 
       const hasTests = testedPaths.has(posixPath) ||

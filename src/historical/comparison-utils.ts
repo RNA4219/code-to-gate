@@ -16,7 +16,6 @@ import {
 import {
   Finding,
   FindingsArtifact,
-  RiskSeed,
   RiskRegisterArtifact,
   ReleaseReadinessArtifact,
   Severity,

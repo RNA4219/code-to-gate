@@ -7,7 +7,7 @@
  * - Lock baseline to a specific run
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import {
   BaselineConfig,
@@ -19,7 +19,6 @@ import {
   FindingsArtifact,
   RiskRegisterArtifact,
   ReleaseReadinessArtifact,
-  CTG_VERSION,
 } from "../types/artifacts.js";
 
 /**
@@ -392,7 +391,7 @@ function parseYamlLike(content: string): unknown {
     const lines = cleaned.split("\n");
     const result: Record<string, unknown> = {};
     let currentKey: string;
-    let currentArray: unknown[] | null = null;
+    let _currentArray: unknown[] | null = null;
 
     for (const line of lines) {
       const trimmed = line.trimEnd();

@@ -4,7 +4,6 @@
  */
 
 import { Suppression, SuppressionFile } from "./suppression-loader.js";
-import { CTG_VERSION } from "../types/artifacts.js";
 
 /**
  * Validation error structure

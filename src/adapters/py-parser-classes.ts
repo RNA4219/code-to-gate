@@ -103,7 +103,7 @@ export function parseMethodsInClass(
   relations: GraphRelation[],
   currentClass: { name: string; exported: boolean },
   startIndex: number,
-  exportedSymbols: Set<string>
+  _exportedSymbols: Set<string>
 ): void {
   let symbolIndex = startIndex;
 

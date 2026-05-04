@@ -1,41 +1,11 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { sha256, toPosix } from "../core/path-utils.js";
-import type { EvidenceRef, GraphRelation, SymbolNode } from "../types/graph.js";
+import { createAstEvidence } from "../core/evidence-utils.js";
+import { getBaseSymbolKind } from "./symbol-kind-utils.js";
+import type { EvidenceRef, GraphRelation, SymbolNode, ParseResult } from "../types/graph.js";
 
-export interface ParseResult {
-  symbols: SymbolNode[];
-  relations: GraphRelation[];
-  diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }>;
-  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
-  parserAdapter: string;
-}
-
-function createEvidence(
-  id: string,
-  filePath: string,
-  startLine: number,
-  endLine: number,
-  nodeId?: string,
-  symbolId?: string
-): EvidenceRef {
-  return {
-    id,
-    path: filePath,
-    startLine,
-    endLine,
-    kind: "ast",
-    excerptHash: sha256(`${filePath}:${startLine}-${endLine}`),
-    nodeId,
-    symbolId,
-  };
-}
+export type { EvidenceRef, GraphRelation, SymbolNode, ParseResult };
 
 function isTestPath(filePath: string): boolean {
   return (
@@ -52,15 +22,8 @@ function getSymbolKind(name: string, relPath: string, isMethod: boolean): Symbol
     return "test";
   }
 
-  const lowered = name.toLowerCase();
-  if (
-    lowered.includes("route") ||
-    lowered.includes("handler") ||
-    lowered.includes("controller") ||
-    lowered.includes("endpoint")
-  ) {
-    return "route";
-  }
+  const baseKind = getBaseSymbolKind(relPath, name);
+  if (baseKind) return baseKind;
 
   return isMethod ? "method" : "function";
 }
@@ -132,7 +95,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           kind: "imports",
           confidence: 1.0,
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-require-${sha256(`${relPath}:${relationIndex}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -158,7 +121,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           exported: true,
           location: { startLine: lineNum, endLine },
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -192,7 +155,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           exported: true,
           location: { startLine: lineNum, endLine },
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-symbol-${sha256(`${relPath}:${displayName}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -219,7 +182,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           exported: true,
           location: { startLine: lineNum, endLine: lineNum },
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -242,7 +205,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           kind: "configures",
           confidence: 0.9,
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-route-${sha256(`${relPath}:${lineNum}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -266,7 +229,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           exported: false,
           location: { startLine: lineNum, endLine },
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-symbol-${sha256(`${relPath}:${name}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -291,7 +254,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
           kind: "calls",
           confidence: 0.6,
           evidence: [
-            createEvidence(
+            createAstEvidence(
               `ev-call-${sha256(`${relPath}:${relationIndex}`).slice(0, 8)}`,
               relPath,
               lineNum,
@@ -320,7 +283,7 @@ export function parseRubyFile(filePath: string, repoRoot: string, fileId: string
         kind: "exports",
         confidence: 1.0,
         evidence: [
-          createEvidence(
+          createAstEvidence(
             `ev-export-${sha256(`${relPath}:${name}`).slice(0, 8)}`,
             relPath,
             symbol.location?.startLine ?? 1,

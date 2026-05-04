@@ -477,7 +477,7 @@ export async function createGitHubClientFromEnv(
           installationId: installationId ? parseInt(installationId, 10) : undefined,
         },
       });
-    } catch (error) {
+    } catch (_error) {
       // GitHub App auth requires JWT - return null and log warning
       console.warn("GitHub App authentication requires JWT implementation. Use GITHUB_TOKEN instead.");
       return null;

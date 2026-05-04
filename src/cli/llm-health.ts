@@ -2,7 +2,7 @@
  * LLM Health command - check health of local LLM providers
  */
 
-import { EXIT, getOption, VERSION } from "./exit-codes.js";
+import { EXIT, getOption } from "./exit-codes.js";
 import {
   checkProviderHealth,
   findAvailableProvider,

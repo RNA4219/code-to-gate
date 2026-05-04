@@ -13,7 +13,6 @@ import {
   ValidationError,
   ValidationWarning,
   BundleValidatorOptions,
-  ArtifactType,
   REQUIRED_ARTIFACTS,
   ARTIFACT_FILENAME_MAP,
 } from "./evidence-types.js";

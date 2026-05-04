@@ -2,8 +2,7 @@
  * JSON Reporter - generates findings.json
  */
 
-const VERSION = "1.0.0";
-
+import { VERSION } from "../cli/exit-codes.js";
 import {
   ArtifactHeader,
   EvidenceRef,

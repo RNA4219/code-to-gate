@@ -10,7 +10,7 @@
 
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
-import { EXIT, getOption, VERSION, isVerbose } from "./exit-codes.js";
+import { EXIT, getOption, isVerbose } from "./exit-codes.js";
 import {
   createEvidenceBundle,
   validateEvidenceBundle,
@@ -20,7 +20,6 @@ import {
 import {
   BundleValidationResult,
   EvidenceBundleMetadata,
-  ArtifactType,
 } from "../evidence/evidence-types.js";
 
 export interface EvidenceCommandOptions {

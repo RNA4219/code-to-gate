@@ -6,22 +6,17 @@ import {
   AuditArtifact,
   AuditInput,
   AuditPolicy,
-  AuditExit,
   FindingsArtifact,
   NormalizedRepoGraph,
   CTG_VERSION,
 } from "../types/artifacts.js";
+import { VERSION } from "../cli/exit-codes.js";
 import { CtgPolicy } from "../config/policy-loader.js";
 
 import { createHash } from "node:crypto";
-import { writeFileSync, readFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-const VERSION = "0.1.0";
-
-/**
- * Generate audit artifact
- */
 export function buildAuditArtifact(
   graph: NormalizedRepoGraph,
   findings: FindingsArtifact,

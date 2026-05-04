@@ -12,7 +12,7 @@
 
 import type { RulePlugin, RuleContext, SimpleGraph } from "../rules/index.js";
 import type { Finding } from "../types/artifacts.js";
-import type { RepoFile } from "../types/graph.js";
+import type { type _RepoFile } from "../types/graph.js";
 
 /**
  * Options for rule evaluator

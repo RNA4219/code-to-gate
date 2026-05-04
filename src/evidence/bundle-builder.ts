@@ -6,11 +6,9 @@
  */
 
 import { existsSync, statSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { readdirSync, createReadStream, createWriteStream } from "node:fs";
+import { readdirSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
-import { pipeline } from "node:stream/promises";
-import { promisify } from "node:util";
 import {
   EVIDENCE_VERSION,
   EvidenceBundleMetadata,

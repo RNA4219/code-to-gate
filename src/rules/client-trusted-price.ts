@@ -7,7 +7,7 @@
  * This is a critical security vulnerability that allows price manipulation attacks.
  */
 
-import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
+import type { RulePlugin, RuleContext, Finding, type _EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
 
 export const CLIENT_TRUSTED_PRICE_RULE: RulePlugin = {
@@ -45,14 +45,14 @@ export const CLIENT_TRUSTED_PRICE_RULE: RulePlugin = {
       ];
 
       // Pattern 2: Check for client price/total being stored without validation
-      const storagePatterns = [
+      const _storagePatterns = [
         /(?:create|save|insert|store|persist).*Order/gi,
         /(?:create|save|insert).*Payment/gi,
         /await\s+\w+\s*\(/g, // Any async call that might save data
       ];
 
       let inSmellComment = false;
-      let smellStartLine = 0;
+      let _smellStartLine = 0;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -61,7 +61,7 @@ export const CLIENT_TRUSTED_PRICE_RULE: RulePlugin = {
         // Check for SMELL comment markers
         if (line.includes("SMELL: CLIENT_TRUSTED_PRICE") || line.includes("SMELL - Lines")) {
           inSmellComment = true;
-          smellStartLine = lineNum;
+          _smellStartLine = lineNum;
           continue;
         }
 

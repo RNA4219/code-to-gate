@@ -23,7 +23,7 @@
         "properties": {
           "id": { "type": "string" },
           "ruleId": { "type": "string" },
-          "category": { "enum": ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk"] },
+          "category": { "enum": ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"] },
           "severity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
           "confidence": { "$ref": "./shared-defs.schema.json#/$defs/confidence" },
           "title": { "type": "string" },

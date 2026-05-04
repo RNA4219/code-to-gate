@@ -166,6 +166,23 @@ export interface EvidenceRef {
   };
 }
 
+/**
+ * Parser result interface - shared across all adapters
+ */
+export interface ParseResult {
+  symbols: SymbolNode[];
+  relations: GraphRelation[];
+  diagnostics: Array<{
+    id: string;
+    severity: "info" | "warning" | "error";
+    code: string;
+    message: string;
+    evidence?: EvidenceRef[];
+  }>;
+  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
+  parserAdapter: string;
+}
+
 // Dataflow-lite types (Phase 4)
 // Extended in Phase 5+ for dataflow-full
 export interface DataflowNode {
