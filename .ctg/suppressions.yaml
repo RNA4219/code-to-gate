@@ -425,3 +425,15 @@ suppressions:
     reason: GitHub API client - rate limiting handled by GitHub SDK
     expiry: 2027-04-30
     author: code-to-gate-team
+  -
+    rule_id: MISSING_RATE_LIMIT
+    path: src/cli.js
+    reason: Compiled output - contains route pattern references
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: HARDCODED_SECRET
+    path: src/cli.js
+    reason: Compiled output - contains pattern references from source
+    expiry: 2027-04-30
+    author: code-to-gate-team
