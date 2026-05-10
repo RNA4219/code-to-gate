@@ -90,6 +90,30 @@ describe("OllamaProvider", () => {
       expect(result.error).toContain("Connection refused");
     });
 
+    it("should try IPv4 loopback when localhost fails", async () => {
+      mockFetch
+        .mockRejectedValueOnce(new Error("connect ECONNREFUSED ::1:11434"))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ models: [{ name: "llama3.2:latest" }] }),
+        });
+
+      const result = await checkOllamaHealth("http://localhost:11434");
+
+      expect(result.healthy).toBe(true);
+      expect(result.baseUrl).toBe("http://127.0.0.1:11434");
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        "http://localhost:11434/api/tags",
+        expect.objectContaining({ method: "GET" })
+      );
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "http://127.0.0.1:11434/api/tags",
+        expect.objectContaining({ method: "GET" })
+      );
+    });
+
     it("should return unhealthy on HTTP error", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,

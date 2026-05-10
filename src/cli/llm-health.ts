@@ -8,6 +8,7 @@ import {
   findAvailableProvider,
   validateLocalhostUrl,
   getDefaultBaseUrl,
+  ALLOWED_LOCALHOST_LABEL,
 } from "../llm/providers/provider-health.js";
 import { LlmProviderType } from "../llm/types.js";
 
@@ -38,7 +39,7 @@ export async function llmHealthCommand(
     console.error(
       `Error: Non-localhost URL not allowed for security: ${baseUrl}`
     );
-    console.error("Allowed hosts: 127.0.0.1, localhost, ::1, 0.0.0.0");
+    console.error(`Allowed hosts: ${ALLOWED_LOCALHOST_LABEL}`);
     return options.EXIT.USAGE_ERROR;
   }
 

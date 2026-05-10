@@ -326,6 +326,27 @@ describe("checkLlamacppHealth", () => {
     expect(result.models).toContain("local-model");
   });
 
+  it("should accept /props as health evidence when /health is unavailable", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ model_path: "/models/mac-local.gguf" }),
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ model_path: "/models/mac-local.gguf" }),
+    });
+
+    const result = await checkLlamacppHealth();
+
+    expect(result.healthy).toBe(true);
+    expect(result.models).toContain("mac-local.gguf");
+  });
+
   it("should retry on failure", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Connection refused"));
     mockFetch.mockResolvedValueOnce({

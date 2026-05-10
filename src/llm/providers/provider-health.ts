@@ -3,6 +3,12 @@
  */
 
 import { HealthCheckResult, LlmProviderType, DEFAULT_CONFIGS } from "../types.js";
+import {
+  ALLOWED_LOCALHOST_LABEL,
+  appendLocalPath,
+  getLoopbackBaseUrlCandidates,
+  validateLocalhostUrl,
+} from "./local-url.js";
 
 export interface HealthCheckOptions {
   /** Custom timeout in milliseconds */
@@ -11,6 +17,44 @@ export interface HealthCheckOptions {
   retries?: number;
   /** Delay between retries in milliseconds */
   retryDelay?: number;
+}
+
+interface LocalFetchResult {
+  response: Response;
+  baseUrl: string;
+}
+
+async function fetchLocalEndpoint(
+  baseUrl: string,
+  endpointPath: string,
+  timeout: number,
+  method = "GET"
+): Promise<LocalFetchResult> {
+  let firstError: unknown;
+
+  for (const candidateBaseUrl of getLoopbackBaseUrlCandidates(baseUrl)) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(appendLocalPath(candidateBaseUrl, endpointPath), {
+        method,
+        signal: controller.signal,
+      });
+      if (!response || typeof response.ok !== "boolean") {
+        throw firstError instanceof Error
+          ? firstError
+          : new Error("Invalid response from local LLM provider");
+      }
+      return { response, baseUrl: candidateBaseUrl };
+    } catch (error) {
+      firstError ??= error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  throw firstError instanceof Error ? firstError : new Error(String(firstError));
 }
 
 /**
@@ -29,16 +73,12 @@ export async function checkOllamaHealth(
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
       // Check if server is running
-      const response = await fetch(`${baseUrl}/api/tags`, {
-        method: "GET",
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      const { response, baseUrl: checkedBaseUrl } = await fetchLocalEndpoint(
+        baseUrl,
+        "/api/tags",
+        timeout
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -50,7 +90,7 @@ export async function checkOllamaHealth(
       return {
         healthy: true,
         provider: "ollama",
-        baseUrl,
+        baseUrl: checkedBaseUrl,
         responseTimeMs: Date.now() - startTime,
         models,
         timestamp: new Date().toISOString(),
@@ -90,28 +130,38 @@ export async function checkLlamacppHealth(
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
       // Check if server is running via /health endpoint
-      const response = await fetch(`${baseUrl}/health`, {
-        method: "GET",
-        signal: controller.signal,
-      });
+      let checkedBaseUrl: string;
+      let response: Response;
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        const result = await fetchLocalEndpoint(baseUrl, "/health", timeout);
+        if (!result.response.ok) {
+          throw new Error(`HTTP ${result.response.status}: ${result.response.statusText}`);
+        }
+        response = result.response;
+        checkedBaseUrl = result.baseUrl;
+      } catch (healthError) {
+        try {
+          const propsResult = await fetchLocalEndpoint(baseUrl, "/props", timeout);
+          response = propsResult.response;
+          checkedBaseUrl = propsResult.baseUrl;
+        } catch {
+          throw healthError;
+        }
+        if (!response.ok) {
+          throw healthError;
+        }
       }
 
       // Try to get model info from /props endpoint
       let models: string[] = [];
       try {
-        const propsResponse = await fetch(`${baseUrl}/props`, {
-          method: "GET",
-          signal: AbortSignal.timeout(timeout),
-        });
+        const propsResponse = await fetchLocalEndpoint(
+          checkedBaseUrl,
+          "/props",
+          timeout
+        ).then((result) => result.response);
 
         if (propsResponse.ok) {
           const props = await propsResponse.json() as { model_path?: string };
@@ -127,7 +177,7 @@ export async function checkLlamacppHealth(
       return {
         healthy: true,
         provider: "llamacpp",
-        baseUrl,
+        baseUrl: checkedBaseUrl,
         responseTimeMs: Date.now() - startTime,
         models,
         timestamp: new Date().toISOString(),
@@ -192,26 +242,7 @@ export async function findAvailableProvider(
   return null;
 }
 
-/**
- * Validate that a URL is localhost-only
- */
-export function validateLocalhostUrl(url: string): boolean {
-  try {
-    const parsedUrl = new URL(url);
-    const hostname = parsedUrl.hostname.toLowerCase();
-
-    const allowedHosts = [
-      "127.0.0.1",
-      "localhost",
-      "::1",
-      "0.0.0.0",
-    ];
-
-    return allowedHosts.includes(hostname);
-  } catch {
-    return false;
-  }
-}
+export { ALLOWED_LOCALHOST_LABEL, validateLocalhostUrl };
 
 /**
  * Get the default base URL for a provider

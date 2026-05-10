@@ -11,6 +11,10 @@ code-to-gate supports the following local LLM providers:
 - **Deterministic fallback** - Always available, no external server needed
 
 All providers communicate **only with localhost** (127.0.0.1) for security reasons.
+When a localhost URL is configured, code-to-gate also tries equivalent loopback
+forms (`localhost`, `127.0.0.1`, `::1`) on connection failure. This helps on
+macOS when a local server is bound to IPv4 while `localhost` resolves to IPv6,
+or the reverse.
 
 ## Quick Start
 
@@ -116,6 +120,7 @@ This ensures no external API calls are made.
 | `--llm-mode` | Mode (local-only, allow-cloud) | local-only |
 | `--llm-model` | Model name | llama3.2 (ollama), local-model (llamacpp) |
 | `--llm-port` | Custom port | 11434 (ollama), 8080 (llamacpp) |
+| `--llm-base-url` | Localhost base URL | provider default |
 | `--llm-timeout` | Request timeout (ms) | 30000 |
 
 ### Environment Variables
@@ -215,6 +220,7 @@ curl http://127.0.0.1:8080/props
 | Error | Solution |
 |-------|----------|
 | Connection refused | Start the LLM server |
+| macOS localhost connection fails | Try `--llm-base-url http://localhost:<port>` or `http://127.0.0.1:<port>`; code-to-gate will retry equivalent loopback forms for localhost URLs |
 | Model not found | Pull/download the model |
 | Timeout exceeded | Increase --llm-timeout |
 | Non-localhost URL | Use only localhost addresses |

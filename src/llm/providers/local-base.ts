@@ -12,6 +12,11 @@ import {
   LlmProviderType,
   DEFAULT_CONFIGS,
 } from "../types.js";
+import {
+  ALLOWED_LOCALHOST_LABEL,
+  getLoopbackUrlCandidates,
+  validateLocalhostUrl,
+} from "./local-url.js";
 
 /**
  * Abstract base class for local LLM providers
@@ -36,24 +41,10 @@ export abstract class LocalBaseProvider implements LlmProvider {
     // Enforce localhost-only communication
     if (baseUrl) {
       const parsedUrl = new URL(baseUrl);
-      let hostname = parsedUrl.hostname.toLowerCase();
-
-      // Strip IPv6 brackets if present
-      if (hostname.startsWith("[") && hostname.endsWith("]")) {
-        hostname = hostname.slice(1, -1);
-      }
-
-      const allowedHosts = [
-        "127.0.0.1",
-        "localhost",
-        "::1",
-        "0.0.0.0", // Common for local servers
-      ];
-
-      if (!allowedHosts.includes(hostname)) {
+      if (!validateLocalhostUrl(baseUrl)) {
         throw new Error(
           `Local LLM providers only allow localhost communication. ` +
-            `Got: ${hostname}. Allowed: ${allowedHosts.join(", ")}`
+            `Got: ${parsedUrl.hostname}. Allowed: ${ALLOWED_LOCALHOST_LABEL}`
         );
       }
     }
@@ -73,18 +64,26 @@ export abstract class LocalBaseProvider implements LlmProvider {
     options: RequestInit,
     timeout: number
   ): Promise<Response> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const candidates = getLoopbackUrlCandidates(url);
+    let firstError: unknown;
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-      });
-      return response;
-    } finally {
-      clearTimeout(timeoutId);
+    for (const candidate of candidates) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        return await fetch(candidate, {
+          ...options,
+          signal: controller.signal,
+        });
+      } catch (error) {
+        firstError ??= error;
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
+
+    throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
   /**

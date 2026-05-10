@@ -19,7 +19,7 @@ function printHelp(): void {
 Usage:
   code-to-gate schema validate <artifact-or-schema>
   code-to-gate scan <repo> --out <dir>
-  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>]
+  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir>
   code-to-gate import <tool> <input-file> --out <dir>
     Tools: eslint, semgrep, tsc, coverage, test
@@ -58,6 +58,7 @@ Options:
   --llm-mode         LLM mode (local-only, allow-cloud)
   --llm-model        Model name for provider
   --llm-port         Custom port for provider
+  --llm-base-url     Localhost base URL for provider (for example http://localhost:11434)
   --cache <mode>     Cache mode: enabled, disabled, force (default: enabled)
                      enabled  - Use incremental cache for faster scans
                      disabled - Skip caching, fresh scan each time

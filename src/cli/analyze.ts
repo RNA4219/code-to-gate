@@ -52,6 +52,7 @@ import {
 import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
 import { LlmProviderType, LlmConfig, LlmAnalysisRequest } from "../llm/types.js";
 import { createProvider, createProviderWithFallback } from "../llm/providers/index.js";
+import { validateLocalhostUrl, ALLOWED_LOCALHOST_LABEL } from "../llm/providers/provider-health.js";
 
 interface AnalyzeOptions {
   VERSION: string;
@@ -99,6 +100,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const llmMode = options.getOption(args, "--llm-mode") ?? "local-only";
   const llmModel = options.getOption(args, "--llm-model");
   const llmPort = options.getOption(args, "--llm-port");
+  const llmBaseUrl = options.getOption(args, "--llm-base-url");
   const requireLlm = args.includes("--require-llm");
   const fromImports = args.includes("--from-imports");
   const useTreeSitter = args.includes("--tree-sitter");
@@ -116,9 +118,15 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     return options.EXIT.USAGE_ERROR;
   }
 
+  if (llmBaseUrl && !validateLocalhostUrl(llmBaseUrl)) {
+    console.error(`Invalid LLM base URL: ${llmBaseUrl}`);
+    console.error(`Local LLM providers only allow localhost URLs: ${ALLOWED_LOCALHOST_LABEL}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+
   // Validate repo argument
   if (!repoArg) {
-    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--from-imports] [--tree-sitter]");
+    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--llm-base-url <url>] [--from-imports] [--tree-sitter]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -199,7 +207,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       const llmConfig: LlmConfig = {
         provider: providerType ?? "deterministic",
         model: llmModel,
-        baseUrl: llmPort ? `http://127.0.0.1:${llmPort}` : undefined,
+        baseUrl: llmBaseUrl ?? (llmPort ? `http://127.0.0.1:${llmPort}` : undefined),
       };
 
       try {
