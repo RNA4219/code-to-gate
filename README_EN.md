@@ -44,7 +44,11 @@ code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
 
 # Check release readiness with a policy file
-code-to-gate readiness ./my-repo --policy policy.yaml --out .qh
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
+
+# Include planning / phase-contract blockers in readiness
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh \
+  --intake phase-contract.yaml
 
 # Export SARIF
 code-to-gate export sarif --from .qh --out results.sarif

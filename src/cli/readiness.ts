@@ -10,6 +10,7 @@ import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
+import { assessIntakeArtifact, type IntakeAssessment } from "./intake-artifact.js";
 
 import {
   FindingsArtifact,
@@ -53,6 +54,7 @@ interface ReleaseReadinessArtifact {
     reason: string;
     matchedFindingIds?: string[];
     matchedRiskIds?: string[];
+    matchedInputIds?: string[];
   }>;
   recommendedActions: string[];
   artifactRefs: {
@@ -62,6 +64,7 @@ interface ReleaseReadinessArtifact {
     invariants?: string;
     testSeeds?: string;
     audit?: string;
+    intake?: string;
   };
 }
 
@@ -72,6 +75,7 @@ function mapFailedConditions(result: PolicyEvaluationResult): Array<{
   id: string;
   reason: string;
   matchedFindingIds?: string[];
+  matchedInputIds?: string[];
 }> {
   return result.failedConditions.map((condition) => {
     let id: string;
@@ -170,14 +174,33 @@ function getStatusSummary(status: ReadinessStatus, evalResult?: PolicyEvaluation
   }
 }
 
+function mergeReadinessStatus(status: ReadinessStatus, intake?: IntakeAssessment): ReadinessStatus {
+  if (intake && intake.blockingIssues.length > 0) {
+    return "blocked_input";
+  }
+  return status;
+}
+
+function getMergedStatusSummary(
+  status: ReadinessStatus,
+  evalResult: PolicyEvaluationResult,
+  intake?: IntakeAssessment
+): string {
+  if (intake && intake.blockingIssues.length > 0) {
+    return `Blocked: ${intake.blockingIssues.length} critical intake issue(s) unresolved`;
+  }
+  return getStatusSummary(status, evalResult);
+}
+
 export async function readinessCommand(args: string[], options: ReadinessOptions): Promise<number> {
   const repoArg = args[0];
   const policyPath = options.getOption(args, "--policy");
   const fromDir = options.getOption(args, "--from");
   const outDir = options.getOption(args, "--out") ?? ".qh";
+  const intakePath = options.getOption(args, "--intake");
 
   if (!repoArg || !policyPath || !fromDir) {
-    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>]");
+    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>] [--intake <file>]");
     console.error("Note: --from is required. Run 'code-to-gate analyze' first to generate findings.json");
     return options.EXIT.USAGE_ERROR;
   }
@@ -198,6 +221,12 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
 
   if (!existsSync(policyFile)) {
     console.error(`policy file not found: ${policyPath}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+
+  const absoluteIntakePath = intakePath ? path.resolve(cwd, intakePath) : undefined;
+  if (absoluteIntakePath && !existsSync(absoluteIntakePath)) {
+    console.error(`intake artifact not found: ${intakePath}`);
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -242,9 +271,20 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
 
     // Evaluate findings against policy using policy-evaluator
     const evalResult = evaluatePolicy(findings.findings, policy, suppressions);
+    const intakeAssessment = absoluteIntakePath ? assessIntakeArtifact(absoluteIntakePath) : undefined;
+    const readinessStatus = mergeReadinessStatus(evalResult.status, intakeAssessment);
 
     // Map failed conditions to artifact format
     const failedConditions = mapFailedConditions(evalResult);
+    if (intakeAssessment) {
+      for (const issue of intakeAssessment.blockingIssues) {
+        failedConditions.push({
+          id: `INTAKE_${issue.id}`,
+          reason: issue.reason,
+          matchedInputIds: [issue.id],
+        });
+      }
+    }
 
     // Generate recommended actions (including expiry warnings)
     const recommendedActions = generateRecommendedActions(evalResult);
@@ -260,6 +300,9 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
           `WARNING: Suppression for ${warning.ruleId} at ${warning.path} expires in ${warning.daysUntilExpiry} days. Plan review before expiry.`
         );
       }
+    }
+    if (intakeAssessment) {
+      recommendedActions.push(...intakeAssessment.recommendedActions);
     }
 
     // Build readiness artifact
@@ -279,9 +322,9 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       },
       artifact: "release-readiness",
       schema: "release-readiness@v1",
-      status: evalResult.status,
+      status: readinessStatus,
       completeness: findings.completeness,
-      summary: getStatusSummary(evalResult.status, evalResult),
+      summary: getMergedStatusSummary(readinessStatus, evalResult, intakeAssessment),
       counts: {
         findings: findings.findings.length,
         critical: evalResult.summary.severityCounts.critical,
@@ -295,6 +338,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       artifactRefs: {
         findings: fromDir ? path.join(fromDir, "findings.json") : undefined,
         riskRegister: fromDir ? path.join(fromDir, "risk-register.yaml") : undefined,
+        intake: intakePath,
       },
     };
 
@@ -310,7 +354,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
         tool: "code-to-gate",
         command: "readiness",
         policy: policy.policyId,
-        status: evalResult.status,
+        status: readinessStatus,
         artifact: path.relative(cwd, outputPath),
         summary: {
           findings: readiness.counts.findings,
@@ -322,7 +366,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     );
 
     // Return exit code based on status
-    if (evalResult.status === "passed" || evalResult.status === "passed_with_risk") {
+    if (readinessStatus === "passed" || readinessStatus === "passed_with_risk") {
       return options.EXIT.OK;
     } else {
       return options.EXIT.READINESS_NOT_CLEAR;

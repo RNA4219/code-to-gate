@@ -291,6 +291,72 @@ describe("readiness CLI", () => {
     });
   });
 
+  describe("intake artifact evidence", () => {
+    it("blocks readiness when phase contract has critical unresolved questions", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "intake-block-findings"), []);
+      const intakePath = path.join(tempOutDir, "phase-contract.json");
+      writeFileSync(
+        intakePath,
+        JSON.stringify({
+          artifact: "phase_contract",
+          readiness: { status: "blocked", decision: "not_ready" },
+          open_questions: [
+            {
+              id: "Q-1",
+              severity: "critical",
+              question: "Who owns refund behavior?",
+              owner: "PM",
+              blocks_ready: true,
+            },
+          ],
+          spec_gaps: [],
+          technical_risks: [],
+        }),
+        "utf8"
+      );
+
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir, "--intake", intakePath];
+      const { exitCode, readiness } = await runReadiness(args);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.summary).toContain("critical intake issue");
+      expect(readiness.artifactRefs.intake).toBe(intakePath);
+      expect(readiness.failedConditions.some(c => c.id === "INTAKE_Q-1")).toBe(true);
+      expect(readiness.recommendedActions.some((a: string) => a.includes("Q-1"))).toBe(true);
+    });
+
+    it("supports YAML intake artifacts and resolved critical issues", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "intake-yaml-findings"), []);
+      const intakePath = path.join(tempOutDir, "phase-contract.yaml");
+      writeFileSync(
+        intakePath,
+        [
+          "artifact: phase_contract",
+          "readiness:",
+          "  status: ok",
+          "open_questions:",
+          "  - id: Q-RESOLVED",
+          "    severity: critical",
+          "    question: Already resolved",
+          "    owner: PM",
+          "    blocks_ready: true",
+          "    status: resolved",
+          "spec_gaps: []",
+          "technical_risks: []",
+        ].join("\n"),
+        "utf8"
+      );
+
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir, "--intake", intakePath];
+      const { exitCode, readiness } = await runReadiness(args);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(readiness.status).toBe("passed");
+      expect(readiness.failedConditions.some(c => c.id === "INTAKE_Q-RESOLVED")).toBe(false);
+    });
+  });
+
   describe("run metadata", () => {
     it("generates unique run_id per invocation", async () => {
       const findingsDir = writeFindingsToDir(path.join(tempOutDir, "run-meta"), []);

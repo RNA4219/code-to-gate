@@ -39,7 +39,8 @@
           "id": { "type": "string" },
           "reason": { "type": "string" },
           "matchedFindingIds": { "type": "array", "items": { "type": "string" } },
-          "matchedRiskIds": { "type": "array", "items": { "type": "string" } }
+          "matchedRiskIds": { "type": "array", "items": { "type": "string" } },
+          "matchedInputIds": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
@@ -53,7 +54,8 @@
         "riskRegister": { "type": "string" },
         "invariants": { "type": "string" },
         "testSeeds": { "type": "string" },
-        "audit": { "type": "string" }
+        "audit": { "type": "string" },
+        "intake": { "type": "string" }
       }
     }
   }

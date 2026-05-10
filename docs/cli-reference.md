@@ -272,7 +272,7 @@ Evaluate release readiness using findings and a policy file.
 
 **Usage:**
 ```bash
-code-to-gate readiness <repo-path> --policy <file> --out <output-dir>
+code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir>
 ```
 
 **Arguments:**
@@ -284,7 +284,9 @@ code-to-gate readiness <repo-path> --policy <file> --out <output-dir>
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--policy <path>` | none | Path to policy YAML file |
+| `--from <dir>` | none | Source directory containing `findings.json` from `analyze` |
 | `--out <dir>` | `.qh` | Output directory |
+| `--intake <file>` | none | Optional planning artifact such as `project-intake.json` or `phase-contract.yaml`; unresolved critical input issues force `blocked_input` |
 
 **Output:**
 | Artifact | Description |
@@ -302,10 +304,11 @@ code-to-gate readiness <repo-path> --policy <file> --out <output-dir>
 **Example:**
 ```bash
 # Evaluate with policy
-code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --out .qh
+code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --out .qh
 
-# Evaluate with default policy
-code-to-gate readiness ./my-repo --out .qh
+# Include planning/phase-contract evidence
+code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --out .qh \
+  --intake ./phase-contract.yaml
 ```
 
 **Exit Codes:**

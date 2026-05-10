@@ -11,7 +11,8 @@ npm install -g github:RNA4219/code-to-gate
 
 code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
-code-to-gate readiness ./my-repo --policy policy.yaml --out .qh
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh --intake phase-contract.yaml
 ```
 
 開発中のリポジトリを直接使う場合:

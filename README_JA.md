@@ -44,7 +44,11 @@ code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
 
 # ポリシーに照らしてリリース準備状態を確認する
-code-to-gate readiness ./my-repo --policy policy.yaml --out .qh
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
+
+# 企画・Phase 契約の未決事項も readiness に反映する
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh \
+  --intake phase-contract.yaml
 
 # SARIF を出力する
 code-to-gate export sarif --from .qh --out results.sarif
