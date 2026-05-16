@@ -54,7 +54,10 @@ import {
   generateSelfAnalysisDebtArtifact,
   writeSelfAnalysisDebtJson,
 } from "../reporters/self-analysis-debt-reporter.js";
-import { countSuppressedByClass } from "../self-analysis/suppression-summary.js";
+import {
+  classifySuppressedFindings,
+  countSuppressedByClass,
+} from "../self-analysis/suppression-summary.js";
 import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
 import { LlmProviderType, LlmConfig, LlmAnalysisRequest } from "../llm/types.js";
 import { createProvider, createProviderWithFallback } from "../llm/providers/index.js";
@@ -289,7 +292,11 @@ Provide concise, actionable findings.`,
     const finalExitCode = evalResult ? getExitCode(readinessStatus) : options.EXIT.OK;
 
     // Remove suppressed findings from reported findings
-    const suppressedIds = evalResult?.suppressedFindings.map(f => f.id) ?? [];
+    const suppressionOnlyFindings = classifySuppressedFindings(suppressions, findings.findings).map(
+      (item) => item.finding
+    );
+    const suppressedFindings = evalResult?.suppressedFindings ?? suppressionOnlyFindings;
+    const suppressedIds = suppressedFindings.map(f => f.id);
     const reportedFindings = {
       ...findings,
       findings: findings.findings.filter(f => !suppressedIds.includes(f.id)),
@@ -297,7 +304,7 @@ Provide concise, actionable findings.`,
     const broadSuppressions = detectBroadSuppressions(suppressions);
     const acceptedExceptionsByClass = countSuppressedByClass(
       suppressions,
-      evalResult?.suppressedFindings ?? []
+      suppressedFindings
     );
 
     // Generate risk register
@@ -325,7 +332,7 @@ Provide concise, actionable findings.`,
         graph.repo.root,
         {
           effectiveFindings: reportedFindings.findings,
-          suppressedFindings: evalResult?.suppressedFindings ?? [],
+          suppressedFindings,
           broadSuppressions,
           acceptedExceptionsByClass,
         }
@@ -347,7 +354,7 @@ Provide concise, actionable findings.`,
       const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
         findings,
         suppressions,
-        evalResult?.suppressedFindings ?? [],
+        suppressedFindings,
         graph.repo.root,
         graph.run_id
       );

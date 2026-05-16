@@ -3,6 +3,38 @@
 この文書は、RUNBOOK から切り出した完了事項の記録である。
 RUNBOOK は運用入口と現在の判断に集中させ、完了済みの作業証跡は本書に集約する。
 
+## 2026-05-17 Self-Analysis Contract Boundary 追補
+
+自己解析まわりで揺れていた責務境界を先に仕様化し、classification / artifact / CLI orchestration を分離した。
+
+| 項目 | 状態 | 証跡 |
+|---|---|---|
+| 契約境界仕様 | ✓ 完了 | `docs/self-analysis-contract-boundary-spec.md` |
+| suppression 分類集約 | ✓ 完了 | `src/self-analysis/suppression-summary.ts` |
+| `analyze` / `readiness` の分類ロジック共通化 | ✓ 完了 | `src/cli/analyze.ts`, `src/cli/readiness.ts` |
+| raw / effective の表示分離 | ✓ 完了 | `src/reporters/markdown-reporter.ts` |
+| debt artifact schema | ✓ 完了 | `schemas/self-analysis-debt.schema.json` |
+| readiness schema 追補 | ✓ 完了 | `schemas/release-readiness.schema.json` |
+
+### 確認ポイント
+
+- `suppression classification` の判定を path-aware な共通 module へ寄せた。
+- `analysis-report.md` は raw / effective / accepted exception を別 view として表示する。
+- `self-analysis-debt.json` は `analyze` と `readiness` の双方から生成可能。
+- `analyze` は policy 未指定でも suppression file を読めるため、debt 観測が gate 判定に従属しない。
+- `workflow-cookbook` 形式の仕様導線として Birdseye と artifact contract を更新。
+
+### 受入確認
+
+```powershell
+npm run build
+npx vitest run src/self-analysis/__tests__/suppression-summary.test.ts src/reporters/__tests__/markdown-reporter.test.ts src/cli/__tests__/readiness.test.ts src/cli/__tests__/analyze.test.ts --reporter=dot
+```
+
+**Test status**: 87 passed
+
+---
+
 ## 2026-05-17 Self-Analysis Remediation Phase A 完了
 
 INT-SELF-ANALYSIS-001: self-analysis の raw findings と suppression 後の effective findings を分離し、readiness が負債を隠さない構造へ更新。

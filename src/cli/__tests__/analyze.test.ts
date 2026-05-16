@@ -250,7 +250,7 @@ describe("analyze CLI", () => {
         "version: ctg/v1",
         "suppressions:",
         "  -",
-        "    rule_id: LARGE_MODULE",
+        "    rule_id: UNTESTED_CRITICAL_PATH",
         "    path: src/**",
         "    reason: test suppression",
         "    class: accepted-design",
@@ -260,7 +260,8 @@ describe("analyze CLI", () => {
     const args = [repoDir, "--suppress", ".ctg/suppressions.yaml", "--emit", "all", "--out", tempOutDir];
     await analyzeCommand(args, { VERSION, EXIT, getOption });
 
-    expect(existsSync(path.join(tempOutDir, "self-analysis-debt.json"))).toBe(true);
+    const debtPath = path.join(tempOutDir, "self-analysis-debt.json");
+    expect(existsSync(debtPath)).toBe(true);
   });
 
   it("--policy option with non-existent file returns POLICY_FAILED", async () => {
