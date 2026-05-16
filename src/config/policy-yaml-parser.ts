@@ -10,9 +10,11 @@ import {
   DEFAULT_BLOCKING_CATEGORY,
   DEFAULT_CONFIDENCE,
   createDefaultPolicy,
+  DEFAULT_SUPPRESSION_CLASS,
   type CtgPolicy,
   type SuppressionFile,
   type SuppressionEntry,
+  type SuppressionClass,
   type BlockingCategoryConfig,
 } from "./policy-types.js";
 
@@ -211,6 +213,7 @@ export function parseSuppressionFile(content: string): SuppressionFile {
           reason: currentSuppression.reason || "",
           expiry: currentSuppression.expiry,
           author: currentSuppression.author,
+          class: currentSuppression.class || DEFAULT_SUPPRESSION_CLASS,
         });
       }
       currentSuppression = {};
@@ -230,6 +233,22 @@ export function parseSuppressionFile(content: string): SuppressionFile {
         currentSuppression.expiry = value?.replace(/^["']|["']$/g, "");
       } else if (key === "author") {
         currentSuppression.author = value?.replace(/^["']|["']$/g, "");
+      } else if (key === "class") {
+        // Parse class field, validate against allowed values
+        const classValue = value?.replace(/^["']|["']$/g, "") as SuppressionClass;
+        const validClasses: SuppressionClass[] = [
+          "self-reference",
+          "fixture-intentional",
+          "generated-artifact",
+          "accepted-design",
+          "temporary-debt",
+        ];
+        if (validClasses.includes(classValue)) {
+          currentSuppression.class = classValue;
+        } else {
+          // Invalid class defaults to temporary-debt
+          currentSuppression.class = DEFAULT_SUPPRESSION_CLASS;
+        }
       }
     }
 
@@ -245,6 +264,7 @@ export function parseSuppressionFile(content: string): SuppressionFile {
       reason: currentSuppression.reason || "",
       expiry: currentSuppression.expiry,
       author: currentSuppression.author,
+      class: currentSuppression.class || DEFAULT_SUPPRESSION_CLASS,
     });
   }
 

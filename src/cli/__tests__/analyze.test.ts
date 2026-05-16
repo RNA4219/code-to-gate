@@ -239,6 +239,30 @@ describe("analyze CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
+  it("generates self-analysis debt artifact when suppressions are configured", async () => {
+    const repoDir = path.join(tempOutDir, "suppressed-repo");
+    mkdirSync(path.join(repoDir, "src"), { recursive: true });
+    mkdirSync(path.join(repoDir, ".ctg"), { recursive: true });
+    writeFileSync(path.join(repoDir, "src", "index.ts"), "export const x = 1;", "utf8");
+    writeFileSync(
+      path.join(repoDir, ".ctg", "suppressions.yaml"),
+      [
+        "version: ctg/v1",
+        "suppressions:",
+        "  -",
+        "    rule_id: LARGE_MODULE",
+        "    path: src/**",
+        "    reason: test suppression",
+        "    class: accepted-design",
+      ].join("\n"),
+      "utf8"
+    );
+    const args = [repoDir, "--suppress", ".ctg/suppressions.yaml", "--emit", "all", "--out", tempOutDir];
+    await analyzeCommand(args, { VERSION, EXIT, getOption });
+
+    expect(existsSync(path.join(tempOutDir, "self-analysis-debt.json"))).toBe(true);
+  });
+
   it("--policy option with non-existent file returns POLICY_FAILED", async () => {
     const args = [fixturesDir, "--policy", "/nonexistent/policy.yaml", "--out", tempOutDir];
     const result = await analyzeCommand(args, { VERSION, EXIT, getOption });

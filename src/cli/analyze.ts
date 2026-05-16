@@ -16,9 +16,10 @@ import {
 import {
   CtgPolicy,
   loadPolicyFile,
+  loadSuppressionFile,
+  detectBroadSuppressions,
   SuppressionEntry,
 } from "../config/policy-loader.js";
-import { loadSuppressions } from "../suppression/suppression-loader.js";
 import {
   evaluatePolicy,
   generateBlockingSummary,
@@ -49,6 +50,11 @@ import {
   buildInvariantsFromFindings,
   writeInvariantsJson,
 } from "../reporters/invariant-generator.js";
+import {
+  generateSelfAnalysisDebtArtifact,
+  writeSelfAnalysisDebtJson,
+} from "../reporters/self-analysis-debt-reporter.js";
+import { countSuppressedByClass } from "../self-analysis/suppression-summary.js";
 import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
 import { LlmProviderType, LlmConfig, LlmAnalysisRequest } from "../llm/types.js";
 import { createProvider, createProviderWithFallback } from "../llm/providers/index.js";
@@ -182,18 +188,13 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     }
 
     // Load suppressions if specified
-    let suppressions: SuppressionEntry[] = [];
-    const suppressionFile = loadSuppressions(suppressPath, repoRoot);
-    if (suppressionFile) {
-      // Convert from Suppression (rule_id) to SuppressionEntry (ruleId)
-      suppressions = suppressionFile.suppressions.map(s => ({
-        ruleId: s.rule_id,
-        path: s.path,
-        reason: s.reason,
-        expiry: s.expiry,
-        author: s.author,
-      }));
-    }
+    const suppressionPath = suppressPath ?? policy?.suppression?.file ?? ".ctg/suppressions.yaml";
+    const absoluteSuppressionPath = suppressionPath
+      ? path.resolve(repoRoot, suppressionPath)
+      : undefined;
+    const suppressions: SuppressionEntry[] = absoluteSuppressionPath
+      ? loadSuppressionFile(absoluteSuppressionPath, cwd).suppressions
+      : [];
 
     ensureDir(absoluteOutDir);
 
@@ -293,6 +294,11 @@ Provide concise, actionable findings.`,
       ...findings,
       findings: findings.findings.filter(f => !suppressedIds.includes(f.id)),
     };
+    const broadSuppressions = detectBroadSuppressions(suppressions);
+    const acceptedExceptionsByClass = countSuppressedByClass(
+      suppressions,
+      evalResult?.suppressedFindings ?? []
+    );
 
     // Generate risk register
     const riskRegister = buildRiskRegisterFromFindings(reportedFindings, policy?.policyId);
@@ -314,11 +320,14 @@ Provide concise, actionable findings.`,
     if (emitFormats.includes("md")) {
       const reportPath = writeAnalysisReportMd(
         absoluteOutDir,
-        reportedFindings,
+        findings,
         riskRegister,
         graph.repo.root,
         {
+          effectiveFindings: reportedFindings.findings,
           suppressedFindings: evalResult?.suppressedFindings ?? [],
+          broadSuppressions,
+          acceptedExceptionsByClass,
         }
       );
       generated.push(reportPath);
@@ -333,6 +342,18 @@ Provide concise, actionable findings.`,
     const invariants = buildInvariantsFromFindings(reportedFindings, graph.run_id, graph.repo.root, policy?.policyId);
     const invariantsPath = writeInvariantsJson(absoluteOutDir, invariants);
     generated.push(invariantsPath);
+
+    if (suppressions.length > 0) {
+      const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
+        findings,
+        suppressions,
+        evalResult?.suppressedFindings ?? [],
+        graph.repo.root,
+        graph.run_id
+      );
+      const selfAnalysisDebtPath = writeSelfAnalysisDebtJson(absoluteOutDir, selfAnalysisDebt);
+      generated.push(selfAnalysisDebtPath);
+    }
 
     // Generate repo-graph.json (P1-02)
     const repoGraphPath = path.join(absoluteOutDir, "repo-graph.json");

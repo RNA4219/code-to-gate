@@ -33,11 +33,11 @@ Add Java language support via tree-sitter for import, class, method, and test ex
 
 ## 3. Current State
 
-**Status**: No Java support
+**Status**: Regex fallback baseline implemented; tree-sitter adapter not yet implemented
 
-**Current Languages**: TS/JS/Python/Ruby/Go/Rust
+**Current Languages**: TS/JS/Python/Ruby/Go/Rust/Java/PHP/C#/C++
 
-**Need**: Java is widely used in enterprise.
+**Need**: Java is widely used in enterprise. Current baseline covers import/class/method extraction, while this spec tracks the higher-fidelity tree-sitter upgrade.
 
 ---
 

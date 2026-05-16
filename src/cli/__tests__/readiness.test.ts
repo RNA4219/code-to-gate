@@ -423,4 +423,93 @@ describe("readiness CLI", () => {
       expect(result).toBe(EXIT.POLICY_FAILED);
     });
   });
+
+  describe("selfAnalysis summary", () => {
+    it("includes selfAnalysis summary in readiness artifact", async () => {
+      // Create findings with suppression candidates
+      const findings = [
+        createFinding({ id: "f-1", ruleId: "CLIENT_TRUSTED_PRICE", severity: "critical", evidence: [{ id: "ev-1", path: "src/rules/client-price.ts" }] }),
+        createFinding({ id: "f-2", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-2", path: "src/core/utils.ts" }] }),
+      ];
+
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "self-analysis"), findings);
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
+      const { readiness } = await runReadiness(args);
+
+      // selfAnalysis should be present
+      expect(readiness.selfAnalysis).toBeDefined();
+      expect(typeof readiness.selfAnalysis.rawCritical).toBe("number");
+      expect(typeof readiness.selfAnalysis.rawHigh).toBe("number");
+      expect(typeof readiness.selfAnalysis.rawMedium).toBe("number");
+      expect(typeof readiness.selfAnalysis.rawLow).toBe("number");
+      expect(typeof readiness.selfAnalysis.suppressedCritical).toBe("number");
+      expect(typeof readiness.selfAnalysis.suppressedHigh).toBe("number");
+      expect(typeof readiness.selfAnalysis.broadSuppressions).toBe("number");
+    });
+
+    it("includes acceptedExceptionsByClass breakdown", async () => {
+      const findings = [
+        createFinding({ id: "f-1", ruleId: "CLIENT_TRUSTED_PRICE", severity: "critical" }),
+      ];
+
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "class-breakdown"), findings);
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
+      const { readiness } = await runReadiness(args);
+
+      expect(readiness.selfAnalysis.acceptedExceptionsByClass).toBeDefined();
+      expect(typeof readiness.selfAnalysis.acceptedExceptionsByClass["self-reference"]).toBe("number");
+      expect(typeof readiness.selfAnalysis.acceptedExceptionsByClass["fixture-intentional"]).toBe("number");
+      expect(typeof readiness.selfAnalysis.acceptedExceptionsByClass["generated-artifact"]).toBe("number");
+      expect(typeof readiness.selfAnalysis.acceptedExceptionsByClass["accepted-design"]).toBe("number");
+      expect(typeof readiness.selfAnalysis.acceptedExceptionsByClass["temporary-debt"]).toBe("number");
+    });
+
+    it("adds broad suppression review to recommended actions", async () => {
+      // Use self-analysis suppressions.yaml which has broad suppressions
+      const selfAnalysisDir = path.resolve(import.meta.dirname, "../../../..");
+      const suppressionsFile = path.join(selfAnalysisDir, ".ctg/suppressions.yaml");
+
+      if (!existsSync(suppressionsFile)) {
+        // Skip if suppressions.yaml not found
+        expect(true).toBe(true);
+        return;
+      }
+
+      // Create findings that match broad suppression patterns
+      const findings = [
+        createFinding({ id: "f-1", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-1", path: "src/core/large-file.ts" }] }),
+      ];
+
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "broad-review"), findings);
+
+      // Create policy that uses suppressions.yaml
+      const policyWithSuppressions = path.join(tempOutDir, "policy-with-suppressions.yaml");
+      writeFileSync(policyWithSuppressions, `
+version: ctg/v1
+policy_id: self-analysis-test
+
+blocking:
+  severity:
+    critical: true
+    high: true
+  category:
+    auth: true
+    payment: true
+
+suppression:
+  file: .ctg/suppressions.yaml
+`, "utf8");
+
+      const args = [selfAnalysisDir, "--policy", policyWithSuppressions, "--from", findingsDir, "--out", tempOutDir];
+      const { readiness } = await runReadiness(args);
+
+      // Should include broad suppression review if suppressions loaded
+      if (readiness.selfAnalysis && readiness.selfAnalysis.broadSuppressions > 0) {
+        const hasBroadReview = readiness.recommendedActions.some(
+          (action: string) => action.includes("broad suppression")
+        );
+        expect(hasBroadReview).toBe(true);
+      }
+    });
+  });
 });

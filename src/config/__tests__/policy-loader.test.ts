@@ -10,9 +10,13 @@ import {
   isValidPolicyVersion,
   loadSuppressionFile,
   isSuppressed,
+  detectBroadSuppressions,
+  isBroadSuppression,
   POLICY_VERSION,
+  DEFAULT_SUPPRESSION_CLASS,
   type CtgPolicy,
   type SuppressionEntry,
+  type SuppressionClass,
 } from "../policy-loader.js";
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
 import path from "node:path";
@@ -440,6 +444,171 @@ suppressions:
         // Skip if fixture doesn't exist
         expect(true).toBe(true);
       }
+    });
+  });
+
+  describe("suppression classification", () => {
+    it("should parse suppression with class field", () => {
+      const suppressionPath = path.join(tempDir, "classified-suppressions.yaml");
+      writeFileSync(suppressionPath, `version: ctg/v1
+suppressions:
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/rules/**
+    reason: Rule implementation
+    class: self-reference
+    expiry: 2027-04-30
+    author: code-to-gate-team
+  -
+    rule_id: LARGE_MODULE
+    path: fixtures/**
+    reason: Test fixture
+    class: fixture-intentional
+    expiry: 2027-04-30
+`);
+
+      const result = loadSuppressionFile(suppressionPath, tempDir);
+
+      expect(result.suppressions.length).toBe(2);
+      expect(result.suppressions[0].class).toBe("self-reference");
+      expect(result.suppressions[1].class).toBe("fixture-intentional");
+    });
+
+    it("should default to temporary-debt for missing class", () => {
+      const suppressionPath = path.join(tempDir, "no-class-suppressions.yaml");
+      writeFileSync(suppressionPath, `version: ctg/v1
+suppressions:
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/cart.ts
+    reason: Known issue
+    expiry: 2025-12-31
+`);
+
+      const result = loadSuppressionFile(suppressionPath, tempDir);
+
+      expect(result.suppressions.length).toBe(1);
+      expect(result.suppressions[0].class).toBe(DEFAULT_SUPPRESSION_CLASS);
+      expect(result.suppressions[0].class).toBe("temporary-debt");
+    });
+
+    it("should validate class values", () => {
+      const suppressionPath = path.join(tempDir, "invalid-class-suppressions.yaml");
+      writeFileSync(suppressionPath, `version: ctg/v1
+suppressions:
+  -
+    rule_id: CLIENT_TRUSTED_PRICE
+    path: src/cart.ts
+    reason: Known issue
+    class: invalid-class
+`);
+
+      const result = loadSuppressionFile(suppressionPath, tempDir);
+
+      expect(result.suppressions.length).toBe(1);
+      // Invalid class should default to temporary-debt
+      expect(result.suppressions[0].class).toBe(DEFAULT_SUPPRESSION_CLASS);
+    });
+
+    it("should return class in isSuppressed result", () => {
+      const suppressions: SuppressionEntry[] = [
+        {
+          ruleId: "CLIENT_TRUSTED_PRICE",
+          path: "src/rules/detect.ts",
+          reason: "Rule implementation",
+          class: "self-reference" as SuppressionClass,
+        },
+      ];
+
+      const result = isSuppressed("CLIENT_TRUSTED_PRICE", "src/rules/detect.ts", suppressions);
+
+      expect(result.suppressed).toBe(true);
+      expect(result.class).toBe("self-reference");
+    });
+
+    it("should return temporary-debt for suppression without class", () => {
+      const suppressions: SuppressionEntry[] = [
+        {
+          ruleId: "CLIENT_TRUSTED_PRICE",
+          path: "src/cart.ts",
+          reason: "Known issue",
+          // No class field
+        },
+      ];
+
+      const result = isSuppressed("CLIENT_TRUSTED_PRICE", "src/cart.ts", suppressions);
+
+      expect(result.suppressed).toBe(true);
+      expect(result.class).toBe(DEFAULT_SUPPRESSION_CLASS);
+    });
+  });
+
+  describe("broad suppression detection", () => {
+    it("should detect src/** as broad suppression", () => {
+      expect(isBroadSuppression("src/**")).toBe(true);
+    });
+
+    it("should detect fixtures/** as broad suppression", () => {
+      expect(isBroadSuppression("fixtures/**")).toBe(true);
+    });
+
+    it("should detect **/*.ts as broad suppression", () => {
+      expect(isBroadSuppression("**/*.ts")).toBe(true);
+    });
+
+    it("should not detect specific file path as broad", () => {
+      expect(isBroadSuppression("src/cart.ts")).toBe(false);
+    });
+
+    it("should not detect single wildcard as broad", () => {
+      expect(isBroadSuppression("src/auth/*")).toBe(false);
+    });
+
+    it("should detect broad suppressions from list", () => {
+      const suppressions: SuppressionEntry[] = [
+        {
+          ruleId: "LARGE_MODULE",
+          path: "src/**",
+          reason: "Architecture decision",
+          class: "accepted-design" as SuppressionClass,
+        },
+        {
+          ruleId: "CLIENT_TRUSTED_PRICE",
+          path: "fixtures/**",
+          reason: "Test fixtures",
+          class: "fixture-intentional" as SuppressionClass,
+        },
+        {
+          ruleId: "WEAK_AUTH_GUARD",
+          path: "src/auth/*",
+          reason: "Single wildcard pattern",
+        },
+      ];
+
+      const result = detectBroadSuppressions(suppressions);
+
+      // src/** and fixtures/** are broad, src/auth/* is NOT broad
+      expect(result.length).toBe(2);
+      expect(result[0].ruleId).toBe("LARGE_MODULE");
+      expect(result[0].path).toBe("src/**");
+      expect(result[0].broadType).toBe("directory-wide");
+      expect(result[1].ruleId).toBe("CLIENT_TRUSTED_PRICE");
+    });
+
+    it("should include class in broad suppression result", () => {
+      const suppressions: SuppressionEntry[] = [
+        {
+          ruleId: "LARGE_MODULE",
+          path: "src/**",
+          reason: "Architecture decision",
+          class: "accepted-design" as SuppressionClass,
+        },
+      ];
+
+      const result = detectBroadSuppressions(suppressions);
+
+      expect(result.length).toBe(1);
+      expect(result[0].class).toBe("accepted-design");
     });
   });
 });

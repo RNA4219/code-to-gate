@@ -79,6 +79,22 @@ export interface SuppressionConfig {
 }
 
 /**
+ * Suppression classification types
+ * Used to categorize suppressions for self-analysis transparency
+ */
+export type SuppressionClass =
+  | "self-reference"      // Rule implementation files that trigger on themselves
+  | "fixture-intentional" // Test fixtures with intentional vulnerability patterns
+  | "generated-artifact"  // Compiled output, generated files
+  | "accepted-design"     // Architecture decisions, intentional patterns
+  | "temporary-debt";     // Temporary workaround, needs repayment
+
+/**
+ * Default suppression class when not specified
+ */
+export const DEFAULT_SUPPRESSION_CLASS: SuppressionClass = "temporary-debt";
+
+/**
  * Suppression entry
  */
 export interface SuppressionEntry {
@@ -87,6 +103,7 @@ export interface SuppressionEntry {
   reason: string;
   expiry?: string;
   author?: string;
+  class?: SuppressionClass;
 }
 
 /**

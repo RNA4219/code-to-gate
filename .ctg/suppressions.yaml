@@ -1,6 +1,13 @@
 # code-to-gate self-analysis suppressions
 # These suppressions exclude findings from code-to-gate's own source code
 # that are intentional (rule implementations, test fixtures, architecture decisions)
+#
+# Classification types:
+# - self-reference: Rule implementation files that trigger on themselves
+# - fixture-intentional: Test fixtures with intentional vulnerability patterns
+# - generated-artifact: Compiled output, generated files
+# - accepted-design: Architecture decisions, intentional patterns
+# - temporary-debt: Temporary workaround, needs repayment
 
 version: ctg/v1
 suppressions:
@@ -10,12 +17,14 @@ suppressions:
     rule_id: SUPPRESSION_DEBT
     path: .ctg/*
     reason: Meta-suppression - suppressions.yaml is intentional debt management tool
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: SUPPRESSION_DEBT
     path: fixtures/**/.ctg/*
     reason: Test fixture suppression - intentional for demo purposes
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -25,18 +34,21 @@ suppressions:
     rule_id: DEBT_MARKER
     path: src/cli/schema-validate.ts
     reason: ESM/CJS interop workaround - legitimate compatibility solution
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: DEBT_MARKER
     path: src/evaluation/fp-evaluator.ts
     reason: JSDoc type definition - expiry field description, not actual debt
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: DEBT_MARKER
     path: src/plugin/docker-sandbox.ts
     reason: Code comment - temporary Dockerfile creation, not debt marker
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -46,42 +58,49 @@ suppressions:
     rule_id: CLIENT_TRUSTED_PRICE
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: WEAK_AUTH_GUARD
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: RAW_SQL
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: ENV_DIRECT_ACCESS
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNTESTED_CRITICAL_PATH
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -90,64 +109,69 @@ suppressions:
     rule_id: CLIENT_TRUSTED_PRICE
     path: src/*.js
     reason: Compiled output - contains detection patterns from source
+    class: generated-artifact
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNTESTED_CRITICAL_PATH
     path: src/*.js
     reason: Compiled output - CLI entrypoint
+    class: generated-artifact
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/*.js
     reason: Compiled output - bundled module
+    class: generated-artifact
     expiry: 2027-04-30
     author: code-to-gate-team
 
   # === Docker Plugin ===
-  -
-    rule_id: LARGE_MODULE
-    path: docker/*
-    reason: Docker plugin runner - standalone utility
-    expiry: 2027-04-30
-    author: code-to-gate-team
+  # Note: docker/** suppressions are at the end of this file
+  # docker/* was merged into docker/** for consistency
 
   # === Test Fixtures ===
   -
     rule_id: CLIENT_TRUSTED_PRICE
     path: fixtures/**
     reason: Test fixture - intentional vulnerability pattern for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: WEAK_AUTH_GUARD
     path: fixtures/**
     reason: Test fixture - intentional vulnerability pattern for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: fixtures/**
     reason: Test fixture - intentional pattern for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: RAW_SQL
     path: fixtures/**
     reason: Test fixture - intentional pattern for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: fixtures/**
     reason: Test fixture - intentional pattern for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNTESTED_CRITICAL_PATH
     path: fixtures/**
     reason: Test fixture - intentional pattern for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -156,64 +180,69 @@ suppressions:
     rule_id: CLIENT_TRUSTED_PRICE
     path: src/rules/__tests__/**
     reason: Rule test - validates CLIENT_TRUSTED_PRICE detection
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: WEAK_AUTH_GUARD
     path: src/rules/__tests__/**
     reason: Rule test - validates WEAK_AUTH_GUARD detection
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/rules/__tests__/**
     reason: Rule test - validates TRY_CATCH_SWALLOW detection
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: src/rules/__tests__/**
     reason: Rule test - validates UNSAFE_DELETE detection
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
 
   # === Architecture Decisions ===
-  -
-    rule_id: LARGE_MODULE
-    path: src/**
-    reason: Architecture decision - core modules intentionally comprehensive
-    expiry: 2027-04-30
-    author: code-to-gate-team
+  # Note: LARGE_MODULE suppressions are now at module-level (see below)
+  # The broad src/** suppression was removed to improve transparency
 
   # === Cache/Plugin/Parallel Modules - intentional patterns ===
   -
     rule_id: UNSAFE_DELETE
     path: src/cache/**
     reason: Cache cleanup - intentional delete for cache invalidation
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: src/cli/**
     reason: CLI cleanup - intentional delete for temp file management
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: src/parallel/**
     reason: Parallel processing - intentional cleanup
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: src/plugin/**
     reason: Plugin sandbox - intentional cleanup
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_DELETE
     path: src/reporters/**
     reason: Reporter cleanup - intentional delete for output management
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -222,6 +251,7 @@ suppressions:
     rule_id: ENV_DIRECT_ACCESS
     path: src/config/**
     reason: Config modules - intentional env var access for configuration
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -230,18 +260,21 @@ suppressions:
     rule_id: UNTESTED_CRITICAL_PATH
     path: src/evaluation/**
     reason: Evaluation module - internal utility, not critical path
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNTESTED_CRITICAL_PATH
     path: src/adapters/**
     reason: Language adapters - internal module, tested via integration
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: RAW_SQL
     path: src/plugin/**
     reason: Plugin context - example patterns for plugin development
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -250,42 +283,49 @@ suppressions:
     rule_id: TRY_CATCH_SWALLOW
     path: src/historical/**
     reason: Historical comparison - graceful error handling for diff operations
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/llm/**
     reason: LLM providers - graceful fallback for provider failures
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/core/**
     reason: Core utilities - graceful config parsing
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/plugin/**
     reason: Plugin context - graceful error handling for plugin operations
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/reporters/**
     reason: Reporters - graceful error handling for output generation
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: TRY_CATCH_SWALLOW
     path: src/adapters/**
     reason: Language adapters - graceful fallback for parse failures
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_INPUT_SANITIZATION
     path: src/cli/**
     reason: CLI health check - log output for provider status display
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -294,6 +334,7 @@ suppressions:
     rule_id: ENV_DIRECT_ACCESS
     path: src/github/**
     reason: GitHub API client - uses env for API tokens (standard pattern)
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -302,102 +343,119 @@ suppressions:
     rule_id: LARGE_MODULE
     path: src/evidence/**
     reason: Evidence bundle builder - comprehensive artifact generation
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/historical/**
     reason: Historical comparison - comprehensive baseline analysis
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/llm/**
     reason: LLM providers - provider health and fallback logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/suppression/**
     reason: Suppression validator - comprehensive validation logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/viewer/**
     reason: Web viewer - HTML generation for artifact viewing
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/adapters/**
     reason: Language adapters - comprehensive parsing logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/cache/**
     reason: Cache system - comprehensive caching logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/cli/**
     reason: CLI commands - comprehensive command handling
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/config/**
     reason: Config system - comprehensive configuration handling
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/core/**
     reason: Core utilities - comprehensive core logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/evaluation/**
     reason: Evaluation module - comprehensive evaluation logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/github/**
     reason: GitHub integration - comprehensive API handling
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/parallel/**
     reason: Parallel processing - comprehensive worker logic
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/plugin/**
     reason: Plugin system - comprehensive plugin handling
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/reporters/**
     reason: Reporters - comprehensive output generation
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: src/rules/**
     reason: Rules system - comprehensive rule implementations
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: LARGE_MODULE
     path: docker/**
     reason: Docker plugin runner - standalone utility
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   # === New Security Rules (Phase 2) ===
@@ -405,48 +463,56 @@ suppressions:
     rule_id: HARDCODED_SECRET
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: HARDCODED_SECRET
     path: src/plugin/**
     reason: Plugin schemas - contains example patterns for plugin development
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: HARDCODED_SECRET
     path: fixtures/**
     reason: Test fixture - intentional secret patterns for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_RATE_LIMIT
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_RATE_LIMIT
     path: fixtures/**
     reason: Test fixture - intentional rate limit patterns for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_RATE_LIMIT
     path: src/github/**
     reason: GitHub API client - rate limiting handled by GitHub SDK
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_RATE_LIMIT
     path: src/cli.js
     reason: Compiled output - contains route pattern references
+    class: generated-artifact
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: HARDCODED_SECRET
     path: src/cli.js
     reason: Compiled output - contains pattern references from source
+    class: generated-artifact
     expiry: 2027-04-30
     author: code-to-gate-team
 
@@ -455,71 +521,83 @@ suppressions:
     rule_id: UNSAFE_REDIRECT
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_REDIRECT
     path: fixtures/**
     reason: Test fixture - intentional redirect patterns for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_REDIRECT
     path: docker/**
     reason: Docker plugin runner - example redirect patterns
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: UNSAFE_REDIRECT
     path: src/adapters/**
     reason: Language adapters - example patterns for documentation
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_INPUT_SANITIZATION
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_INPUT_SANITIZATION
     path: fixtures/**
     reason: Test fixture - intentional unsanitized input patterns for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_INPUT_SANITIZATION
     path: docker/**
     reason: Docker plugin runner - example input patterns
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: MISSING_INPUT_SANITIZATION
     path: src/adapters/**
     reason: Language adapters - example patterns for documentation
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: DEPRECATED_API_USAGE
     path: src/rules/**
     reason: Rule implementation - contains detection patterns for testing
+    class: self-reference
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: DEPRECATED_API_USAGE
     path: fixtures/**
     reason: Test fixture - intentional deprecated API patterns for rule testing
+    class: fixture-intentional
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: DEPRECATED_API_USAGE
     path: docker/**
     reason: Docker plugin runner - may use legacy patterns for compatibility
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team
   -
     rule_id: DEPRECATED_API_USAGE
     path: src/adapters/**
     reason: Language adapters - may use legacy patterns for compatibility
+    class: accepted-design
     expiry: 2027-04-30
     author: code-to-gate-team

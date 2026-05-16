@@ -3,6 +3,143 @@
 この文書は、RUNBOOK から切り出した完了事項の記録である。
 RUNBOOK は運用入口と現在の判断に集中させ、完了済みの作業証跡は本書に集約する。
 
+## 2026-05-17 Self-Analysis Remediation Phase A 完了
+
+INT-SELF-ANALYSIS-001: self-analysis の raw findings と suppression 後の effective findings を分離し、readiness が負債を隠さない構造へ更新。
+
+### 実装内容
+
+| 項目 | 変更内容 | file |
+|---|---|---|
+| SAR-001 | SuppressionEntry に class 属性追加 | `src/config/policy-types.ts` |
+| SAR-001 | parseSuppressionFile で class parse | `src/config/policy-yaml-parser.ts` |
+| SAR-004 | broad suppression 検出関数追加 | `src/config/policy-loader.ts` |
+| SAR-005 | selfAnalysis summary 追加 | `src/cli/readiness.ts` |
+| SAR-003 | self-analysis-debt.json artifact 生成 | `src/reporters/self-analysis-debt-reporter.ts` |
+| SAR-003 | analysis-report.md section 更新 | `src/reporters/markdown-reporter.ts` |
+| NFR-003 | suppressions.yaml migration | `.ctg/suppressions.yaml` |
+| Test | class parse / broad detection / selfAnalysis | `src/config/__tests__/policy-loader.test.ts`, `src/cli/__tests__/readiness.test.ts` |
+
+### 受入確認
+
+```powershell
+npm run build
+npx vitest run src/config src/reporters src/cli --reporter=dot
+node .\dist\cli.js analyze . --emit all --out .\.qh-self --llm-provider deterministic
+node .\dist\cli.js readiness . --policy .\fixtures\policies\strict.yaml --from .\.qh-self --out .\.qh-self
+```
+
+### 確認ポイント
+
+- release-readiness.json に selfAnalysis summary (rawCritical=31, rawHigh=102, suppressedCritical=31, suppressedHigh=102, broadSuppressions=16)
+- self-analysis-debt.json で raw/effective/accepted exception が見える
+- acceptedExceptionsByClass: self-reference=86, generated-artifact=44, accepted-design=94
+- broad suppression review: "REVIEW REQUIRED: 16 broad suppression(s) detected"
+- passed status でも raw debt が artifact 上で確認できる
+- 既存 suppression fixture (class 未指定) も壊れない
+
+---
+
+## 2026-05-17 Self-Analysis Remediation Phase B 完了
+
+Broad suppression 縮小実施。
+
+| 項目 | 変更内容 | 結果 |
+|---|---|---|
+| src/** LARGE_MODULE削除 | 重複するmodule-level suppressionへ移行済み | broadSuppressions: 16 → 15 |
+| docker/* → docker/** | glob pattern統合 | suppressions.yaml整合性維持 |
+
+### 確認ポイント
+
+- `broadSuppressions` 16 → 15 に削減
+- release-readiness.json で broadSuppressions=15
+- すべてのmodule-level suppressionが正当な architecture decision として分類済み
+
+---
+
+## 2026-05-17 Self-Analysis Remediation Phase C 完了
+
+Debt candidate review (SAR-006) 実施。
+
+| Debt Candidate | Count | Code Fix | Accepted-Design | Self-Reference | False-Positive |
+|---|---:|---:|---:|---:|---:|
+| UNSAFE_DELETE | 15 | 0 | 13 | 2 | 0 |
+| TRY_CATCH_SWALLOW | 11 | 0 | 7 | 4 | 0 |
+| RAW_SQL | 1 | 0 | 0 | 1 | 1 |
+
+**Total: 27 findings reviewed, 0 require code fix**
+
+### 分類詳細
+
+**UNSAFE_DELETE (15件)**:
+- `.clear()` on Map: cache invalidation (accepted-design)
+- `fs.rm` with `{ force: true }`: safe temp cleanup (accepted-design)
+- Rule implementation: detection patterns (self-reference)
+
+**TRY_CATCH_SWALLOW (11件)**:
+- Parse failures → empty: graceful degradation (accepted-design)
+- Feature detection (Docker): safe pattern (accepted-design)
+- Rule implementation: detection patterns (self-reference)
+
+**RAW_SQL (1件)**:
+- Rule name in string literal: false positive (self-reference)
+
+### 残事項
+
+- Phase D: HARDCODED_SECRET / DEBT_MARKER precision backlog (SAR-007) ✓ 完了
+
+---
+
+## 2026-05-17 Self-Analysis Remediation Phase D 完了
+
+Rule precision backlog 作成 (SAR-007)。
+
+| 項目 | 状態 | 証跡 |
+|---|---|---|
+| HARDCODED_SECRET false positives | ✓ 文書化 | `docs/rule-precision-backlog.md` FP-HS-001, FP-HS-002 |
+| DEBT_MARKER false positives | ✓ 文書化 | `docs/rule-precision-backlog.md` FP-DM-001, FP-DM-002, FP-DM-003 |
+| MISSING_INPUT_SANITIZATION | ✓ 文書化 | `docs/rule-precision-backlog.md` FP-MIS-001 |
+| RAW_SQL false positives | ✓ 文書化 | `docs/rule-precision-backlog.md` FP-RS-001, FP-RS-002 |
+
+### 確認ポイント
+
+- False positive が suppression ではなく detector improvement backlog として追跡
+- 各 false positive に root cause と improvement suggestion を記載
+- Suppression vs Precision Backlog の区分を明確化
+- Next review date (2026-06-17) を設定
+
+### INT-SELF-ANALYSIS-001 全 Phase 完了
+
+| Phase | 内容 | 状態 |
+|---|---|---|
+| Phase A | Core implementation (SAR-001~008) | ✓ 完了 |
+| Phase B | Broad suppression reduction | ✓ 完了 (16→15) |
+| Phase C | Debt candidate review (SAR-006) | ✓ 完了 (27 findings, 0 code fix) |
+| Phase D | Rule precision backlog (SAR-007) | ✓ 完了 |
+
+### 受入確認 (SAR-008 Historical comparison)
+
+SAR-008 は historical comparison module が既に実装済み (`src/historical/*`)。
+self-analysis debt の増減を historical comparison で追跡可能。
+
+## 2026-05-16 静的型付け言語 baseline 拡張 完了
+
+Go を必須軸にした静的型付け言語対応を拡張し、既存の Go / Rust / Java に加えて C# / C++ の軽量解析 baseline を追加した。
+
+| 項目 | 状態 | 証跡 |
+|---|---|---|
+| 言語検出拡張 | ✓ 完了 | `src/core/file-utils.ts`, `src/types/*.ts`, `schemas/normalized-repo-graph.schema.json` |
+| C# / C++ regex adapter | ✓ 完了 | `src/adapters/regex-language-adapter.ts` |
+| multilang fixture 拡張 | ✓ 完了 | `fixtures/demo-multilang/csharp/`, `fixtures/demo-multilang/cpp/` |
+| 受入テスト | ✓ 完了 | `src/core/__tests__/static-language-support.test.ts`, `tests/integration/demo-multilang-static.test.ts` |
+| CLI 実行確認 | ✓ 完了 | `scan fixtures/demo-multilang` で `go`, `rs`, `java`, `php`, `cs`, `cpp` を確認 |
+
+**Test status**: `npm run build` 成功、対象 Vitest 9 tests passed
+
+**Gate status**: go。C# / C++ は regex fallback baseline、Java / C / C++ tree-sitter 精度向上は将来対応として継続管理。
+
+---
+
 ## 2026-05-02 Schema v1 Migration 完了
 
 Schema version を `ctg/v1alpha1` から `ctg/v1` に移行完了。

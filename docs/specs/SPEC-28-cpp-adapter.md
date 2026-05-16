@@ -33,11 +33,11 @@ Add C/C++ language support via tree-sitter for include, function, struct, and cl
 
 ## 3. Current State
 
-**Status**: No C/C++ support
+**Status**: C++ regex fallback baseline implemented; C and tree-sitter adapters not yet implemented
 
-**Current Languages**: TS/JS/Python/Ruby/Go/Rust/Java (planned)
+**Current Languages**: TS/JS/Python/Ruby/Go/Rust/Java/PHP/C#/C++
 
-**Need**: C/C++ still widely used, especially in embedded/systems.
+**Need**: C/C++ still widely used, especially in embedded/systems. Current baseline covers C++ include/class/function extraction, while this spec tracks fuller C/C++ tree-sitter support.
 
 ---
 

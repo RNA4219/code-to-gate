@@ -1,7 +1,7 @@
 # Phase 4+ Roadmap
 
 **作成日**: 2026-05-03
-**更新日**: 2026-05-03
+**更新日**: 2026-05-16
 **位置づけ**: Phase 5 tree-sitter完了後の状態反映
 
 ---
@@ -117,7 +117,8 @@ interface SymbolNode {
 | repo-graph-builder統合 | ✓完了 | tree-sitter adapter自動選択 |
 | CLI --tree-sitter接続 | ✓完了 | 言語判定ロジック |
 | Dataflow-full | Phase 6 | 完全dataflow解析（lite版拡張） |
-| Java/C/C++ adapter | Phase 6+ | tree-sitter WASM |
+| Java/PHP/C#/C++ regex baseline | ✓完了 | 軽量 symbol/import/entrypoint 抽出 |
+| Java/C/C++ tree-sitter adapter | Phase 6+ | AST 精度向上の将来対応 |
 
 ---
 
@@ -143,5 +144,6 @@ Phase 4+5完了判定: ✅ PASS
 - Dataflow-lite: ✓ 完了 (14 tests)
 - Type inference: ✓ 完了 (8 tests)
 - Python/Ruby/Go/Rust tree-sitter: ✓ 完了 (60 tests)
+- 静的型付け言語 baseline: ✓ 完了 (Go / Rust / Java / C# / C++)
 
 **Gate status**: go, Phase 5 tree-sitter complete

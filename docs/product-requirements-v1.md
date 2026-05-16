@@ -601,7 +601,7 @@ Raw prompt/response は `--debug-llm-trace` 指定時のみ保存。
 
 | type | Phase | 内容 |
 |---|:---:|---|
-| Language adapter | Phase 1+ | TS/JS AST, text fallback, Python (Phase 3) |
+| Language adapter | Phase 1+ | TS/JS AST, Python/Ruby/Go/Rust tree-sitter, Java/PHP/C#/C++ regex fallback baseline |
 | Rule plugin | Phase 2+ | Core rules, private rules, community rules |
 | Importer | Phase 1+ | ESLint, Semgrep, TypeScript, coverage |
 | Reporter | Phase 1+ | SARIF, HTML, Markdown |

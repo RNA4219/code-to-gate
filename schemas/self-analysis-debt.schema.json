@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/self-analysis-debt.schema.json",
+  "title": "Self Analysis Debt",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_at",
+    "run_id",
+    "repo",
+    "tool",
+    "artifact",
+    "schema",
+    "rawFindings",
+    "effectiveFindings",
+    "acceptedExceptions",
+    "broadSuppressions",
+    "debtCandidates",
+    "recommendedActions"
+  ],
+  "properties": {
+    "version": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "run_id": { "type": "string" },
+    "repo": {
+      "type": "object",
+      "required": ["root"],
+      "properties": {
+        "root": { "type": "string" }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "code-to-gate" },
+        "version": { "type": "string" }
+      }
+    },
+    "artifact": { "const": "self-analysis-debt" },
+    "schema": { "const": "self-analysis-debt@v1" },
+    "rawFindings": { "$ref": "#/$defs/findingSummary" },
+    "effectiveFindings": { "$ref": "#/$defs/findingSummary" },
+    "acceptedExceptions": {
+      "type": "object",
+      "required": ["total", "bySeverity", "byClass", "details"],
+      "properties": {
+        "total": { "type": "integer" },
+        "bySeverity": { "$ref": "#/$defs/severityCounts" },
+        "byClass": { "$ref": "#/$defs/classCounts" },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ruleId", "path", "class", "reason", "severity"],
+            "properties": {
+              "ruleId": { "type": "string" },
+              "path": { "type": "string" },
+              "class": { "$ref": "#/$defs/suppressionClass" },
+              "reason": { "type": "string" },
+              "severity": { "$ref": "#/$defs/severity" }
+            }
+          }
+        }
+      }
+    },
+    "broadSuppressions": {
+      "type": "object",
+      "required": ["total", "items", "reviewRequired"],
+      "properties": {
+        "total": { "type": "integer" },
+        "reviewRequired": { "type": "boolean" },
+        "items": { "type": "array" }
+      }
+    },
+    "debtCandidates": {
+      "type": "object",
+      "required": ["unsafeDelete", "tryCatchSwallow", "rawSql", "largeModule"],
+      "properties": {
+        "unsafeDelete": { "type": "integer" },
+        "tryCatchSwallow": { "type": "integer" },
+        "rawSql": { "type": "integer" },
+        "largeModule": { "type": "integer" }
+      }
+    },
+    "recommendedActions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "severity": {
+      "enum": ["critical", "high", "medium", "low"]
+    },
+    "severityCounts": {
+      "type": "object",
+      "required": ["critical", "high", "medium", "low"],
+      "properties": {
+        "critical": { "type": "integer" },
+        "high": { "type": "integer" },
+        "medium": { "type": "integer" },
+        "low": { "type": "integer" }
+      }
+    },
+    "findingSummary": {
+      "type": "object",
+      "required": ["total", "bySeverity"],
+      "properties": {
+        "total": { "type": "integer" },
+        "bySeverity": { "$ref": "#/$defs/severityCounts" }
+      }
+    },
+    "suppressionClass": {
+      "enum": [
+        "self-reference",
+        "fixture-intentional",
+        "generated-artifact",
+        "accepted-design",
+        "temporary-debt"
+      ]
+    },
+    "classCounts": {
+      "type": "object",
+      "required": [
+        "self-reference",
+        "fixture-intentional",
+        "generated-artifact",
+        "accepted-design",
+        "temporary-debt"
+      ],
+      "properties": {
+        "self-reference": { "type": "integer" },
+        "fixture-intentional": { "type": "integer" },
+        "generated-artifact": { "type": "integer" },
+        "accepted-design": { "type": "integer" },
+        "temporary-debt": { "type": "integer" }
+      }
+    }
+  }
+}

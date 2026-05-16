@@ -33,6 +33,7 @@ next_review_due: 2026-05-15
 
 - TypeScript / JavaScript repo scan
 - Python / Ruby / Go / Rust adapter (tree-sitter WASM)
+- Java / PHP / C# / C++ adapter (regex fallback baseline)
 - AST / import / export / symbol / call / test 抽出
 - changed files / PR diff 解析
 - dependency graph / blast radius 推定
@@ -142,10 +143,15 @@ next_review_due: 2026-05-15
 | Phase 5 | Python/Ruby/Go/Rust tree-sitter WASM | ✓完了 |
 | Phase 6 | repo-graph-builder統合、CLI接続 | ✓完了 |
 | Phase 7 | WASM Node.js修正、tree-sitter自動化、Dataflow-full | ✓完了 |
+| Phase 8 | 静的型付け言語の軽量拡張 (Go 必須、Java / C# / C++ 追加) | ✓完了 |
 
 ## 9. 参照
 
 - [docs/requirements.md](docs/requirements.md): 正本要件定義
+- [docs/self-analysis-debt-inventory-2026-05-17.md](docs/self-analysis-debt-inventory-2026-05-17.md): self-analysis 棚卸
+- [docs/self-analysis-remediation-requirements.md](docs/self-analysis-remediation-requirements.md): self-analysis 改善要件
+- [docs/self-analysis-remediation-spec.md](docs/self-analysis-remediation-spec.md): self-analysis 改善仕様
+- [docs/self-analysis-contract-boundary-spec.md](docs/self-analysis-contract-boundary-spec.md): self-analysis 契約境界仕様
 - [docs/acceptance-v0.1.md](docs/acceptance-v0.1.md): 完成条件
 - [orchestration/v0.1-implementation.md](orchestration/v0.1-implementation.md): Task Seed 形式実装計画
 - [RUNBOOK.md](RUNBOOK.md): 実行手順

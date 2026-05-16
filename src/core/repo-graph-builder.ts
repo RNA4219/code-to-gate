@@ -88,7 +88,7 @@ export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): Nor
 }
 
 export function isGraphTargetFile(filePath: string): boolean {
-  return /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !filePath.endsWith(".d.ts");
+  return /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|cs|cpp|cc|cxx|hpp|hxx|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !filePath.endsWith(".d.ts");
 }
 
 export function discoverGraphFiles(repoRoot: string): string[] {
@@ -129,6 +129,10 @@ export function addGraphClassifications(graph: NormalizedRepoGraph, file: RepoFi
                 ? "junit"
                 : file.path.endsWith(".php")
                   ? "phpunit"
+                  : file.path.endsWith(".cs")
+                    ? "xunit"
+                    : /\.(cpp|cc|cxx)$/.test(file.path)
+                      ? "gtest"
                   : file.path.endsWith(".js") ? "node:test" : "vitest",
     });
   }
@@ -156,7 +160,7 @@ function getCachedParseResult(
   bodyHash: string,
   useTreeSitter: boolean = false
 ): AdapterParseResult | undefined {
-  if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(language)) {
+  if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php", "cs", "cpp"].includes(language)) {
     return undefined;
   }
 

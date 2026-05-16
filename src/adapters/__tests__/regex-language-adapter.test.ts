@@ -10,6 +10,8 @@ describe("regex-language-adapter", () => {
     { language: "rs", file: "rust/src/main.rs", symbol: "create_order", adapter: "rs-regex-v0" },
     { language: "java", file: "java/src/main/java/OrderController.java", symbol: "OrderController", adapter: "java-regex-v0" },
     { language: "php", file: "php/src/OrderController.php", symbol: "OrderController", adapter: "php-regex-v0" },
+    { language: "cs", file: "csharp/OrderController.cs", symbol: "OrderController", adapter: "cs-regex-v0" },
+    { language: "cpp", file: "cpp/main.cpp", symbol: "OrderController", adapter: "cpp-regex-v0" },
   ];
 
   for (const testCase of cases) {

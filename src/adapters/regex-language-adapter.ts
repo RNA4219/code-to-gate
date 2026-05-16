@@ -5,7 +5,7 @@ import { createAstEvidence } from "../core/evidence-utils.js";
 import type { EvidenceRef, GraphRelation, SymbolNode, ParseResult } from "../types/graph.js";
 
 export type { EvidenceRef, GraphRelation, SymbolNode, ParseResult };
-export type RegexLanguage = "go" | "rs" | "java" | "php";
+export type RegexLanguage = "go" | "rs" | "java" | "php" | "cs" | "cpp";
 
 function isTestPath(relPath: string, language: RegexLanguage): boolean {
   if (relPath.includes("/test/") || relPath.includes("/tests/") || relPath.includes("__tests__/")) return true;
@@ -13,6 +13,8 @@ function isTestPath(relPath: string, language: RegexLanguage): boolean {
   if (language === "rs") return relPath.includes("/tests/") || relPath.endsWith("_test.rs");
   if (language === "java") return relPath.endsWith("Test.java") || relPath.endsWith("Tests.java");
   if (language === "php") return relPath.endsWith("Test.php");
+  if (language === "cs") return relPath.endsWith("Test.cs") || relPath.endsWith("Tests.cs");
+  if (language === "cpp") return /(?:_test|Test)\.(?:cpp|cc|cxx)$/.test(relPath);
   return false;
 }
 
@@ -75,6 +77,12 @@ function importTargets(line: string, language: RegexLanguage): string[] {
     if (match) targets.push(match[1]);
     match = line.match(/^\s*use\s+([^;]+);/);
     if (match) targets.push(match[1].trim());
+  } else if (language === "cs") {
+    match = line.match(/^\s*using\s+([^;]+);/);
+    if (match) targets.push(match[1].trim());
+  } else if (language === "cpp") {
+    match = line.match(/^\s*#include\s+[<"]([^>"]+)[>"]/);
+    if (match) targets.push(match[1].trim());
   }
 
   return targets;
@@ -106,6 +114,16 @@ function detectSymbols(line: string, language: RegexLanguage): Array<{ name: str
     if (match) symbols.push({ name: match[1], kind: "class" });
     match = line.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
     if (match) symbols.push({ name: match[1], kind: "function" });
+  } else if (language === "cs") {
+    match = line.match(/^\s*(?:public|private|protected|internal)?\s*(?:abstract\s+|sealed\s+|static\s+)?(?:class|interface|record|struct|enum)\s+([A-Z][A-Za-z0-9_]*)/);
+    if (match) symbols.push({ name: match[1], kind: match[0].includes("interface") ? "interface" : "class" });
+    match = line.match(/^\s*(?:public|private|protected|internal)?\s*(?:static\s+|virtual\s+|override\s+|async\s+)*[A-Za-z0-9_<>,?\[\]\s]+\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*\)\s*(?:=>|\{)/);
+    if (match && !["if", "for", "while", "switch", "catch"].includes(match[1])) symbols.push({ name: match[1], kind: "method" });
+  } else if (language === "cpp") {
+    match = line.match(/^\s*(?:class|struct)\s+([A-Z][A-Za-z0-9_]*)/);
+    if (match) symbols.push({ name: match[1], kind: "class" });
+    match = line.match(/^\s*(?:[A-Za-z_][A-Za-z0-9_:<>*&\s]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*\)\s*(?:const\s*)?\{/);
+    if (match && !["if", "for", "while", "switch", "catch"].includes(match[1])) symbols.push({ name: match[1], kind: "function" });
   }
 
   return symbols;
@@ -124,6 +142,9 @@ function routeTarget(line: string, language: RegexLanguage): string | undefined 
   } else if (language === "rs") {
     const match = line.match(/#\[(get|post|put|patch|delete)\s*\(\s*"([^"]+)"/);
     if (match) return `route:${match[1].toUpperCase()} ${match[2]}`;
+  } else if (language === "cs") {
+    const match = line.match(/\[(HttpGet|HttpPost|HttpPut|HttpPatch|HttpDelete)(?:\(\s*"([^"]+)")?/);
+    if (match) return `route:${match[1]} ${match[2] ?? ""}`.trim();
   }
   return undefined;
 }

@@ -8,14 +8,21 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
-import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
+import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, detectBroadSuppressions, type SuppressionEntry, type SuppressionExpiryWarning, type SuppressionClass } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
 import { assessIntakeArtifact, type IntakeAssessment } from "./intake-artifact.js";
 
 import {
   FindingsArtifact,
+  Finding,
+  Severity,
   CTG_VERSION,
 } from "../types/artifacts.js";
+import {
+  generateSelfAnalysisDebtArtifact,
+  writeSelfAnalysisDebtJson,
+} from "../reporters/index.js";
+import { countSuppressedByClass } from "../self-analysis/suppression-summary.js";
 
 interface ReadinessOptions {
   VERSION: string;
@@ -48,6 +55,18 @@ interface ReleaseReadinessArtifact {
     risks: number;
     testSeeds: number;
     unsupportedClaims: number;
+  };
+  selfAnalysis?: {
+    rawCritical: number;
+    rawHigh: number;
+    rawMedium: number;
+    rawLow: number;
+    suppressedCritical: number;
+    suppressedHigh: number;
+    suppressedMedium: number;
+    suppressedLow: number;
+    broadSuppressions: number;
+    acceptedExceptionsByClass: Record<SuppressionClass, number>;
   };
   failedConditions: Array<{
     id: string;
@@ -106,6 +125,22 @@ function mapFailedConditions(result: PolicyEvaluationResult): Array<{
       matchedFindingIds: condition.findingId ? [condition.findingId] : undefined,
     };
   });
+}
+
+/**
+ * Count findings by severity
+ */
+function countBySeverity(findings: Finding[]): Record<Severity, number> {
+  const counts: Record<Severity, number> = {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+  };
+  for (const finding of findings) {
+    counts[finding.severity]++;
+  }
+  return counts;
 }
 
 /**
@@ -305,6 +340,19 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       recommendedActions.push(...intakeAssessment.recommendedActions);
     }
 
+    // Calculate self-analysis summary for transparency
+    const rawCounts = countBySeverity(findings.findings);
+    const suppressedCounts = countBySeverity(evalResult.suppressedFindings);
+    const broadSuppressions = detectBroadSuppressions(suppressions);
+    const acceptedExceptionsByClass = countSuppressedByClass(suppressions, evalResult.suppressedFindings);
+
+    // Add broad suppression review to recommended actions if present
+    if (broadSuppressions.length > 0) {
+      recommendedActions.push(
+        `REVIEW REQUIRED: ${broadSuppressions.length} broad suppression(s) detected. Review path patterns for scope reduction.`
+      );
+    }
+
     // Build readiness artifact
     const now = new Date().toISOString();
     const runId = `readiness-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
@@ -326,12 +374,24 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       completeness: findings.completeness,
       summary: getMergedStatusSummary(readinessStatus, evalResult, intakeAssessment),
       counts: {
-        findings: findings.findings.length,
-        critical: evalResult.summary.severityCounts.critical,
-        high: evalResult.summary.severityCounts.high,
+        findings: evalResult.summary.blockedCount + evalResult.summary.passedCount + evalResult.summary.lowConfidenceCount,
+        critical: evalResult.summary.blockedCount > 0 ? rawCounts.critical - suppressedCounts.critical : 0,
+        high: evalResult.summary.blockedCount > 0 ? rawCounts.high - suppressedCounts.high : 0,
         risks: 0,
         testSeeds: 0,
         unsupportedClaims: findings.unsupported_claims.length,
+      },
+      selfAnalysis: {
+        rawCritical: rawCounts.critical,
+        rawHigh: rawCounts.high,
+        rawMedium: rawCounts.medium,
+        rawLow: rawCounts.low,
+        suppressedCritical: suppressedCounts.critical,
+        suppressedHigh: suppressedCounts.high,
+        suppressedMedium: suppressedCounts.medium,
+        suppressedLow: suppressedCounts.low,
+        broadSuppressions: broadSuppressions.length,
+        acceptedExceptionsByClass,
       },
       failedConditions,
       recommendedActions,
@@ -347,6 +407,18 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     // Write release-readiness.json
     const outputPath = path.join(absoluteOutDir, "release-readiness.json");
     writeFileSync(outputPath, JSON.stringify(readiness, null, 2) + "\n", "utf8");
+
+    // Generate self-analysis-debt.json for transparency
+    if (suppressions.length > 0) {
+      const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
+        findings,
+        suppressions,
+        evalResult.suppressedFindings,
+        repoRoot,
+        runId
+      );
+      writeSelfAnalysisDebtJson(absoluteOutDir, selfAnalysisDebt);
+    }
 
     // Output summary
     console.log(

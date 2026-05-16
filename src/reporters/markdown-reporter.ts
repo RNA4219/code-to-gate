@@ -12,6 +12,7 @@ import {
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { escapeMarkdownCell, inferFindingDomain } from "./domain-context.js";
+import type { SuppressionClass, BroadSuppression } from "../config/policy-loader.js";
 
 /**
  * Get severity badge emoji
@@ -104,24 +105,45 @@ export function generateAnalysisReport(
   repoRoot: string,
   options?: {
     suppressedFindings?: Finding[];
+    effectiveFindings?: Finding[];
     suppressionDebtFindings?: Finding[];
+    broadSuppressions?: BroadSuppression[];
+    acceptedExceptionsByClass?: Record<SuppressionClass, number>;
   }
 ): string {
   const suppressedFindings = options?.suppressedFindings ?? [];
   const suppressionDebtFindings = options?.suppressionDebtFindings ?? findings.findings.filter(
     (f) => f.ruleId === "SUPPRESSION_DEBT"
   );
-  const activeFindings = findings.findings.filter(
+  const broadSuppressions = options?.broadSuppressions ?? [];
+  const acceptedExceptionsByClass = options?.acceptedExceptionsByClass ?? {
+    "self-reference": 0,
+    "fixture-intentional": 0,
+    "generated-artifact": 0,
+    "accepted-design": 0,
+    "temporary-debt": 0,
+  };
+
+  const activeFindings = (options?.effectiveFindings ?? findings.findings).filter(
     (f) => f.ruleId !== "SUPPRESSION_DEBT" && f.ruleId !== "DEBT_MARKER"
   );
   const debtMarkerFindings = findings.findings.filter(
     (f) => f.ruleId === "DEBT_MARKER"
   );
 
-  const counts = countBySeverity(activeFindings);
+  // Raw counts (all findings)
+  const rawCounts = countBySeverity(findings.findings);
+  // Effective counts (active findings excluding SUPPRESSION_DEBT and DEBT_MARKER)
+  const effectiveCounts = countBySeverity(activeFindings);
+  // Suppressed counts
+  const suppressedCounts = countBySeverity(suppressedFindings);
+  // Suppression debt counts
   const suppressionDebtCounts = countBySeverity(suppressionDebtFindings);
+  // Debt marker counts
   const debtMarkerCounts = countBySeverity(debtMarkerFindings);
-  const totalActiveFindings = activeFindings.length;
+
+  const totalRawFindings = findings.findings.length;
+  const totalEffectiveFindings = activeFindings.length;
   const totalSuppressedFindings = suppressedFindings.length;
   const totalSuppressionDebt = suppressionDebtFindings.length;
   const totalDebtMarkers = debtMarkerFindings.length;
@@ -142,23 +164,45 @@ Repository: ${repoRoot}
 
 ## Summary
 
-### Active Findings
+### Raw Findings (All Detections)
 
 | Metric | Count |
 |--------|-------|
-| Active Findings | ${totalActiveFindings} |
-| Critical | ${counts.critical} |
-| High | ${counts.high} |
-| Medium | ${counts.medium} |
-| Low | ${counts.low} |
-| Total Risks | ${totalRisks} |
-| Unsupported Claims | ${findings.unsupported_claims.length} |
+| Total Raw Findings | ${totalRawFindings} |
+| Critical | ${rawCounts.critical} |
+| High | ${rawCounts.high} |
+| Medium | ${rawCounts.medium} |
+| Low | ${rawCounts.low} |
 
-### Suppressed Findings
+### Effective Findings (After Suppression)
+
+| Metric | Count |
+|--------|-------|
+| Effective Findings | ${totalEffectiveFindings} |
+| Critical | ${effectiveCounts.critical} |
+| High | ${effectiveCounts.high} |
+| Medium | ${effectiveCounts.medium} |
+| Low | ${effectiveCounts.low} |
+
+### Accepted Exceptions (Suppressed)
 
 | Metric | Count |
 |--------|-------|
 | Suppressed Findings | ${totalSuppressedFindings} |
+| Critical | ${suppressedCounts.critical} |
+| High | ${suppressedCounts.high} |
+| Medium | ${suppressedCounts.medium} |
+| Low | ${suppressedCounts.low} |
+
+#### Exception Classification Breakdown
+
+| Class | Count | Description |
+|-------|-------|-------------|
+| self-reference | ${acceptedExceptionsByClass["self-reference"]} | Rule implementation files |
+| fixture-intentional | ${acceptedExceptionsByClass["fixture-intentional"]} | Test fixtures |
+| generated-artifact | ${acceptedExceptionsByClass["generated-artifact"]} | Compiled output |
+| accepted-design | ${acceptedExceptionsByClass["accepted-design"]} | Architecture decisions |
+| temporary-debt | ${acceptedExceptionsByClass["temporary-debt"]} | Needs repayment |
 
 ### Known Debt
 
@@ -168,6 +212,21 @@ Repository: ${repoRoot}
 | Explicit Debt Markers | ${totalDebtMarkers} | ${debtMarkerCounts.critical} | ${debtMarkerCounts.high} | ${debtMarkerCounts.medium} | ${debtMarkerCounts.low} |
 
 `;
+
+  // Add broad suppression review section
+  if (broadSuppressions.length > 0) {
+    md += `## Broad Suppression Review
+
+**WARNING**: ${broadSuppressions.length} broad suppression(s) detected. These suppress wide file scopes and may hide underlying issues.
+
+| Rule | Path | Type | Reason | Class |
+|------|------|------|--------|-------|
+`;
+    for (const suppression of broadSuppressions) {
+      md += `| ${suppression.ruleId} | ${escapeMarkdownCell(suppression.path)} | ${suppression.broadType} | ${escapeMarkdownCell(suppression.reason)} | ${suppression.class || "temporary-debt"} |\n`;
+    }
+    md += "\n";
+  }
 
   if (domainSummary.length > 0) {
     md += `## Domain Context
@@ -370,7 +429,10 @@ export function writeAnalysisReportMd(
   repoRoot: string,
   options?: {
     suppressedFindings?: Finding[];
+    effectiveFindings?: Finding[];
     suppressionDebtFindings?: Finding[];
+    broadSuppressions?: BroadSuppression[];
+    acceptedExceptionsByClass?: Record<SuppressionClass, number>;
   }
 ): string {
   const filePath = path.join(outDir, "analysis-report.md");

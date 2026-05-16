@@ -45,6 +45,51 @@
       }
     },
     "recommendedActions": { "type": "array", "items": { "type": "string" } },
+    "selfAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rawCritical",
+        "rawHigh",
+        "rawMedium",
+        "rawLow",
+        "suppressedCritical",
+        "suppressedHigh",
+        "suppressedMedium",
+        "suppressedLow",
+        "broadSuppressions",
+        "acceptedExceptionsByClass"
+      ],
+      "properties": {
+        "rawCritical": { "type": "integer", "minimum": 0 },
+        "rawHigh": { "type": "integer", "minimum": 0 },
+        "rawMedium": { "type": "integer", "minimum": 0 },
+        "rawLow": { "type": "integer", "minimum": 0 },
+        "suppressedCritical": { "type": "integer", "minimum": 0 },
+        "suppressedHigh": { "type": "integer", "minimum": 0 },
+        "suppressedMedium": { "type": "integer", "minimum": 0 },
+        "suppressedLow": { "type": "integer", "minimum": 0 },
+        "broadSuppressions": { "type": "integer", "minimum": 0 },
+        "acceptedExceptionsByClass": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "self-reference",
+            "fixture-intentional",
+            "generated-artifact",
+            "accepted-design",
+            "temporary-debt"
+          ],
+          "properties": {
+            "self-reference": { "type": "integer", "minimum": 0 },
+            "fixture-intentional": { "type": "integer", "minimum": 0 },
+            "generated-artifact": { "type": "integer", "minimum": 0 },
+            "accepted-design": { "type": "integer", "minimum": 0 },
+            "temporary-debt": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
     "artifactRefs": {
       "type": "object",
       "additionalProperties": false,

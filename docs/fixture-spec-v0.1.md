@@ -1,7 +1,7 @@
 # code-to-gate v0.1 Fixture 仕様
 
 **バージョン**: v1alpha1  
-**対象**: `fixtures/demo-shop-ts`, `fixtures/demo-auth-js`, `fixtures/demo-ci-imports`  
+**対象**: `fixtures/demo-shop-ts`, `fixtures/demo-auth-js`, `fixtures/demo-ci-imports`, `fixtures/demo-multilang`  
 **目的**: `docs/acceptance-v0.1.md` の fixture 受入条件を実装可能な入力仕様へ落とし込む。
 
 ---
@@ -26,6 +26,7 @@ fixtures/
   demo-shop-ts/
   demo-auth-js/
   demo-ci-imports/
+  demo-multilang/
   policies/
     strict.yaml
 ```
@@ -341,3 +342,29 @@ code-to-gate readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.y
 - `demo-ci-imports` は external finding の `upstream.tool` / `upstream.ruleId` を失わない。
 - すべての finding/risk/test seed は evidence を持つ。
 - public fixture に private code、private result、company-specific rule を含めない。
+
+---
+
+## 6. `demo-multilang`
+
+### 6.1 目的
+
+静的型付け言語を含む複数 adapter の baseline をまとめて確認する fixture とする。Go を必須対象とし、Rust / Java / PHP / C# / C++ の軽量解析が repo graph に反映されることを検収する。
+
+### 6.2 含めるもの
+
+| path | 役割 |
+|---|---|
+| `go/main.go` | Go entrypoint / route handler |
+| `rust/src/main.rs` | Rust function / use extraction |
+| `java/src/main/java/OrderController.java` | Java class / method extraction |
+| `php/src/OrderController.php` | PHP class / route extraction |
+| `csharp/OrderController.cs` | C# class / HTTP attribute / entrypoint |
+| `cpp/main.cpp` | C++ include / class / function / entrypoint |
+
+### 6.3 期待結果
+
+- `scan fixtures/demo-multilang` で `go`, `rs`, `java`, `php`, `cs`, `cpp` が `repo-graph.json.files[].language` に現れる。
+- Go は必須対象として常に含まれる。
+- C# / C++ は regex fallback baseline として symbol / import / entrypoint 抽出が行われる。
+- 将来の tree-sitter 精度向上と混同せず、現時点の受入条件は「軽量解析 baseline の可視化」とする。

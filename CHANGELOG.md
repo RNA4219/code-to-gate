@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Static typed language baseline expansion:
+  - C# and C++ file detection, test detection, and entrypoint detection
+  - C# `using` / controller attribute parsing
+  - C++ `#include` / class / function parsing
+  - `fixtures/demo-multilang` coverage for Go / Rust / Java / PHP / C# / C++
+  - Integration and unit tests for multi-language static support
+
+### Documentation
+
+- Updated blueprint, roadmap, language-support specs, and completion record to distinguish the new regex baseline from future tree-sitter upgrades.
+
+---
+
 ## [1.3.0] - 2026-05-03 - Phase 5 Tree-sitter Adapters
 
 ### Added

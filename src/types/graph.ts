@@ -31,7 +31,7 @@ export interface ToolRef {
 export interface RepoFile {
   id: string;
   path: string;
-  language: "ts" | "tsx" | "js" | "jsx" | "py" | "rb" | "go" | "rs" | "java" | "php" | "unknown";
+  language: "ts" | "tsx" | "js" | "jsx" | "py" | "rb" | "go" | "rs" | "java" | "php" | "cs" | "cpp" | "unknown";
   role: "source" | "test" | "config" | "fixture" | "docs" | "generated" | "unknown";
   hash: string;
   sizeBytes: number;

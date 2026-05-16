@@ -9,7 +9,7 @@ import { toPosix } from "./path-utils.js";
 /**
  * Supported language types for file classification
  */
-export type Language = "ts" | "tsx" | "js" | "jsx" | "py" | "rb" | "go" | "rs" | "java" | "php" | "unknown";
+export type Language = "ts" | "tsx" | "js" | "jsx" | "py" | "rb" | "go" | "rs" | "java" | "php" | "cs" | "cpp" | "unknown";
 
 /**
  * Role types for file classification
@@ -82,6 +82,12 @@ export function detectLanguage(filePath: string): Language {
     rs: "rs",
     java: "java",
     php: "php",
+    cs: "cs",
+    cpp: "cpp",
+    cc: "cpp",
+    cxx: "cpp",
+    hpp: "cpp",
+    hxx: "cpp",
     mjs: "js",
     cjs: "js",
   };
@@ -115,7 +121,12 @@ export function detectRole(relPath: string): FileRole {
     normalized.endsWith("_test.rs") ||
     normalized.endsWith("Test.java") ||
     normalized.endsWith("Tests.java") ||
-    normalized.endsWith("Test.php")
+    normalized.endsWith("Test.php") ||
+    normalized.endsWith("Tests.cs") ||
+    normalized.endsWith("Test.cs") ||
+    normalized.endsWith("_test.cpp") ||
+    normalized.endsWith("_test.cc") ||
+    normalized.endsWith("_test.cxx")
   ) {
     return "test";
   }
@@ -232,7 +243,7 @@ export function walkDir(dir: string, ignoredDirs?: Set<string>): string[] {
  */
 export function isTargetFile(filePath: string): boolean {
   return (
-    /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|mjs|cjs|json|yaml|yml|md)$/.test(filePath) &&
+    /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|cs|cpp|cc|cxx|hpp|hxx|mjs|cjs|json|yaml|yml|md)$/.test(filePath) &&
     !filePath.endsWith(".d.ts")
   );
 }
@@ -264,6 +275,8 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized === "server.rs" ||
     normalized === "Server.java" ||
     normalized === "server.php" ||
+    normalized === "Program.cs" ||
+    normalized === "main.cpp" ||
     normalized.startsWith("src/server.ts") ||
     normalized.startsWith("src/server.js") ||
     normalized.startsWith("src/server.py") ||
@@ -272,6 +285,8 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized.startsWith("src/server.rs") ||
     normalized.startsWith("src/Server.java") ||
     normalized.startsWith("src/server.php") ||
+    normalized.startsWith("src/Program.cs") ||
+    normalized.startsWith("src/main.cpp") ||
     normalized === "app.ts" ||
     normalized === "app.js" ||
     normalized === "app.py" ||
@@ -304,6 +319,7 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized === "main.rs" ||
     normalized === "Main.java" ||
     normalized === "main.php" ||
+    normalized === "main.cs" ||
     normalized.startsWith("src/main.ts") ||
     normalized.startsWith("src/main.js") ||
     normalized.startsWith("src/main.py") ||
@@ -312,6 +328,7 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     normalized.startsWith("src/main.rs") ||
     normalized.startsWith("src/Main.java") ||
     normalized.startsWith("src/main.php") ||
+    normalized.startsWith("src/main.cs") ||
     normalized.includes("/server.ts") ||
     normalized.includes("/server.js") ||
     normalized.includes("/server.rb") ||
@@ -328,6 +345,9 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
     || normalized.includes("/main.rs")
     || normalized.includes("/Main.java")
     || normalized.includes("/main.php")
+    || normalized.includes("/Program.cs")
+    || normalized.includes("/main.cs")
+    || normalized.includes("/main.cpp")
   ) {
     return true;
   }
@@ -359,6 +379,8 @@ export function isEntrypoint(relPath: string, body?: string): boolean {
       /\bfn\s+main\s*\(/,
       /public\s+static\s+void\s+main\s*\(/,
       /Route::(?:get|post|put|patch|delete)\s*\(/,
+      /static\s+void\s+Main\s*\(/,
+      /\bint\s+main\s*\(/,
     ];
 
     for (const pattern of entrypointPatterns) {
@@ -442,6 +464,8 @@ export function detectTestFramework(filePath: string): string {
   if (ext === ".rs") return "cargo test";
   if (ext === ".java") return "junit";
   if (ext === ".php") return "phpunit";
+  if (ext === ".cs") return "xunit";
+  if (ext === ".cpp" || ext === ".cc" || ext === ".cxx") return "gtest";
   if (ext === ".js") return "node:test";
   if (ext === ".ts" || ext === ".tsx") return "vitest";
 

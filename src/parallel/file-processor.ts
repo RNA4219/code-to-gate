@@ -237,7 +237,7 @@ export class FileProcessor extends EventEmitter {
         } else {
           parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, "rs");
         }
-      } else if (language === "java" || language === "php") {
+      } else if (language === "java" || language === "php" || language === "cs" || language === "cpp") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language);
       } else {
         parseResult = {
@@ -432,7 +432,7 @@ export class FileProcessor extends EventEmitter {
         } else {
           parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, "rs");
         }
-      } else if (language === "java" || language === "php") {
+      } else if (language === "java" || language === "php" || language === "cs" || language === "cpp") {
         parseResult = parseRegexLanguageFile(filePath, this.options.repoRoot, fileId, language as RegexLanguage);
       } else {
         parseResult = { symbols: [], relations: [], diagnostics: [], parserStatus: "skipped", parserAdapter: "ctg-text-v0" };

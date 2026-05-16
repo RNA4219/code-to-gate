@@ -34,3 +34,9 @@ export {
   generateHtmlReport,
   writeHtmlReport,
 } from "./html-reporter.js";
+
+export {
+  generateSelfAnalysisDebtArtifact,
+  writeSelfAnalysisDebtJson,
+  type SelfAnalysisDebtArtifact,
+} from "./self-analysis-debt-reporter.js";

@@ -1,7 +1,7 @@
 {
   "$schema": "https://code-to-gate.local/schemas/birdseye-index.schema.json",
   "version": "birdseye/v1",
-  "generated_at": "00001",
+  "generated_at": "00004",
   "repo": "code-to-gate",
   "nodes": [
     {
@@ -39,6 +39,47 @@
       "path": "docs/requirements.md",
       "role": "requirements",
       "dependencies": ["docs/artifact-contracts", "docs/error-model", "docs/llm-trust-model", "docs/integrations"]
+    },
+    {
+      "id": "docs/self-analysis-debt-inventory",
+      "path": "docs/self-analysis-debt-inventory-2026-05-17.md",
+      "role": "inventory",
+      "dependencies": ["docs/self-analysis-remediation-requirements"]
+    },
+    {
+      "id": "docs/self-analysis-remediation-requirements",
+      "path": "docs/self-analysis-remediation-requirements.md",
+      "role": "requirements",
+      "dependencies": ["docs/self-analysis-remediation-spec", "docs/self-analysis-remediation-acceptance"]
+    },
+    {
+      "id": "docs/self-analysis-remediation-spec",
+      "path": "docs/self-analysis-remediation-spec.md",
+      "role": "spec",
+      "dependencies": ["docs/self-analysis-contract-boundary-spec", "docs/self-analysis-remediation-acceptance"]
+    },
+    {
+      "id": "docs/self-analysis-contract-boundary-spec",
+      "path": "docs/self-analysis-contract-boundary-spec.md",
+      "role": "spec",
+      "dependencies": ["docs/self-analysis-remediation-acceptance"]
+    },
+    {
+      "id": "docs/self-analysis-remediation-acceptance",
+      "path": "docs/self-analysis-remediation-acceptance.md",
+      "role": "acceptance",
+      "dependencies": []
+    },
+    {
+      "id": "docs/tasks/task-self-analysis-remediation-20260517",
+      "path": "docs/tasks/task-self-analysis-remediation-20260517.md",
+      "role": "task-seed",
+      "dependencies": [
+        "docs/self-analysis-debt-inventory",
+        "docs/self-analysis-remediation-requirements",
+        "docs/self-analysis-remediation-spec",
+        "docs/self-analysis-remediation-acceptance"
+      ]
     },
     {
       "id": "docs/artifact-contracts",
@@ -80,7 +121,7 @@
       "id": "docs/fixture-spec-v0.1",
       "path": "docs/fixture-spec-v0.1.md",
       "role": "fixture-spec",
-      "dependencies": ["fixtures/demo-shop-ts", "fixtures/demo-auth-js", "fixtures/demo-ci-imports"]
+      "dependencies": ["fixtures/demo-shop-ts", "fixtures/demo-auth-js", "fixtures/demo-ci-imports", "fixtures/demo-multilang"]
     },
     {
       "id": "docs/acceptance-review-manual-bb",
@@ -143,6 +184,12 @@
       "dependencies": ["schemas/shared-defs"]
     },
     {
+      "id": "schemas/self-analysis-debt",
+      "path": "schemas/self-analysis-debt.schema.json",
+      "role": "schema",
+      "dependencies": []
+    },
+    {
       "id": "schemas/audit",
       "path": "schemas/audit.schema.json",
       "role": "schema",
@@ -189,6 +236,12 @@
       "path": "fixtures/demo-ci-imports/",
       "role": "fixture",
       "dependencies": []
+    },
+    {
+      "id": "fixtures/demo-multilang",
+      "path": "fixtures/demo-multilang/",
+      "role": "fixture",
+      "dependencies": []
     }
   ],
   "edges": [
@@ -208,9 +261,23 @@
     {"from": "docs/requirements", "to": "docs/error-model", "kind": "reference"},
     {"from": "docs/requirements", "to": "docs/llm-trust-model", "kind": "reference"},
     {"from": "docs/requirements", "to": "docs/integrations", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "docs/self-analysis-debt-inventory", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "docs/self-analysis-remediation-requirements", "kind": "reference"},
+    {"from": "BLUEPRINT", "to": "docs/self-analysis-remediation-spec", "kind": "reference"},
+    {"from": "docs/self-analysis-debt-inventory", "to": "docs/self-analysis-remediation-requirements", "kind": "reference"},
+    {"from": "docs/self-analysis-remediation-requirements", "to": "docs/self-analysis-remediation-spec", "kind": "reference"},
+    {"from": "docs/self-analysis-remediation-requirements", "to": "docs/self-analysis-remediation-acceptance", "kind": "reference"},
+    {"from": "docs/self-analysis-remediation-spec", "to": "docs/self-analysis-contract-boundary-spec", "kind": "reference"},
+    {"from": "docs/self-analysis-remediation-spec", "to": "docs/self-analysis-remediation-acceptance", "kind": "reference"},
+    {"from": "docs/self-analysis-contract-boundary-spec", "to": "docs/self-analysis-remediation-acceptance", "kind": "reference"},
+    {"from": "docs/tasks/task-self-analysis-remediation-20260517", "to": "docs/self-analysis-debt-inventory", "kind": "reference"},
+    {"from": "docs/tasks/task-self-analysis-remediation-20260517", "to": "docs/self-analysis-remediation-requirements", "kind": "reference"},
+    {"from": "docs/tasks/task-self-analysis-remediation-20260517", "to": "docs/self-analysis-remediation-spec", "kind": "reference"},
+    {"from": "docs/tasks/task-self-analysis-remediation-20260517", "to": "docs/self-analysis-remediation-acceptance", "kind": "reference"},
     {"from": "docs/artifact-contracts", "to": "schemas/shared-defs", "kind": "schema-ref"},
     {"from": "docs/artifact-contracts", "to": "schemas/normalized-repo-graph", "kind": "schema-ref"},
     {"from": "docs/artifact-contracts", "to": "schemas/findings", "kind": "schema-ref"},
+    {"from": "docs/artifact-contracts", "to": "schemas/self-analysis-debt", "kind": "schema-ref"},
     {"from": "docs/integrations", "to": "schemas/integrations/gatefield-static-result", "kind": "schema-ref"},
     {"from": "docs/integrations", "to": "schemas/integrations/state-gate-evidence", "kind": "schema-ref"},
     {"from": "docs/integrations", "to": "schemas/integrations/manual-bb-seed", "kind": "schema-ref"},
@@ -219,6 +286,7 @@
     {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-shop-ts", "kind": "fixture-ref"},
     {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-auth-js", "kind": "fixture-ref"},
     {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-ci-imports", "kind": "fixture-ref"},
+    {"from": "docs/fixture-spec-v0.1", "to": "fixtures/demo-multilang", "kind": "fixture-ref"},
     {"from": "orchestration/v0.1-impl", "to": "docs/requirements", "kind": "reference"},
     {"from": "orchestration/v0.1-impl", "to": "docs/acceptance-v0.1", "kind": "reference"},
     {"from": "orchestration/v0.1-impl", "to": "docs/implementation-plan-v0.1", "kind": "reference"},
@@ -241,6 +309,9 @@
     "security-spec": "plugin安全境界",
     "acceptance": "v0.1完成条件",
     "fixture-spec": "synthetic fixtures仕様",
+    "inventory": "棚卸・現況整理",
+    "spec": "実装仕様",
+    "task-seed": "実装タスク定義",
     "acceptance-review": "manual-bb検収",
     "plan": "実装計画",
     "orchestration": "Task Seed形式実装計画",

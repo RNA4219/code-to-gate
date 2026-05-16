@@ -114,14 +114,41 @@ describe("markdown-reporter", () => {
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
       expect(report).toContain("| Metric | Count |");
-      expect(report).toContain("| Active Findings |");
+      // Updated: Summary now shows "Effective Findings" instead of "Active Findings"
+      expect(report).toContain("| Effective Findings |");
       expect(report).toContain("| Critical |");
       expect(report).toContain("| High |");
       expect(report).toContain("| Medium |");
       expect(report).toContain("| Low |");
-      expect(report).toContain("| Total Risks |");
+      // Updated: "Suppressed Findings" is now in "Accepted Exceptions" section
       expect(report).toContain("| Suppressed Findings |");
       expect(report).toContain("### Known Debt");
+      expect(report).toContain("### Accepted Exceptions (Suppressed)");
+    });
+
+    it("keeps raw and effective counts separate", () => {
+      const findings = createMockFindings();
+      const rawFinding: Finding = {
+        id: "finding-raw-001",
+        ruleId: "RAW_RULE",
+        category: "security",
+        severity: "high",
+        confidence: 0.9,
+        title: "Raw finding",
+        summary: "Raw finding",
+        evidence: [],
+      };
+      findings.findings.push(rawFinding);
+      const riskRegister = createMockRiskRegister();
+
+      const report = generateAnalysisReport(findings, riskRegister, "/test/repo", {
+        effectiveFindings: [],
+        suppressedFindings: [rawFinding],
+      });
+
+      expect(report).toContain("| Total Raw Findings | 1 |");
+      expect(report).toContain("| Effective Findings | 0 |");
+      expect(report).toContain("| Suppressed Findings | 1 |");
     });
 
     it("includes All Findings table when findings exist", () => {
@@ -336,7 +363,8 @@ describe("markdown-reporter", () => {
 
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
-      expect(report).toContain("| Active Findings | 3 |");
+      // Updated: Summary now shows "Effective Findings" instead of "Active Findings"
+      expect(report).toContain("| Effective Findings | 3 |");
       expect(report).toContain("| Critical | 1 |");
       expect(report).toContain("| High | 1 |");
       expect(report).toContain("| Medium | 1 |");
@@ -426,7 +454,9 @@ describe("markdown-reporter", () => {
 
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
-      expect(report).toContain("| Unsupported Claims | 1 |");
+      // Updated: Unsupported Claims is now in its own section, not in summary
+      expect(report).toContain("## Unsupported Claims");
+      expect(report).toContain("claim-001");
     });
 
     it("includes domain context and false-positive review checkpoints", () => {

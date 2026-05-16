@@ -451,7 +451,38 @@ export interface AuditArtifact extends ArtifactHeader {
 
 ---
 
-## 11. JSON Schema 方針
+## 11. SelfAnalysisDebt
+
+```ts
+export interface SelfAnalysisDebtArtifact extends ArtifactHeader {
+  artifact: "self-analysis-debt";
+  schema: "self-analysis-debt@v1";
+  rawFindings: FindingSummary;
+  effectiveFindings: FindingSummary;
+  acceptedExceptions: {
+    total: number;
+    bySeverity: Record<Severity, number>;
+    byClass: Record<SuppressionClass, number>;
+    details: AcceptedExceptionDetail[];
+  };
+  broadSuppressions: {
+    total: number;
+    reviewRequired: boolean;
+    items: BroadSuppression[];
+  };
+  debtCandidates: {
+    unsafeDelete: number;
+    tryCatchSwallow: number;
+    rawSql: number;
+    largeModule: number;
+  };
+  recommendedActions: string[];
+}
+```
+
+---
+
+## 12. JSON Schema 方針
 
 v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を生成または手書きする。
 
@@ -463,6 +494,7 @@ v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を�
 - `schemas/invariants.schema.json`
 - `schemas/test-seeds.schema.json`
 - `schemas/release-readiness.schema.json`
+- `schemas/self-analysis-debt.schema.json`
 - `schemas/audit.schema.json`
 
 受入条件:
