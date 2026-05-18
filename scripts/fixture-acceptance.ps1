@@ -15,6 +15,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
 $ProjectRoot = $PSScriptRoot | Split-Path
 $CTG_CLI = Join-Path $ProjectRoot "dist/cli.js"
 $ResultsDir = Join-Path $ProjectRoot $OutDir
@@ -24,6 +27,16 @@ function LogInfo { Write-Host "[INFO] $args" -ForegroundColor Blue }
 function LogPass { Write-Host "[PASS] $args" -ForegroundColor Green }
 function LogFail { Write-Host "[FAIL] $args" -ForegroundColor Red }
 function LogWarn { Write-Host "[WARN] $args" -ForegroundColor Yellow }
+
+function Invoke-NativeCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Command
+    )
+
+    & $Command 2>&1 | Out-Null
+    return $LASTEXITCODE
+}
 
 # Fixtures to test
 $Fixtures = @{
@@ -95,8 +108,7 @@ foreach ($fixtureName in $Fixtures.Keys) {
     $scanOutput = Join-Path $outputDir "scan"
     New-Item -ItemType Directory -Force -Path $scanOutput | Out-Null
 
-    & node $CTG_CLI scan $fixturePath --out $scanOutput 2>&1 | Out-Null
-    $scanExit = $LASTEXITCODE
+    $scanExit = Invoke-NativeCommand { node $CTG_CLI scan $fixturePath --out $scanOutput }
     $scanTime = ((Get-Date) - $fixtureStart).TotalSeconds
 
     $result.Tests.Scan = @{
@@ -112,8 +124,7 @@ foreach ($fixtureName in $Fixtures.Keys) {
     $analyzeOutput = Join-Path $outputDir "analyze"
     New-Item -ItemType Directory -Force -Path $analyzeOutput | Out-Null
 
-    & node $CTG_CLI analyze $fixturePath --out $analyzeOutput 2>&1 | Out-Null
-    $analyzeExit = $LASTEXITCODE
+    $analyzeExit = Invoke-NativeCommand { node $CTG_CLI analyze $fixturePath --out $analyzeOutput }
     $analyzeTime = ((Get-Date) - $analyzeStart).TotalSeconds
 
     $result.Tests.Analyze = @{
@@ -137,8 +148,8 @@ foreach ($fixtureName in $Fixtures.Keys) {
     foreach ($artifact in $artifacts) {
         $artifactPath = Join-Path $analyzeOutput $artifact
         if (Test-Path $artifactPath) {
-            & node $CTG_CLI schema validate $artifactPath 2>&1 | Out-Null
-            if ($LASTEXITCODE -eq 0) {
+            $schemaExit = Invoke-NativeCommand { node $CTG_CLI schema validate $artifactPath }
+            if ($schemaExit -eq 0) {
                 LogPass "Schema: $artifact"
             } else {
                 LogFail "Schema: $artifact"

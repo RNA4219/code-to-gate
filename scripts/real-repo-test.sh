@@ -138,6 +138,14 @@ validate_exit_code() {
     fi
 }
 
+run_allowing_expected_failure() {
+    set +e
+    "$@"
+    local exit_code=$?
+    set -e
+    return "$exit_code"
+}
+
 run_schema_validation() {
     local output_dir="$1"
     local repo="$2"
@@ -238,7 +246,7 @@ test_repo() {
     mkdir -p "$scan_output"
 
     local start_time=$(date +%s)
-    node "$CTG_CLI" scan "$test_dir" --out "$scan_output" 2>&1
+    run_allowing_expected_failure node "$CTG_CLI" scan "$test_dir" --out "$scan_output" 2>&1
     local scan_exit=$?
     local end_time=$(date +%s)
     local scan_duration=$((end_time - start_time))
@@ -264,7 +272,7 @@ test_repo() {
     mkdir -p "$analyze_output"
 
     start_time=$(date +%s)
-    node "$CTG_CLI" analyze "$test_dir" --emit all --out "$analyze_output" --llm-mode none 2>&1
+    run_allowing_expected_failure node "$CTG_CLI" analyze "$test_dir" --emit all --out "$analyze_output" --llm-mode none 2>&1
     local analyze_exit=$?
     end_time=$(date +%s)
     local analyze_duration=$((end_time - start_time))
@@ -280,7 +288,7 @@ test_repo() {
     mkdir -p "$readiness_output"
 
     start_time=$(date +%s)
-    node "$CTG_CLI" readiness "$test_dir" --out "$readiness_output" --llm-mode none 2>&1
+    run_allowing_expected_failure node "$CTG_CLI" readiness "$test_dir" --out "$readiness_output" --llm-mode none 2>&1
     local readiness_exit=$?
     end_time=$(date +%s)
     local readiness_duration=$((end_time - start_time))
