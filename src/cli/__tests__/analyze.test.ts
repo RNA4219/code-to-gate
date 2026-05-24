@@ -532,7 +532,7 @@ describe("analyze CLI", () => {
     const auditPath = path.join(tempOutDir, "audit.json");
     const audit = JSON.parse(readFileSync(auditPath, "utf8"));
 
-    const validStatuses = ["passed", "passed_with_risk", "needs_review", "blocked_input", "blocked", "failed"];
+    const validStatuses = ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"];
     expect(validStatuses).toContain(audit.exit.status);
   });
 

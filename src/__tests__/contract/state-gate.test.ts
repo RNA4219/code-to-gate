@@ -212,7 +212,7 @@ describe("State Gate Adapter Contract Tests", () => {
       const result = generateStateGateEvidence(findings);
 
       expect(result.evidence_data.findings_count).toBe(1);
-      expect(result.evidence_data.readiness_status).toBe("blocked");
+      expect(result.evidence_data.readiness_status).toBe("blocked_input");
       expect(result.confidence_score).toBeLessThan(1.0);
     });
 
@@ -338,7 +338,7 @@ describe("State Gate Adapter Contract Tests", () => {
       });
       const result = generateStateGateEvidence(findings);
 
-      expect(result.evidence_data.readiness_status).toBe("blocked");
+      expect(result.evidence_data.readiness_status).toBe("blocked_input");
     });
 
     it("should have correct readiness_status for high findings", () => {

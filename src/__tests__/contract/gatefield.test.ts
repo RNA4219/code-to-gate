@@ -94,7 +94,7 @@ describe("Gatefield Adapter Contract Tests", () => {
       const result = generateGatefieldResult(findings);
 
       expect(result.status).toBeDefined();
-      expect(["passed", "blocked", "needs_review"]).toContain(result.status);
+      expect(["passed", "blocked_input", "needs_review"]).toContain(result.status);
     });
 
     it("should require summary field as string", () => {
@@ -245,7 +245,7 @@ describe("Gatefield Adapter Contract Tests", () => {
 
       const result = generateGatefieldResult(findings);
 
-      expect(result.status).toBe("blocked");
+      expect(result.status).toBe("blocked_input");
       expect(result.findings_summary.critical).toBe(1);
       expect(result.blocking_reasons.length).toBeGreaterThan(0);
     });
@@ -301,7 +301,7 @@ describe("Gatefield Adapter Contract Tests", () => {
       });
       const result = generateGatefieldResult(findings);
 
-      expect(result.status).toBe("blocked");
+      expect(result.status).toBe("blocked_input");
     });
 
     it("should set status to needs_review when high findings exist but no critical", () => {
@@ -343,7 +343,7 @@ describe("Gatefield Adapter Contract Tests", () => {
       });
       const result = generateGatefieldResult(findings);
 
-      expect(result.status).toBe("blocked");
+      expect(result.status).toBe("blocked_input");
     });
   });
 

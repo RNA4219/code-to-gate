@@ -241,7 +241,49 @@ export interface InvariantsArtifact extends ArtifactHeader {
 
 // === Release Readiness ===
 
-export type ReadinessStatus = "passed" | "passed_with_risk" | "needs_review" | "blocked";
+export const READINESS_STATUSES = [
+  "passed",
+  "passed_with_risk",
+  "needs_review",
+  "blocked_input",
+  "failed",
+] as const;
+
+export type ReadinessStatus = typeof READINESS_STATUSES[number];
+export type PolicyReadinessStatus = Exclude<ReadinessStatus, "failed">;
+
+export interface ReadinessFailedCondition {
+  id: string;
+  reason: string;
+  matchedFindingIds?: string[];
+  matchedRiskIds?: string[];
+  matchedInputIds?: string[];
+}
+
+export interface ReleaseReadinessCounts {
+  findings: number;
+  critical: number;
+  high: number;
+  risks: number;
+  testSeeds: number;
+  unsupportedClaims: number;
+}
+
+export interface ReleaseReadinessSelfAnalysis {
+  rawCritical: number;
+  rawHigh: number;
+  rawMedium: number;
+  rawLow: number;
+  suppressedCritical: number;
+  suppressedHigh: number;
+  suppressedMedium: number;
+  suppressedLow: number;
+  broadSuppressions: number;
+  acceptedExceptionsByClass: Record<
+    "self-reference" | "fixture-intentional" | "generated-artifact" | "accepted-design" | "temporary-debt",
+    number
+  >;
+}
 
 export interface ReleaseReadinessArtifact extends ArtifactHeader {
   artifact: "release-readiness";
@@ -249,17 +291,18 @@ export interface ReleaseReadinessArtifact extends ArtifactHeader {
   completeness: Completeness;
   status: ReadinessStatus;
   summary: string;
-  blockers: string[];
-  warnings: string[];
-  passedChecks: string[];
-  metrics: {
-    criticalFindings: number;
-    highFindings: number;
-    mediumFindings: number;
-    lowFindings: number;
-    riskCount: number;
-    testSeedCount: number;
-    coveragePercent?: number;
+  counts: ReleaseReadinessCounts;
+  selfAnalysis?: ReleaseReadinessSelfAnalysis;
+  failedConditions: ReadinessFailedCondition[];
+  recommendedActions: string[];
+  artifactRefs: {
+    graph?: string;
+    findings?: string;
+    riskRegister?: string;
+    invariants?: string;
+    testSeeds?: string;
+    audit?: string;
+    intake?: string;
   };
 }
 

@@ -55,7 +55,7 @@ function createMinimalArtifact(type: ArtifactType): object {
     "findings": { ...base, artifact: "findings", schema: "findings@v1", findings: [], unsupported_claims: [] },
     "risk-register": { ...base, artifact: "risk-register", schema: "risk-register@v1", risks: [] },
     "test-seeds": { ...base, artifact: "test-seeds", schema: "test-seeds@v1", seeds: [] },
-    "release-readiness": { ...base, artifact: "release-readiness", schema: "release-readiness@v1", status: "passed", summary: "All checks passed", blockers: [], warnings: [], passedChecks: [], metrics: { criticalFindings: 0, highFindings: 0, mediumFindings: 0, lowFindings: 0, riskCount: 0, testSeedCount: 0 } },
+    "release-readiness": { ...base, artifact: "release-readiness", schema: "release-readiness@v1", completeness: "complete", status: "passed", summary: "All checks passed", counts: { findings: 0, critical: 0, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 }, failedConditions: [], recommendedActions: [], artifactRefs: {} },
     "audit": { ...base, artifact: "audit", schema: "audit@v1", inputs: [], policy: { id: "default", hash: "none" }, exit: { code: 0, status: "passed", reason: "success" } },
     "sarif": { $schema: "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json", version: "2.1.0", runs: [{ tool: { driver: { name: "code-to-gate", version: "0.1.0", rules: [] } }, results: [] }] },
   };

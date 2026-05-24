@@ -2,7 +2,7 @@
  * Export Types - Type definitions for export targets
  */
 
-import type { Severity } from "../types/artifacts.js";
+import type { ReadinessStatus, Severity } from "../types/artifacts.js";
 
 // === V1 Schema Types (P0-02/P0-03 fix) ===
 
@@ -107,7 +107,7 @@ export interface WorkflowEvidenceV1 {
     schema: string;
   }>;
   summary: {
-    status: string;
+    status: ReadinessStatus;
     critical_count: number;
     high_count: number;
     needs_review: boolean;
@@ -123,7 +123,7 @@ export interface GatefieldStaticResult {
   repo: { root: string };
   artifact: "gatefield-static-result";
   schema: "gatefield-static-result@v1";
-  status: "passed" | "blocked" | "needs_review";
+  status: "passed" | "blocked_input" | "needs_review";
   summary: string;
   findings_summary: {
     total: number;
@@ -148,7 +148,7 @@ export interface StateGateEvidence {
     findings_count: number;
     risk_count: number;
     test_seed_count: number;
-    readiness_status: string;
+    readiness_status: ReadinessStatus;
   };
   confidence_score: number;
   attestations: Array<{

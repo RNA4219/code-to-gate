@@ -297,7 +297,7 @@ export function generateReadinessSection(
   const statusColor =
     readiness.status === "passed"
       ? "#28a745"
-      : readiness.status === "blocked"
+      : readiness.status === "blocked_input" || readiness.status === "failed"
         ? "#dc3545"
         : "#ffc107";
 
@@ -314,27 +314,27 @@ export function generateReadinessSection(
     <div class="dashboard">
       <div class="card">
         <div class="card-title">Critical Findings</div>
-        <div class="card-value">${readiness.metrics.criticalFindings}</div>
+        <div class="card-value">${readiness.counts.critical}</div>
       </div>
       <div class="card">
         <div class="card-title">High Findings</div>
-        <div class="card-value">${readiness.metrics.highFindings}</div>
+        <div class="card-value">${readiness.counts.high}</div>
       </div>
       <div class="card">
-        <div class="card-title">Medium Findings</div>
-        <div class="card-value">${readiness.metrics.mediumFindings}</div>
+        <div class="card-title">Findings</div>
+        <div class="card-value">${readiness.counts.findings}</div>
       </div>
       <div class="card">
-        <div class="card-title">Low Findings</div>
-        <div class="card-value">${readiness.metrics.lowFindings}</div>
+        <div class="card-title">Unsupported Claims</div>
+        <div class="card-value">${readiness.counts.unsupportedClaims}</div>
       </div>
       <div class="card">
         <div class="card-title">Risk Count</div>
-        <div class="card-value">${readiness.metrics.riskCount}</div>
+        <div class="card-value">${readiness.counts.risks}</div>
       </div>
       <div class="card">
         <div class="card-title">Test Seeds</div>
-        <div class="card-value">${readiness.metrics.testSeedCount}</div>
+        <div class="card-value">${readiness.counts.testSeeds}</div>
       </div>
     </div>
 `;
@@ -347,34 +347,23 @@ export function generateReadinessSection(
 `;
   }
 
-  if (readiness.blockers.length > 0) {
+  if (readiness.failedConditions.length > 0) {
     html += `
     <div class="risk-actions" style="background:rgba(220,53,69,0.1);border-left-color:#dc3545">
-      <strong>Blockers:</strong>
+      <strong>Failed Conditions:</strong>
       <ul>
-        ${readiness.blockers.map((b) => `<li>${escapeHtml(b)}</li>`).join("\n")}
+        ${readiness.failedConditions.map((c) => `<li>${escapeHtml(`${c.id}: ${c.reason}`)}</li>`).join("\n")}
       </ul>
     </div>
 `;
   }
 
-  if (readiness.warnings.length > 0) {
+  if (readiness.recommendedActions.length > 0) {
     html += `
     <div class="risk-actions" style="background:rgba(255,193,7,0.1);border-left-color:#ffc107">
-      <strong>Warnings:</strong>
+      <strong>Recommended Actions:</strong>
       <ul>
-        ${readiness.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("\n")}
-      </ul>
-    </div>
-`;
-  }
-
-  if (readiness.passedChecks.length > 0) {
-    html += `
-    <div class="risk-actions" style="background:rgba(40,167,69,0.1);border-left-color:#28a745">
-      <strong>Passed Checks:</strong>
-      <ul>
-        ${readiness.passedChecks.map((c) => `<li>${escapeHtml(c)}</li>`).join("\n")}
+        ${readiness.recommendedActions.map((a) => `<li>${escapeHtml(a)}</li>`).join("\n")}
       </ul>
     </div>
 `;

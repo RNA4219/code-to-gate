@@ -23,6 +23,7 @@ import {
   RiskRegisterArtifact,
   ReleaseReadinessArtifact,
   Finding,
+  ReadinessStatus,
   RiskSeed,
 } from "../../types/artifacts.js";
 
@@ -123,7 +124,7 @@ const createMockRiskRegister = createMockRiskRegisterArtifact;
 
 function createMockReadiness(
   runId: string,
-  status: "passed" | "passed_with_risk" | "needs_review" | "blocked",
+  status: ReadinessStatus,
   critical: number,
   high: number
 ): ReleaseReadinessArtifact {
@@ -131,13 +132,13 @@ function createMockReadiness(
     run_id: runId,
     repo: { root: "/test/repo" },
     status,
-    metrics: {
-      criticalFindings: critical,
-      highFindings: high,
-      mediumFindings: 0,
-      lowFindings: 0,
-      riskCount: 0,
-      testSeedCount: 0,
+    counts: {
+      findings: critical + high,
+      critical,
+      high,
+      risks: 0,
+      testSeeds: 0,
+      unsupportedClaims: 0,
     },
   });
 }

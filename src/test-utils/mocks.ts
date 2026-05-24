@@ -173,17 +173,17 @@ export function createMockReleaseReadinessArtifact(
     completeness: "complete",
     status: "passed",
     summary: "All checks passed",
-    blockers: [],
-    warnings: [],
-    passedChecks: [],
-    metrics: {
-      criticalFindings: 0,
-      highFindings: 0,
-      mediumFindings: 0,
-      lowFindings: 0,
-      riskCount: 0,
-      testSeedCount: 0,
+    counts: {
+      findings: 0,
+      critical: 0,
+      high: 0,
+      risks: 0,
+      testSeeds: 0,
+      unsupportedClaims: 0,
     },
+    failedConditions: [],
+    recommendedActions: [],
+    artifactRefs: {},
   };
   return { ...base, ...overrides } as ReleaseReadinessArtifact;
 }

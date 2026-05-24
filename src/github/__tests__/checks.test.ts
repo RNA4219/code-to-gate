@@ -15,7 +15,7 @@ import {
   type ChecksOptions,
 } from "../checks.js";
 import type { GitHubApiClient, CheckOutput } from "../api-client.js";
-import type { FindingsArtifact, ReleaseReadinessArtifact, Finding, Severity } from "../../types/artifacts.js";
+import type { FindingsArtifact, ReleaseReadinessArtifact, Finding, ReadinessStatus, Severity } from "../../types/artifacts.js";
 
 // Mock GitHubApiClient
 const createMockClient = (): GitHubApiClient => ({
@@ -63,7 +63,7 @@ const createFinding = (
 });
 
 // Helper: Create readiness artifact
-const createReadiness = (status = "needs_review"): ReleaseReadinessArtifact => ({
+const createReadiness = (status: ReadinessStatus = "needs_review"): ReleaseReadinessArtifact => ({
   version: "ctg/v1",
   generated_at: "2025-01-01T00:00:00Z",
   run_id: "run-001",
@@ -74,10 +74,10 @@ const createReadiness = (status = "needs_review"): ReleaseReadinessArtifact => (
   completeness: "complete",
   status,
   summary: "Test summary",
-  blockers: [],
-  warnings: [],
-  passedChecks: [],
-  metrics: { criticalFindings: 0, highFindings: 0, mediumFindings: 0, lowFindings: 0, riskCount: 0, testSeedCount: 0 },
+  counts: { findings: 0, critical: 0, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 },
+  failedConditions: [],
+  recommendedActions: [],
+  artifactRefs: {},
 });
 
 // Helper: Get annotations from createCheckRun call
@@ -103,7 +103,7 @@ describe("checks", () => {
         createFinding("MEDIUM_RULE", "medium"),
         createFinding("LOW_RULE", "low"),
       ]);
-      const readiness = createReadiness("blocked");
+      const readiness = createReadiness("blocked_input");
 
       const options: ChecksOptions = {
         client: mockClient,
@@ -147,7 +147,8 @@ describe("checks", () => {
         { status: "passed", conclusion: "success" },
         { status: "passed_with_risk", conclusion: "success" },
         { status: "needs_review", conclusion: "neutral" },
-        { status: "blocked", conclusion: "failure" },
+        { status: "blocked_input", conclusion: "failure" },
+        { status: "failed", conclusion: "failure" },
       ];
 
       for (const { status, conclusion } of statusMap) {

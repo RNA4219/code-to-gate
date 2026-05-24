@@ -109,17 +109,17 @@ describe("pr-comment", () => {
     completeness: "complete",
     status: "needs_review",
     summary: "Test summary",
-    blockers: [],
-    warnings: [],
-    passedChecks: [],
-    metrics: {
-      criticalFindings: 0,
-      highFindings: 0,
-      mediumFindings: 0,
-      lowFindings: 0,
-      riskCount: 0,
-      testSeedCount: 0,
+    counts: {
+      findings: 0,
+      critical: 0,
+      high: 0,
+      risks: 0,
+      testSeeds: 0,
+      unsupportedClaims: 0,
     },
+    failedConditions: [],
+    recommendedActions: [],
+    artifactRefs: {},
   });
 
   describe("generatePrComment", () => {
@@ -688,7 +688,7 @@ describe("pr-comment", () => {
 
     it("can be rendered with template data", () => {
       const data: PrCommentTemplateData = {
-        status: "BLOCKED",
+        status: "BLOCKED_INPUT",
         criticalCount: 1,
         highCount: 2,
         mediumCount: 3,
@@ -704,7 +704,7 @@ describe("pr-comment", () => {
 
       const result = renderPrCommentTemplate(DEFAULT_PR_COMMENT_TEMPLATE, data);
 
-      expect(result).toContain("BLOCKED");
+      expect(result).toContain("BLOCKED_INPUT");
       expect(result).toContain("1");
       expect(result).toContain("2");
       expect(result).toContain("CRITICAL_AUTH");
@@ -785,13 +785,13 @@ describe("pr-comment", () => {
       expect(comment).toContain("NEEDS_REVIEW");
     });
 
-    it("formats blocked status", () => {
+    it("formats blocked_input status", () => {
       const findings = createMockFindings();
       const readiness = createMockReadiness();
-      readiness.status = "blocked";
+      readiness.status = "blocked_input";
 
       const comment = generatePrComment({ findings, readiness });
-      expect(comment).toContain("BLOCKED");
+      expect(comment).toContain("BLOCKED_INPUT");
     });
   });
 });

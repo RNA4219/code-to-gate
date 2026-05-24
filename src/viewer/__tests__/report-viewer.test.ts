@@ -259,9 +259,9 @@ describe("report-viewer", () => {
     it("includes readiness section when provided", () => {
       const findings = createMockFindings();
       const readiness = createMockReadiness({
-        status: "blocked",
-        blockers: ["Critical finding"],
-        metrics: { criticalFindings: 1, highFindings: 0, mediumFindings: 0, lowFindings: 0, riskCount: 0, testSeedCount: 0 },
+        status: "blocked_input",
+        counts: { findings: 1, critical: 1, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 },
+        failedConditions: [{ id: "BLOCKING_SEVERITY_CRITICAL", reason: "Critical finding" }],
       });
       const html = generateReportHtml(
         { findings, readiness },
@@ -269,8 +269,8 @@ describe("report-viewer", () => {
       );
 
       expect(html).toContain("Release Readiness");
-      expect(html).toContain("blocked");
-      expect(html).toContain("Blockers:");
+      expect(html).toContain("blocked_input");
+      expect(html).toContain("Failed Conditions:");
     });
 
     it("shows passed status with green color", () => {
@@ -284,9 +284,9 @@ describe("report-viewer", () => {
       expect(html).toContain("#28a745");
     });
 
-    it("shows blocked status with red color", () => {
+    it("shows blocked_input status with red color", () => {
       const findings = createMockFindings();
-      const readiness = createMockReadiness({ status: "blocked" });
+      const readiness = createMockReadiness({ status: "blocked_input" });
       const html = generateReportHtml(
         { findings, readiness },
         { showReadiness: true }

@@ -197,16 +197,14 @@ describe("P2-03: Viewer Display Expansion Tests", () => {
     it("shows complete readiness dashboard", () => {
       const readiness = createMockReadiness({
         status: "needs_review",
-        blockers: [],
-        warnings: ["Warning 1", "Warning 2"],
-        passedChecks: ["Check A", "Check B"],
-        metrics: {
-          criticalFindings: 0,
-          highFindings: 2,
-          mediumFindings: 5,
-          lowFindings: 10,
-          riskCount: 3,
-          testSeedCount: 8,
+        recommendedActions: ["Warning 1", "Warning 2"],
+        counts: {
+          findings: 17,
+          critical: 0,
+          high: 2,
+          risks: 3,
+          testSeeds: 8,
+          unsupportedClaims: 0,
         },
       });
 
@@ -214,13 +212,13 @@ describe("P2-03: Viewer Display Expansion Tests", () => {
 
       expect(html).toContain("needs_review");
       expect(html).toContain("Warning 1");
-      expect(html).toContain("Check A");
+      expect(html).toContain("Recommended Actions");
     });
 
     it("shows blocked status prominently", () => {
       const readiness = createMockReadiness({
         status: "blocked_input",
-        blockers: ["Critical severity finding"],
+        failedConditions: [{ id: "BLOCKING_SEVERITY_CRITICAL", reason: "Critical severity finding" }],
         summary: "Release blocked due to critical findings",
       });
 

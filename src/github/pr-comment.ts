@@ -10,6 +10,7 @@ import type {
   TestSeedsArtifact,
   ReleaseReadinessArtifact,
   Finding,
+  ReadinessStatus,
   Severity,
 } from "../types/artifacts.js";
 
@@ -79,7 +80,7 @@ function countBySeverity(findings: Finding[]): Record<Severity, number> {
 /**
  * Get status emoji based on readiness
  */
-function getStatusEmoji(status: string): string {
+function getStatusEmoji(status: ReadinessStatus): string {
   switch (status) {
     case "passed":
       return "PASSED";
@@ -87,10 +88,12 @@ function getStatusEmoji(status: string): string {
       return "PASSED_WITH_RISK";
     case "needs_review":
       return "NEEDS_REVIEW";
-    case "blocked":
-      return "BLOCKED";
+    case "blocked_input":
+      return "BLOCKED_INPUT";
+    case "failed":
+      return "FAILED";
     default:
-      return status.toUpperCase();
+      return String(status).toUpperCase();
   }
 }
 

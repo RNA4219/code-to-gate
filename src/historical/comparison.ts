@@ -327,11 +327,13 @@ export function compareReadiness(
     return null;
   }
 
-  const currentMetrics = currentReadiness.metrics;
-  const previousMetrics = previousReadiness.metrics;
+  const currentCounts = currentReadiness.counts;
+  const previousCounts = previousReadiness.counts;
+  const currentSelfAnalysis = currentReadiness.selfAnalysis;
+  const previousSelfAnalysis = previousReadiness.selfAnalysis;
 
   const statusChanged = currentReadiness.status !== previousReadiness.status;
-  const statusOrder = ["passed", "passed_with_risk", "needs_review", "blocked"];
+  const statusOrder = ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"];
   const currentStatusIndex = statusOrder.indexOf(currentReadiness.status);
   const previousStatusIndex = statusOrder.indexOf(previousReadiness.status);
   const statusImproved = currentStatusIndex < previousStatusIndex;
@@ -345,34 +347,34 @@ export function compareReadiness(
     statusDegraded,
     metricsComparison: {
       criticalFindings: {
-        current: currentMetrics.criticalFindings,
-        previous: previousMetrics.criticalFindings,
-        change: currentMetrics.criticalFindings - previousMetrics.criticalFindings,
+        current: currentCounts.critical,
+        previous: previousCounts.critical,
+        change: currentCounts.critical - previousCounts.critical,
       },
       highFindings: {
-        current: currentMetrics.highFindings,
-        previous: previousMetrics.highFindings,
-        change: currentMetrics.highFindings - previousMetrics.highFindings,
+        current: currentCounts.high,
+        previous: previousCounts.high,
+        change: currentCounts.high - previousCounts.high,
       },
       mediumFindings: {
-        current: currentMetrics.mediumFindings,
-        previous: previousMetrics.mediumFindings,
-        change: currentMetrics.mediumFindings - previousMetrics.mediumFindings,
+        current: currentSelfAnalysis?.rawMedium ?? 0,
+        previous: previousSelfAnalysis?.rawMedium ?? 0,
+        change: (currentSelfAnalysis?.rawMedium ?? 0) - (previousSelfAnalysis?.rawMedium ?? 0),
       },
       lowFindings: {
-        current: currentMetrics.lowFindings,
-        previous: previousMetrics.lowFindings,
-        change: currentMetrics.lowFindings - previousMetrics.lowFindings,
+        current: currentSelfAnalysis?.rawLow ?? 0,
+        previous: previousSelfAnalysis?.rawLow ?? 0,
+        change: (currentSelfAnalysis?.rawLow ?? 0) - (previousSelfAnalysis?.rawLow ?? 0),
       },
       riskCount: {
-        current: currentMetrics.riskCount,
-        previous: previousMetrics.riskCount,
-        change: currentMetrics.riskCount - previousMetrics.riskCount,
+        current: currentCounts.risks,
+        previous: previousCounts.risks,
+        change: currentCounts.risks - previousCounts.risks,
       },
       testSeedCount: {
-        current: currentMetrics.testSeedCount,
-        previous: previousMetrics.testSeedCount,
-        change: currentMetrics.testSeedCount - previousMetrics.testSeedCount,
+        current: currentCounts.testSeeds,
+        previous: previousCounts.testSeeds,
+        change: currentCounts.testSeeds - previousCounts.testSeeds,
       },
     },
   };

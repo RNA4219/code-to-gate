@@ -214,7 +214,7 @@ export function generateWorkflowEvidenceV1(findings: FindingsArtifact): Workflow
   ];
 
   const needs_review = criticalCount > 0 || highCount > 0;
-  const status = criticalCount > 0 ? "blocked" : highCount > 0 ? "needs_review" : "passed";
+  const status = criticalCount > 0 ? "blocked_input" : highCount > 0 ? "needs_review" : "passed";
 
   return {
     version: "ctg.workflow-evidence/v1",
@@ -243,8 +243,8 @@ export function generateGatefieldResult(findings: FindingsArtifact): GatefieldSt
   const criticalCount = findings.findings.filter((f) => f.severity === "critical").length;
   const highCount = findings.findings.filter((f) => f.severity === "high").length;
 
-  const status: "passed" | "blocked" | "needs_review" =
-    criticalCount > 0 ? "blocked" : highCount > 0 ? "needs_review" : "passed";
+  const status: "passed" | "blocked_input" | "needs_review" =
+    criticalCount > 0 ? "blocked_input" : highCount > 0 ? "needs_review" : "passed";
 
   const blockingReasons: string[] = [];
   if (criticalCount > 0) {
@@ -295,7 +295,7 @@ export function generateStateGateEvidence(findings: FindingsArtifact): StateGate
     confidenceScore = Math.max(0, 1.0 - criticalCount * 0.3 - highCount * 0.1 - (totalFindings - criticalCount - highCount) * 0.02);
   }
 
-  const status = criticalCount > 0 ? "blocked" : highCount > 0 ? "needs_review" : "passed";
+  const status = criticalCount > 0 ? "blocked_input" : highCount > 0 ? "needs_review" : "passed";
 
   return {
     version: "ctg.state-gate/v1alpha1",

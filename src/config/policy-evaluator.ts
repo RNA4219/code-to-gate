@@ -3,18 +3,14 @@
  * Based on docs/product-spec-v1.md section 5
  */
 
-import type { Finding, Severity, FindingCategory } from "../types/artifacts.js";
+import type { Finding, Severity, FindingCategory, PolicyReadinessStatus } from "../types/artifacts.js";
 import type { CtgPolicy, SuppressionEntry } from "./policy-loader.js";
 import { isSuppressed } from "./policy-loader.js";
 
 /**
  * Readiness status values
  */
-export type ReadinessStatus =
-  | "passed"
-  | "passed_with_risk"
-  | "needs_review"
-  | "blocked_input";
+export type ReadinessStatus = PolicyReadinessStatus;
 
 /**
  * Failed condition details

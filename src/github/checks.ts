@@ -8,6 +8,7 @@ import type {
   FindingsArtifact,
   ReleaseReadinessArtifact,
   Finding,
+  ReadinessStatus,
   Severity,
 } from "../types/artifacts.js";
 import type { GitHubApiClient, CheckAnnotation, CheckOutput } from "./api-client.js";
@@ -59,7 +60,7 @@ function severityToAnnotationLevel(severity: Severity): CheckAnnotation["annotat
 /**
  * Map readiness status to conclusion
  */
-function statusToConclusion(status: string): CheckConclusion {
+function statusToConclusion(status: ReadinessStatus): CheckConclusion {
   switch (status) {
     case "passed":
       return "success";
@@ -67,7 +68,8 @@ function statusToConclusion(status: string): CheckConclusion {
       return "success"; // Still pass, but with warnings in output
     case "needs_review":
       return "neutral";
-    case "blocked":
+    case "blocked_input":
+    case "failed":
       return "failure";
     default:
       return "neutral";

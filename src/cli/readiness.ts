@@ -17,6 +17,7 @@ import {
   Finding,
   Severity,
   CTG_VERSION,
+  ReleaseReadinessArtifact,
 } from "../types/artifacts.js";
 import {
   generateSelfAnalysisDebtArtifact,
@@ -28,63 +29,6 @@ interface ReadinessOptions {
   VERSION: string;
   EXIT: typeof EXIT;
   getOption: typeof getOption;
-}
-
-interface ReleaseReadinessArtifact {
-  version: string;
-  generated_at: string;
-  run_id: string;
-  repo: {
-    root: string;
-  };
-  tool: {
-    name: "code-to-gate";
-    version: string;
-    policy_id?: string;
-    plugin_versions: Array<{ name: string; version: string; visibility: "public" | "private" }>;
-  };
-  artifact: "release-readiness";
-  schema: "release-readiness@v1";
-  status: "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
-  completeness: "complete" | "partial";
-  summary: string;
-  counts: {
-    findings: number;
-    critical: number;
-    high: number;
-    risks: number;
-    testSeeds: number;
-    unsupportedClaims: number;
-  };
-  selfAnalysis?: {
-    rawCritical: number;
-    rawHigh: number;
-    rawMedium: number;
-    rawLow: number;
-    suppressedCritical: number;
-    suppressedHigh: number;
-    suppressedMedium: number;
-    suppressedLow: number;
-    broadSuppressions: number;
-    acceptedExceptionsByClass: Record<SuppressionClass, number>;
-  };
-  failedConditions: Array<{
-    id: string;
-    reason: string;
-    matchedFindingIds?: string[];
-    matchedRiskIds?: string[];
-    matchedInputIds?: string[];
-  }>;
-  recommendedActions: string[];
-  artifactRefs: {
-    graph?: string;
-    findings?: string;
-    riskRegister?: string;
-    invariants?: string;
-    testSeeds?: string;
-    audit?: string;
-    intake?: string;
-  };
 }
 
 /**
