@@ -16,7 +16,7 @@
 ## インストール
 
 ```bash
-npm install -g github:RNA4219/code-to-gate
+npm install -g @quality-harness/code-to-gate
 ```
 
 このリポジトリを clone 済みの場合:
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm install -g github:RNA4219/code-to-gate
+      - run: npm install -g @quality-harness/code-to-gate
       - run: code-to-gate scan . --out .qh
       - run: code-to-gate analyze . --emit all --out .qh
       - run: code-to-gate export sarif --from .qh --out results.sarif

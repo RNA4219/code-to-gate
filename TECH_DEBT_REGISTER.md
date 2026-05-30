@@ -1,7 +1,7 @@
 # code-to-gate Technical Debt Register
 
 **Generated**: 2026-05-02
-**Repository**: C:\Users\ryo-n\Codex_dev\code-to-gate
+**Repository**: code-to-gate (quality-harness/code-to-gate)
 **Analyzer**: code-to-gate v1.0.0
 **Total Suppressed**: 162 findings
 

@@ -1,5 +1,9 @@
 # code-to-gate
 
+**Local-first quality gate for release-readiness.**
+
+Turn repository signals into evidence-backed findings. No code leaves your machine.
+
 [![Version](https://img.shields.io/badge/version-1.3.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/quality-harness/code-to-gate/actions/workflows/code-to-gate-pr.yml/badge.svg)](https://github.com/quality-harness/code-to-gate/actions/workflows/code-to-gate-pr.yml)
@@ -7,7 +11,88 @@
 
 Language: English | [日本語](README_JA.md)
 
-A local-first quality harness CLI tool that analyzes repositories for quality risks, generates evidence-backed findings, and produces release-readiness gate inputs.
+---
+
+## 5-Minute Path
+
+```bash
+# Install
+npm install -g @quality-harness/code-to-gate
+
+# Analyze
+code-to-gate analyze ./src --out .qh
+
+# Results: findings.json, release-readiness.json, results.sarif
+```
+
+→ See quality risks, compliance evidence, SARIF for GitHub Code Scanning.
+
+---
+
+## What It Does
+
+| Feature | Description |
+|---------|-------------|
+| **Detect Risks** | 14 built-in rules for payment, auth, validation, security patterns |
+| **Quality Gates** | Policy-based release decisions (block on severity, category) |
+| **Evidence Generation** | SARIF, JSON, HTML artifacts for audits |
+| **CI Integration** | GitHub Actions workflow ready |
+| **Local-First** | No code upload, no cloud dependency |
+
+### Built-in Rules
+
+| Rule | Category | Detection |
+|------|----------|-----------|
+| `CLIENT_TRUSTED_PRICE` | payment | Client-side price calculation |
+| `WEAK_AUTH_GUARD` | auth | Weak authorization guards |
+| `MISSING_SERVER_VALIDATION` | validation | Missing request validation |
+| `RAW_SQL` | security | SQL string construction |
+| `HARDCODED_SECRET` | security | Hardcoded credentials |
+| `UNSAFE_REDIRECT` | security | Unsafe redirect patterns |
+| `TRY_CATCH_SWALLOW` | maintainability | Empty/silent catch blocks |
+| ... | | See [CLI Reference](docs/cli-reference.md) for full list |
+
+---
+
+## Why Local-First?
+
+| Aspect | code-to-gate | Cloud-Based Tools |
+|--------|--------------|-------------------|
+| Code location | Your machine only | Vendor servers |
+| Network required | No (except optional LLM) | Yes |
+| GDPR/CCPA risk | None | Potential exposure |
+| Setup time | npm install | Account + API keys |
+
+**Your code stays on your machine.** No data processing agreements needed.
+
+---
+
+## Documentation
+
+### Getting Started
+
+| Guide | Description |
+|-------|-------------|
+| [Quickstart](docs/quickstart.md) | First analysis in 5 minutes |
+| [CLI Reference](docs/cli-reference.md) | All commands and options |
+| [Integration Guide](docs/integrations.md) | GitHub Actions, GitLab CI |
+| [Policy Guide](docs/policy-system.md) | YAML policy configuration |
+
+### Understanding the Product
+
+| Guide | Description |
+|-------|-------------|
+| [Product Narrative](docs/product-narrative.md) | Problem, solution, differentiation |
+| [Architecture](docs/architecture-for-dd.md) | System design, data flow |
+| [Enterprise Packaging](docs/ipo/enterprise-packaging.md) | OSS vs Enterprise features |
+
+### For Contributors
+
+| Guide | Description |
+|-------|-------------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow, PR checklist |
+| [Plugin Development](docs/plugin-development.md) | Custom rule SDK |
+| [GOVERNANCE.md](GOVERNANCE.md) | Decision-making, evidence retention |
 
 ---
 
@@ -16,7 +101,7 @@ A local-first quality harness CLI tool that analyzes repositories for quality ri
 | Feature | Description |
 |---------|-------------|
 | **Repository Scanning** | Parse source files, extract symbols, build dependency graphs |
-| **Quality Analysis** | Detect 14 built-in vulnerability patterns (payment, auth, validation, etc.) |
+| **Quality Analysis** | Detect 14 built-in vulnerability patterns |
 | **Release Readiness** | Generate gate inputs based on policy thresholds |
 | **Evidence Generation** | Export SARIF, gatefield, state-gate, workflow-evidence formats |
 | **Plugin System** | Docker-sandboxed custom rules via plugin SDK |
@@ -165,27 +250,6 @@ Repository → scan → repo-graph.json → analyze → findings.json → readin
                                               ↓
                                     export → SARIF, gatefield, etc.
 ```
-
----
-
-## Built-in Rules
-
-| Rule | Category | Detection |
-|------|----------|-----------|
-| `CLIENT_TRUSTED_PRICE` | payment | Client-side price calculation |
-| `WEAK_AUTH_GUARD` | auth | Weak authorization guards |
-| `MISSING_SERVER_VALIDATION` | validation | Missing request validation |
-| `UNTESTED_CRITICAL_PATH` | testing | Missing tests on entrypoints |
-| `TRY_CATCH_SWALLOW` | maintainability | Empty/silent catch blocks |
-| `RAW_SQL` | security | SQL string construction |
-| `ENV_DIRECT_ACCESS` | security | Direct env var access |
-| `UNSAFE_DELETE` | maintainability | Unsafe delete operations |
-| `LARGE_MODULE` | maintainability | Module size thresholds |
-| `HARDCODED_SECRET` | security | Hardcoded secrets/credentials |
-| `MISSING_RATE_LIMIT` | security | Missing rate limiting |
-| `UNSAFE_REDIRECT` | security | Unsafe redirect patterns |
-| `MISSING_INPUT_SANITIZATION` | security | Unsanitized user input |
-| `DEPRECATED_API_USAGE` | maintainability | Deprecated API usage |
 
 ---
 

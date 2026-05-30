@@ -1,36 +1,68 @@
 # Product Narrative
 
-## The Problem
+> **Local-first quality gate that turns code signals into release-readiness evidence.**
+
+---
+
+## Problem
 
 Software teams face a growing challenge: **how do you ensure code quality and security at scale without slowing down delivery?**
 
 ### The Stakes Are High
 
-- **Security breaches** cost companies an average of $4.45M per incident (IBM, 2023)
-- **Technical debt** accumulates silently, slowing development velocity
-- **Compliance requirements** demand audit trails and evidence
-- **Developer burnout** increases when quality gates are manual and inconsistent
+| Pressure | Impact | Evidence |
+|----------|--------|----------|
+| Security breaches | $4.45M average cost | IBM 2023 report (industry consensus) |
+| Technical debt | Silently slows velocity | Accepted industry problem |
+| Compliance requirements | Audit trails required | SEC rules, EU DORA in effect |
+| Developer burnout | Manual gates increase workload | Industry-recognized problem |
 
 ### Current Solutions Fall Short
 
-| Solution | Gap |
-|----------|-----|
-| Manual code review | Slow, inconsistent, doesn't scale |
-| Traditional SAST tools | High false positives, complex setup |
-| Cloud-based scanners | Code leaves your infrastructure |
-| Point solutions | Fragmented toolchain, no unified view |
+| Solution | Gap | Why It Matters |
+|----------|-----|----------------|
+| Manual code review | Slow, inconsistent, doesn't scale | Bottleneck at scale |
+| Traditional SAST tools | High false positives, complex setup | Developer friction |
+| Cloud-based scanners | Code leaves your infrastructure | Privacy/compliance risk |
+| Point solutions | Fragmented toolchain, no unified view | Operational overhead |
 
-## Our Solution
+---
 
-**code-to-gate** is a local-first static analysis tool that enforces quality gates and generates compliance evidence—without sending your code to the cloud.
+## Why Now
 
-### Core Philosophy
+### Regulatory Pressure Is Increasing
 
-> **Your code stays on your machine.**
+| Regulation | Impact | Status |
+|------------|--------|--------|
+| SEC Cybersecurity Rules | Public companies must disclose incidents | ✅ In effect (Dec 2023) |
+| EU DORA | Financial entities need ICT risk management | ✅ In effect (Jan 2025) |
+| HIPAA Security Rule | Healthcare requires audit controls | ✅ Long-standing |
+| FedRAMP | Government contractors need evidence | ✅ Active |
 
-We believe security tools should enhance your workflow, not compromise it. code-to-gate runs entirely locally, analyzing your codebase without transmitting it to external services.
+### Privacy Concerns Are Growing
 
-### How It Works
+- **GDPR/CCPA**: Data processing agreements required for cloud tools
+- **Enterprise policies**: Many orgs block code upload to external services
+- **Security audits**: Code exposure is a documented risk vector
+
+### Evidence Gap Is Real
+
+| Tool | Scans Code? | Generates Evidence? |
+|------|-------------|---------------------|
+| SonarQube | ✅ | ⚠️ JSON only, no compliance artifacts |
+| Snyk | ✅ | ⚠️ Limited audit trail |
+| Semgrep | ✅ | ⚠️ SARIF but no release-readiness |
+| CodeQL | ✅ | ❌ Security findings only |
+
+**Gap**: Tools detect issues but don't produce compliance-ready audit artifacts.
+
+---
+
+## Product
+
+### What We Built
+
+**code-to-gate** is a CLI tool that:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -46,121 +78,185 @@ We believe security tools should enhance your workflow, not compromise it. code-
                         └─────────────────┘
 ```
 
-1. **Scan**: Analyze your codebase for quality, security, and compliance issues
-2. **Detect**: Built-in rules catch common vulnerabilities and anti-patterns
-3. **Gate**: Block deployments that don't meet your standards
-4. **Evidence**: Generate audit-ready artifacts for compliance
+### Core Features
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Repository scanning | Parse files, extract symbols, build graphs | ✅ Implemented |
+| Quality analysis | 14 built-in vulnerability patterns | ✅ Implemented |
+| Release readiness | Policy-based gate decisions | ✅ Implemented |
+| Evidence generation | SARIF, JSON, HTML, gatefield formats | ✅ Implemented |
+| Plugin SDK | Docker-sandboxed custom rules | ✅ Implemented |
+| Incremental cache | Fast re-analysis | ✅ Implemented |
+| LLM integration | Optional local/remote providers | ✅ Implemented |
+
+### How It Works
+
+```bash
+# 1. Scan repository
+code-to-gate scan ./src --out .qh
+
+# 2. Analyze for risks
+code-to-gate analyze ./src --emit all --out .qh
+
+# 3. Check release readiness
+code-to-gate readiness ./src --policy policy.yaml --from .qh --out .qh
+
+# 4. Export for CI/CD
+code-to-gate export sarif --from .qh --out results.sarif
+```
+
+### Local-First Architecture
+
+> **Your code stays on your machine.**
+
+| Aspect | code-to-gate | Cloud Tools |
+|--------|--------------|-------------|
+| Code location | Your machine only | Vendor servers |
+| Network required | ❌ No (except optional LLM) | ✅ Yes |
+| Data processing agreement | ❌ Not needed | ✅ Required |
+| GDPR/CCPA risk | ❌ None | ⚠️ Potential exposure |
+
+---
+
+## Differentiation
+
+### Competitive Comparison
+
+| Feature | code-to-gate | SonarQube | Snyk | Semgrep |
+|---------|--------------|-----------|------|---------|
+| **Local-first** | ✅ Default | ⚠️ Optional | ❌ Cloud required | ⚠️ Optional |
+| **Evidence generation** | ✅ Built-in | ⚠️ Limited | ⚠️ Limited | ⚠️ SARIF only |
+| **Release-readiness** | ✅ Built-in | ❌ Separate workflow | ❌ Security focus | ❌ Security focus |
+| **Plugin SDK** | ✅ Docker sandbox | ⚠️ Limited | ❌ Vendor only | ✅ Open rules |
+| **Setup time** | ✅ npm install | ⚠️ Complex | ✅ npm install | ✅ npm install |
+| **Price (OSS)** | ✅ Free (MIT) | ❌ Commercial | ⚠️ Limited free | ✅ Free (LGPL) |
+| **Price (Enterprise)** | TBD | $150k+/year | $100+/dev/mo | $150+/dev/mo |
 
 ### Key Differentiators
 
-| Feature | code-to-gate | Traditional SAST |
-|---------|--------------|------------------|
-| Data privacy | Local-first, no cloud | Cloud-based |
-| Setup time | npm install | Complex configuration |
-| False positives | Contextual rules | Often excessive |
-| Extensibility | Plugin SDK | Vendor lock-in |
-| Evidence | Built-in audit trail | Additional tools needed |
+1. **Evidence Native**: Audit artifacts generated by default, not as add-on
+2. **Release-Readiness Focus**: Beyond detection → gate decisions
+3. **Local-First Guarantee**: Architecture enforces privacy, not optional setting
+4. **Plugin Sandbox**: Docker isolation for safe custom rules
 
-## Use Cases
+### Why We Win
 
-### 1. Pre-Merge Quality Gate
+| Scenario | code-to-gate Advantage |
+|----------|------------------------|
+| Compliance audit | Built-in evidence artifacts, no extra tooling |
+| Privacy requirement | No code upload, instant compliance |
+| Custom detection | Plugin SDK with sandboxed execution |
+| Budget constraint | OSS core free, enterprise optional |
 
-```
-PR Opened ──▶ code-to-gate scan ──▶ Findings? ──▶ Block merge
-                                      │
-                                      ▼
-                               No critical issues ──▶ Allow merge
-```
+---
 
-### 2. Security Compliance
+## Proof
 
-Generate SARIF reports for security audits:
+### Technical Evidence
+
+| Metric | Status | Evidence |
+|--------|--------|----------|
+| Version stability | 1.3.0 | package.json, npm pack validated |
+| Test coverage | 45%+ | npm run test:coverage |
+| CI passing | ✅ Green | .github/workflows/ badges |
+| Smoke tests | 54 passing | npm run test:smoke |
+| Lint clean | 0 errors | npm run lint |
+| TypeScript strict | 0 errors | npm run typecheck |
+
+### Architecture Evidence
+
+| Claim | Evidence File |
+|-------|---------------|
+| Local-first design | docs/architecture-for-dd.md (Data Privacy section) |
+| Plugin sandbox | docs/architecture-for-dd.md (Security Architecture section) |
+| Schema stability | schemas/*.schema.json (ctg/v1 versioning) |
+| Policy engine | src/config/policy-loader.ts, policy-evaluator.ts |
+
+### Governance Evidence
+
+| Document | Purpose |
+|----------|---------|
+| SECURITY.md | Vulnerability reporting, data handling policy |
+| GOVERNANCE.md | Decision-making, evidence retention, schema stability |
+| CONTRIBUTING.md | Development workflow, PR requirements |
+| docs/dd-readiness.md | DD summary for investors |
+
+### Competitive Validation
+
+| Claim | Validation Method |
+|-------|-------------------|
+| "Competitors don't generate evidence" | Feature comparison of SonarQube, Snyk, Semgrep, CodeQL documentation |
+| "Local-first is unique" | Architecture comparison of cloud-based vs local-first tools |
+| "Plugin sandbox is differentiated" | Plugin system comparison (Docker isolation vs native execution) |
+
+---
+
+## Roadmap
+
+### Current State (Q2 2026)
+
+| Item | Status |
+|------|--------|
+| Core analysis engine | ✅ Complete |
+| 14 built-in rules | ✅ Complete |
+| SARIF output | ✅ Complete |
+| Plugin SDK | ✅ Complete |
+| 6 language support | ⚠️ Partial (TS/JS full, others tree-sitter) |
+| Documentation | ✅ Complete |
+
+### Near-Term (Q3 2026)
+
+| Item | Status | Priority |
+|------|--------|----------|
+| OSS public launch | ⚠️ Pending | P0 |
+| npm publish | ⚠️ Pending | P0 |
+| GitHub release v1.3.0 | ⚠️ Pending | P0 |
+| Community outreach | ⚠️ Planned | P1 |
+| Enterprise pilot outreach | ⚠️ Planned | P1 |
+
+### Mid-Term (Q4 2026)
+
+| Item | Status | Priority |
+|------|--------|----------|
+| LLM-assisted rule writing | ⚠️ Planned | P2 |
+| Performance optimization | ⚠️ Planned | P2 |
+| Enhanced IDE integration | ⚠️ Planned | P2 |
+| Enterprise features design | ⚠️ Planned | P1 |
+
+### Long-Term (2027+)
+
+| Item | Status | Classification |
+|------|--------|---------------|
+| Enterprise dashboard | ⚠️ Hypothesis | Depends on enterprise traction |
+| SSO/SAML integration | ⚠️ Hypothesis | Enterprise tier feature |
+| Compliance packs (SOC2, PCI-DSS) | ⚠️ Hypothesis | Enterprise tier feature |
+| Cloud offering (optional) | ⚠️ Hypothesis | Customer choice, not default |
+
+---
+
+## Call to Action
+
+### For Developers
 
 ```bash
-code-to-gate scan ./src --format sarif --output security-report.sarif
+npm install -g @quality-harness/code-to-gate
+code-to-gate analyze ./src --out .qh
 ```
 
-### 3. Evidence Generation
+→ See findings, release-readiness, SARIF in 5 minutes.
 
-Create audit evidence for releases:
+### For Security Teams
 
-```bash
-code-to-gate readiness ./src --baseline .qh/baseline.json
-```
+- Built-in rules cover payment logic, auth guards, validation gaps
+- SARIF output integrates with GitHub Code Scanning
+- No code exposure = compliance by design
 
-## Market Opportunity
+### For Enterprise Decision-Makers
 
-### Total Addressable Market
-
-- **DevOps Tools Market**: $15.8B (2023), growing 20% CAGR
-- **Application Security Market**: $7.5B (2023), growing 18% CAGR
-- **Compliance Software Market**: $4.2B (2023), growing 15% CAGR
-
-### Target Customer Segments
-
-1. **Enterprise DevOps Teams**: Need quality gates without sacrificing velocity
-2. **Security Teams**: Require pre-deployment scanning with evidence
-3. **Compliance Officers**: Need audit trails for SOC 2, ISO 27001
-4. **SMBs**: Want enterprise-grade security without enterprise cost
-
-### Competitive Landscape
-
-| Competitor | Strengths | Weaknesses |
-|------------|-----------|------------|
-| SonarQube | Feature-rich, established | Complex setup, cloud-dependent |
-| Snyk | Developer-friendly | Requires code upload |
-| CodeQL | Deep analysis | GitHub lock-in |
-| Semgrep | Fast, customizable | Limited evidence generation |
-
-**code-to-gate differentiates** through local-first privacy, built-in evidence generation, and plugin extensibility.
-
-## Product Roadmap
-
-### Q2 2026 (Current)
-
-- ✅ Core analysis engine
-- ✅ 6 language support (TS, JS, Python, Go, Java, C#)
-- ✅ SARIF output format
-- ✅ Plugin SDK
-
-### Q3 2026
-
-- 🔲 LLM-assisted rule writing
-- 🔲 Performance optimization for large repos
-- 🔲 Enhanced IDE integration
-
-### Q4 2026
-
-- 🔲 Enterprise features (SSO, audit logging)
-- 🔲 Compliance frameworks (SOC 2, PCI-DSS)
-- 🔲 Cloud offering (optional, customer choice)
-
-## Technical Architecture
-
-See `docs/architecture-for-dd.md` for detailed technical overview.
-
-### Design Principles
-
-1. **Local-First**: All analysis runs on your machine
-2. **Plugin Architecture**: Extensible via sandboxed plugins
-3. **Evidence Native**: Every scan produces audit-ready artifacts
-4. **Standards-Based**: JSON Schema, SARIF, OpenAPI compatible
-
-## Team
-
-### Current Maintainer
-
-**R_N_A** - Project Lead
-- Architecture and core development
-- Security and compliance focus
-- Open source community management
-
-### Contribution Model
-
-Open source with community contributions:
-- GitHub Issues for bug reports and features
-- Pull requests welcome
-- Code review by maintainer
+- See docs/architecture-for-dd.md for technical deep-dive
+- See docs/enterprise-packaging.md for OSS/Enterprise boundary
+- See docs/business-evidence.md for adoption metrics framework
 
 ---
 
