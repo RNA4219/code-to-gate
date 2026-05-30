@@ -26,6 +26,35 @@ env:
   RELEASE_TAG: ${{ github.event.inputs.release_tag || github.sha }}
 
 jobs:
+  # IPO Audit Gate: dependency vulnerability check
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+      - name: Generate audit.json
+        run: npm audit --json > .qh/audit.json
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ctg-audit-${{ github.sha }}
+          path: .qh/audit.json
+          retention-days: 90
+
   macos-compatibility:
     runs-on: macos-latest
     steps:
@@ -71,6 +100,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Run test coverage
+        run: npm run test:coverage
 
       - name: Run full analysis
         id: analyze
@@ -188,6 +220,7 @@ jobs:
             .qh/workflow-evidence.json
             .qh/release-evidence.md
             .qh/audit.json
+            coverage/coverage-summary.json
           retention-days: 90
 
       - name: Block release if not ready
