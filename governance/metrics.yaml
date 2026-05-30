@@ -1,0 +1,17 @@
+# code-to-gate 可観測性メトリクス定義
+# 解析パフォーマンス、品質指標、キャッシュ効率を追跡
+
+analysis_latency_ms: 解析実行時間(ms)
+findings_count: 検出された問題数
+findings_by_severity: 重要度別検出数(critical/high/medium/low)
+findings_by_category: カテゴリ別検出数(security/payment/auth/validation/maintainability/testing)
+false_positive_rate: 偽陽性率(%)
+coverage_percent: テストカバレッジ率(%)
+cache_hit_rate: インクリメンタルキャッシュヒット率(%)
+rule_execution_time_ms: ルール別実行時間(ms)
+scan_file_count: スキャン対象ファイル数
+scan_symbol_count: 抽出シンボル数
+export_latency_ms: エクスポート処理時間(ms)
+readiness_evaluation_time_ms: Readiness評価時間(ms)
+llm_inference_time_ms: LLM推論時間(ms)
+plugin_sandbox_overhead_ms: プラグインサンドボックスオーバーヘッド(ms)

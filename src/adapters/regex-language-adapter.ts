@@ -117,7 +117,7 @@ function detectSymbols(line: string, language: RegexLanguage): Array<{ name: str
   } else if (language === "cs") {
     match = line.match(/^\s*(?:public|private|protected|internal)?\s*(?:abstract\s+|sealed\s+|static\s+)?(?:class|interface|record|struct|enum)\s+([A-Z][A-Za-z0-9_]*)/);
     if (match) symbols.push({ name: match[1], kind: match[0].includes("interface") ? "interface" : "class" });
-    match = line.match(/^\s*(?:public|private|protected|internal)?\s*(?:static\s+|virtual\s+|override\s+|async\s+)*[A-Za-z0-9_<>,?\[\]\s]+\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*\)\s*(?:=>|\{)/);
+    match = line.match(/^\s*(?:public|private|protected|internal)?\s*(?:static\s+|virtual\s+|override\s+|async\s+)*[A-Za-z0-9_<>,?[\]\s]+\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*\)\s*(?:=>|\{)/);
     if (match && !["if", "for", "while", "switch", "catch"].includes(match[1])) symbols.push({ name: match[1], kind: "method" });
   } else if (language === "cpp") {
     match = line.match(/^\s*(?:class|struct)\s+([A-Z][A-Za-z0-9_]*)/);

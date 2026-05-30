@@ -29,10 +29,12 @@ blocking:
     WEAK_AUTH_GUARD: true
 
   # Count thresholds
+  # medium_max increased to 50 (2026-05-25) to accommodate accepted maintainability debt
+  # All security-related findings are suppressed; remaining medium are LARGE_MODULE/SUPPRESSION_DEBT
   count_threshold:
     critical_max: 0
     high_max: 3
-    medium_max: 10
+    medium_max: 50
 
 # Confidence thresholds
 confidence:

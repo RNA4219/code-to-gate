@@ -1,7 +1,11 @@
-# code-to-gate pre-commit configuration
+# SPDX-License-Identifier: MIT
+# Copyright 2025 RNA4219
+#
+# pre-commit hooks for lint/type/test automation (Node.js/TypeScript)
 # Install: pip install pre-commit && pre-commit install
 
 repos:
+  # ESLint (linting)
   - repo: local
     hooks:
       - id: eslint
@@ -9,23 +13,41 @@ repos:
         entry: npm run lint
         language: system
         pass_filenames: false
-        always_run: true
+        types: [ts, js]
 
-      - id: typescript
-        name: typescript
+  # TypeScript type checking
+  - repo: local
+    hooks:
+      - id: typecheck
+        name: typecheck
         entry: npx tsc --noEmit
         language: system
         pass_filenames: false
-        always_run: true
+        types: [ts]
 
-      - id: test-smoke
-        name: test-smoke
+  # Vitest smoke tests (pre-push)
+  - repo: local
+    hooks:
+      - id: vitest-smoke
+        name: vitest-smoke
         entry: npm run test:smoke
         language: system
-        stages: [pre-push]
         pass_filenames: false
+        stages: [pre-push]
         always_run: true
 
+  # npm audit (security check)
+  - repo: local
+    hooks:
+      - id: npm-audit
+        name: npm-audit
+        entry: npm audit --audit-level=moderate
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+  # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

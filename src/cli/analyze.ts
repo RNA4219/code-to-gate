@@ -99,6 +99,17 @@ function mapStatusToAuditStatus(status: ReadinessStatus): string {
   }
 }
 
+export function resolveSuppressionPath(
+  suppressPath: string | undefined,
+  policySuppressionPath: string | undefined,
+  cwd: string,
+  repoRoot: string
+): string {
+  const suppressionPath = suppressPath ?? policySuppressionPath ?? ".ctg/suppressions.yaml";
+  const suppressionBaseDir = suppressPath ? cwd : repoRoot;
+  return path.resolve(suppressionBaseDir, suppressionPath);
+}
+
 export async function analyzeCommand(args: string[], options: AnalyzeOptions): Promise<number> {
   const repoArg = args[0];
   const outDir = options.getOption(args, "--out") ?? ".qh";
@@ -190,14 +201,15 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       policy = loaded.policy;
     }
 
-    // Load suppressions if specified
-    const suppressionPath = suppressPath ?? policy?.suppression?.file ?? ".ctg/suppressions.yaml";
-    const absoluteSuppressionPath = suppressionPath
-      ? path.resolve(repoRoot, suppressionPath)
-      : undefined;
-    const suppressions: SuppressionEntry[] = absoluteSuppressionPath
-      ? loadSuppressionFile(absoluteSuppressionPath, cwd).suppressions
-      : [];
+    // Load suppressions if specified.
+    // CLI-provided paths are relative to cwd; policy/default paths are relative to repoRoot.
+    const absoluteSuppressionPath = resolveSuppressionPath(
+      suppressPath,
+      policy?.suppression?.file,
+      cwd,
+      repoRoot
+    );
+    const suppressions: SuppressionEntry[] = loadSuppressionFile(absoluteSuppressionPath, cwd).suppressions;
 
     ensureDir(absoluteOutDir);
 

@@ -1,0 +1,56 @@
+version: ctg/v1
+
+policyId: code-to-gate-quality-policy
+description: Quality policy for code-to-gate repository
+
+blocking:
+  severity:
+    critical: true
+    high: true
+    medium: false
+    low: false
+  category:
+    auth: true
+    payment: true
+    validation: true
+    security: true
+    data: false
+    config: false
+    maintainability: false
+    testing: false
+    compatibility: false
+  rules:
+    # Block on critical security rules
+    HARDCODED_SECRET: true
+    RAW_SQL: true
+    UNSAFE_REDIRECT: true
+  count:
+    criticalMax: 0
+    highMax: 10
+    mediumMax: 50
+    lowMax: 100
+
+readiness:
+  criticalFindingStatus: blocked_input
+  requireLlm: false
+  allowSuppressed: true
+  coverageThreshold: 80
+
+suppression:
+  file: .ctg/suppressions.yaml
+  expiryWarningDays: 30
+  maxSuppressionsPerRule: 10
+
+confidence:
+  minConfidence: 0.6
+  lowConfidenceThreshold: 0.4
+  filterLow: true
+
+partial:
+  allowPartial: false
+  partialWarningThreshold: 0.2
+
+exit:
+  failOnCritical: true
+  failOnHigh: true
+  warnOnly: false

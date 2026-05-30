@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { analyzeCommand } from "../analyze.js";
+import { analyzeCommand, resolveSuppressionPath } from "../analyze.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -262,6 +262,34 @@ describe("analyze CLI", () => {
 
     const debtPath = path.join(tempOutDir, "self-analysis-debt.json");
     expect(existsSync(debtPath)).toBe(true);
+  });
+
+  it("resolves policy suppression file relative to repo root", () => {
+    const cwd = path.join(tempOutDir, "cwd");
+    const repoRoot = path.join(tempOutDir, "repo");
+
+    const resolved = resolveSuppressionPath(
+      undefined,
+      "policy-suppressions/suppressions.yaml",
+      cwd,
+      repoRoot
+    );
+
+    expect(resolved).toBe(path.join(repoRoot, "policy-suppressions", "suppressions.yaml"));
+  });
+
+  it("resolves CLI suppression file relative to cwd", () => {
+    const cwd = path.join(tempOutDir, "cwd");
+    const repoRoot = path.join(tempOutDir, "repo");
+
+    const resolved = resolveSuppressionPath(
+      "policy-suppressions/suppressions.yaml",
+      ".ctg/suppressions.yaml",
+      cwd,
+      repoRoot
+    );
+
+    expect(resolved).toBe(path.join(cwd, "policy-suppressions", "suppressions.yaml"));
   });
 
   it("--policy option with non-existent file returns POLICY_FAILED", async () => {

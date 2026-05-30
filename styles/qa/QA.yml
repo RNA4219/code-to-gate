@@ -1,0 +1,46 @@
+# QA スタイル: 表記揺れ（code-to-gate固有）
+extends: substitution
+message: "表記ゆれ: '%s' は '%s' に統一してください。"
+level: warning
+ignorecase: true
+scope: text
+swap:
+  Github: GitHub
+  webhook: Webhook
+  code-to-gate: code-to-gate
+  code to gate: code-to-gate
+  CodeToGate: code-to-gate
+  vitest: Vitest
+  typescript: TypeScript
+  Typescript: TypeScript
+  ts-morph: ts-morph
+  Ts-morph: ts-morph
+  SARIF: SARIF
+  sarif: SARIF
+  npm: npm
+  NPM: npm
+  Node.js: Node.js
+  nodejs: Node.js
+---
+# QA スタイル: 禁止用語
+extends: existence
+message: "禁止用語: '%s' は使用しないでください。代替表現または具体的な内容を記載してください。"
+level: error
+ignorecase: true
+scope: text
+tokens:
+  - TBD
+  - WIP
+  - TODO
+  - FIXME
+  - HACK
+---
+# QA スタイル: 禁止パス参照
+extends: existence
+message: "禁止パス参照: '%s' は自己修正禁止パスです。変更には人間の承認が必要です。"
+level: error
+ignorecase: false
+scope: text
+tokens:
+  - /src/core/
+  - /src/rules/

@@ -324,6 +324,38 @@ suppressions:
       expect(result.suppressions[1].path).toBe("src/auth/*");
     });
 
+    it("should parse inline rule_id entries without truncating colon values", () => {
+      const suppressionPath = path.join(tempDir, "inline-rule-suppressions.yaml");
+      writeFileSync(suppressionPath, `version: ctg/v1
+suppressions:
+  - rule_id: "CLIENT:TRUSTED:PRICE"
+    path: src/cart.ts
+    reason: "Known issue: accepted debt"
+`);
+
+      const result = loadSuppressionFile(suppressionPath, tempDir);
+
+      expect(result.suppressions).toHaveLength(1);
+      expect(result.suppressions[0].ruleId).toBe("CLIENT:TRUSTED:PRICE");
+      expect(result.suppressions[0].reason).toBe("Known issue: accepted debt");
+    });
+
+    it("should parse inline path entries", () => {
+      const suppressionPath = path.join(tempDir, "inline-path-suppressions.yaml");
+      writeFileSync(suppressionPath, `version: ctg/v1
+suppressions:
+  - path: "src/cart.ts"
+    rule_id: CLIENT_TRUSTED_PRICE
+    reason: Known issue
+`);
+
+      const result = loadSuppressionFile(suppressionPath, tempDir);
+
+      expect(result.suppressions).toHaveLength(1);
+      expect(result.suppressions[0].ruleId).toBe("CLIENT_TRUSTED_PRICE");
+      expect(result.suppressions[0].path).toBe("src/cart.ts");
+    });
+
     it("should return empty suppressions for non-existent file", () => {
       const result = loadSuppressionFile("non-existent-suppressions.yaml", tempDir);
 

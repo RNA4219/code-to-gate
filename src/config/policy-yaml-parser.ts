@@ -18,6 +18,22 @@ import {
   type BlockingCategoryConfig,
 } from "./policy-types.js";
 
+function splitYamlKeyValue(line: string): [string, string] | undefined {
+  const separatorIndex = line.indexOf(":");
+  if (separatorIndex < 0) {
+    return undefined;
+  }
+
+  return [
+    line.slice(0, separatorIndex).trim(),
+    line.slice(separatorIndex + 1).trim(),
+  ];
+}
+
+function unquoteYamlScalar(value: string | undefined): string {
+  return (value ?? "").replace(/^["']|["']$/g, "");
+}
+
 /**
  * Parse YAML policy file
  */
@@ -217,25 +233,42 @@ export function parseSuppressionFile(content: string): SuppressionFile {
         });
       }
       currentSuppression = {};
+
+      // Handle case where first field is on same line as dash
+      // e.g., "- rule_id: CLIENT_TRUSTED_PRICE"
+      const afterDash = trimmed.substring(1).trim();
+      const inlineField = splitYamlKeyValue(afterDash);
+      if (inlineField) {
+        const [key, value] = inlineField;
+        if (key === "rule_id") {
+          currentSuppression.ruleId = unquoteYamlScalar(value);
+        } else if (key === "path") {
+          currentSuppression.path = unquoteYamlScalar(value);
+        }
+      }
       continue;
     }
 
     if (trimmed.includes(":") && currentSuppression) {
-      const [key, value] = trimmed.split(":").map(s => s.trim());
+      const field = splitYamlKeyValue(trimmed);
+      if (!field) {
+        continue;
+      }
+      const [key, value] = field;
 
       if (key === "rule_id") {
-        currentSuppression.ruleId = value || "";
+        currentSuppression.ruleId = unquoteYamlScalar(value);
       } else if (key === "path") {
-        currentSuppression.path = value?.replace(/^["']|["']$/g, "") || "";
+        currentSuppression.path = unquoteYamlScalar(value);
       } else if (key === "reason") {
-        currentSuppression.reason = value || "";
+        currentSuppression.reason = unquoteYamlScalar(value);
       } else if (key === "expiry") {
-        currentSuppression.expiry = value?.replace(/^["']|["']$/g, "");
+        currentSuppression.expiry = unquoteYamlScalar(value);
       } else if (key === "author") {
-        currentSuppression.author = value?.replace(/^["']|["']$/g, "");
+        currentSuppression.author = unquoteYamlScalar(value);
       } else if (key === "class") {
         // Parse class field, validate against allowed values
-        const classValue = value?.replace(/^["']|["']$/g, "") as SuppressionClass;
+        const classValue = unquoteYamlScalar(value) as SuppressionClass;
         const validClasses: SuppressionClass[] = [
           "self-reference",
           "fixture-intentional",

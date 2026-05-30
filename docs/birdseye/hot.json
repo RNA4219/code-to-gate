@@ -1,0 +1,11 @@
+{
+  "hot_nodes": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts",
+    "src/rules/index.ts",
+    "src/config/policy-loader.ts",
+    "CLAUDE.md",
+    "GUARDRAILS.md"
+  ],
+  "reason": "Most frequently accessed entrypoints and policy evaluation logic"
+}

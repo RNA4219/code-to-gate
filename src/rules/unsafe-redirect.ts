@@ -104,8 +104,8 @@ export const UNSAFE_REDIRECT_RULE: RulePlugin = {
         /\.startsWith\s*\(\s*['"]https:\/\/['"]/,
         /isRelativeUrl|isInternalUrl|isValidRedirect/,
         // Hardcoded URLs (safe)
-        /(?:res|response)\s*\.\s*redirect\s*\(\s*['"][\/\.\w\-]+['"]\s*\)/,
-        /(?:window|document)\s*\.\s*location\s*=\s*['"][\/\.\w\-]+['"]/,
+        /(?:res|response)\s*\.\s*redirect\s*\(\s*['"][/.\\w-]+['"]\s*\)/,
+        /(?:window|document)\s*\.\s*location\s*=\s*['"][/.\\w-]+['"]/,
       ];
 
       // Check for imports of validation libraries

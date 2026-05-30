@@ -1,0 +1,33 @@
+self_modification:
+  forbidden_paths:
+    - "/src/core/**"
+    - "/src/rules/**"
+  require_human_approval:
+    - "/governance/**"
+    - "/schemas/**"
+    - "/.github/workflows/**"
+
+canary:
+  abort_rules:
+    - name: http_5xx_spike
+      metric: http_5xx_rate
+      threshold: 0.5
+      window: "5m"
+      action: rollback
+    - name: latency_spike
+      metric: latency_p95_ms
+      threshold: 5000
+      window: "5m"
+      action: rollback
+
+ci:
+  required_jobs:
+    - lint-typecheck
+    - coverage
+    - contract-tests
+    - analyze
+
+slo:
+  lead_time_p95_hours: 24
+  mttr_p95_minutes: 30
+  change_failure_rate_max: 0.20
