@@ -2,9 +2,18 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**日本語** | **[English](README_EN.md)**
+**日本語** | **[English](README.md)**
 
-`code-to-gate` は、TypeScript / JavaScript / Python / Ruby / Go / Rust / Java / PHP / C# / C++ のリポジトリをスキャンしてリリース前の確認材料を作る CLI です。
+`code-to-gate` は、リポジトリ構造と静的解析結果を入力し、品質判断用の成果物を生成する CLI です。
+
+**linter / static analyzer そのものではありません**。Semgrep / ESLint / SonarQube などの既存ツールやリポジトリ構造から、以下のような「品質判断用の成果物」に変換する上位レイヤーとして動作します。
+
+- findings（証拠付き品質指摘）
+- risk register（リスク登録）
+- test seeds（テスト設計観点）
+- release readiness（リリース判断材料）
+
+QA / EM / 開発者がリリース判断・リスク確認・テスト観点抽出に使います。
 
 主に次のことを確認できます。
 
@@ -15,9 +24,19 @@
 
 ## インストール
 
+**GitHub からインストール**（npm publication 待ちの場合はこちら）:
+
+```bash
+npm install -g github:RNA4219/code-to-gate
+```
+
+**npm registry からインストール**（publication 完了後）:
+
 ```bash
 npm install -g @quality-harness/code-to-gate
 ```
+
+**パッケージ名**: `@quality-harness/code-to-gate`
 
 このリポジトリを clone 済みの場合:
 
@@ -69,6 +88,16 @@ code-to-gate export sarif --from .qh --out results.sarif
 | `llm-health` | ローカル LLM プロバイダの状態を確認する |
 | `evidence` | リリース判断用のエビデンスをまとめる |
 | `schema validate` | 出力ファイルをスキーマで検証する |
+
+## 言語対応レベル
+
+| 言語 | 対応レベル | 備考 |
+|------|------------|------|
+| TypeScript / JavaScript | **Primary** | AST 完全解析、主対象 |
+| Python / Ruby / Go / Rust | **Structured** | tree-sitter WASM ベース解析 |
+| Java / PHP / C# / C++ | **Baseline** | 正規表現 / ヒューリスティック fallback |
+
+全言語をスキャン可能ですが、解析深度は adapter により異なります。
 
 ## 出力されるもの
 
@@ -138,6 +167,18 @@ jobs:
         with:
           sarif_file: results.sarif
 ```
+
+## 関連プロジェクト
+
+code-to-gate は品質保証エコシステムの一部です:
+
+| プロジェクト | 役割 | 連携 |
+|--------------|------|------|
+| **manual-bb-test-harness** | 手動ブラックボックステスト設計 | risk/invariant seeds を code-to-gate から受ける |
+| **code-to-gate** | リポジトリ品質ゲート | findings, test seeds, readiness artifacts を生成 |
+| **RanD** | 要件定義 | 上流の requirements input (Kano mode 分析用) |
+| **workflow-cookbook** | ワークフロー知識ベース | Evidence 連携, CI/CD 手順 |
+| **agent-gatefield** | AI 成果物ゲーティング | code-to-gate export の static results を受ける |
 
 ## 関連ドキュメント
 
