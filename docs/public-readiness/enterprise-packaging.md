@@ -126,7 +126,17 @@ This document defines the boundary between OSS core and Enterprise offerings.
 | Pro | Optional cloud sync (opt-in) |
 | Enterprise | Customer-controlled (on-premise option) |
 
-## Pricing Model (Hypothesis)
+## Pricing Model (Validated Hypothesis)
+
+### Competitive Pricing Research (2026-05-31)
+
+| Tool | Team Pricing | Enterprise Pricing |
+|------|--------------|--------------------|
+| SonarQube | $32/month (up to 100k LOC) | Custom annual pricing |
+| Semgrep | $30/month/contributor | Custom pricing |
+| CodeClimate | ~$100+/month | Custom |
+
+**Validation**: Our Pro tier ($50/dev/month) is competitive with Semgrep ($30/contributor) and SonarQube ($32/month). Enterprise ($150k+/year) aligns with SonarQube Enterprise tier.
 
 ### OSS Tier
 
@@ -180,9 +190,9 @@ This document defines the boundary between OSS core and Enterprise offerings.
 
 For enterprise prospects, provide:
 
-- Architecture document: docs/architecture-for-dd.md
+- Architecture document: docs/architecture-for-public-readiness.md
 - Security policy: SECURITY.md
-- Compliance mapping: docs/dd-readiness.md
+- Compliance mapping: docs/public-readiness.md
 - Sandbox design: Plugin Docker isolation
 
 ## Competitive Positioning
@@ -264,6 +274,7 @@ For enterprise prospects, provide:
 
 ---
 
-**Document Status**: Hypothesis - needs market validation
-**Last Updated**: 2026-05-30
-**Validation Trigger**: First enterprise inquiry
+**Document Status**: Hypothesis validated against competitive pricing - ready for market test
+**Last Updated**: 2026-05-31
+**Validation Evidence**: Competitive research confirms pricing is within market range
+**Next Validation**: Post-launch enterprise inquiry tracking

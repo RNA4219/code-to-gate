@@ -14,7 +14,7 @@ This document defines the governance for external dependencies, including audit 
 - **Tool**: `npm audit` integrated in GitHub Actions
 - **Severity threshold**: Critical and High vulnerabilities require immediate action
 
-### IPO Audit Policy
+### Public Readiness Audit Policy
 
 | Severity | Requirement | Action |
 |----------|-------------|--------|
@@ -53,7 +53,7 @@ This document defines the governance for external dependencies, including audit 
 
 ## Risk Assessment
 
-### License Policy (IPO Compliance)
+### License Policy (Public Readiness Compliance)
 
 | License | Status | Notes |
 |---------|--------|-------|
@@ -67,7 +67,7 @@ This document defines the governance for external dependencies, including audit 
 
 **Policy**: All dependencies must have permissive licenses compatible with MIT. GPL-family licenses are forbidden. LGPL requires legal evaluation before acceptance.
 
-### SBOM Policy (IPO Evidence)
+### SBOM Policy (Public Readiness Evidence)
 
 - **Current**: npm pack generates package contents list
 - **Target**: SPDX-format SBOM generation (future enhancement)
@@ -136,4 +136,4 @@ All dependency decisions recorded in:
 ---
 
 Last updated: 2026-05-31
-Version: 1.4.0 (IPO License/SBOM Policy added)
+Version: 1.4.0 (Public Readiness License/SBOM Policy added)

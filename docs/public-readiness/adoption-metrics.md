@@ -45,7 +45,7 @@ This document defines the metrics framework for tracking code-to-gate adoption.
 
 | Metric | Source | Frequency | Baseline |
 |--------|--------|-----------|----------|
-| Built-in rules | `src/rules/*.ts` | Static | 9 |
+| Built-in rules | `src/rules/*.ts` | Static | 17 |
 | External plugins | npm search `code-to-gate-plugin-*` | Monthly | 0 |
 | Plugin downloads | npm registry | Monthly | 0 |
 | Plugin issues | GitHub (linked repos) | Monthly | 0 |
@@ -116,7 +116,7 @@ curl -s https://api.npmjs.org/downloads/point/last-week/@quality-harness/code-to
 
 ### Evidence Retention
 
-Metrics data retained per GOVERNANCE.md 90-day policy. Aggregated reports retained for DD audit trail.
+Metrics data retained per GOVERNANCE.md 90-day policy. Aggregated reports retained for public readiness review audit trail.
 
 ---
 
@@ -154,7 +154,7 @@ Metrics data retained per GOVERNANCE.md 90-day policy. Aggregated reports retain
 |--------|-----------|----------|--------|
 | Daily metrics snapshot | Daily | Internal | JSON log |
 | Weekly summary | Weekly | Maintainers | Markdown |
-| Monthly DD report | Monthly | Investors | PDF |
+| Monthly public readiness report | Monthly | External stakeholders | PDF |
 | Quarterly roadmap | Quarterly | Public | GitHub discussion |
 
 ---

@@ -26,13 +26,13 @@ Pre-launch checklist for code-to-gate public release.
 | CLI reference | ✅ | docs/cli-reference.md | Docs |
 | Integration examples | ✅ | docs/integrations.md | Docs |
 | Plugin guide | ✅ | docs/plugin-development.md | Docs |
-| DD documentation | ✅ | docs/dd-readiness.md, docs/architecture-for-dd.md | DD |
+| Public readiness documentation | ✅ | docs/public-readiness.md, docs/architecture-for-public-readiness.md | Public Readiness |
 
 ### README Enhancement Requirements
 
 **Current State**: Basic README with installation and basic usage.
 
-**Target State**: Investor-ready, user-friendly README:
+**Target State**: Public-ready, user-friendly README:
 
 ```markdown
 # code-to-gate
@@ -76,7 +76,7 @@ Your code never leaves your machine. No cloud required. No API keys. No data sha
 
 ```bash
 # Pre-publish validation
-npm run release:dd  # Already passed
+npm run release:public  # Already passed
 
 # Publish sequence
 npm login           # Authenticate with npm

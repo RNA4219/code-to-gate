@@ -93,8 +93,6 @@ export function loadPolicyFile(
   cwd: string
 ): { policy: CtgPolicy; source: string; errors: string[] } {
   const errors: string[] = [];
-  let parsedPolicy: Partial<CtgPolicy>;
-  let source: string;
 
   const absolutePath = path.resolve(cwd, policyPath);
 
@@ -107,9 +105,9 @@ export function loadPolicyFile(
     };
   }
 
-  source = absolutePath;
+  const source = absolutePath;
   const content = readFileSync(absolutePath, "utf8");
-  parsedPolicy = parseYamlPolicy(content);
+  const parsedPolicy = parseYamlPolicy(content);
 
   const policy = mergeWithDefaults(parsedPolicy);
   const validation = validatePolicy(policy);
@@ -285,7 +283,6 @@ export function isBroadSuppression(pathPattern: string): boolean {
   // Check for double wildcard at directory root level (e.g., "dir/**", "dir/**/*")
   // This means entire directory and all subdirectories
   const segments = pathPattern.split("/");
-  const hasRootDoubleWildcard = segments.length <= 3 && segments.some(s => s === "**");
 
   // Pattern like "dir/**" is broad
   if (segments.length === 2 && segments[1] === "**") {

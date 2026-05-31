@@ -1,12 +1,12 @@
 # Business Evidence
 
-This document tracks verifiable business metrics and evidence for investor due diligence.
+This document tracks verifiable business metrics and evidence for external stakeholders.
 
 ## Evidence Classification System
 
 | Status | Definition | Use Case |
 |--------|------------|----------|
-| **Verified** | Measured, documented, auditable | Primary DD claims |
+| **Verified** | Measured, documented, auditable | Primary public readiness claims |
 | **Hypothesis** | Reasonable projection, not yet measured | Roadmap assumptions |
 | **Unverified** | Needs measurement before publication | Future work items |
 
@@ -20,7 +20,7 @@ This document tracks verifiable business metrics and evidence for investor due d
 |--------|-------|--------|------|
 | Repository exists | ✅ GitHub.com/quality-harness/code-to-gate | Public repo | 2026-05 |
 | Tests passing | 54 smoke tests | CI workflow | 2026-05-30 |
-| Lint clean | 0 errors, 162 warnings | ESLint | 2026-05-30 |
+| Lint clean | 0 errors, 0 warnings | ESLint | 2026-05-31 |
 | TypeScript clean | 0 errors | tsc --noEmit | 2026-05-30 |
 | npm pack valid | 343 files | npm pack --dry-run | 2026-05-30 |
 | Documentation complete | 12 docs | File count | 2026-05-30 |

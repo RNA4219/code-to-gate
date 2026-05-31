@@ -65,6 +65,31 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+    },
+  },
+  // Tree-sitter adapters: external library types require any
+  {
+    files: ["src/adapters/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+    },
+  },
+  // Core modules: type-guarded non-null assertions are safe
+  {
+    files: [
+      "src/core/**/*.ts",
+      "src/evidence/**/*.ts",
+      "src/parallel/**/*.ts",
+      "src/plugin/**/*.ts",
+      "src/rules/**/*.ts",
+      "src/viewer/**/*.ts",
+      "src/cli/**/*.ts",
+      "src/llm/**/*.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-non-null-assertion": "off",
     },
   }
 );

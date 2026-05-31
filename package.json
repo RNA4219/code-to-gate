@@ -48,6 +48,7 @@
     "ctg": "node ./dist/cli.js",
     "test": "vitest run",
     "test:ci": "vitest run --maxWorkers=2 --reporter=dot",
+    "test:ci:stable": "vitest run --maxWorkers=1 --reporter=dot",
     "test:watch": "vitest",
     "test:coverage": "vitest run --config vitest.coverage.config.ts --coverage",
     "test:smoke": "vitest run src/__tests__/smoke --reporter verbose",
@@ -57,10 +58,11 @@
     "fp-eval": "node ./dist/cli.js analyze ./fixtures/demo-shop-ts --out ./fixtures/demo-shop-ts/.qh --emit all",
     "release:prep": "npm run build && npm run test:smoke",
     "release:validate": "node -e \"const p=require('./package.json');console.log('Package:', p.name, 'v' + p.version);console.log('Bin:', p.bin);console.log('Files:', p.files);\" && npm pack --dry-run",
-    "release:dd": "npm run lint && npm run typecheck && npm run test:smoke && npm pack --dry-run",
-    "release:ipo:quality": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:ci && npm run test:coverage && npm run release:validate",
+    "release:public": "npm run lint && npm run typecheck && npm run test:smoke && npm pack --dry-run",
+    "release:public:quality": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:ci:stable && npm run test:coverage && npm run release:validate",
     "audit:deps": "npm audit --audit-level=high",
-    "evidence:pack": "node -e \"console.log('Evidence artifacts:\\n- .qh/release-readiness.json\\n- .qh/findings.json\\n- .qh/audit.json\\n- .qh/results.sarif\\n- coverage/coverage-summary.json\\n- npm pack --dry-run output')\"",
+    "sbom:generate": "npm sbom --sbom-format cyclonedx --sbom-type application > sbom.json",
+    "evidence:pack": "node -e \"console.log('Evidence artifacts:\\n- .qh/release-readiness.json\\n- .qh/findings.json\\n- .qh/audit.json\\n- .qh/results.sarif\\n- coverage/coverage-summary.json\\n- sbom.json\\n- npm pack --dry-run output')\"",
     "prepublishOnly": "npm run build && npm run test:smoke"
   },
   "keywords": [

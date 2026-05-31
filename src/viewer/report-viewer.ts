@@ -10,6 +10,7 @@
  * - Filtering and search
  */
 
+import { writeFileSync } from "node:fs";
 import { FindingsArtifact } from "../types/artifacts.js";
 import { getAllStyles } from "./styles.js";
 import { generateFindingsExplorer } from "./finding-viewer.js";
@@ -136,7 +137,6 @@ export function writeReportHtml(
   artifacts: LoadedArtifacts,
   config: ReportViewerConfig = {}
 ): void {
-  const { writeFileSync } = require("node:fs");
   const html = generateReportHtml(artifacts, config);
   writeFileSync(outputPath, html, "utf8");
 }

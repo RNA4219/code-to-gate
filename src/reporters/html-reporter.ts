@@ -11,8 +11,6 @@ import {
   RiskRegisterArtifact,
   TestSeedsArtifact,
   Finding,
-  RiskSeed,
-  TestSeed,
   Severity,
 } from "../types/artifacts.js";
 import { writeFileSync, readFileSync } from "node:fs";

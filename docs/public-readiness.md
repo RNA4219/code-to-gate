@@ -1,6 +1,6 @@
-# Due Diligence Readiness Summary
+# Public Readiness Summary
 
-This document provides a single-page overview for investors and due diligence reviewers.
+This document provides a single-page overview for external stakeholders and public reviewers.
 
 ## Product Overview
 

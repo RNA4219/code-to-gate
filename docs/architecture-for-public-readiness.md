@@ -1,6 +1,6 @@
-# Technical Architecture for Due Diligence
+# Technical Architecture for Public Readiness
 
-This document provides a comprehensive technical overview for due diligence reviewers.
+This document provides a comprehensive technical overview for external reviewers.
 
 ## System Architecture
 

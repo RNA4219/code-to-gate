@@ -20,7 +20,6 @@ import {
   TestSeedEvidence,
   EvidenceRef,
   CTG_VERSION,
-  Completeness,
 } from "../types/artifacts.js";
 
 import { writeFileSync } from "node:fs";

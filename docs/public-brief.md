@@ -1,10 +1,10 @@
-# Investor Brief
+# Public Brief
 
 ## Executive Summary
 
 **code-to-gate** is a local-first static analysis platform that helps organizations ship secure, high-quality code faster while maintaining compliance audit trails.
 
-### Investment Thesis
+### Public Readiness Thesis
 
 | Claim | Classification | Basis |
 |-------|---------------|-------|
@@ -233,7 +233,7 @@ code-to-gate addresses a growing market need for privacy-preserving security too
 |--------|---------|
 | ✅ Verified | Measured, documented, auditable claim |
 | ⚠️ Hypothesis | Reasonable projection based on industry data, not yet measured |
-| ❌ Unverified | Needs measurement before investment decision |
+| ❌ Unverified | Needs measurement before external review decision |
 
 ---
 

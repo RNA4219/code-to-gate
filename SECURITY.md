@@ -149,5 +149,37 @@ code-to-gate includes rules that detect security issues in target repositories:
 
 ---
 
+## Dependency Governance
+
+### Vulnerability History
+
+| Date | Package | Severity | GHSA ID | Resolution |
+|------|---------|----------|---------|------------|
+| 2026-05-31 | fast-uri | High | GHSA-q3j6-qgpj-74h6, GHSA-v39h-62p7-jpjc | Resolved via npm audit fix |
+| 2026-05-31 | brace-expansion | Moderate | GHSA-jxxr-4gwj-5jf2 | Resolved via npm audit fix |
+
+### Audit Policy
+
+- Audit frequency: Weekly (CI) + Pre-release
+- Blocking threshold: High/Critical = 0 required
+- Moderate: Evaluate and fix if exploitable
+
+### License Policy
+
+| License | Status |
+|---------|--------|
+| MIT | ✅ Allowed |
+| Apache-2.0 | ✅ Allowed |
+| BSD-3-Clause | ✅ Allowed |
+| BSD-2-Clause | ✅ Allowed |
+| ISC | ✅ Allowed |
+| GPL-* | ❌ Prohibited |
+| LGPL-* | ❌ Prohibited |
+| AGPL-* | ❌ Prohibited |
+| Proprietary | ❌ Prohibited |
+| Unknown | ⚠️ Review required |
+
+---
+
 Last updated: 2026-05-31
 Version: 1.3.0

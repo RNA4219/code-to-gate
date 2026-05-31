@@ -33,7 +33,7 @@ code-to-gate analyze ./src --out .qh
 
 | Feature | Description |
 |---------|-------------|
-| **Detect Risks** | 14 built-in rules for payment, auth, validation, security patterns |
+| **Detect Risks** | 17 built-in rules for payment, auth, validation, security patterns |
 | **Quality Gates** | Policy-based release decisions (block on severity, category) |
 | **Evidence Generation** | SARIF, JSON, HTML artifacts for audits |
 | **CI Integration** | GitHub Actions workflow ready |
@@ -83,8 +83,8 @@ code-to-gate analyze ./src --out .qh
 | Guide | Description |
 |-------|-------------|
 | [Product Narrative](docs/product-narrative.md) | Problem, solution, differentiation |
-| [Architecture](docs/architecture-for-dd.md) | System design, data flow |
-| [Enterprise Packaging](docs/ipo/enterprise-packaging.md) | OSS vs Enterprise features |
+| [Architecture](docs/architecture-for-public-readiness.md) | System design, data flow |
+| [Enterprise Packaging](docs/public-readiness/enterprise-packaging.md) | OSS vs Enterprise features |
 
 ### For Contributors
 
@@ -101,7 +101,7 @@ code-to-gate analyze ./src --out .qh
 | Feature | Description |
 |---------|-------------|
 | **Repository Scanning** | Parse source files, extract symbols, build dependency graphs |
-| **Quality Analysis** | Detect 14 built-in vulnerability patterns |
+| **Quality Analysis** | Detect 17 built-in vulnerability patterns |
 | **Release Readiness** | Generate gate inputs based on policy thresholds |
 | **Evidence Generation** | Export SARIF, gatefield, state-gate, workflow-evidence formats |
 | **Plugin System** | Docker-sandboxed custom rules via plugin SDK |
@@ -232,7 +232,7 @@ node ./dist/cli.js llm-health --all
 |--------|---------|
 | `src/cli/` | CLI commands (scan, analyze, readiness, export, etc.) |
 | `src/adapters/` | Language parsers (TypeScript, JavaScript, Python, Go, Ruby, Rust) |
-| `src/rules/` | Detection rules (14 built-in) |
+| `src/rules/` | Detection rules (17 built-in) |
 | `src/cache/` | Incremental cache system |
 | `src/parallel/` | Worker-based parallel processing |
 | `src/plugin/` | Plugin SDK with Docker sandbox |

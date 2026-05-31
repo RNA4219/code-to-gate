@@ -7,7 +7,6 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import {
   createPluginLoader,
   createPluginRunner,
-  createPluginInput,
   parseSandboxMode,
   validateSandboxConfig,
   DEFAULT_SANDBOX_CONFIG,
@@ -16,6 +15,8 @@ import {
 import type { PluginRegistryEntry, SandboxConfig } from "../plugin/index.js";
 import * as path from "path";
 import * as fs from "fs/promises";
+import { exec } from "child_process";
+import * as os from "os";
 
 interface PluginOptions {
   VERSION: string;
@@ -114,7 +115,6 @@ async function sandboxStatusCommand(args: string[], options: PluginOptions): Pro
 
   // Check Docker version
   try {
-    const { exec } = require("child_process");
     const versionResult = await new Promise<string>((resolve) => {
       exec("docker --version", (_error: Error | null, stdout: string) => {
         resolve(stdout.trim());
@@ -127,7 +127,6 @@ async function sandboxStatusCommand(args: string[], options: PluginOptions): Pro
 
   // Check Docker daemon
   try {
-    const { exec } = require("child_process");
     await new Promise<void>((resolve, reject) => {
       exec("docker info", { timeout: 5000 }, (error: Error | null) => {
         if (error) reject(error);
@@ -143,7 +142,6 @@ async function sandboxStatusCommand(args: string[], options: PluginOptions): Pro
 
   // Check image availability
   try {
-    const { exec } = require("child_process");
     const inspectResult = await new Promise<boolean>((resolve) => {
       exec(`docker image inspect ${dockerImage}`, (error: Error | null) => {
         resolve(!error);
@@ -162,7 +160,6 @@ async function sandboxStatusCommand(args: string[], options: PluginOptions): Pro
 
   // Check system resources
   try {
-    const { exec } = require("child_process");
     const infoResult = await new Promise<string>((resolve) => {
       exec("docker system info --format '{{.MemTotal}}'", (_error: Error | null, stdout: string) => {
         resolve(stdout.trim());
@@ -384,8 +381,6 @@ async function buildImageCommand(args: string[], options: PluginOptions): Promis
   }
 
   // Create Dockerfile
-  const { exec } = require("child_process");
-  const os = require("os");
   const dockerfileDir = path.join(os.tmpdir(), "ctg-dockerfile-build");
   await fs.mkdir(dockerfileDir, { recursive: true });
 

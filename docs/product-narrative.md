@@ -168,8 +168,8 @@ code-to-gate export sarif --from .qh --out results.sarif
 
 | Claim | Evidence File |
 |-------|---------------|
-| Local-first design | docs/architecture-for-dd.md (Data Privacy section) |
-| Plugin sandbox | docs/architecture-for-dd.md (Security Architecture section) |
+| Local-first design | docs/architecture-for-public-readiness.md (Data Privacy section) |
+| Plugin sandbox | docs/architecture-for-public-readiness.md (Security Architecture section) |
 | Schema stability | schemas/*.schema.json (ctg/v1 versioning) |
 | Policy engine | src/config/policy-loader.ts, policy-evaluator.ts |
 
@@ -180,7 +180,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 | SECURITY.md | Vulnerability reporting, data handling policy |
 | GOVERNANCE.md | Decision-making, evidence retention, schema stability |
 | CONTRIBUTING.md | Development workflow, PR requirements |
-| docs/dd-readiness.md | DD summary for investors |
+| docs/public-readiness.md | Public readiness summary for stakeholders |
 
 ### Competitive Validation
 
@@ -254,7 +254,7 @@ code-to-gate analyze ./src --out .qh
 
 ### For Enterprise Decision-Makers
 
-- See docs/architecture-for-dd.md for technical deep-dive
+- See docs/architecture-for-public-readiness.md for technical deep-dive
 - See docs/enterprise-packaging.md for OSS/Enterprise boundary
 - See docs/business-evidence.md for adoption metrics framework
 

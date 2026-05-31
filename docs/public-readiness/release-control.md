@@ -1,6 +1,6 @@
-# IPO Release Control
+# Public Readiness Release Control
 
-本ドキュメントは、code-to-gate のリリース統制手順を記録する。IPO水準の技術統制継続運用に必要なrelease approval、rollback、artifact retention、schema compatibility確認手順を定義。
+本ドキュメントは、code-to-gate のリリース統制手順を記録する。外部公開・継続統制水準の技術統制継続運用に必要なrelease approval、rollback、artifact retention、schema compatibility確認手順を定義。
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### Pre-Release Checklist
 
-1. **Quality Gate**: `npm run release:ipo:quality` passes
+1. **Quality Gate**: `npm run release:public:quality` passes
 2. **Audit Gate**: `npm run audit:deps` passes (high/critical = 0)
 3. **Evidence Pack**: `npm run evidence:pack` generates artifacts
 4. **CI Verification**: GitHub Actions PR workflow passes
@@ -18,7 +18,7 @@
 
 ```bash
 # 1. Quality verification
-npm run release:ipo:quality
+npm run release:public:quality
 
 # 2. Audit verification
 npm run audit:deps

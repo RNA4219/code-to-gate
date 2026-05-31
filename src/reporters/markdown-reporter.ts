@@ -6,7 +6,6 @@ import {
   FindingsArtifact,
   RiskRegisterArtifact,
   Finding,
-  RiskSeed,
   Severity,
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";
@@ -147,7 +146,6 @@ export function generateAnalysisReport(
   const totalSuppressedFindings = suppressedFindings.length;
   const totalSuppressionDebt = suppressionDebtFindings.length;
   const totalDebtMarkers = debtMarkerFindings.length;
-  const totalRisks = riskRegister.risks.length;
   const highRisks = riskRegister.risks.filter(
     (r) => r.severity === "high" || r.severity === "critical"
   );

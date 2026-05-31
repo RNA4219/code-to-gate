@@ -11,7 +11,7 @@
  */
 
 import type { RulePlugin, RuleContext, SimpleGraph } from "../rules/index.js";
-import type { Finding, RepoFile } from "../types/artifacts.js";
+import type { Finding } from "../types/artifacts.js";
 
 /**
  * Options for rule evaluator

@@ -1,6 +1,6 @@
-# IPO Security Evidence
+# Public Readiness Security Evidence
 
-本ドキュメントは、code-to-gate のセキュリティ統制証跡を記録する。IPO水準の技術統制継続運用に必要なセキュリティポリシー、脅威モデル、手動チェックリストを一元管理。
+本ドキュメントは、code-to-gate のセキュリティ統制証跡を記録する。外部公開・継続統制水準の技術統制継続運用に必要なセキュリティポリシー、脅威モデル、手動チェックリストを一元管理。
 
 ---
 
@@ -27,7 +27,7 @@
 
 | Date | Result | Vulnerabilities | Action |
 |------|--------|-----------------|--------|
-| 2026-05-31 | TBD | TBD | Run `npm run audit:deps` |
+| 2026-05-31 | ✅ Pass | 0 | No action required |
 
 ---
 

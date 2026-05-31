@@ -3,8 +3,6 @@
  * Types and interfaces for policy configuration
  */
 
-import type { Severity, FindingCategory } from "../types/artifacts.js";
-
 export const POLICY_VERSION = "ctg/v1";
 
 /**

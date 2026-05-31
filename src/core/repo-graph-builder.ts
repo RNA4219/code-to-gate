@@ -9,25 +9,21 @@ import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js
 // Tree-sitter adapters
 import {
   initPythonParser,
-  parsePythonTreeSitter,
   parsePythonFileSync,
   isTreeSitterAvailable as isPythonTreeSitterAvailable,
 } from "../adapters/py-tree-sitter-adapter.js";
 import {
   initRubyParser,
-  parseRubyTreeSitter,
   parseRubyFileSync,
   isRubyTreeSitterAvailable as isRubyTreeSitterAvailable,
 } from "../adapters/rb-tree-sitter-adapter.js";
 import {
   initGoParser,
-  parseGoTreeSitter,
   parseGoFileSync,
   isGoTreeSitterAvailable,
 } from "../adapters/go-tree-sitter-adapter.js";
 import {
   initRustParser,
-  parseRustTreeSitter,
   parseRustFileSync,
   isRustTreeSitterAvailable,
 } from "../adapters/rs-tree-sitter-adapter.js";
