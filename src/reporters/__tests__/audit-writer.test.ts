@@ -12,6 +12,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import type { NormalizedRepoGraph, FindingsArtifact } from "../../types/artifacts.js";
 import type { CtgPolicy } from "../../config/policy-loader.js";
+import { VERSION } from "../../cli/exit-codes.js";
 
 describe("audit-writer", () => {
   let tempOutDir: string;
@@ -392,7 +393,7 @@ describe("audit-writer", () => {
       const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "OK");
 
       expect(audit.tool.name).toBe("code-to-gate");
-      expect(audit.tool.version).toBe("1.3.0");
+      expect(audit.tool.version).toBe(VERSION);
       expect(audit.tool.policy_id).toBe("release-policy");
       expect(Array.isArray(audit.tool.plugin_versions)).toBe(true);
     });

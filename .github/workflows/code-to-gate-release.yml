@@ -46,7 +46,9 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Generate audit.json
-        run: npm audit --json > .qh/audit.json
+        run: |
+          mkdir -p .qh
+          npm audit --json > .qh/audit.json
 
       - name: Upload audit artifact
         uses: actions/upload-artifact@v7
