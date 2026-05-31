@@ -157,7 +157,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 
 | Metric | Status | Evidence |
 |--------|--------|----------|
-| Version stability | 1.3.0 | package.json, npm pack validated |
+| Version stability | 1.4.0 | package.json, npm pack validated |
 | Test coverage | 45%+ | npm run test:coverage |
 | CI passing | ✅ Green | .github/workflows/ badges |
 | Smoke tests | 54 passing | npm run test:smoke |
@@ -211,7 +211,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 |------|--------|----------|
 | OSS public launch | ⚠️ Pending | P0 |
 | npm publish | ⚠️ Pending | P0 |
-| GitHub release v1.3.0 | ⚠️ Pending | P0 |
+| GitHub release v1.4.0 | ⚠️ Pending | P0 |
 | Community outreach | ⚠️ Planned | P1 |
 | Enterprise pilot outreach | ⚠️ Planned | P1 |
 

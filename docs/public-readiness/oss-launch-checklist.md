@@ -68,7 +68,7 @@ Your code never leaves your machine. No cloud required. No API keys. No data sha
 | Item | Status | Action | Owner |
 |------|--------|--------|-------|
 | npm registry publish | ⚠️ Pending | `npm publish --access public` | Release |
-| GitHub Release v1.3.0 | ⚠️ Pending | Create release with notes | Release |
+| GitHub Release v1.4.0 | ⚠️ Pending | Create release with notes | Release |
 | GitHub topics/tags | ⚠️ Pending | Add: code-analysis, quality-gate, static-analysis | Release |
 | GitHub description | ⚠️ Pending | "Local-first quality gate CLI" | Release |
 
@@ -88,10 +88,10 @@ npm view @quality-harness/code-to-gate
 
 ### GitHub Release Checklist
 
-- [ ] Create tag: `git tag v1.3.0`
-- [ ] Push tag: `git push origin v1.3.0`
+- [ ] Create tag: `git tag v1.4.0`
+- [ ] Push tag: `git push origin v1.4.0`
 - [ ] Create GitHub Release with:
-  - Title: `v1.3.0 - Initial Public Release`
+  - Title: `v1.4.0 - Public Readiness Release`
   - Notes: Key features, installation, changelog summary
   - Assets: None (npm is distribution)
 
@@ -215,7 +215,7 @@ Link to examples in README:
 |------|--------|----------|
 | 09:00 | npm publish | 5 min |
 | 09:05 | Verify npm package visible | 5 min |
-| 09:10 | GitHub Release v1.3.0 | 10 min |
+| 09:10 | GitHub Release v1.4.0 | 10 min |
 | 09:20 | Twitter/X announcement | 5 min |
 | 09:25 | LinkedIn announcement | 10 min |
 | 09:35 | Enable GitHub Discussions | 5 min |

@@ -4,7 +4,7 @@
 
 Turn repository signals into evidence-backed findings. No code leaves your machine.
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/quality-harness/code-to-gate/actions/workflows/code-to-gate-pr.yml/badge.svg)](https://github.com/quality-harness/code-to-gate/actions/workflows/code-to-gate-pr.yml)
 [![Node](https://img.shields.io/badge/Node-20%2B-green)](https://img.shields.io/badge/Node-20%2B-green)

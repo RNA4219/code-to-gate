@@ -301,7 +301,7 @@ Compatible with GitHub Code Scanning:
     "tool": {
       "driver": {
         "name": "code-to-gate",
-        "version": "1.3.0"
+        "version": "1.4.0"
       }
     },
     "results": [...]

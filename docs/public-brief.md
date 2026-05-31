@@ -82,7 +82,7 @@ A static analysis tool that:
 
 | Metric | Status | Classification |
 |--------|--------|---------------|
-| Version | 1.3.0 stable | ✅ Verified |
+| Version | 1.4.0 stable | ✅ Verified |
 | Test Coverage | 45%+ | ✅ Verified (npm run test:coverage) |
 | CI/CD | GitHub Actions, passing | ✅ Verified (.github/workflows/) |
 | Languages Supported | 6 (TS, JS, Python, Go, Java, C#) | ⚠️ Partial verified (TS/JS fully, others via tree-sitter) |
@@ -126,7 +126,7 @@ A static analysis tool that:
 
 | Milestone | Status | Classification |
 |-----------|--------|---------------|
-| Version 1.3.0 stable release | ✅ | Verified (package.json, git tags) |
+| Version 1.4.0 stable release | ✅ | Verified (package.json, git tags) |
 | Core analysis engine complete | ✅ | Verified (src/core/) |
 | Plugin SDK available | ✅ | Verified (src/plugin/) |
 | 6 language support | ⚠️ Partial | TS/JS verified, others via tree-sitter |

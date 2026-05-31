@@ -25,7 +25,7 @@ This document provides a single-page overview for external stakeholders and publ
 
 | Metric | Status | Evidence |
 |--------|--------|----------|
-| Version | 1.3.0 | Stable release |
+| Version | 1.4.0 | Stable release |
 | Test Coverage | 45%+ lines | CI enforced |
 | CI/CD | GitHub Actions | Passing |
 | Lint | 0 errors | ESLint strict |

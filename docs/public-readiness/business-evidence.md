@@ -50,7 +50,7 @@ This document tracks verifiable business metrics and evidence for external stake
 - [ ] README polished with clear value proposition
 - [ ] Quickstart guide tested with fresh Node 20 environment
 - [ ] Example repositories linked (demo-shop-ts, demo-ci-imports)
-- [ ] GitHub Release v1.3.0 created
+- [ ] GitHub Release v1.4.0 created
 - [ ] npm publish executed
 - [ ] Social announcement prepared (Twitter, LinkedIn, Dev.to)
 - [ ] Hacker News submission ready
@@ -59,8 +59,8 @@ This document tracks verifiable business metrics and evidence for external stake
 
 | Action | Target | Measurement |
 |--------|--------|-------------|
-| npm publish | v1.3.0 live | npm registry check |
-| GitHub release | v1.3.0 tag | GitHub releases page |
+| npm publish | v1.4.0 live | npm registry check |
+| GitHub release | v1.4.0 tag | GitHub releases page |
 | Announcement posts | 3 platforms | Post URLs documented |
 | Star count baseline | 0 → Track daily | GitHub API |
 
