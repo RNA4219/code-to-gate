@@ -4,17 +4,28 @@ Get started with code-to-gate in 5 minutes. This guide covers installation, firs
 
 ## Table of Contents
 
-1. [Installation](#installation)
-2. [First Run](#first-run)
-3. [Understanding Results](#understanding-results)
-4. [Next Steps](#next-steps)
-5. [GitHub Actions Integration](#github-actions-integration)
+1. [Install](#install)
+2. [Scan](#scan)
+3. [Analyze](#analyze)
+4. [Readiness](#readiness)
+5. [Export](#export)
+6. [Generated Artifacts](#generated-artifacts)
+7. [CI Usage](#ci-usage)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Installation
+## Install
 
 ### npm (Recommended)
+
+**From GitHub** (primary method while npm publication is pending):
+
+```bash
+npm install -g github:RNA4219/code-to-gate
+```
+
+**From npm registry** (after publication):
 
 ```bash
 # Install globally
@@ -24,31 +35,16 @@ npm install -g @quality-harness/code-to-gate
 npm install --save-dev @quality-harness/code-to-gate
 ```
 
-### Binary Release
+**Package identity**: `@quality-harness/code-to-gate`
 
-Download the latest binary from GitHub Releases:
+### From Source
 
-```bash
-# Linux
-curl -L https://github.com/RNA4219/code-to-gate/releases/latest/download/code-to-gate-linux -o code-to-gate
-chmod +x code-to-gate
-
-# macOS
-curl -L https://github.com/RNA4219/code-to-gate/releases/latest/download/code-to-gate-macos -o code-to-gate
-chmod +x code-to-gate
-
-# Windows (PowerShell)
-Invoke-WebRequest -Uri https://github.com/RNA4219/code-to-gate/releases/latest/download/code-to-gate-windows.exe -OutFile code-to-gate.exe
-```
-
-### Docker
+If you cloned this repository:
 
 ```bash
-# Pull the image
-docker pull qualityharness/code-to-gate:latest
-
-# Run analysis
-docker run --rm -v $(pwd)/my-repo:/repo qualityharness/code-to-gate analyze /repo --out /repo/.qh
+npm install
+npm run build
+npm link
 ```
 
 ### Prerequisites
@@ -60,9 +56,7 @@ docker run --rm -v $(pwd)/my-repo:/repo qualityharness/code-to-gate analyze /rep
 
 ---
 
-## First Run
-
-### Step 1: Scan Your Repository
+## Scan
 
 The `scan` command creates a normalized representation of your repository structure:
 
@@ -75,14 +69,16 @@ Output:
 {"tool":"code-to-gate","command":"scan","artifact":".qh/repo-graph.json"}
 ```
 
-Generated artifact: `.qh/repo-graph.json` containing:
+Generated: `.qh/repo-graph.json` containing:
 - Files with language, role, hash, size
 - Symbols (functions, classes, exports)
 - Relations (imports, dependencies)
 - Tests and configs
 - Entrypoints (API routes, handlers)
 
-### Step 2: Analyze Your Repository
+---
+
+## Analyze
 
 The `analyze` command runs full quality assessment:
 
@@ -95,23 +91,26 @@ Output:
 {"tool":"code-to-gate","command":"analyze","exit_code":0,"status":"passed_with_risk","summary":"3 findings require review"}
 ```
 
-Generated artifacts in `.qh/`:
-
-| Artifact | Purpose |
-|----------|---------|
-| `repo-graph.json` | Repository structure |
-| `findings.json` | Quality issues with evidence |
-| `risk-register.yaml` | Risk assessment |
-| `invariants.yaml` | Business/security invariants |
-| `test-seeds.json` | Test design recommendations |
-| `release-readiness.json` | Release status |
-| `audit.json` | Run metadata |
-| `analysis-report.md` | Human-readable summary |
-
-### Step 3: Check Release Readiness
+### With Policy
 
 ```bash
-code-to-gate readiness ./my-repo --out .qh
+code-to-gate analyze ./my-repo --policy ./policies/strict.yaml --out .qh
+```
+
+### With LLM
+
+```bash
+code-to-gate analyze ./my-repo --llm-provider ollama --llm-model llama3 --out .qh
+```
+
+---
+
+## Readiness
+
+Evaluate release readiness against policy:
+
+```bash
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 ```
 
 The readiness status determines release eligibility:
@@ -125,7 +124,41 @@ The readiness status determines release eligibility:
 
 ---
 
-## Understanding Results
+## Export
+
+Generate payloads for downstream systems:
+
+```bash
+# SARIF for GitHub Code Scanning
+code-to-gate export sarif --from .qh --out results.sarif
+
+# gatefield format for agent-gatefield
+code-to-gate export gatefield --from .qh --out gatefield.json
+
+# state-gate format
+code-to-gate export state-gate --from .qh --out state-gate.json
+
+# workflow-evidence format
+code-to-gate export workflow-evidence --from .qh --out workflow.json
+```
+
+---
+
+## Generated Artifacts
+
+All artifacts are generated in the `--out` directory (default `.qh/`):
+
+| Artifact | Purpose |
+|----------|---------|
+| `repo-graph.json` | Repository structure (files, symbols, dependencies) |
+| `findings.json` | Quality issues with evidence |
+| `risk-register.yaml` | Risk items requiring review |
+| `invariants.yaml` | Business/security constraints to preserve |
+| `test-seeds.json` | Test design recommendations |
+| `release-readiness.json` | Release gate status |
+| `audit.json` | Run metadata |
+| `analysis-report.md` | Human-readable summary |
+| `results.sarif` | GitHub Code Scanning format |
 
 ### Release Readiness JSON
 
@@ -168,131 +201,11 @@ Each finding includes evidence for traceability:
 }
 ```
 
-### Risk Register YAML
-
-```yaml
-risks:
-  - id: risk-client-supplied-price
-    title: Client supplied price may cause financial loss or fraudulent orders
-    severity: critical
-    likelihood: medium
-    impact:
-      - financial_loss
-      - fraud
-      - revenue_integrity
-    recommendedActions:
-      - Recalculate totals from server-side catalog prices
-      - Reject requests where client totals do not match
-```
-
-### Test Seeds JSON
-
-Test design recommendations derived from findings:
-
-```json
-{
-  "seeds": [
-    {
-      "id": "seed-price-negative",
-      "title": "Reject client-modified checkout totals",
-      "intent": "negative",
-      "suggestedLevel": "integration",
-      "notes": "Test price tampering scenarios"
-    },
-    {
-      "id": "seed-auth-deny-path",
-      "title": "Reject non-admin users on admin endpoints",
-      "intent": "negative",
-      "suggestedLevel": "integration"
-    }
-  ]
-}
-```
-
 ---
 
-## Next Steps
+## CI Usage
 
-### Use a Policy File
-
-Create a policy YAML to customize blocking thresholds:
-
-```yaml
-# policies/strict.yaml
-version: ctg/v1alpha1
-policy_id: strict
-
-blocking:
-  severity:
-    critical: true   # Block on any critical severity
-    high: true       # Block on any high severity
-  category:
-    auth: true       # Block on auth category findings
-    payment: true    # Block on payment category findings
-  rules:
-    CLIENT_TRUSTED_PRICE: true  # Block on specific rule
-    WEAK_AUTH_GUARD: true
-
-confidence:
-  min_confidence: 0.7
-```
-
-Apply the policy:
-
-```bash
-code-to-gate analyze ./my-repo --policy ./policies/strict.yaml --out .qh
-code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --out .qh
-```
-
-When blocked, the summary shows specific reasons:
-
-```
-Blocked: 10 critical severity findings, 9 payment category findings, 
-         9 findings from rule CLIENT_TRUSTED_PRICE, 2 count threshold(s) exceeded
-```
-
-### Import External Tool Results
-
-Combine findings from multiple sources:
-
-```bash
-# Import Semgrep security findings
-code-to-gate import semgrep ./semgrep-output.json --out .qh/imports
-
-# Import ESLint results
-code-to-gate import eslint ./eslint-output.json --out .qh/imports
-
-# Import coverage data
-code-to-gate import coverage ./coverage-summary.json --out .qh/imports
-```
-
-### Analyze PR Changes
-
-Focus on changed files:
-
-```bash
-code-to-gate diff ./my-repo --base main --head feature-branch --out .qh
-```
-
-This generates blast radius analysis showing affected entrypoints.
-
-### Export for Downstream Systems
-
-Generate payloads for integration:
-
-```bash
-# For agent-gatefield (AI artifact gating)
-code-to-gate export gatefield --from .qh --out .qh/gatefield-static-result.json
-
-# For manual-bb-test-harness (black-box test design)
-code-to-gate export manual-bb --from .qh --out .qh/manual-bb-seed.json
-```
-
----
-
-## GitHub Actions Integration
-
-Add code-to-gate to your CI pipeline:
+Add code-to-gate to your GitHub Actions pipeline:
 
 ```yaml
 # .github/workflows/code-to-gate.yml
@@ -316,7 +229,7 @@ jobs:
           node-version: '20'
 
       - name: Install code-to-gate
-        run: npm install -g @quality-harness/code-to-gate
+        run: npm install -g github:RNA4219/code-to-gate
 
       - name: Run Analysis
         env:
@@ -356,9 +269,20 @@ jobs:
 
 ---
 
-## Need Help?
+## Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| `command not found: code-to-gate` | Ensure npm global install: `npm install -g github:RNA4219/code-to-gate` |
+| `.qh/ directory not created` | Add `mkdir -p .qh` before running commands in CI |
+| `tree-sitter WASM init failed` | Fallback to regex mode; works but less accurate |
+| LLM connection timeout | Check `llm-health`: `code-to-gate llm-health --provider ollama` |
+
+### Need More Help?
 
 - Full CLI reference: [docs/cli-reference.md](cli-reference.md)
-- Troubleshooting: [docs/troubleshooting.md](troubleshooting.md)
+- Troubleshooting guide: [docs/troubleshooting.md](troubleshooting.md)
 - Project blueprint: [BLUEPRINT.md](../BLUEPRINT.md)
 - Runbook: [RUNBOOK.md](../RUNBOOK.md)

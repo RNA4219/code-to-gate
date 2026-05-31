@@ -4,6 +4,10 @@
 
 Turn repository signals into evidence-backed findings. No code leaves your machine.
 
+**What it is**: code-to-gate is not a linter or static analyzer itself. It takes output from existing tools (Semgrep, ESLint, SonarQube, tsc) and repository structure, then generates artifacts for quality decisions: findings with evidence, risk registers, test design seeds, and release-readiness gate inputs.
+
+**Who uses it**: QA engineers, engineering managers, and developers use it to assess release readiness, review risks, and extract test perspectives before deployment.
+
 [![Version](https://img.shields.io/badge/version-1.4.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/RNA4219/code-to-gate/actions/workflows/code-to-gate-pr.yml/badge.svg)](https://github.com/RNA4219/code-to-gate/actions/workflows/code-to-gate-pr.yml)
@@ -15,20 +19,50 @@ Language: English | [日本語](README_JA.md)
 
 ## 5-Minute Path
 
-```bash
-# npm registry publication: pending. Use this command after npm publish is complete.
-npm install -g @quality-harness/code-to-gate
+**Installation** (choose one):
 
-# Until npm publish is complete, install from GitHub or run from source.
+```bash
+# From GitHub (primary method while npm publication is pending)
 npm install -g github:RNA4219/code-to-gate
 
-# Analyze
-code-to-gate analyze ./src --out .qh
+# From npm registry (after publication)
+npm install -g @quality-harness/code-to-gate
+```
 
-# Results: findings.json, release-readiness.json, results.sarif
+**Package identity**: `@quality-harness/code-to-gate` (npm scope)
+
+**Run**:
+
+```bash
+code-to-gate analyze ./src --out .qh
+```
+
+**Generated artifacts**:
+
+```text
+.qh/
+  repo-graph.json       # Repository structure (files, symbols, dependencies)
+  findings.json         # Quality issues with evidence
+  risk-register.yaml    # Risk items requiring review
+  test-seeds.json       # Test design recommendations
+  release-readiness.json # Release gate status
+  analysis-report.md    # Human-readable summary
+  results.sarif         # GitHub Code Scanning format
 ```
 
 → See quality risks, compliance evidence, SARIF for GitHub Code Scanning.
+
+---
+
+## Language Support
+
+| Language | Support Level | Notes |
+|----------|---------------|-------|
+| TypeScript / JavaScript | **Primary** | Full AST analysis, main target |
+| Python / Ruby / Go / Rust | **Structured** | tree-sitter WASM based analysis |
+| Java / PHP / C# / C++ | **Baseline** | Regex/heuristic fallback |
+
+All languages can be scanned; depth of analysis varies by adapter.
 
 ---
 
@@ -96,6 +130,20 @@ code-to-gate analyze ./src --out .qh
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow, PR checklist |
 | [Plugin Development](docs/plugin-development.md) | Custom rule SDK |
 | [GOVERNANCE.md](GOVERNANCE.md) | Decision-making, evidence retention |
+
+---
+
+## Related Projects
+
+code-to-gate is part of a quality assurance ecosystem:
+
+| Project | Role | Connection |
+|---------|------|------------|
+| **manual-bb-test-harness** | Manual black-box test design | Receives risk/invariant seeds from code-to-gate |
+| **code-to-gate** | Repository quality gate | Generates findings, test seeds, readiness artifacts |
+| **RanD** | Requirements definition | Upstream requirements input for Kano mode analysis |
+| **workflow-cookbook** | Workflow knowledge base | Evidence integration, CI/CD procedures |
+| **agent-gatefield** | AI artifact gating | Receives static results from code-to-gate exports |
 
 ---
 
