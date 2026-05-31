@@ -30,15 +30,15 @@ Download the latest binary from GitHub Releases:
 
 ```bash
 # Linux
-curl -L https://github.com/quality-harness/code-to-gate/releases/latest/download/code-to-gate-linux -o code-to-gate
+curl -L https://github.com/RNA4219/code-to-gate/releases/latest/download/code-to-gate-linux -o code-to-gate
 chmod +x code-to-gate
 
 # macOS
-curl -L https://github.com/quality-harness/code-to-gate/releases/latest/download/code-to-gate-macos -o code-to-gate
+curl -L https://github.com/RNA4219/code-to-gate/releases/latest/download/code-to-gate-macos -o code-to-gate
 chmod +x code-to-gate
 
 # Windows (PowerShell)
-Invoke-WebRequest -Uri https://github.com/quality-harness/code-to-gate/releases/latest/download/code-to-gate-windows.exe -OutFile code-to-gate.exe
+Invoke-WebRequest -Uri https://github.com/RNA4219/code-to-gate/releases/latest/download/code-to-gate-windows.exe -OutFile code-to-gate.exe
 ```
 
 ### Docker

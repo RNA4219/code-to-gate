@@ -64,7 +64,7 @@ A static analysis tool that:
 | Feature | Status | Classification |
 |---------|--------|---------------|
 | **Scans code locally** | ✅ Implemented | Verified (architecture review) |
-| **Detects issues** | ✅ 14 built-in rules | Verified (src/rules/) |
+| **Detects issues** | ✅ 17 built-in rules | Verified (src/rules/) |
 | **Enforces gates** | ✅ Policy engine | Verified (src/config/) |
 | **Generates evidence** | ✅ SARIF, JSON, HTML | Verified (src/reporters/) |
 
@@ -83,7 +83,7 @@ A static analysis tool that:
 | Metric | Status | Classification |
 |--------|--------|---------------|
 | Version | 1.4.0 stable | ✅ Verified |
-| Test Coverage | 45%+ | ✅ Verified (npm run test:coverage) |
+| Test Coverage | 80% threshold | ✅ Verified (npm run test:coverage) |
 | CI/CD | GitHub Actions, passing | ✅ Verified (.github/workflows/) |
 | Languages Supported | 6 (TS, JS, Python, Go, Java, C#) | ⚠️ Partial verified (TS/JS fully, others via tree-sitter) |
 | Documentation | Comprehensive | ✅ Verified (docs/ directory) |
@@ -96,7 +96,7 @@ A static analysis tool that:
 
 | Tier | Price | Features | Classification |
 |------|-------|----------|---------------|
-| **OSS** | Free (MIT) | Core analysis, 14 rules, SARIF output | ✅ Verified |
+| **OSS** | Free (MIT) | Core analysis, 17 rules, SARIF output | ✅ Verified |
 | **Enterprise** | TBD | SSO, audit logging, support SLA | ⚠️ Hypothesis |
 | **Cloud** (optional) | TBD | Managed service, team collaboration | ⚠️ Hypothesis |
 
@@ -238,6 +238,8 @@ code-to-gate addresses a growing market need for privacy-preserving security too
 ---
 
 Contact: [Maintainer: R_N_A]
-GitHub: https://github.com/quality-harness/code-to-gate
+GitHub: https://github.com/RNA4219/code-to-gate
+
+npm registry publication: pending. The package name is reserved in documentation as `@quality-harness/code-to-gate`, but npm publish has not yet been completed.
 
 Last Updated: 2026-05-31

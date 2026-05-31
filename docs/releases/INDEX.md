@@ -33,7 +33,7 @@ Each RA record follows this template:
 
 ## Approval Checklist
 - [ ] All CI checks passed
-- [ ] Coverage threshold met (45% lines, 50% functions)
+- [ ] Coverage threshold met (80%)
 - [ ] Security scan clean
 - [ ] Schema validation passed
 - [ ] CHANGELOG.md updated

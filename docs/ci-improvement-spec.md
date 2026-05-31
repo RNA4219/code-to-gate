@@ -156,7 +156,7 @@ Strengthen downstream adapter schemas with version pinning and breaking change d
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/quality-harness/code-to-gate/main/schemas/integrations/gatefield-static-result.schema.json",
+  "$id": "https://raw.githubusercontent.com/RNA4219/code-to-gate/main/schemas/integrations/gatefield-static-result.schema.json",
   "title": "GatefieldStaticResult",
   "properties": {
     "schemaVersion": {

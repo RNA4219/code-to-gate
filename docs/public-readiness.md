@@ -11,7 +11,7 @@ This document provides a single-page overview for external stakeholders and publ
 1. **Quality Gate Enforcement**: Block deployments that don't meet quality standards
 2. **Security Scanning**: Detect vulnerabilities, hardcoded secrets, unsafe patterns
 3. **Compliance Evidence**: Generate audit-ready artifacts (SARIF, JSON, HTML reports)
-4. **Plugin Extensibility**: Custom rules via sandboxed plugins
+4. **Plugin Extensibility**: Custom rules with Docker sandbox support
 5. **Local-First**: No code leaves your machine by default
 
 ### Target Markets
@@ -26,7 +26,7 @@ This document provides a single-page overview for external stakeholders and publ
 | Metric | Status | Evidence |
 |--------|--------|----------|
 | Version | 1.4.0 | Stable release |
-| Test Coverage | 45%+ lines | CI enforced |
+| Test Coverage | 80% threshold | CI enforced |
 | CI/CD | GitHub Actions | Passing |
 | Lint | 0 errors | ESLint strict |
 | Type Safety | TypeScript strict | No `any` in core |
@@ -43,7 +43,7 @@ This document provides a single-page overview for external stakeholders and publ
 ### Security Posture
 
 - **Local-First Design**: No external data transmission by default
-- **Plugin Sandboxing**: Docker container isolation
+- **Plugin Sandboxing**: Docker sandbox supported
 - **Input Validation**: Schema validation on all inputs
 - **Path Sanitization**: Directory traversal prevention
 - **Security Rules**: Built-in detection for common vulnerabilities
@@ -86,6 +86,7 @@ The output schema (`ctg/v1`) is a stable contract:
 Each release produces:
 
 1. **npm package**: `@quality-harness/code-to-gate`
+   - Status: pending publication to the npm registry.
 2. **SARIF reports**: Security analysis results
 3. **Coverage reports**: Test coverage metrics
 4. **Audit trail**: Release approval records
@@ -102,7 +103,7 @@ Each release produces:
 
 ## Contact
 
-- **GitHub**: https://github.com/quality-harness/code-to-gate
+- **GitHub**: https://github.com/RNA4219/code-to-gate
 - **Maintainer**: R_N_A
 - **Security**: See SECURITY.md for reporting
 

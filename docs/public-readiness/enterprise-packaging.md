@@ -44,11 +44,11 @@ This document defines the boundary between OSS core and Enterprise offerings.
 | Feature | Included | Details |
 |---------|----------|---------|
 | CLI analysis | ✅ | `code-to-gate analyze` |
-| 9 built-in rules | ✅ | CLIENT_TRUSTED_PRICE, WEAK_AUTH_GUARD, etc. |
+| 17 built-in rules | ✅ | CLIENT_TRUSTED_PRICE, WEAK_AUTH_GUARD, etc. |
 | SARIF output | ✅ | GitHub Code Scanning compatible |
 | JSON findings | ✅ | findings.json, audit.json |
 | Policy engine | ✅ | YAML policy files |
-| Plugin SDK | ✅ | Docker sandbox for custom rules |
+| Plugin SDK | ✅ | Docker sandbox supported for custom rules |
 | Incremental cache | ✅ | Faster re-analysis |
 | LLM integration | ✅ | Local Ollama/LLaMA support |
 | Docker deployment | ✅ | `docker run` CLI |
@@ -193,7 +193,7 @@ For enterprise prospects, provide:
 - Architecture document: docs/architecture-for-public-readiness.md
 - Security policy: SECURITY.md
 - Compliance mapping: docs/public-readiness.md
-- Sandbox design: Plugin Docker isolation
+- Sandbox design: Docker sandbox supported for plugins
 
 ## Competitive Positioning
 
@@ -260,7 +260,7 @@ For enterprise prospects, provide:
 | Feature | OSS (Free) | Pro ($50/dev/mo) | Enterprise ($150k+/yr) |
 |---------|------------|------------------|-------------------------|
 | CLI analysis | ✅ | ✅ | ✅ |
-| 9 built-in rules | ✅ | ✅ | ✅ |
+| 17 built-in rules | ✅ | ✅ | ✅ |
 | SARIF output | ✅ | ✅ | ✅ |
 | Policy engine | ✅ | ✅ | ✅ |
 | Plugin SDK | ✅ | ✅ | ✅ |

@@ -46,7 +46,7 @@
 | Field | Value |
 |-------|-------|
 | ID | TR-02 |
-| Description | Test coverage ~45%, below 80% threshold |
+| Description | Test coverage is governed by the 80% release threshold |
 | Severity | High |
 | Owner | Tech Lead |
 | Mitigation | Increase unit tests, prioritize core modules |

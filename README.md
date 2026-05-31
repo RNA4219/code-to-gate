@@ -6,7 +6,7 @@ Turn repository signals into evidence-backed findings. No code leaves your machi
 
 [![Version](https://img.shields.io/badge/version-1.4.0-blue)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/quality-harness/code-to-gate/actions/workflows/code-to-gate-pr.yml/badge.svg)](https://github.com/quality-harness/code-to-gate/actions/workflows/code-to-gate-pr.yml)
+[![CI](https://github.com/RNA4219/code-to-gate/actions/workflows/code-to-gate-pr.yml/badge.svg)](https://github.com/RNA4219/code-to-gate/actions/workflows/code-to-gate-pr.yml)
 [![Node](https://img.shields.io/badge/Node-20%2B-green)](https://img.shields.io/badge/Node-20%2B-green)
 
 Language: English | [日本語](README_JA.md)
@@ -16,8 +16,11 @@ Language: English | [日本語](README_JA.md)
 ## 5-Minute Path
 
 ```bash
-# Install
+# npm registry publication: pending. Use this command after npm publish is complete.
 npm install -g @quality-harness/code-to-gate
+
+# Until npm publish is complete, install from GitHub or run from source.
+npm install -g github:RNA4219/code-to-gate
 
 # Analyze
 code-to-gate analyze ./src --out .qh
@@ -104,7 +107,7 @@ code-to-gate analyze ./src --out .qh
 | **Quality Analysis** | Detect 17 built-in vulnerability patterns |
 | **Release Readiness** | Generate gate inputs based on policy thresholds |
 | **Evidence Generation** | Export SARIF, gatefield, state-gate, workflow-evidence formats |
-| **Plugin System** | Docker-sandboxed custom rules via plugin SDK |
+| **Plugin System** | Docker sandbox supported for custom rules via plugin SDK |
 | **Incremental Cache** | Fast re-analysis with file-based cache |
 | **LLM Integration** | Optional LLM-powered analysis with local/remote providers |
 
@@ -235,7 +238,7 @@ node ./dist/cli.js llm-health --all
 | `src/rules/` | Detection rules (17 built-in) |
 | `src/cache/` | Incremental cache system |
 | `src/parallel/` | Worker-based parallel processing |
-| `src/plugin/` | Plugin SDK with Docker sandbox |
+| `src/plugin/` | Plugin SDK with Docker sandbox support |
 | `src/config/` | Policy loading and evaluation |
 | `src/historical/` | Baseline comparison |
 | `src/llm/` | LLM provider integration (OpenAI, Ollama, Anthropic) |

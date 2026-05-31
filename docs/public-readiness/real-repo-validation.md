@@ -1,7 +1,7 @@
 # Real-Repo Validation Criteria
 
 **Generated**: 2026-05-31
-**Repository**: code-to-gate (quality-harness/code-to-gate)
+**Repository**: code-to-gate (RNA4219/code-to-gate)
 
 ---
 

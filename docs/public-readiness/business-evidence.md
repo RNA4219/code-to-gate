@@ -18,7 +18,7 @@ This document tracks verifiable business metrics and evidence for external stake
 
 | Metric | Value | Source | Date |
 |--------|-------|--------|------|
-| Repository exists | ✅ GitHub.com/quality-harness/code-to-gate | Public repo | 2026-05 |
+| Repository exists | ✅ GitHub.com/RNA4219/code-to-gate | Public repo | 2026-05 |
 | Tests passing | 54 smoke tests | CI workflow | 2026-05-30 |
 | Lint clean | 0 errors, 0 warnings | ESLint | 2026-05-31 |
 | TypeScript clean | 0 errors | tsc --noEmit | 2026-05-30 |
@@ -39,7 +39,7 @@ This document tracks verifiable business metrics and evidence for external stake
 |--------|--------|---------------|-----------|
 | External pilot users | 3 orgs | None identified | Outreach program |
 | Enterprise interest | 2 inquiries | None | Enterprise landing page |
-| Plugin ecosystem | 5 external plugins | 9 built-in only | Plugin SDK promotion |
+| Plugin ecosystem | 5 external plugins | 17 built-in only | Plugin SDK promotion |
 
 ---
 
@@ -59,7 +59,7 @@ This document tracks verifiable business metrics and evidence for external stake
 
 | Action | Target | Measurement |
 |--------|--------|-------------|
-| npm publish | v1.4.0 live | npm registry check |
+| npm publish | Pending for v1.4.0 | npm registry check |
 | GitHub release | v1.4.0 tag | GitHub releases page |
 | Announcement posts | 3 platforms | Post URLs documented |
 | Star count baseline | 0 → Track daily | GitHub API |
@@ -92,7 +92,7 @@ This document tracks verifiable business metrics and evidence for external stake
 | CI/CD integration | ✅ GitHub Actions | .github/workflows/*.yml |
 | SARIF output | ✅ Code scanning | src/reporters/sarif.ts |
 | Policy engine | ✅ YAML policies | src/config/policy-loader.ts |
-| Plugin sandbox | ✅ Docker isolation | src/plugin/sandbox.ts |
+| Plugin sandbox | ✅ Docker sandbox supported | src/plugin/docker-sandbox.ts |
 | LLM integration | ✅ Local-first | src/llm/ providers |
 | Evidence artifacts | ✅ JSON/SARIF | schemas/*.schema.json |
 
@@ -117,7 +117,7 @@ This document tracks verifiable business metrics and evidence for external stake
 | Local-first | ✅ No data leaves machine | ❌ Cloud default | ❌ Cloud only | ⚠️ Optional |
 | Quality gate focus | ✅ Release-readiness | ✅ Quality gates | ✅ Quality | ⚠️ Security focus |
 | Evidence artifacts | ✅ JSON/SARIF/audit | ⚠️ JSON only | ⚠️ JSON | ✅ SARIF |
-| Plugin extensibility | ✅ Docker sandbox | ⚠️ Limited | ❌ No plugins | ✅ Rules |
+| Plugin extensibility | ✅ Docker sandbox supported | ⚠️ Limited | ❌ No plugins | ✅ Rules |
 | OSS core | ✅ MIT license | ❌ Commercial | ❌ Commercial | ✅ LGPL |
 | Price | Free (OSS) | $150k+/year | $100+/mo | Free + Enterprise |
 
