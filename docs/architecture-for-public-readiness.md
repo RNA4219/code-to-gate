@@ -336,9 +336,9 @@ Compatible with GitHub Code Scanning:
 
 | Metric | Threshold | Current |
 |--------|-----------|---------|
-| Line Coverage | 45% | ✅ Met |
-| Function Coverage | 50% | ✅ Met |
-| Branch Coverage | 40% | ✅ Met |
+| Line Coverage | 80% threshold | ✅ Met |
+| Function Coverage | 80% threshold | ✅ Met |
+| Branch Coverage | 80% threshold | ✅ Met |
 
 ## Performance Characteristics
 

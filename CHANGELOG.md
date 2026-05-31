@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-05-31 - CI Fix Release
+
+### Fixed
+
+- **CI audit job**: Added `mkdir -p .qh` before generating `audit.json` to fix "No such file or directory" error
+- **Test version assertion**: Changed hardcoded version `'1.3.0'` to dynamic `VERSION` import in `audit-writer.test.ts`
+
+---
+
 ## [1.4.0] - 2026-05-31 - Public Readiness Release
 
 ### Added

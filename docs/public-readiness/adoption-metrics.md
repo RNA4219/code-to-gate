@@ -103,7 +103,7 @@ This document defines the metrics framework for tracking code-to-gate adoption.
 
 ```bash
 # GitHub metrics (daily cron)
-gh api repos/quality-harness/code-to-gate --jq '{stars: .stargazers_count, forks: .forks_count}'
+gh api repos/RNA4219/code-to-gate --jq '{stars: .stargazers_count, forks: .forks_count}'
 
 # npm downloads (weekly cron)
 curl -s https://api.npmjs.org/downloads/point/last-week/@quality-harness/code-to-gate

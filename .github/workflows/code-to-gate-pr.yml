@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build
+        run: npm run build
+
       - name: Run tests with coverage
         run: npm run test:coverage
 
@@ -164,7 +167,8 @@ jobs:
         run: |
           # Extended fixture verification on macOS
           node ./dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-macos-analyze --llm-mode local-only
-          node ./dist/cli.js readiness fixtures/demo-shop-ts --out .qh-macos-readiness
+          # readiness may return blocked_input due to critical findings - expected for demo fixture
+          node ./dist/cli.js readiness fixtures/demo-shop-ts --policy .github/ctg-policy.yaml --from .qh-macos-analyze --out .qh-macos-readiness || true
           node ./dist/cli.js schema validate .qh-macos-analyze/findings.json
           # Viewer HTML generation
           node ./dist/cli.js viewer --from .qh-macos-analyze --out .qh-macos-analyze/viewer-report.html

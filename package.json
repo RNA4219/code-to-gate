@@ -1,6 +1,6 @@
 {
   "name": "@quality-harness/code-to-gate",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs",
   "type": "module",
   "bin": {
@@ -79,12 +79,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/quality-harness/code-to-gate.git"
+    "url": "git+https://github.com/RNA4219/code-to-gate.git"
   },
   "bugs": {
-    "url": "https://github.com/quality-harness/code-to-gate/issues"
+    "url": "https://github.com/RNA4219/code-to-gate/issues"
   },
-  "homepage": "https://github.com/quality-harness/code-to-gate#readme",
+  "homepage": "https://github.com/RNA4219/code-to-gate#readme",
   "engines": {
     "node": ">=20"
   },

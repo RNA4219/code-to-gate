@@ -1,7 +1,7 @@
 # Public Readiness Follow-up Backlog
 
 **Generated**: 2026-05-31
-**Repository**: code-to-gate (quality-harness/code-to-gate)
+**Repository**: code-to-gate (RNA4219/code-to-gate)
 **Source**: docs/public-readiness/acceptance-report.md (GO judgment)
 
 ---

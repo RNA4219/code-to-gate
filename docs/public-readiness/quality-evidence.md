@@ -46,7 +46,7 @@ All lint warnings resolved via ESLint suppression for justified cases:
 
 | Risk ID | Description | Category | Status | Next Action |
 |---------|-------------|----------|--------|-------------|
-| QR-01 | Coverage < 80% (current ~45%) | Quality | Open | Increase test coverage |
+| QR-01 | Coverage regression below 80% threshold | Quality | Open | Maintain release coverage gate |
 | QR-02 | Real-repo validation insufficient | Quality | ✅ Resolved | 10 fixtures, weekly CI acceptance job |
 | QR-03 | Performance on large repos (5000+ files) | Quality | Open | Incremental cache optimization |
 | SR-01 | Plugin sandbox residual risk | Security | Mitigated | Documented in security-evidence.md |

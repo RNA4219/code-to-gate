@@ -68,7 +68,7 @@ Your code never leaves your machine. No cloud required. No API keys. No data sha
 | Item | Status | Action | Owner |
 |------|--------|--------|-------|
 | npm registry publish | ⚠️ Pending | `npm publish --access public` | Release |
-| GitHub Release v1.4.0 | ⚠️ Pending | Create release with notes | Release |
+| GitHub Release v1.4.0 | ✅ Complete | Release created with notes | Release |
 | GitHub topics/tags | ⚠️ Pending | Add: code-analysis, quality-gate, static-analysis | Release |
 | GitHub description | ⚠️ Pending | "Local-first quality gate CLI" | Release |
 
@@ -120,7 +120,7 @@ npm view @quality-harness/code-to-gate
 
 npm install -g @quality-harness/code-to-gate
 
-github.com/quality-harness/code-to-gate
+github.com/RNA4219/code-to-gate
 ```
 
 **LinkedIn (Professional)**:
@@ -136,7 +136,7 @@ Features:
 
 Open source (MIT). Available on npm.
 
-🔗 github.com/quality-harness/code-to-gate
+🔗 github.com/RNA4219/code-to-gate
 ```
 
 **Dev.to (Technical)**:
@@ -165,7 +165,7 @@ What it does:
 
 Why local-first: Many teams can't send code to cloud tools due to compliance. This runs entirely on your machine.
 
-github.com/quality-harness/code-to-gate
+github.com/RNA4219/code-to-gate
 npm: @quality-harness/code-to-gate
 ```
 
@@ -253,7 +253,7 @@ Link to examples in README:
 
 | Milestone | Criteria | Timeline |
 |-----------|----------|----------|
-| Launch success | npm package live, 3 announcements posted | Day 1 |
+| Launch success | npm package published, 3 announcements posted | Day 1 |
 | Initial traction | 50+ GitHub stars, 20+ npm downloads | Week 1 |
 | Community engagement | 5+ external issues/PRs | Month 1 |
 | Sustainability | 100+ stars, 100+ weekly downloads, 1+ external contributor | Month 1 |
