@@ -230,30 +230,31 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
     return options.EXIT.USAGE_ERROR;
   }
 
-  // Initialize tree-sitter parsers automatically
-  // Falls back to regex if WASM packages not installed
+  // Tree-sitter is opt-in because loading the four WASM parsers is expensive.
   let treeSitterAvailable = false;
-  try {
-    const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
-      initPythonParser(),
-      initRubyParser(),
-      initGoParser(),
-      initRustParser(),
-    ]);
-    treeSitterAvailable = pyAvailable || rbAvailable || goAvailable || rsAvailable;
+  if (useTreeSitter) {
+    try {
+      const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
+        initPythonParser(),
+        initRubyParser(),
+        initGoParser(),
+        initRustParser(),
+      ]);
+      treeSitterAvailable = pyAvailable || rbAvailable || goAvailable || rsAvailable;
 
-    if (verbose) {
-      console.log(JSON.stringify({
-        phase: "tree-sitter-init",
-        python: pyAvailable,
-        ruby: rbAvailable,
-        go: goAvailable,
-        rust: rsAvailable,
-        available: treeSitterAvailable,
-      }));
+      if (verbose) {
+        console.log(JSON.stringify({
+          phase: "tree-sitter-init",
+          python: pyAvailable,
+          ruby: rbAvailable,
+          go: goAvailable,
+          rust: rsAvailable,
+          available: treeSitterAvailable,
+        }));
+      }
+    } catch {
+      // Silently continue with regex fallback
     }
-  } catch {
-    // Silently continue with regex fallback
   }
 
   // Parse options

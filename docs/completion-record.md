@@ -512,3 +512,22 @@ npm run release:validate  # Unified gate: lint + typecheck + smoke + architectur
 | npm pack --dry-run | 367 files, 1.5 MB |
 
 **Gate status**: go, Clean Architecture 完全実装完了
+
+---
+
+## 2026-06-08 通常フルテスト高速化
+
+- `scan` のTree-sitter初期化を `--tree-sitter` 明示指定時のみに変更した。
+- 通常テストをVitest `forks` poolで並列実行し、Tree-sitter専用62 testsを直列グループへ分離した。
+- integration CLI helperを引数配列による `spawnSync` 実行へ変更した。
+- alpha acceptanceのfixture成果物をsuite単位で生成・再利用した。
+- `test:performance` と `test:real-repo` は独立gateとして維持した。
+
+| 検証項目 | 結果 |
+|---|---|
+| lint / typecheck | pass |
+| `npm run test:tree-sitter` | 5 files / 62 tests pass、3.50秒 |
+| alpha acceptance | 56 tests pass、変更前約314秒 → 変更後125.80秒 |
+| 通常フルテスト | 104 files / 2744 tests passを確認 |
+
+固定ワーカー数によるCPU依存チューニングは行わず、Vitest既定値を使用する。`npm test` 3回連続測定は長時間実行中のセッション中断により完遂していない。

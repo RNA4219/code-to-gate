@@ -94,10 +94,10 @@ code-to-gate export sarif --from .qh --out results.sarif
 | 言語 | 対応レベル | 備考 |
 |------|------------|------|
 | TypeScript / JavaScript | **Primary** | AST 完全解析、主対象 |
-| Python / Ruby / Go / Rust | **Structured** | tree-sitter WASM ベース解析 |
+| Python / Ruby / Go / Rust | **Structured** | `--tree-sitter` 指定時は tree-sitter WASM、未指定時は正規表現 fallback |
 | Java / PHP / C# / C++ | **Baseline** | 正規表現 / ヒューリスティック fallback |
 
-全言語をスキャン可能ですが、解析深度は adapter により異なります。
+全言語をスキャン可能ですが、解析深度は adapter により異なります。Tree-sitter はWASM初期化コストを避けるため明示指定です。
 
 ## 出力されるもの
 
@@ -203,7 +203,9 @@ npm test
 
 | コマンド | 内容 | 実行時間 | 用途 |
 |----------|------|----------|------|
-| `npm test` | 全単体テスト + integration テスト | ~5分 | 通常開発、PR gate |
+| `npm test` | 通常並列グループ + Tree-sitter直列グループ | 5分以内を目標 | 通常開発、PR gate |
+| `npm run test:normal` | performance / real-repo / Tree-sitter専用を除く通常テスト | 環境依存 | 高速な通常ゲート |
+| `npm run test:tree-sitter` | Tree-sitter専用テスト | 数秒 | WASM parser gate |
 | `npm run test:smoke` | CLI smoke テスト (54 tests) | ~15秒 | quick validation |
 | `npm run test:coverage` | coverage付き単体テスト | ~5分 | release gate (Linux/macOS) |
 | `npm run test:real-repo` | express/axios/dayjs 検証 | ~10分 | product acceptance |

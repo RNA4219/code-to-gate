@@ -59,10 +59,10 @@ code-to-gate analyze ./src --out .qh
 | Language | Support Level | Notes |
 |----------|---------------|-------|
 | TypeScript / JavaScript | **Primary** | Full AST analysis, main target |
-| Python / Ruby / Go / Rust | **Structured** | tree-sitter WASM based analysis |
+| Python / Ruby / Go / Rust | **Structured** | tree-sitter WASM with `--tree-sitter`; regex fallback by default |
 | Java / PHP / C# / C++ | **Baseline** | Regex/heuristic fallback |
 
-All languages can be scanned; depth of analysis varies by adapter.
+All languages can be scanned; depth of analysis varies by adapter. Tree-sitter is opt-in to avoid WASM initialization overhead.
 
 ---
 
@@ -397,6 +397,10 @@ npm run lint:fix
 
 # Full test suite
 npm test
+
+# Normal parallel and Tree-sitter serial groups
+npm run test:normal
+npm run test:tree-sitter
 
 # Coverage (80% threshold)
 npm run test:coverage
