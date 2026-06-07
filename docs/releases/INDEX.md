@@ -7,6 +7,7 @@ This directory contains Release Approval Records (RA) documenting release decisi
 | Record ID | Release Version | Date | Approval Type | Approver |
 |-----------|-----------------|------|---------------|----------|
 | RA-20260531-01 | 1.4.0 | 2026-05-31 | technical | R_N_A |
+| RA-20260608-01 | 1.4.2 | 2026-06-08 | technical | R_N_A |
 
 ## Record Structure
 
@@ -54,4 +55,4 @@ Each RA record follows this template:
 
 ---
 
-Last updated: 2026-05-31
+Last updated: 2026-06-08
