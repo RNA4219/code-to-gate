@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.2] - 2026-06-08 - Quality Contract and Test Performance Release
+
+### Added
+
+- QEG evidence export and input adapter contracts.
+- Raw findings and normalized repository graph schema coverage.
+- Architecture boundary tests and package smoke validation.
+- Explicit Tree-sitter opt-in regression tests.
+
+### Changed
+
+- Tree-sitter initialization now occurs only when `--tree-sitter` is specified.
+- Normal tests use a process-isolated parallel group while Tree-sitter tests run in a dedicated serial group.
+- Acceptance fixtures reuse generated artifacts instead of repeating identical CLI analysis.
+
+### Fixed
+
+- PR analysis workflow now distinguishes evidence-producing quality exit codes from execution failures.
+- Schema validation, self-analysis contracts, YAML output, and false-positive handling were aligned.
+
+---
+
 ## [1.4.1] - 2026-05-31 - CI Fix Release
 
 ### Fixed
