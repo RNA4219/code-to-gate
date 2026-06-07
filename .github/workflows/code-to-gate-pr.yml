@@ -201,6 +201,7 @@ jobs:
             --base origin/main \
             --head HEAD \
             --policy .github/ctg-policy.yaml \
+            --llm-provider deterministic \
             --out .qh
           DIFF_EXIT=$?
           set -e
@@ -209,9 +210,6 @@ jobs:
             exit "$DIFF_EXIT"
           fi
           echo "Diff analysis completed with exit code $DIFF_EXIT"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
       - name: Run readiness evaluation
         run: |
           set +e

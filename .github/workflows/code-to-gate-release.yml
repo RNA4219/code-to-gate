@@ -114,6 +114,7 @@ jobs:
             --policy ${{ github.event.inputs.policy_file || '.github/ctg-policy.yaml' }} \
             --emit all \
             --out .qh \
+            --llm-provider deterministic \
             --format json
           ANALYZE_EXIT=$?
           set -e
@@ -126,9 +127,6 @@ jobs:
           if [ "$ANALYZE_EXIT" -ne 0 ]; then
             echo "::notice::Analysis produced findings and exited with code $ANALYZE_EXIT; continuing to readiness evaluation"
           fi
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
       - name: Evaluate release readiness
         id: readiness
         run: |
