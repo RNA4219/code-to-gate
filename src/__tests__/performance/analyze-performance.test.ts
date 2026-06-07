@@ -119,7 +119,7 @@ describe("Analyze Performance Tests", () => {
       console.log("LLM mode: none (excluded from timing)");
 
       const start = Date.now();
-      const args = [demoCiImportsDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"];
+      const args = [demoCiImportsDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"];
       const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 
@@ -133,7 +133,7 @@ describe("Analyze Performance Tests", () => {
       console.log(`Fixture: demo-shop-ts (${fileCount} files) with policy`);
 
       const start = Date.now();
-      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none", "--policy", policyFile];
+      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only", "--policy", policyFile];
       const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 
@@ -152,7 +152,7 @@ describe("Analyze Performance Tests", () => {
         mkdirSync(tempOutDir, { recursive: true });
 
         const start = Date.now();
-        const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"];
+        const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"];
         await analyzeCommand(args, { VERSION, EXIT, getOption });
         const elapsed = Date.now() - start;
         runTimes.push(elapsed);
@@ -177,7 +177,7 @@ describe("Analyze Performance Tests", () => {
   describe("Performance metrics collection", () => {
     it("collects detailed timing for analyze phases", async () => {
       const start = Date.now();
-      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"];
+      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"];
       const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
       const totalElapsed = Date.now() - start;
 
@@ -196,7 +196,7 @@ describe("Analyze Performance Tests", () => {
     });
 
     it("audit.json contains timing information", async () => {
-      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"];
+      const args = [demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"];
       await analyzeCommand(args, { VERSION, EXIT, getOption });
 
       const auditPath = path.join(tempOutDir, "audit.json");
@@ -213,14 +213,14 @@ describe("Analyze Performance Tests", () => {
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start1 = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const time1 = Date.now() - start1;
 
       // Second analyze
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start2 = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const time2 = Date.now() - start2;
 
       console.log(`First analyze: ${time1}ms, Second analyze: ${time2}ms`);
@@ -237,14 +237,14 @@ describe("Analyze Performance Tests", () => {
       const jsonDir = path.join(tempOutDir, "json");
       mkdirSync(jsonDir, { recursive: true });
       const startJson = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "json", "--out", jsonDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "json", "--out", jsonDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const timeJson = Date.now() - startJson;
 
       // Measure all emit
       const allDir = path.join(tempOutDir, "all");
       mkdirSync(allDir, { recursive: true });
       const startAll = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "all", "--out", allDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "all", "--out", allDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const timeAll = Date.now() - startAll;
 
       console.log(`--emit json: ${timeJson}ms`);
@@ -263,7 +263,7 @@ describe("Analyze Performance Tests", () => {
       mkdirSync(yamlDir, { recursive: true });
 
       const start = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "yaml", "--out", yamlDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "yaml", "--out", yamlDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 
       console.log(`--emit yaml: ${elapsed}ms`);
@@ -275,7 +275,7 @@ describe("Analyze Performance Tests", () => {
       mkdirSync(mdDir, { recursive: true });
 
       const start = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "md", "--out", mdDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "md", "--out", mdDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 
       console.log(`--emit md: ${elapsed}ms`);
@@ -292,14 +292,14 @@ describe("Analyze Performance Tests", () => {
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start1 = Date.now();
-      await analyzeCommand([demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoShopDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const time1 = Date.now() - start1;
 
       // Analyze demo-ci-imports
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start2 = Date.now();
-      await analyzeCommand([demoCiImportsDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "none"], { VERSION, EXIT, getOption });
+      await analyzeCommand([demoCiImportsDir, "--emit", "all", "--out", tempOutDir, "--llm-mode", "local-only"], { VERSION, EXIT, getOption });
       const time2 = Date.now() - start2;
 
       console.log(`demo-shop-ts: ${demoShopFiles} files, ${time1}ms`);

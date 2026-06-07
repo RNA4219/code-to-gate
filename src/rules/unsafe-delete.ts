@@ -49,8 +49,12 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
         /fs\.rmSync\s*\(/g,
         // Array splice/delete for bulk removal
         /\.splice\s*\(\s*0\s*,\s*\w+\.length\s*\)/g,
-        // Clear all pattern
-        /\.clear\s*\(\s*\)/g,
+        // Clear all pattern - only for DB/ORM/Model contexts (not Map/Set cache)
+        // Matches: database.clear(), table.clear(), store.clear(), collection.clear()
+        // Does NOT match: map.clear(), cache.clear(), set.clear() (safe patterns)
+        /\.(?:database|table|store|collection|model|db|data|records|rows)\.clear\s*\(\s*\)/gi,
+        // Explicit destructive clear with comment indicating delete intent
+        /\.clear\s*\(\s*\)\s*;?\s*(?:\/\/|\/\*)\s*(?:delete|remove|drop|truncate|purge|wipe|destroy)/gi,
         /\.truncate\s*\(\s*\)/g,
         // Python: os.remove, shutil.rmtree
         /os\.remove\s*\(/g,
@@ -66,6 +70,16 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
         /Files\.delete\s*\(/g,
         /unlink\s*\(/g,
         /rmdir\s*\(/g,
+      ];
+
+      // Patterns that indicate safe .clear() operations (exclude from detection)
+      const safeClearPatterns = [
+        // Map/Set clear for cache/collection management (safe)
+        /\b(?:cache|map|set|weakmap|weakset|registry|pool|buffer)\.clear\s*\(\s*\)/gi,
+        // Local variable clear (usually safe)
+        /\b(?:const|let|var)\s+\w+\s*=.*\.clear\s*\(\s*\)/gi,
+        // React state clear patterns
+        /\buseState\b.*\.clear\s*\(\s*\)/gi,
       ];
 
       // Patterns that indicate safe delete operations
@@ -128,6 +142,13 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
 
             // Skip if safety patterns found
             if (hasSafePattern) continue;
+
+            // Skip if matches safe clear patterns (Map/Set cache operations)
+            const hasSafeClearPattern = safeClearPatterns.some((p) => {
+              p.lastIndex = 0;
+              return p.test(line);
+            });
+            if (hasSafeClearPattern) continue;
 
             // Find the full context
             const startLine = Math.max(1, lineNum - 3);

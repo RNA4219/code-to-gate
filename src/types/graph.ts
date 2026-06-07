@@ -122,7 +122,8 @@ export interface GraphDiagnostic {
     | "UNSUPPORTED_LANGUAGE"
     | "MISSING_FILE"
     | "PARTIAL_GRAPH"
-    | "EXTERNAL_IMPORT_FAILED";
+    | "EXTERNAL_IMPORT_FAILED"
+    | "UNBALANCED_BRACKETS";
   message: string;
   evidence?: EvidenceRef[];
 }

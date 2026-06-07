@@ -11,10 +11,10 @@ import {
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { VERSION } from "../cli/exit-codes.js";
 import type { SuppressionClass, SuppressionEntry, BroadSuppression } from "../config/policy-loader.js";
 import { detectBroadSuppressions } from "../config/policy-loader.js";
 import { classifySuppressedFindings } from "../self-analysis/suppression-summary.js";
+import { RawFindingsArtifact } from "./raw-findings-reporter.js";
 
 /**
  * Self-analysis debt artifact structure
@@ -90,24 +90,34 @@ function countBySeverity(findings: Finding[]): Record<Severity, number> {
 
 /**
  * Generate self-analysis debt artifact
+ * @param effectiveFindings - Findings after suppression (from findings.json)
+ * @param suppressions - Suppression entries from policy
+ * @param suppressedFindings - Findings that were suppressed
+ * @param repoRoot - Repository root path
+ * @param runId - Run identifier
+ * @param toolVersion - Tool version string
+ * @param rawFindingsArtifact - Optional raw findings (before suppression) from raw-findings.json
  */
 export function generateSelfAnalysisDebtArtifact(
-  findings: FindingsArtifact,
+  effectiveFindings: FindingsArtifact,
   suppressions: SuppressionEntry[],
   suppressedFindings: Finding[],
   repoRoot: string,
-  runId: string
+  runId: string,
+  toolVersion: string,
+  rawFindingsArtifact?: RawFindingsArtifact
 ): SelfAnalysisDebtArtifact {
   const now = new Date().toISOString();
 
-  // Raw counts (all findings before suppression)
-  const rawCounts = countBySeverity(findings.findings);
+  // Raw counts: use raw-findings.json if available, otherwise effective findings
+  const rawTotal = rawFindingsArtifact?.findings.length ?? effectiveFindings.findings.length;
+  const rawCounts = rawFindingsArtifact?.bySeverity ?? countBySeverity(effectiveFindings.findings);
 
   // Effective counts (findings not suppressed)
-  const effectiveFindings = findings.findings.filter(
+  const effectiveFindingsFiltered = effectiveFindings.findings.filter(
     (f) => !suppressedFindings.includes(f) && f.ruleId !== "SUPPRESSION_DEBT" && f.ruleId !== "DEBT_MARKER"
   );
-  const effectiveCounts = countBySeverity(effectiveFindings);
+  const effectiveCounts = countBySeverity(effectiveFindingsFiltered);
 
   // Accepted exceptions counts
   const acceptedCounts = countBySeverity(suppressedFindings);
@@ -144,12 +154,12 @@ export function generateSelfAnalysisDebtArtifact(
   // Detect broad suppressions
   const broadSuppressions = detectBroadSuppressions(suppressions);
 
-  // Count debt candidates
+  // Count debt candidates from effective findings
   const debtCandidates = {
-    unsafeDelete: findings.findings.filter((f) => f.ruleId === "UNSAFE_DELETE").length,
-    tryCatchSwallow: findings.findings.filter((f) => f.ruleId === "TRY_CATCH_SWALLOW").length,
-    rawSql: findings.findings.filter((f) => f.ruleId === "RAW_SQL").length,
-    largeModule: findings.findings.filter((f) => f.ruleId === "LARGE_MODULE").length,
+    unsafeDelete: effectiveFindings.findings.filter((f) => f.ruleId === "UNSAFE_DELETE").length,
+    tryCatchSwallow: effectiveFindings.findings.filter((f) => f.ruleId === "TRY_CATCH_SWALLOW").length,
+    rawSql: effectiveFindings.findings.filter((f) => f.ruleId === "RAW_SQL").length,
+    largeModule: effectiveFindings.findings.filter((f) => f.ruleId === "LARGE_MODULE").length,
   };
 
   // Generate recommended actions
@@ -186,16 +196,16 @@ export function generateSelfAnalysisDebtArtifact(
     repo: { root: repoRoot },
     tool: {
       name: "code-to-gate",
-      version: VERSION,
+      version: toolVersion,
     },
     artifact: "self-analysis-debt",
     schema: "self-analysis-debt@v1",
     rawFindings: {
-      total: findings.findings.length,
+      total: rawTotal,
       bySeverity: rawCounts,
     },
     effectiveFindings: {
-      total: effectiveFindings.length,
+      total: effectiveFindingsFiltered.length,
       bySeverity: effectiveCounts,
     },
     acceptedExceptions: {

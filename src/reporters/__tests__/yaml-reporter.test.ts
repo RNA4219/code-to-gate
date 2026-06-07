@@ -177,7 +177,7 @@ describe("yaml-reporter", () => {
       expect(content).toContain("likelihood:");
       expect(content).toContain("confidence:");
       expect(content).toContain("impact:");
-      expect(content).toContain("recommended-actions:");
+      expect(content).toContain("recommendedActions:");
     });
   });
 

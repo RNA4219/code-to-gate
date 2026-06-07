@@ -239,11 +239,23 @@ describe("analyze CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
-  it("generates self-analysis debt artifact when suppressions are configured", async () => {
+  it("generates self-analysis debt artifact when policy with suppressions is provided", async () => {
     const repoDir = path.join(tempOutDir, "suppressed-repo");
     mkdirSync(path.join(repoDir, "src"), { recursive: true });
     mkdirSync(path.join(repoDir, ".ctg"), { recursive: true });
     writeFileSync(path.join(repoDir, "src", "index.ts"), "export const x = 1;", "utf8");
+    // Create policy file with suppression reference
+    writeFileSync(
+      path.join(repoDir, ".ctg", "policy.yaml"),
+      [
+        "policy_id: test-policy",
+        "blocking:",
+        "  severities: [critical]",
+        "suppression:",
+        "  file: .ctg/suppressions.yaml",
+      ].join("\n"),
+      "utf8"
+    );
     writeFileSync(
       path.join(repoDir, ".ctg", "suppressions.yaml"),
       [
@@ -257,7 +269,7 @@ describe("analyze CLI", () => {
       ].join("\n"),
       "utf8"
     );
-    const args = [repoDir, "--suppress", ".ctg/suppressions.yaml", "--emit", "all", "--out", tempOutDir];
+    const args = [repoDir, "--policy", ".ctg/policy.yaml", "--emit", "all", "--out", tempOutDir];
     await analyzeCommand(args, { VERSION, EXIT, getOption });
 
     const debtPath = path.join(tempOutDir, "self-analysis-debt.json");

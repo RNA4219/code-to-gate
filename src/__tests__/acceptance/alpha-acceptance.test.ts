@@ -510,7 +510,7 @@ describe('Phase 1 Alpha Acceptance Tests', () => {
         expect(risks.raw).not.toBe('');
         expect(risks.hasRisks).toBe(true);
         expect(risks.risksCount).toBeGreaterThan(0);
-        expect(risks.raw).toContain('recommended-actions');
+        expect(risks.raw).toContain('recommendedActions');
       });
 
       it('audit.json should have valid schema', () => {

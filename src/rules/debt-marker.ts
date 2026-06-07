@@ -30,6 +30,14 @@ const MARKERS: DebtMarker[] = [
   { label: "technical debt", pattern: /\btech(?:nical)?\s+debt\b/i, severity: "medium", confidence: 0.9 },
 ];
 
+// TypeScript suppression comments that should NOT be treated as debt markers
+const TYPE_COMMENT_EXCLUSIONS = [
+  /@ts-expect-error/,
+  /@ts-ignore/,
+  /@ts-check/,
+  /@ts-nocheck/,
+];
+
 const ACTIONABLE_CONTEXT = /\b(remove|replace|refactor|cleanup|clean up|fix|migrate|deprecated|legacy|unsafe|slow|broken|until|after|before|because|blocked)\b/i;
 
 export const DEBT_MARKER_RULE: RulePlugin = {
@@ -53,6 +61,11 @@ export const DEBT_MARKER_RULE: RulePlugin = {
 
       const comments = extractCommentLines(content, file.language);
       for (const comment of comments) {
+        // Skip TypeScript suppression comments (not debt markers)
+        if (TYPE_COMMENT_EXCLUSIONS.some((ex) => ex.test(comment.text))) {
+          continue;
+        }
+
         const marker = MARKERS.find((candidate) => candidate.pattern.test(comment.text));
         if (!marker) continue;
 

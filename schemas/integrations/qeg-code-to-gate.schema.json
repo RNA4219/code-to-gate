@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/integrations/qeg-code-to-gate.schema.json",
+  "title": "QEGCodeToGateEvidence",
+  "description": "Evidence-only export for quality-evidence-graph decision process. No decision field - decision is made by quality-evidence-graph repository exclusively.",
+  "type": "object",
+  "required": [
+    "version",
+    "producer",
+    "run_id",
+    "artifact_dir",
+    "findings_summary",
+    "readiness_status",
+    "schema_compliance",
+    "quality_checks_actual",
+    "artifact_hashes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "ctg.qeg-input/v1" },
+    "producer": { "const": "code-to-gate" },
+    "run_id": { "type": "string" },
+    "commit_sha": { "type": "string" },
+    "artifact_dir": { "type": "string" },
+    "findings_summary": {
+      "type": "object",
+      "required": ["total", "by_severity", "by_category", "by_rule"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "by_severity": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "by_category": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "by_rule": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "readiness_status": {
+      "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"]
+    },
+    "schema_compliance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": { "type": "string" },
+          "status": { "enum": ["ok", "error"] },
+          "errors": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "quality_checks_actual": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "details"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "enum": ["pass", "fail", "skipped"] },
+          "evidence_path": { "type": "string" },
+          "details": { "type": "string" }
+        }
+      }
+    },
+    "artifact_hashes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact", "path", "hash"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": { "type": "string" },
+          "path": { "type": "string" },
+          "hash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+        }
+      }
+    }
+  }
+}

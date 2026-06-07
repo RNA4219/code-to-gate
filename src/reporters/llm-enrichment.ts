@@ -1,5 +1,5 @@
 import type { Finding, FindingsArtifact, UnsupportedClaim } from "../types/artifacts.js";
-import { domainTagForFinding } from "./domain-context.js";
+import { domainTagForFinding } from "../core/domain-context.js";
 
 const CATEGORY_KEYWORDS: Array<{ category: Finding["category"]; words: string[] }> = [
   { category: "auth", words: ["auth", "login", "session", "permission", "rbac", "admin"] },

@@ -93,14 +93,14 @@ describe("Scan Performance Tests", () => {
   });
 
   describe("Phase 1: Small repo scan <= 30s", () => {
-    it("scan demo-shop-ts completes within 30s", () => {
+    it("scan demo-shop-ts completes within 30s", async () => {
       // Count files to verify it's a small repo (100-500 files target)
       const fileCount = countFiles(demoShopDir);
       console.log(`Fixture: demo-shop-ts (${fileCount} files)`);
 
       const start = Date.now();
       const args = [demoShopDir, "--out", tempOutDir];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 
       console.log(`Scan duration: ${elapsed}ms (target: ${TARGET_MS}ms)`);
@@ -108,13 +108,13 @@ describe("Scan Performance Tests", () => {
       expect(elapsed).toBeLessThan(TARGET_MS);
     });
 
-    it("scan demo-ci-imports completes within 30s", () => {
+    it("scan demo-ci-imports completes within 30s", async () => {
       const fileCount = countFiles(demoCiImportsDir);
       console.log(`Fixture: demo-ci-imports (${fileCount} files)`);
 
       const start = Date.now();
       const args = [demoCiImportsDir, "--out", tempOutDir];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       const elapsed = Date.now() - start;
 
       console.log(`Scan duration: ${elapsed}ms (target: ${TARGET_MS}ms)`);
@@ -122,7 +122,7 @@ describe("Scan Performance Tests", () => {
       expect(elapsed).toBeLessThan(TARGET_MS);
     });
 
-    it("scan performance is consistent across multiple runs", () => {
+    it("scan performance is consistent across multiple runs", async () => {
       // Run scan multiple times to check consistency
       const runTimes: number[] = [];
       const runs = 3;
@@ -134,7 +134,7 @@ describe("Scan Performance Tests", () => {
 
         const start = Date.now();
         const args = [demoShopDir, "--out", tempOutDir];
-        scanCommand(args, { VERSION, EXIT, getOption });
+        await scanCommand(args, { VERSION, EXIT, getOption });
         const elapsed = Date.now() - start;
         runTimes.push(elapsed);
       }
@@ -156,11 +156,11 @@ describe("Scan Performance Tests", () => {
   });
 
   describe("Performance metrics collection", () => {
-    it("collects detailed timing for scan phases", () => {
+    it("collects detailed timing for scan phases", async () => {
       // This test collects timing for different phases of scan
       const start = Date.now();
       const args = [demoShopDir, "--out", tempOutDir];
-      const result = scanCommand(args, { VERSION, EXIT, getOption });
+      const result = await scanCommand(args, { VERSION, EXIT, getOption });
       const totalElapsed = Date.now() - start;
 
       // Verify output was generated
@@ -176,19 +176,19 @@ describe("Scan Performance Tests", () => {
       expect(totalElapsed).toBeLessThan(TARGET_MS);
     });
 
-    it("performance does not degrade with repeated scans", () => {
+    it("performance does not degrade with repeated scans", async () => {
       // First scan
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start1 = Date.now();
-      scanCommand([demoShopDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
+      await scanCommand([demoShopDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
       const time1 = Date.now() - start1;
 
       // Second scan (should not be significantly slower)
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start2 = Date.now();
-      scanCommand([demoShopDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
+      await scanCommand([demoShopDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
       const time2 = Date.now() - start2;
 
       console.log(`First scan: ${time1}ms, Second scan: ${time2}ms`);
@@ -200,7 +200,7 @@ describe("Scan Performance Tests", () => {
   });
 
   describe("Edge cases for performance", () => {
-    it("scan time scales linearly with file count", () => {
+    it("scan time scales linearly with file count", async () => {
       // Compare scan times between fixtures of different sizes
       const demoShopFiles = countFiles(demoShopDir);
       const demoCiFiles = countFiles(demoCiImportsDir);
@@ -209,14 +209,14 @@ describe("Scan Performance Tests", () => {
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start1 = Date.now();
-      scanCommand([demoShopDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
+      await scanCommand([demoShopDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
       const time1 = Date.now() - start1;
 
       // Scan demo-ci-imports
       rmSync(tempOutDir, { recursive: true, force: true });
       mkdirSync(tempOutDir, { recursive: true });
       const start2 = Date.now();
-      scanCommand([demoCiImportsDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
+      await scanCommand([demoCiImportsDir, "--out", tempOutDir], { VERSION, EXIT, getOption });
       const time2 = Date.now() - start2;
 
       console.log(`demo-shop-ts: ${demoShopFiles} files, ${time1}ms`);

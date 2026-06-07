@@ -91,5 +91,171 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
     },
-  }
+  },
+  // Architecture boundary rules - enforce clean dependency direction
+  // Phase 7: Dependency boundary enforcement
+  {
+    files: ["src/types/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../**"],
+              message: "types layer is the innermost layer and cannot import from other src layers. Only import from external packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/reporters/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../cli/**"],
+              message: "reporters cannot import from cli layer. CLI should pass data to reporters, not reporters importing from CLI.",
+            },
+            {
+              group: ["../application/**"],
+              message: "reporters cannot import from application layer. Application orchestrates rules, reporters format artifacts. Import evaluateRules directly from application in CLI.",
+            },
+            {
+              group: ["../adapters/**"],
+              message: "reporters cannot import from adapters layer. Use ApplicationContext for service access.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/rules/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../cli/**"],
+              message: "rules cannot import from cli layer.",
+            },
+            {
+              group: ["../adapters/**"],
+              message: "rules cannot import from adapters layer. Use RuleContext for file content access.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/application/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../cli/**"],
+              message: "application layer cannot import from cli layer. CLI is the composition root that wires application dependencies.",
+            },
+            {
+              group: ["../reporters/**"],
+              message: "application layer cannot import from reporters layer. Application orchestrates rules, reporters format artifacts - dependency should flow CLI→application→rules/core.",
+            },
+            {
+              group: ["../adapters/**"],
+              message: "application layer cannot import concrete adapters. Use injected ApplicationContext services instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Core layer boundary rules (Phase 4 Deferred: repo-graph-builder imports from adapters)
+  {
+    files: ["src/core/**/*.ts"],
+    ignores: ["src/core/repo-graph-builder.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../cli/**"],
+              message: "core layer cannot import from cli layer. Core contains pure logic, CLI is composition root.",
+            },
+            {
+              group: ["../application/**"],
+              message: "core layer cannot import from application layer. Core provides pure logic to application.",
+            },
+            {
+              group: ["../reporters/**"],
+              message: "core layer cannot import from reporters layer. Core provides data, reporters format output.",
+            },
+            {
+              group: ["../adapters/**"],
+              message: "core layer cannot import from adapters layer. Only repo-graph-builder.ts is allowed as a Phase 4 Deferred exception.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Exception: repo-graph-builder.ts imports from adapters (parser registry)
+  {
+    files: ["src/core/repo-graph-builder.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../cli/**"],
+              message: "repo-graph-builder cannot import from cli layer.",
+            },
+            {
+              group: ["../application/**"],
+              message: "repo-graph-builder cannot import from application layer.",
+            },
+            {
+              group: ["../reporters/**"],
+              message: "repo-graph-builder cannot import from reporters layer.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Adapters layer boundary rules
+  {
+    files: ["src/adapters/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../cli/**"],
+              message: "adapters cannot import from cli layer. Adapters implement low-level services.",
+            },
+            {
+              group: ["../application/**"],
+              message: "adapters cannot import from application layer. Adapters provide services to application via ApplicationContext.",
+            },
+            {
+              group: ["../reporters/**"],
+              message: "adapters cannot import from reporters layer. Adapters provide services, reporters format output.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

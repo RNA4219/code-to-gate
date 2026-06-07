@@ -16,13 +16,10 @@ export default defineConfig({
       'src/__tests__/real-repos/**',
     ],
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        minThreads: 2,
-        maxThreads: 4,
-      },
-    },
+    singleThread: true,
+    minThreads: 1,
+    maxThreads: 1,
+    fileParallelism: false,
     testTimeout: 60000,
     hookTimeout: 60000,
     coverage: {

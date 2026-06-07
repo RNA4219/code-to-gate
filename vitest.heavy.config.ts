@@ -7,13 +7,10 @@ export default defineConfig({
     include: ['src/__tests__/performance/**/*.test.ts', 'src/__tests__/real-repos/**/*.test.ts'],
     exclude: ['node_modules/**', 'dist/**', 'coverage/**', '.qh*/**', '.test-temp/**', 'fixtures/**/node_modules/**'],
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        minThreads: 2,
-        maxThreads: 4,
-      },
-    },
+    singleThread: true,
+    minThreads: 1,
+    maxThreads: 1,
+    fileParallelism: false,
     testTimeout: 120000,
     hookTimeout: 120000,
   },
