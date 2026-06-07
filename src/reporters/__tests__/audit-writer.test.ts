@@ -62,7 +62,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete", VERSION);
 
       expect(audit.version).toBe("ctg/v1");
       expect(audit.artifact).toBe("audit");
@@ -102,7 +102,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete", VERSION);
 
       expect(audit.run_id).toBe("run-002");
     });
@@ -140,7 +140,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete", VERSION);
 
       expect(audit.repo.root).toBe("/my/project");
     });
@@ -209,7 +209,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete", VERSION);
 
       expect(audit.inputs.length).toBe(3);
       expect(audit.inputs[0].path).toBe("src/index.ts");
@@ -261,7 +261,7 @@ describe("audit-writer", () => {
         confidence: { minConfidence: 0.6 },
       };
 
-      const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "Analysis complete");
+      const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "Analysis complete", VERSION);
 
       expect(audit.policy.id).toBe("my-policy");
       expect(audit.policy.hash).toBeDefined();
@@ -301,7 +301,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "Analysis complete", VERSION);
 
       expect(audit.policy.id).toBe("default");
       expect(audit.policy.hash).toBe("none");
@@ -340,7 +340,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 5, "policy_failed", "Critical findings blocked");
+      const audit = buildAuditArtifact(graph, findings, undefined, 5, "policy_failed", "Critical findings blocked", VERSION);
 
       expect(audit.exit.code).toBe(5);
       expect(audit.exit.status).toBe("policy_failed");
@@ -390,7 +390,7 @@ describe("audit-writer", () => {
         confidence: { minConfidence: 0.6 },
       };
 
-      const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, policy, 0, "success", "OK", VERSION);
 
       expect(audit.tool.name).toBe("code-to-gate");
       expect(audit.tool.version).toBe(VERSION);
@@ -431,7 +431,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
 
       // Check that generated_at is a valid ISO date string
       const date = new Date(audit.generated_at);
@@ -473,7 +473,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
       const filePath = writeAuditJson(tempOutDir, audit);
 
       expect(existsSync(filePath)).toBe(true);
@@ -513,7 +513,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
       writeAuditJson(tempOutDir, audit);
 
       const content = readFileSync(path.join(tempOutDir, "audit.json"), "utf8");
@@ -556,7 +556,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
       writeAuditJson(tempOutDir, audit);
 
       const content = readFileSync(path.join(tempOutDir, "audit.json"), "utf8");
@@ -626,7 +626,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
       writeAuditJson(tempOutDir, audit);
 
       const content = readFileSync(path.join(tempOutDir, "audit.json"), "utf8");
@@ -673,7 +673,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
 
       // Validate artifact type
       expect(audit.artifact).toBe("audit");
@@ -725,7 +725,7 @@ describe("audit-writer", () => {
         unsupported_claims: [],
       };
 
-      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK");
+      const audit = buildAuditArtifact(graph, findings, undefined, 0, "success", "OK", VERSION);
 
       for (const input of audit.inputs) {
         expect(input.path).toBeDefined();

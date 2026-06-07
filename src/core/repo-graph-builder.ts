@@ -61,7 +61,8 @@ export function isTreeSitterReady(): boolean {
 export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): NormalizedRepoGraph {
   const now = new Date().toISOString();
   const relativeRoot = toPosix(path.relative(process.cwd(), repoRoot) || ".");
-  const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 12)}`;
+  const commitSha = process.env.GITHUB_SHA?.slice(0, 7) || "local";
+  const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 12)}-${commitSha}`;
 
   return {
     version: CTG_VERSION,

@@ -73,18 +73,17 @@ describe("error handling integration", () => {
     });
 
     it("scan command fails with empty repo argument", () => {
-      // Empty string is treated as next argument (--out)
       const result = runCli(["scan", "", "--out", tempDir]);
 
       expect(result.exitCode).toBe(2); // USAGE_ERROR
-      expect(result.stderr).toContain("repo does not exist");
+      expect(result.stderr).toContain("usage: code-to-gate scan");
     });
 
     it("analyze command fails with empty repo argument", () => {
       const result = runCli(["analyze", "", "--emit", "all", "--out", tempDir]);
 
       expect(result.exitCode).toBe(2); // USAGE_ERROR
-      expect(result.stderr).toContain("repo does not exist");
+      expect(result.stderr).toContain("usage: code-to-gate analyze");
     });
   });
 

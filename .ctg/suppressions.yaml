@@ -8,6 +8,14 @@
 # - generated-artifact: Compiled output, generated files
 # - accepted-design: Architecture decisions, intentional patterns
 # - temporary-debt: Temporary workaround, needs repayment
+#
+# BAN POLICY: No new suppressions for code-to-gate codebase.
+# All new findings must be:
+# 1. Fixed in code (preferred)
+# 2. Documented in docs/rule-precision-backlog.md as false positive
+# 3. Reviewed by architecture team before adding suppression
+#
+# This policy ensures rule precision improvements are prioritized over suppression.
 
 version: ctg/v1
 suppressions:

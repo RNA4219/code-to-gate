@@ -4,18 +4,88 @@
  * Consolidated tests to reduce redundancy while maintaining coverage.
  * Original: 44 tests, 1056 lines
  * Refactored: 18 tests (merged similar cases)
+ *
+ * Updated for new API: evaluateRules requires ApplicationContext from application layer
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
-  buildFindingsFromGraph,
-  writeFindingsJson,
-  createArtifactHeader,
-} from "../json-reporter.js";
+  evaluateRules,
+  createFindingsHeader,
+} from "../../application/rule-evaluator.js";
+import { writeFindingsJson } from "../json-reporter.js";
 import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import type { RepoFile, FindingsArtifact } from "../../types/artifacts.js";
+import type { ApplicationContext } from "../../application/context.js";
+import { createApplicationContext } from "../../application/context.js";
+import type { FileAccess, HashService, ClockService, PathService } from "../../types/contracts.js";
+
+// Mock implementations for testing
+const mockFileAccess: FileAccess = {
+  readFile: (_path: string): string | null => null,
+  writeFile: () => {},
+  exists: () => false,
+  readDir: () => [],
+  stat: () => null,
+};
+
+const mockHashService: HashService = {
+  sha256: (value: string) => `mock-hash-${value.length}`,
+};
+
+const mockClockService: ClockService = {
+  now: () => new Date().toISOString(),
+  epochMs: () => Date.now(),
+};
+
+const mockPathService: PathService = {
+  join: (...segments: string[]) => segments.join("/"),
+  resolve: (...segments: string[]) => segments.join("/"),
+  relative: (from: string, to: string) => to.replace(from, ""),
+  dirname: (p: string) => p.split("/").slice(0, -1).join("/"),
+  basename: (p: string) => p.split("/").pop() || "",
+  extname: (p: string) => {
+    const parts = p.split(".");
+    return parts.length > 1 ? `.${parts.pop()}` : "";
+  },
+  isAbsolute: (p: string) => p.startsWith("/"),
+};
+
+// Create mock ApplicationContext for tests
+function createMockApplicationContext(repoRoot: string = "/test/repo", toolVersion: string = "0.1.0"): ApplicationContext {
+  // Path service that uses the repoRoot
+  const pathServiceWithRoot: PathService = {
+    ...mockPathService,
+    join: (...segments: string[]) => {
+      // Handle repoRoot properly
+      if (segments.length === 0) return repoRoot;
+      const first = segments[0];
+      if (first === repoRoot || first.startsWith(repoRoot)) {
+        return segments.join("/");
+      }
+      return [repoRoot, ...segments].join("/");
+    },
+    resolve: (...segments: string[]) => [repoRoot, ...segments].join("/"),
+    relative: (from: string, to: string) => {
+      if (to.startsWith(from)) return to.slice(from.length).replace(/^\/+/, "");
+      return to;
+    },
+  };
+
+  return createApplicationContext(
+    {
+      fileAccess: mockFileAccess,
+      hashService: mockHashService,
+      clockService: mockClockService,
+      pathService: pathServiceWithRoot,
+    },
+    new Map(), // Empty parser registry for tests
+    toolVersion,
+    false // treeSitterReady
+  );
+}
 
 // Helper: Create minimal graph
 function createMinimalGraph(files: RepoFile[] = [], overrides = {}) {
@@ -82,9 +152,10 @@ describe("json-reporter", () => {
     }
   });
 
-  describe("createArtifactHeader", () => {
+  describe("createFindingsHeader", () => {
     it("creates header with all required fields and optional policy_id", () => {
-      const header = createArtifactHeader("run-001", "/test/repo", "policy-001");
+      const applicationContext = createMockApplicationContext();
+      const header = createFindingsHeader("run-001", "/test/repo", applicationContext, "policy-001");
       expect(header.version).toBe("ctg/v1");
       expect(header.run_id).toBe("run-001");
       expect(header.repo.root).toBe("/test/repo");
@@ -92,15 +163,17 @@ describe("json-reporter", () => {
     });
 
     it("creates header without policy_id when not provided", () => {
-      const header = createArtifactHeader("run-001", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const header = createFindingsHeader("run-001", "/test/repo", applicationContext);
       expect(header.tool.policy_id).toBeUndefined();
     });
   });
 
-  describe("buildFindingsFromGraph", () => {
+  describe("evaluateRules", () => {
     it("builds findings with correct structure from graph", () => {
       const graph = createMinimalGraph([createSourceFile("src/test.ts")]);
-      const findings = buildFindingsFromGraph(graph, "test-run", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const findings = evaluateRules(graph, applicationContext);
 
       expect(findings.artifact).toBe("findings");
       expect(findings.schema).toBe("findings@v1");
@@ -113,14 +186,16 @@ describe("json-reporter", () => {
       const graph = createMinimalGraph([
         { id: "file:config.json", path: "config.json", language: "unknown" as const, role: "config" as const, hash: "abc", sizeBytes: 50, lineCount: 5, parser: { status: "skipped" as const } },
       ]);
-      const findings = buildFindingsFromGraph(graph, "test-run", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const findings = evaluateRules(graph, applicationContext);
       expect(findings.findings.length).toBe(0);
       expect(findings.completeness).toBe("partial");
     });
 
     it("handles empty graph", () => {
       const graph = createMinimalGraph();
-      const findings = buildFindingsFromGraph(graph, "test-run", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const findings = evaluateRules(graph, applicationContext);
       expect(findings.findings).toEqual([]);
       expect(findings.unsupported_claims).toEqual([]);
     });
@@ -128,7 +203,8 @@ describe("json-reporter", () => {
 
   describe("writeFindingsJson", () => {
     it("writes valid JSON with all required fields", () => {
-      const findings = buildFindingsFromGraph(createMinimalGraph(), "test-run", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const findings = evaluateRules(createMinimalGraph(), applicationContext);
       const filePath = writeFindingsJson(tempOutDir, findings);
 
       expect(existsSync(filePath)).toBe(true);
@@ -152,10 +228,11 @@ describe("json-reporter", () => {
   describe("finding format validation", () => {
     it("findings have all required fields with valid values", () => {
       const graph = createMinimalGraph([createSourceFile("src/test.ts")]);
-      const findings = buildFindingsFromGraph(graph, "test-run", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const findings = evaluateRules(graph, applicationContext);
 
       const validSeverities = ["low", "medium", "high", "critical"];
-      const validCategories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk"];
+      const validCategories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"];
 
       for (const finding of findings.findings) {
         expect(finding.id).toBeDefined();
@@ -204,7 +281,8 @@ describe("json-reporter", () => {
       // Create 150 files
       const files = Array.from({ length: 150 }, (_, i) => createSourceFile(`src/file${i}.ts`));
       const graph = createMinimalGraph(files);
-      const findings = buildFindingsFromGraph(graph, "test-run", "/test/repo");
+      const applicationContext = createMockApplicationContext();
+      const findings = evaluateRules(graph, applicationContext);
 
       expect(findings.findings).toBeDefined();
 
@@ -229,7 +307,7 @@ describe("json-reporter", () => {
   describe("all enum values", () => {
     it("handles all valid severities and categories", () => {
       const severities = ["low", "medium", "high", "critical"];
-      const categories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk"];
+      const categories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"];
 
       const findings = createFindings({
         findings: [

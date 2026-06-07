@@ -11,6 +11,7 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, detectBroadSuppressions, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
 import { assessIntakeArtifact, type IntakeAssessment } from "./intake-artifact.js";
+import { classifySuppressedFindings } from "../self-analysis/suppression-summary.js";
 
 import {
   FindingsArtifact,
@@ -19,6 +20,7 @@ import {
   CTG_VERSION,
   ReleaseReadinessArtifact,
 } from "../types/artifacts.js";
+import { RawFindingsArtifact } from "../reporters/raw-findings-reporter.js";
 import {
   generateSelfAnalysisDebtArtifact,
   writeSelfAnalysisDebtJson,
@@ -248,10 +250,39 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     const findingsContent = readFileSync(findingsPath, "utf8");
     const findings: FindingsArtifact = JSON.parse(findingsContent);
 
+    // Load raw-findings.json for true raw counts (before suppression)
+    // Falls back to findings.json if raw-findings.json doesn't exist
+    const rawFindingsPath = path.resolve(cwd, fromDir, "raw-findings.json");
+    let rawFindingsArtifact: RawFindingsArtifact | undefined;
+    let rawCounts = countBySeverity(findings.findings);
+
+    if (existsSync(rawFindingsPath)) {
+      try {
+        const rawFindingsContent = readFileSync(rawFindingsPath, "utf8");
+        rawFindingsArtifact = JSON.parse(rawFindingsContent) as RawFindingsArtifact;
+        rawCounts = rawFindingsArtifact.bySeverity; // Use pre-calculated counts from raw-findings artifact
+      } catch {
+        // Fall back to findings counts if raw-findings.json parse fails
+        console.error("Warning: Failed to parse raw-findings.json, using findings counts");
+      }
+    }
+
     // Evaluate findings against policy using policy-evaluator
     const evalResult = evaluatePolicy(findings.findings, policy, suppressions);
     const intakeAssessment = absoluteIntakePath ? assessIntakeArtifact(absoluteIntakePath) : undefined;
     const readinessStatus = mergeReadinessStatus(evalResult.status, intakeAssessment);
+
+    // Calculate actual suppressed findings from raw-findings.json (if available)
+    // This gives us the true count of findings that were suppressed by analyze
+    let actualSuppressedFindings: Finding[] = evalResult.suppressedFindings;
+    if (rawFindingsArtifact) {
+      // Use raw-findings.json to get all findings before suppression
+      // Then classify which ones match suppressions
+      const allRawFindings = rawFindingsArtifact.findings;
+      actualSuppressedFindings = classifySuppressedFindings(suppressions, allRawFindings).map(
+        (item) => item.finding
+      );
+    }
 
     // Map failed conditions to artifact format
     const failedConditions = mapFailedConditions(evalResult);
@@ -284,11 +315,13 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       recommendedActions.push(...intakeAssessment.recommendedActions);
     }
 
-    // Calculate self-analysis summary for transparency
-    const rawCounts = countBySeverity(findings.findings);
-    const suppressedCounts = countBySeverity(evalResult.suppressedFindings);
+    // Calculate self-analysis summary for transparency (using true raw counts)
+    // rawCounts is from raw-findings.json (true raw findings before suppression)
+    // findings.findings is effective findings (after suppression)
+    // actualSuppressedFindings is the real suppressed findings from raw-findings.json
+    const suppressedCounts = countBySeverity(actualSuppressedFindings);
     const broadSuppressions = detectBroadSuppressions(suppressions);
-    const acceptedExceptionsByClass = countSuppressedByClass(suppressions, evalResult.suppressedFindings);
+    const acceptedExceptionsByClass = countSuppressedByClass(suppressions, actualSuppressedFindings);
 
     // Add broad suppression review to recommended actions if present
     if (broadSuppressions.length > 0) {
@@ -318,14 +351,16 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       completeness: findings.completeness,
       summary: getMergedStatusSummary(readinessStatus, evalResult, intakeAssessment),
       counts: {
-        findings: evalResult.summary.blockedCount + evalResult.summary.passedCount + evalResult.summary.lowConfidenceCount,
-        critical: evalResult.summary.blockedCount > 0 ? rawCounts.critical - suppressedCounts.critical : 0,
-        high: evalResult.summary.blockedCount > 0 ? rawCounts.high - suppressedCounts.high : 0,
+        // counts reflects effective findings (after suppression)
+        findings: findings.findings.length,
+        critical: countBySeverity(findings.findings).critical,
+        high: countBySeverity(findings.findings).high,
         risks: 0,
         testSeeds: 0,
         unsupportedClaims: findings.unsupported_claims.length,
       },
       selfAnalysis: {
+        // selfAnalysis shows raw counts from raw-findings.json
         rawCritical: rawCounts.critical,
         rawHigh: rawCounts.high,
         rawMedium: rawCounts.medium,
@@ -352,17 +387,18 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     const outputPath = path.join(absoluteOutDir, "release-readiness.json");
     writeFileSync(outputPath, JSON.stringify(readiness, null, 2) + "\n", "utf8");
 
-    // Generate self-analysis-debt.json for transparency
-    if (suppressions.length > 0) {
-      const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
-        findings,
-        suppressions,
-        evalResult.suppressedFindings,
-        repoRoot,
-        runId
-      );
-      writeSelfAnalysisDebtJson(absoluteOutDir, selfAnalysisDebt);
-    }
+    // Generate self-analysis-debt.json (authoritative - always generated by readiness)
+    // Uses raw-findings.json for true raw counts and findings.json for effective counts
+    const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
+      findings,
+      suppressions,
+      actualSuppressedFindings,
+      repoRoot,
+      runId,
+      VERSION,
+      rawFindingsArtifact
+    );
+    writeSelfAnalysisDebtJson(absoluteOutDir, selfAnalysisDebt);
 
     // Output summary
     console.log(

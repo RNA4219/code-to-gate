@@ -10,7 +10,6 @@ import {
   NormalizedRepoGraph,
   CTG_VERSION,
 } from "../types/artifacts.js";
-import { VERSION } from "../cli/exit-codes.js";
 import { CtgPolicy } from "../config/policy-loader.js";
 
 import { createHash } from "node:crypto";
@@ -23,7 +22,8 @@ export function buildAuditArtifact(
   policy: CtgPolicy | undefined,
   exitCode: number,
   exitStatus: string,
-  exitReason: string
+  exitReason: string,
+  toolVersion: string
 ): AuditArtifact {
   const inputs: AuditInput[] = [];
 
@@ -50,7 +50,7 @@ export function buildAuditArtifact(
     repo: graph.repo,
     tool: {
       name: "code-to-gate",
-      version: VERSION,
+      version: toolVersion,
       policy_id: policy?.policyId,
       plugin_versions: [],
     },

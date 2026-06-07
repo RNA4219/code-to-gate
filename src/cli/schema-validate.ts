@@ -15,6 +15,12 @@ const EXIT = {
   SCHEMA_FAILED: 7,
 };
 
+export interface SchemaValidationResult {
+  artifact: string;
+  status: "ok" | "error";
+  errors?: string[];
+}
+
 const SCHEMA_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -26,33 +32,10 @@ function readJson(filePath: string): unknown {
   const content = readFileSync(filePath, "utf8");
   if (filePath.endsWith(".yaml") || filePath.endsWith(".yml")) {
     // Use JSON_SCHEMA to prevent YAML type conversions (dates, binary, etc.)
-    const parsed = yamlImport.load(content, { schema: yamlImport.JSON_SCHEMA }) as unknown;
-    // Normalize hyphenated keys to underscore for schema validation
-    return normalizeYamlKeys(parsed);
+    // Raw YAML validation - no key normalization
+    return yamlImport.load(content, { schema: yamlImport.JSON_SCHEMA }) as unknown;
   }
   return JSON.parse(content);
-}
-
-/**
- * Normalize YAML hyphenated keys to JSON schema expected keys
- */
-function normalizeYamlKeys(obj: unknown): unknown {
-  if (typeof obj !== "object" || obj === null) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(normalizeYamlKeys);
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-    // Convert hyphenated keys to underscore (not camelCase)
-    // e.g., "generated-at" -> "generated_at", "source-finding-ids" -> "source_finding_ids"
-    const normalizedKey = key.replace(/-/g, "_");
-    result[normalizedKey] = normalizeYamlKeys(value);
-  }
-  return result;
 }
 
 function getSchemaPath(artifactName: string): string {
@@ -90,6 +73,9 @@ function schemaForArtifact(data: unknown): string | null {
   }
   if (obj.version === "ctg.workflow-evidence/v1alpha1" || obj.version === "ctg.workflow-evidence/v1") {
     return getIntegrationSchemaPath("workflow-evidence");
+  }
+  if (obj.version === "ctg.qeg-input/v1") {
+    return getIntegrationSchemaPath("qeg-code-to-gate");
   }
 
   return null;
@@ -147,6 +133,7 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "state-gate-evidence.schema.json",
     "manual-bb-seed.schema.json",
     "workflow-evidence.schema.json",
+    "qeg-code-to-gate.schema.json",
   ];
 
   for (const file of integrationFiles) {
@@ -177,13 +164,232 @@ function formatErrors(errors: ErrorObject[] | null | undefined): string[] {
   });
 }
 
-export async function schemaValidate(args: string[]): Promise<number> {
-  if (args[0] !== "validate" || !args[1]) {
-    console.error("usage: code-to-gate schema validate <artifact-or-schema>");
+/**
+ * Required artifacts - missing in strict mode will cause failure
+ */
+const REQUIRED_ARTIFACTS = [
+  "findings.json",
+  "release-readiness.json",
+  "repo-graph.json",
+  "audit.json",
+];
+
+/**
+ * Optional artifacts - missing is allowed even in strict mode
+ */
+const OPTIONAL_ARTIFACTS = [
+  "risk-register.yaml",
+  "self-analysis-debt.json",
+  "test-seeds.json",
+  "invariants.json",
+  "raw-findings.json",
+];
+
+/**
+ * All artifacts to validate (required + optional)
+ */
+const ARTIFACTS_TO_VALIDATE = [...REQUIRED_ARTIFACTS, ...OPTIONAL_ARTIFACTS];
+
+async function validateAllArtifacts(
+  dirArg: string,
+  strictMode: boolean = false,
+  allowMissing: boolean = false
+): Promise<number> {
+  const dir = path.resolve(process.cwd(), dirArg);
+
+  if (!existsSync(dir)) {
+    console.error(`directory not found: ${dirArg}`);
     return EXIT.USAGE_ERROR;
   }
 
-  const targetArg = args[1];
+  const ajv = createAjv();
+  await loadSchemas(ajv);
+
+  const failures: string[] = [];
+  const skipped: string[] = [];
+  const missingRequired: string[] = [];
+
+  for (const artifact of ARTIFACTS_TO_VALIDATE) {
+    const filePath = path.join(dir, artifact);
+
+    if (!existsSync(filePath)) {
+      const isRequired = REQUIRED_ARTIFACTS.includes(artifact);
+
+      if (strictMode && isRequired && !allowMissing) {
+        console.error(`ERROR: Required artifact missing: ${artifact}`);
+        missingRequired.push(artifact);
+        failures.push(artifact);
+      } else {
+        skipped.push(artifact);
+      }
+      continue;
+    }
+
+    // Read and parse artifact
+    let data: unknown;
+    try {
+      data = readJson(filePath);
+    } catch (err) {
+      if (err instanceof SyntaxError || err instanceof yamlImport.YAMLException) {
+        console.error(`parse error: ${artifact}`);
+        console.error(err.message);
+        failures.push(artifact);
+        continue;
+      }
+      throw err;
+    }
+
+    // Find schema for artifact
+    const schemaPath = schemaForArtifact(data);
+    if (!schemaPath) {
+      console.error(`no schema: ${artifact}`);
+      failures.push(artifact);
+      continue;
+    }
+
+    const schema = readJson(schemaPath) as { $id?: string };
+
+    try {
+      const validate: ValidateFunction = ajv.getSchema(schema.$id || schemaPath) || ajv.compile(schema);
+      const valid = validate(data);
+
+      if (!valid) {
+        console.error(`invalid: ${artifact}`);
+        for (const error of formatErrors(validate.errors)) {
+          console.error(`  ${error}`);
+        }
+        failures.push(artifact);
+      } else {
+        console.log(`ok: ${artifact}`);
+      }
+    } catch (err: unknown) {
+      console.error(`error: ${artifact}`);
+      if (err instanceof Error) {
+        console.error(`  ${err.message}`);
+      }
+      failures.push(artifact);
+    }
+  }
+
+  if (skipped.length > 0) {
+    console.log(`skipped (not found): ${skipped.join(", ")}`);
+  }
+
+  if (missingRequired.length > 0 && strictMode) {
+    console.error(`\nMISSING_REQUIRED_ARTIFACT: ${missingRequired.join(", ")}`);
+  }
+
+  if (failures.length > 0) {
+    console.error(`\nSchema validation failed for: ${failures.join(", ")}`);
+    return EXIT.SCHEMA_FAILED;
+  }
+
+  console.log(`\nAll artifacts validated successfully`);
+  return EXIT.OK;
+}
+
+/**
+ * Validate all artifacts and return results (for QEG integration)
+ * @param dirArg Directory containing artifacts
+ * @param silent If true, suppress console output
+ * @param strictMode If true, fail on missing required artifacts
+ * @param allowMissing If true, allow missing artifacts even in strict mode
+ * @returns Array of validation results
+ */
+export async function validateAllArtifactsWithResults(
+  dirArg: string,
+  silent: boolean = false,
+  strictMode: boolean = false,
+  allowMissing: boolean = false
+): Promise<SchemaValidationResult[]> {
+  const dir = path.resolve(process.cwd(), dirArg);
+
+  if (!existsSync(dir)) {
+    return [{ artifact: "directory", status: "error", errors: [`directory not found: ${dirArg}`] }];
+  }
+
+  const ajv = createAjv();
+  await loadSchemas(ajv);
+
+  const results: SchemaValidationResult[] = [];
+
+  for (const artifact of ARTIFACTS_TO_VALIDATE) {
+    const filePath = path.join(dir, artifact);
+
+    if (!existsSync(filePath)) {
+      const isRequired = REQUIRED_ARTIFACTS.includes(artifact);
+
+      if (strictMode && isRequired && !allowMissing) {
+        results.push({ artifact, status: "error", errors: ["MISSING_REQUIRED_ARTIFACT"] });
+      }
+      // Skip missing artifacts (either optional or allowMissing is true)
+      continue;
+    }
+
+    // Read and parse artifact
+    let data: unknown;
+    try {
+      data = readJson(filePath);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      results.push({ artifact, status: "error", errors: [`parse error: ${errorMsg}`] });
+      continue;
+    }
+
+    // Find schema for artifact
+    const schemaPath = schemaForArtifact(data);
+    if (!schemaPath) {
+      results.push({ artifact, status: "error", errors: ["no schema found"] });
+      continue;
+    }
+
+    const schema = readJson(schemaPath) as { $id?: string };
+
+    try {
+      const validate: ValidateFunction = ajv.getSchema(schema.$id || schemaPath) || ajv.compile(schema);
+      const valid = validate(data);
+
+      if (!valid) {
+        const errors = formatErrors(validate.errors);
+        results.push({ artifact, status: "error", errors });
+      } else {
+        results.push({ artifact, status: "ok" });
+        if (!silent) {
+          console.log(`ok: ${artifact}`);
+        }
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      results.push({ artifact, status: "error", errors: [`validation error: ${errorMsg}`] });
+    }
+  }
+
+  return results;
+}
+
+export async function schemaValidate(args: string[]): Promise<number> {
+  // Parse --strict and --allow-missing options
+  const strictMode = args.includes("--strict");
+  const allowMissing = args.includes("--allow-missing");
+
+  // Filter out options from args
+  const filteredArgs = args.filter((a) => !a.startsWith("--"));
+
+  if (filteredArgs[0] === "validate-all") {
+    if (!filteredArgs[1]) {
+      console.error("usage: code-to-gate schema validate-all <dir> [--strict] [--allow-missing]");
+      return EXIT.USAGE_ERROR;
+    }
+    return validateAllArtifacts(filteredArgs[1], strictMode, allowMissing);
+  }
+
+  if (filteredArgs[0] !== "validate" || !filteredArgs[1]) {
+    console.error("usage: code-to-gate schema validate <artifact-or-schema>");
+    console.error("usage: code-to-gate schema validate-all <dir> [--strict] [--allow-missing]");
+    return EXIT.USAGE_ERROR;
+  }
+
+  const targetArg = filteredArgs[1];
   const target = path.resolve(process.cwd(), targetArg);
 
   if (!existsSync(target)) {

@@ -5,10 +5,8 @@
  * generates blast radius and findings for changed files.
  */
 
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import { execSync } from "node:child_process";
-import { sha256, toPosix } from "../core/path-utils.js";
+import { toPosix } from "../core/path-utils.js";
 import { detectLanguage, detectRole, walkDir, ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
@@ -20,13 +18,24 @@ import {
   ToolRef,
 } from "../types/artifacts.js";
 import {
-  buildFindingsFromGraph,
+  evaluateRules,
+} from "../application/rule-evaluator.js";
+import {
   writeFindingsJson,
 } from "../reporters/json-reporter.js";
 import {
   buildAuditArtifact,
   writeAuditJson,
 } from "../reporters/audit-writer.js";
+
+// Application context and adapters
+import { createApplicationContext } from "../application/context.js";
+import {
+  nodeFileAccess,
+  nodeHashService,
+  nodeClockService,
+  nodePathService,
+} from "../adapters/node-services.js";
 
 interface DiffOptions {
   VERSION: string;
@@ -184,7 +193,7 @@ function getChangedFiles(repoRoot: string, baseRef: string, headRef: string): Ch
 
     // Treat first few files as "changed" for demo purposes
     for (const file of targetFiles.slice(0, 5)) {
-      const rel = toPosix(path.relative(repoRoot, file));
+      const rel = toPosix(nodePathService.relative(repoRoot, file));
       changedFiles.push({
         path: rel,
         status: "modified",
@@ -214,8 +223,8 @@ function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedF
     // Find files that import changed files
     const imports: string[] = [];
     try {
-      const fullPath = path.join(graph.repo.root, file.path);
-      const content = readFileSync(fullPath, "utf8");
+      const fullPath = nodePathService.join(graph.repo.root, file.path);
+      const content = nodeFileAccess.readFile(fullPath) ?? "";
       // Extract import patterns
       const importMatches = content.match(/from ['"]([^'"]+)['"]/g) || [];
       const requireMatches = content.match(/require\(['"]([^'"]+)['"]\)/g) || [];
@@ -284,7 +293,8 @@ function buildDiffFindings(
   changedFiles: ChangedFile[],
   blastRadius: BlastRadius,
   runId: string,
-  repoRoot: string
+  repoRoot: string,
+  toolVersion: string
 ): FindingsArtifact {
   const findings: Finding[] = [];
 
@@ -303,7 +313,20 @@ function buildDiffFindings(
     stats: { partial: filteredFiles.length < graph.files.length },
   };
 
-  const allFindings = buildFindingsFromGraph(filteredGraph, runId, repoRoot);
+  // Create application context (Composition Root)
+  const applicationContext = createApplicationContext(
+    {
+      fileAccess: nodeFileAccess,
+      hashService: nodeHashService,
+      clockService: nodeClockService,
+      pathService: nodePathService,
+    },
+    new Map(),
+    toolVersion,
+    false
+  );
+
+  const allFindings = evaluateRules(filteredGraph, applicationContext);
 
   // Filter findings to only those in changed files or blast radius
   for (const finding of allFindings.findings) {
@@ -372,7 +395,7 @@ function generateBlastRadiusMermaid(blastRadius: BlastRadius): string {
 
 function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
   const now = new Date().toISOString();
-  const relativeRoot = toPosix(path.relative(process.cwd(), repoRoot) || ".");
+  const relativeRoot = toPosix(nodePathService.relative(process.cwd(), repoRoot) || ".");
   const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
 
   const graph: NormalizedRepoGraph = {
@@ -402,8 +425,8 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
   );
 
   for (const file of targetFiles) {
-    const rel = toPosix(path.relative(repoRoot, file));
-    const body = readFileSync(file, "utf8");
+    const rel = toPosix(nodePathService.relative(repoRoot, file));
+    const body = nodeFileAccess.readFile(file) ?? "";
     const language = detectLanguage(file);
     const role = detectRole(rel);
 
@@ -412,7 +435,7 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
       path: rel,
       language,
       role,
-      hash: sha256(body),
+      hash: nodeHashService.sha256(body),
       sizeBytes: Buffer.byteLength(body),
       lineCount: body.split(/\r?\n/).length,
       moduleId: `module:${rel}`,
@@ -462,19 +485,20 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
   }
 
   const cwd = process.cwd();
-  const repoRoot = path.resolve(cwd, repoArg);
+  const repoRoot = nodePathService.resolve(cwd, repoArg);
 
-  if (!existsSync(repoRoot)) {
+  if (!nodeFileAccess.exists(repoRoot)) {
     console.error(`repo does not exist: ${repoArg}`);
     return options.EXIT.USAGE_ERROR;
   }
 
-  if (!statSync(repoRoot).isDirectory()) {
+  const repoStats = nodeFileAccess.stat(repoRoot);
+  if (!repoStats || !repoStats.isDirectory) {
     console.error(`repo is not a directory: ${repoArg}`);
     return options.EXIT.USAGE_ERROR;
   }
 
-  const absoluteOutDir = path.resolve(cwd, outDir);
+  const absoluteOutDir = nodePathService.resolve(cwd, outDir);
 
   try {
     // Build partial graph for analysis
@@ -520,8 +544,8 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
         },
       };
 
-      const diffAnalysisPath = path.join(absoluteOutDir, "diff-analysis.json");
-      writeFileSync(diffAnalysisPath, JSON.stringify(emptyDiffAnalysis, null, 2) + "\n", "utf8");
+      const diffAnalysisPath = nodePathService.join(absoluteOutDir, "diff-analysis.json");
+      nodeFileAccess.writeFile(diffAnalysisPath, JSON.stringify(emptyDiffAnalysis, null, 2) + "\n");
 
       console.log(
         JSON.stringify({
@@ -529,7 +553,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
           command: "diff",
           status: "no_changes",
           run_id: graph.run_id,
-          artifacts: [path.relative(cwd, diffAnalysisPath)],
+          artifacts: [nodePathService.relative(cwd, diffAnalysisPath)],
           message: "No changes detected between base and head",
         })
       );
@@ -540,7 +564,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     const blastRadius = calculateBlastRadius(graph, changedFiles);
 
     // Build diff findings
-    const findings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root);
+    const findings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION);
 
     ensureDir(absoluteOutDir);
 
@@ -573,16 +597,16 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
       },
     };
 
-    const diffAnalysisPath = path.join(absoluteOutDir, "diff-analysis.json");
-    writeFileSync(diffAnalysisPath, JSON.stringify(diffAnalysis, null, 2) + "\n", "utf8");
+    const diffAnalysisPath = nodePathService.join(absoluteOutDir, "diff-analysis.json");
+    nodeFileAccess.writeFile(diffAnalysisPath, JSON.stringify(diffAnalysis, null, 2) + "\n");
 
     // Generate findings.json
     const findingsPath = writeFindingsJson(absoluteOutDir, findings);
 
     // Generate blast-radius.mmd
     const mermaid = generateBlastRadiusMermaid(blastRadius);
-    const mermaidPath = path.join(absoluteOutDir, "blast-radius.mmd");
-    writeFileSync(mermaidPath, mermaid, "utf8");
+    const mermaidPath = nodePathService.join(absoluteOutDir, "blast-radius.mmd");
+    nodeFileAccess.writeFile(mermaidPath, mermaid);
 
     // Generate audit.json
     const audit = buildAuditArtifact(
@@ -593,7 +617,8 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
       "passed_with_risk",
       findings.findings.length > 0
         ? `${findings.findings.length} findings in changed files`
-        : "No findings in changed files"
+        : "No findings in changed files",
+      VERSION
     );
     const auditPath = writeAuditJson(absoluteOutDir, audit);
 
@@ -604,10 +629,10 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
         command: "diff",
         run_id: graph.run_id,
         artifacts: [
-          path.relative(cwd, diffAnalysisPath),
-          path.relative(cwd, findingsPath),
-          path.relative(cwd, mermaidPath),
-          path.relative(cwd, auditPath),
+          nodePathService.relative(cwd, diffAnalysisPath),
+          nodePathService.relative(cwd, findingsPath),
+          nodePathService.relative(cwd, mermaidPath),
+          nodePathService.relative(cwd, auditPath),
         ],
         summary: {
           changed_files: changedFiles.length,

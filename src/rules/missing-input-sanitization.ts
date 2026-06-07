@@ -18,6 +18,7 @@ interface DangerContext {
   type: string;
   severity: "critical" | "high" | "medium";
   description: string;
+  excludePattern?: RegExp; // Optional pattern to exclude safe contexts
 }
 
 const DANGER_CONTEXTS: DangerContext[] = [
@@ -85,12 +86,15 @@ const DANGER_CONTEXTS: DangerContext[] = [
     description: "NoSQL injection risk: User input directly in query object",
   },
 
-  // Log injection patterns
+  // Log injection patterns - only detect direct interpolation of request body/query/params
+  // Exclude safe patterns like JSON.stringify, sanitize wrappers, or internal state logging
   {
-    pattern: /(?:console\.log|logger\.|log\s*\()\s*\([^)]*[^)]*(?:req|request|body|query|params|headers)[^)]*\)/gi,
+    pattern: /(?:console\.log|logger\.|log\s*\()\s*[^)]*(?:req\.body|req\.query|req\.params|req\.headers|request\.body|request\.query|request\.params|request\.headers)/gi,
     type: "log",
     severity: "medium",
-    description: "Log injection risk: User input directly in log output",
+    description: "Log injection risk: External request data directly in log output",
+    // Exclude pattern for safe logging (will be checked separately)
+    excludePattern: /(?:JSON\.stringify|sanitize|escapeHtml|encode|sanitizeInput|safeLog)/,
   },
 ];
 
@@ -211,6 +215,14 @@ export const MISSING_INPUT_SANITIZATION_RULE: RulePlugin = {
             const suppressionContext = [...prevLines, line].join("\n");
             if (suppressionContext.includes("eslint-disable") || suppressionContext.includes("nolint") || suppressionContext.includes("noqa")) {
               continue;
+            }
+
+            // Check for exclude pattern (safe logging contexts)
+            if (ctx.excludePattern) {
+              ctx.excludePattern.lastIndex = 0;
+              if (ctx.excludePattern.test(line)) {
+                continue;
+              }
             }
 
             findings.push({

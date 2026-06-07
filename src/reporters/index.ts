@@ -1,11 +1,15 @@
 /**
  * Reporters - exports for code-to-gate artifact generation
+ *
+ * Reporters handle artifact formatting and file I/O only.
+ * Rule evaluation is in application layer - import directly from application/rule-evaluator.ts
  */
 
 export {
-  buildFindingsFromGraph,
   writeFindingsJson,
-  createArtifactHeader,
+  domainTagForFinding,
+  falsePositiveReviewTags,
+  escapeMarkdownCell,
 } from "./json-reporter.js";
 
 export {

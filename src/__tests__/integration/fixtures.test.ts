@@ -183,7 +183,7 @@ describe('Fixture Acceptance Tests', () => {
       expect(risks.hasRisks || risks.risksCount > 0 || risks.risks).toBeTruthy();
       // Check that the raw content includes recommended-actions
       if (risks.raw) {
-        expect(risks.raw).toContain('recommended-actions');
+        expect(risks.raw).toContain('recommendedActions');
       }
     });
   });

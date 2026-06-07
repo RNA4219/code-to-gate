@@ -32,14 +32,14 @@ interface ScanOptions {
  * Build graph with cache support for incremental scanning
  * Uses streaming processing for large repos (5000+ files)
  */
-function buildGraphWithCache(
+async function buildGraphWithCache(
   repoRoot: string,
   cacheManager: CacheManager,
   parallelWorkers: number,
   verbose: boolean,
   useTreeSitter: boolean = false,
   treeSitterAvailable: boolean = false
-): NormalizedRepoGraph {
+): Promise<NormalizedRepoGraph> {
   const startTime = Date.now();
   const graph = createEmptyRepoGraph(repoRoot, VERSION);
 
@@ -138,28 +138,15 @@ function buildGraphWithCache(
     }
   };
 
-  // For large repos, use streaming processing
+  // For large repos, use streaming processing and defer expensive symbol parsing.
   if (isLargeRepo) {
-    // Use streaming mode with memory-efficient processing
-    // Note: We need to handle this synchronously for the current scan architecture
-    // but we'll use batch processing for memory efficiency
-    const batchSize = Math.min(200, Math.ceil(filesToProcess.length / parallelWorkers / 2));
-    const totalBatches = Math.ceil(filesToProcess.length / batchSize);
+    for await (const results of processor.processFilesStreaming(filesToProcess, _onProgress)) {
+      graphBuilder(results);
 
-    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-      const batchStart = batchIndex * batchSize;
-      const batchEnd = Math.min(batchStart + batchSize, filesToProcess.length);
-      const batchFiles = filesToProcess.slice(batchStart, batchEnd);
-
-      // Process batch
-      for (const file of batchFiles) {
-        const result = processor.processFile(file);
-        graphBuilder([result]);
-
-        // Check for entrypoints (only for source files)
+      for (const result of results) {
         if (result.file.role === "source") {
           try {
-            const content = readFileSync(file, "utf8");
+            const content = readFileSync(path.join(repoRoot, result.file.path), "utf8");
             addGraphEntrypoint(graph, result.file.path, content);
           } catch {
             // Skip if file cannot be read
@@ -167,22 +154,7 @@ function buildGraphWithCache(
         }
       }
 
-      // Emit batch progress
-      if (verbose) {
-        console.log(JSON.stringify({
-          phase: "batch-processing",
-          batchNumber: batchIndex + 1,
-          totalBatches,
-          processedFiles: batchEnd,
-          totalFiles: filesToProcess.length,
-          elapsedMs: Date.now() - parseStart,
-        }));
-      }
-
-      // Periodically clear lazy symbol cache for memory efficiency
-      if (batchIndex % 5 === 0) {
-        processor.clearLazySymbolCache();
-      }
+      processor.clearLazySymbolCache();
     }
   } else {
     // Standard processing for smaller repos
@@ -258,30 +230,31 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
     return options.EXIT.USAGE_ERROR;
   }
 
-  // Initialize tree-sitter parsers automatically
-  // Falls back to regex if WASM packages not installed
+  // Tree-sitter is opt-in because loading the four WASM parsers is expensive.
   let treeSitterAvailable = false;
-  try {
-    const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
-      initPythonParser(),
-      initRubyParser(),
-      initGoParser(),
-      initRustParser(),
-    ]);
-    treeSitterAvailable = pyAvailable || rbAvailable || goAvailable || rsAvailable;
+  if (useTreeSitter) {
+    try {
+      const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
+        initPythonParser(),
+        initRubyParser(),
+        initGoParser(),
+        initRustParser(),
+      ]);
+      treeSitterAvailable = pyAvailable || rbAvailable || goAvailable || rsAvailable;
 
-    if (verbose) {
-      console.log(JSON.stringify({
-        phase: "tree-sitter-init",
-        python: pyAvailable,
-        ruby: rbAvailable,
-        go: goAvailable,
-        rust: rsAvailable,
-        available: treeSitterAvailable,
-      }));
+      if (verbose) {
+        console.log(JSON.stringify({
+          phase: "tree-sitter-init",
+          python: pyAvailable,
+          ruby: rbAvailable,
+          go: goAvailable,
+          rust: rsAvailable,
+          available: treeSitterAvailable,
+        }));
+      }
+    } catch {
+      // Silently continue with regex fallback
     }
-  } catch {
-    // Silently continue with regex fallback
   }
 
   // Parse options
@@ -305,7 +278,7 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
 
   try {
     // Build graph with cache support
-    const graph = buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose, useTreeSitter, treeSitterAvailable);
+    const graph = await buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose, useTreeSitter, treeSitterAvailable);
 
     writeJson(path.join(absoluteOutDir, "repo-graph.json"), graph);
 

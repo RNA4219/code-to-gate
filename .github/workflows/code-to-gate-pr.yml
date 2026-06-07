@@ -196,20 +196,36 @@ jobs:
 
       - name: Run diff analysis
         run: |
+          set +e
           node ./dist/cli.js diff . \
             --base origin/main \
             --head HEAD \
             --policy .github/ctg-policy.yaml \
             --out .qh
+          DIFF_EXIT=$?
+          set -e
+          if [ "$DIFF_EXIT" -ne 0 ] && [ ! -f .qh/findings.json ]; then
+            echo "::error::Diff analysis failed before producing findings.json"
+            exit "$DIFF_EXIT"
+          fi
+          echo "Diff analysis completed with exit code $DIFF_EXIT"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Run readiness evaluation
         run: |
+          set +e
           node ./dist/cli.js readiness . \
             --policy .github/ctg-policy.yaml \
             --from .qh \
             --out .qh
+          READINESS_EXIT=$?
+          set -e
+          if [ "$READINESS_EXIT" -ne 0 ] && [ ! -f .qh/release-readiness.json ]; then
+            echo "::error::Readiness evaluation failed before producing release-readiness.json"
+            exit "$READINESS_EXIT"
+          fi
+          echo "Readiness evaluation completed with exit code $READINESS_EXIT"
 
       - name: Check readiness status
         run: |

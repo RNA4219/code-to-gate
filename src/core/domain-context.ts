@@ -1,3 +1,13 @@
+/**
+ * Domain Context - Pure classification logic for findings.
+ * Moved from reporters to core to resolve circular dependency.
+ *
+ * This module contains:
+ * - Domain classification based on finding category
+ * - Path-based domain inference
+ * - False positive review tags generation
+ */
+
 import type { Finding, FindingCategory } from "../types/artifacts.js";
 
 export interface DomainSignal {

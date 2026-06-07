@@ -372,7 +372,7 @@ function collectErrors(
       diagnostics.push({
         id: `err-${line}`,
         severity: "error",
-        code: "PARSE_ERROR",
+        code: "PARSER_FAILED",
         message: `Syntax error at line ${line}`,
       });
     }

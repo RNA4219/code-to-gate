@@ -36,6 +36,11 @@ import {
   generateManualBbSeedV1,
   generateWorkflowEvidenceV1,
 } from "./export-generators.js";
+import {
+  generateQEGCodeToGateEvidence,
+} from "../qeg/qeg-connector.js";
+import { validateAllArtifactsWithResults } from "./schema-validate.js";
+import { loadReleaseReadinessArtifact } from "./artifact-loader.js";
 
 export interface ExportOptions {
   VERSION: string;
@@ -149,6 +154,58 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
         output = generateSarif(findings);
         outputPath = outFile ?? path.join(artifactDir, "results.sarif");
         break;
+
+      case "qeg-code-to-gate": {
+        // QEG export requires release-readiness.json and schema validation
+        const readinessPath = path.join(artifactDir, "release-readiness.json");
+        if (!existsSync(readinessPath)) {
+          console.error(`core artifact not found: ${fromDir}/release-readiness.json`);
+          console.error("qeg-code-to-gate requires both findings.json and release-readiness.json");
+          return options.EXIT.USAGE_ERROR;
+        }
+
+        const readiness = loadReleaseReadinessArtifact(readinessPath);
+        const schemaResults = await validateAllArtifactsWithResults(artifactDir, true, true);
+        const schemaFailures = schemaResults.filter((result) => result.status === "error");
+        if (schemaFailures.length > 0) {
+          console.error("qeg-code-to-gate requires strict schema-compliant artifacts");
+          for (const failure of schemaFailures) {
+            console.error(`  ${failure.artifact}: ${failure.errors?.join(", ") ?? "schema validation failed"}`);
+          }
+          return options.EXIT.INTEGRATION_EXPORT_FAILED;
+        }
+
+        // Generate evidence-only export (no decision)
+        const evidence = generateQEGCodeToGateEvidence(
+          findings,
+          readiness,
+          schemaResults,
+          artifactDir,
+          findings.run_id,
+          process.env.GITHUB_SHA?.slice(0, 7)
+        );
+
+        outputPath = path.resolve(cwd, outFile ?? path.join(artifactDir, "qeg-code-to-gate.json"));
+        writeFileSync(outputPath, JSON.stringify(evidence, null, 2) + "\n", "utf8");
+
+        console.log(
+          JSON.stringify({
+            tool: "code-to-gate",
+            command: "export",
+            target: "qeg-code-to-gate",
+            input: path.relative(cwd, findingsPath),
+            output: path.relative(cwd, outputPath),
+            summary: {
+              findings: findings.findings.length,
+              readiness_status: readiness.status,
+              schema_compliance: schemaResults.filter((r) => r.status === "ok").length,
+              artifact_hashes: evidence.artifact_hashes.length,
+            },
+          })
+        );
+
+        return options.EXIT.OK;
+      }
 
       default:
         console.error(`unsupported target: ${targetArg}`);

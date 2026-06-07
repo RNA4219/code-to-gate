@@ -8,7 +8,6 @@
  * - smoke: testing gaps
  */
 
-import { VERSION } from "../cli/exit-codes.js";
 import {
   ArtifactHeader,
   Finding,
@@ -119,7 +118,7 @@ export function buildTestSeedsFromFindings(
     },
     tool: {
       name: "code-to-gate",
-      version: VERSION,
+      version: findings.tool.version,
       policy_id: policyId,
       plugin_versions: [],
     },

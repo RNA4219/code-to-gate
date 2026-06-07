@@ -153,74 +153,6 @@ export function buildRiskRegisterFromFindings(
 }
 
 /**
- * Convert object to YAML string (simple implementation)
- * Note: Used internally for recursive YAML generation
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function toYamlString(obj: unknown, indent: number = 0): string {
-  const spaces = "  ".repeat(indent);
-  const nextIndent = indent + 1;
-  const _nextSpaces = "  ".repeat(nextIndent);
-
-  if (obj === null || obj === undefined) {
-    return "null\n";
-  }
-
-  if (typeof obj === "string") {
-    // Escape strings with special characters
-    if (obj.includes("\n") || obj.includes(":") || obj.includes("#") || obj.includes('"')) {
-      const escaped = obj.replace(/\\/g, "\\").replace(/"/g, "\\\"");
-      return `"${escaped}"\n`;
-    }
-    return `${obj}\n`;
-  }
-
-  if (typeof obj === "number") {
-    return `${obj}\n`;
-  }
-
-  if (typeof obj === "boolean") {
-    return `${obj}\n`;
-  }
-
-  if (Array.isArray(obj)) {
-    if (obj.length === 0) {
-      return "[]\n";
-    }
-    let result = "\n";
-    for (const item of obj) {
-      if (typeof item === "object" && item !== null) {
-        result += `${spaces}-\n${toYamlString(item, nextIndent)}`;
-      } else {
-        result += `${spaces}- ${toYamlString(item, 0).trim()}\n`;
-      }
-    }
-    return result;
-  }
-
-  if (typeof obj === "object") {
-    const entries = Object.entries(obj as Record<string, unknown>);
-    if (entries.length === 0) {
-      return "{}\n";
-    }
-    let result = "\n";
-    for (const [key, value] of entries) {
-      const yamlKey = key.replace(/_/g, "-"); // Convert underscore to hyphen for YAML style
-      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-        result += `${spaces}${yamlKey}:${toYamlString(value, nextIndent)}`;
-      } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object") {
-        result += `${spaces}${yamlKey}:${toYamlString(value, nextIndent)}`;
-      } else {
-        result += `${spaces}${yamlKey}: ${toYamlString(value, 0).trim()}\n`;
-      }
-    }
-    return result;
-  }
-
-  return String(obj) + "\n";
-}
-
-/**
  * Write risk-register.yaml to output directory
  */
 export function writeRiskRegisterYaml(outDir: string, artifact: RiskRegisterArtifact): string {
@@ -249,8 +181,12 @@ tool:
 risks:
 `;
 
-  for (const risk of artifact.risks) {
-    yaml += `
+  // Handle empty risks array - must output [] to satisfy schema
+  if (artifact.risks.length === 0) {
+    yaml += "  []\n";
+  } else {
+    for (const risk of artifact.risks) {
+      yaml += `
   - id: ${risk.id}
     title: ${risk.title}
     severity: ${risk.severity}
@@ -259,7 +195,12 @@ risks:
     impact:
 `;
     for (const impactItem of risk.impact) {
-      yaml += `      - ${impactItem}\n`;
+      // Quote impact items that contain colons or special characters
+      if (impactItem.includes(":") || impactItem.includes("#") || impactItem.includes("|")) {
+        yaml += `      - "${impactItem}"\n`;
+      } else {
+        yaml += `      - ${impactItem}\n`;
+      }
     }
     yaml += `    sourceFindingIds:
 `;
@@ -273,7 +214,7 @@ risks:
       if (ev.startLine) yaml += `        startLine: ${ev.startLine}\n`;
       if (ev.excerptHash) yaml += `        excerptHash: "${ev.excerptHash}"\n`;
     }
-    yaml += `    recommended-actions:\n`;
+    yaml += `    recommendedActions:\n`;
     for (const action of risk.recommendedActions) {
       // Quote actions that contain colons or special characters
       if (action.includes(":") || action.includes("#") || action.includes("|")) {
@@ -286,6 +227,7 @@ risks:
       yaml += `    narrative: |
       ${risk.narrative.split("\n").join("\n      ")}
 `;
+    }
     }
   }
 

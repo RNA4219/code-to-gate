@@ -431,3 +431,103 @@ Go/Rust tree-sitter adapters追加実装完了。
 **Total Phase 5 tests**: 54 (Python 13 + Ruby 14 + Go 13 + Rust 14)
 
 **Gate status**: go, Phase 5完全完了
+
+---
+
+## 2026-06-07 Dependency Boundary Reorganization 完了
+
+Clean Architecture dependency boundaries 完全実装完了。
+
+| Phase | 状態 | 説明 |
+|---|---|---|
+| 1 | ✓ 完了 | Add contracts to types layer |
+| 2 | ✓ 完了 | Separate reporter dependencies |
+| 3 | ✓ 完了 | Create application layer (foundation) |
+| 4 | Deferred | Refactor core layer (ESLintで境界強制) |
+| 5 | ✓ 完了 | Create adapter implementations |
+| 6 | ✓ 完了 | Update CLI as composition root |
+| 7 | ✓ 完了 | Add ESLint boundary rules |
+| 8 | ✓ 完了 | Add dependency boundary tests |
+
+### 実装内容
+
+| 項目 | 変更内容 | file |
+|---|---|---|
+| Core interfaces | FileAccess, HashService, ClockService, PathService | `src/types/contracts.ts` |
+| Node adapters | Implementation of service interfaces | `src/adapters/node-*.ts` |
+| Application context | DI container for services | `src/application/context.ts` |
+| Rule evaluator | Extracted from reporters to application | `src/application/rule-evaluator.ts` |
+| CLI imports | Direct import from application, not reporters | `src/cli/analyze.ts`, `src/cli/diff.ts` |
+| ESLint rules | no-restricted-imports for boundaries | `eslint.config.js` |
+| Boundary tests | 17 programmatic tests (types 1, reporters 4, rules 2, adapters 3, core 4, application 3) | `src/__tests__/architecture/dependency-boundary.test.ts` |
+| Package smoke test | npm pack validation | `scripts/package-smoke.mjs` |
+
+### Phase 4 Deferred Exception
+
+`src/core/repo-graph-builder.ts` → `src/adapters/*` の依存は明示的な例外として継続:
+- repo-graph-builderはparser adaptersを直接import (ts-morph, tree-sitter)
+- 移動は影響範囲が大きく、ESLintルールとarchitecture testで境界強制のみ実施
+- 将来の Phase 4+ で application layer へ移動検討
+
+ESLint config:
+- `src/core/**/*.ts`: cli, application, reporters imports blocked (adapters allowed only for repo-graph-builder)
+- `src/core/repo-graph-builder.ts`: explicit exception file with adapters import allowed
+
+Architecture test:
+- `core layer > should not import from adapters layer (except repo-graph-builder)`: skips repo-graph-builder.ts
+
+### Dependency Direction Rules (ESLint enforced)
+
+| Layer | Allowed Imports |
+|---|---|
+| types | none (self-contained) |
+| core | types, node:* (fs, crypto, path whitelist) |
+| rules | types, core |
+| reporters | types, core (no CLI, no application) |
+| adapters | types, core (sha256, toPosix, createAstEvidence) |
+| application | types, core, rules (no reporters, no adapters, no CLI) |
+| cli | all layers (composition root) |
+
+### Verification Commands
+
+```powershell
+npm run lint          # ESLint boundary rules
+npm run typecheck     # TypeScript compilation
+npm run test:smoke    # 54 tests
+npm run test:architecture  # 17 dependency boundary tests
+npm test              # Full test suite (~3000 tests)
+npm run test:package  # Package smoke test (clean build → pack → install → CLI test)
+npm run release:validate  # Unified gate: lint + typecheck + smoke + architecture + package test
+```
+
+### 実行結果
+
+| 検証項目 | 結果 |
+|---|---|
+| npm run lint | 0 errors, 0 warnings |
+| npm run typecheck | TypeScript passes |
+| npm run test:smoke | 54 tests passed |
+| npm test | 2782 tests passed |
+| test:package | Package smoke test passed |
+| npm pack --dry-run | 367 files, 1.5 MB |
+
+**Gate status**: go, Clean Architecture 完全実装完了
+
+---
+
+## 2026-06-08 通常フルテスト高速化
+
+- `scan` のTree-sitter初期化を `--tree-sitter` 明示指定時のみに変更した。
+- 通常テストをVitest `forks` poolで並列実行し、Tree-sitter専用62 testsを直列グループへ分離した。
+- integration CLI helperを引数配列による `spawnSync` 実行へ変更した。
+- alpha acceptanceのfixture成果物をsuite単位で生成・再利用した。
+- `test:performance` と `test:real-repo` は独立gateとして維持した。
+
+| 検証項目 | 結果 |
+|---|---|
+| lint / typecheck | pass |
+| `npm run test:tree-sitter` | 5 files / 62 tests pass、3.50秒 |
+| alpha acceptance | 56 tests pass、変更前約314秒 → 変更後125.80秒 |
+| 通常フルテスト | 104 files / 2744 tests passを確認 |
+
+固定ワーカー数によるCPU依存チューニングは行わず、Vitest既定値を使用する。`npm test` 3回連続測定は長時間実行中のセッション中断により完遂していない。

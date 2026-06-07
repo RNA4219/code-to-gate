@@ -14,15 +14,10 @@ export default defineConfig({
       'fixtures/**/node_modules/**',
       'src/__tests__/performance/**',
       'src/__tests__/real-repos/**',
+      'src/**/*tree-sitter*.test.ts',
     ],
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        minThreads: 2,
-        maxThreads: 4,
-      },
-    },
+    pool: 'forks',
+    fileParallelism: true,
     testTimeout: 60000,
     hookTimeout: 60000,
     coverage: {

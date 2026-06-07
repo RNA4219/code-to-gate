@@ -2,9 +2,6 @@
  * Analyze command - generates findings, risk-register, analysis-report, and audit
  */
 
-import { existsSync, statSync, writeFileSync, readFileSync } from "node:fs";
-import path from "node:path";
-import { sha256 } from "../core/path-utils.js";
 import { ensureDir } from "../core/file-utils.js";
 import { buildGraph, initTreeSitterParsers } from "../core/repo-graph-builder.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
@@ -28,7 +25,9 @@ import {
 } from "../config/policy-evaluator.js";
 
 import {
-  buildFindingsFromGraph,
+  evaluateRules,
+} from "../application/rule-evaluator.js";
+import {
   writeFindingsJson,
 } from "../reporters/json-reporter.js";
 import {
@@ -55,6 +54,10 @@ import {
   writeSelfAnalysisDebtJson,
 } from "../reporters/self-analysis-debt-reporter.js";
 import {
+  generateRawFindingsArtifact,
+  writeRawFindingsJson,
+} from "../reporters/raw-findings-reporter.js";
+import {
   classifySuppressedFindings,
   countSuppressedByClass,
 } from "../self-analysis/suppression-summary.js";
@@ -62,6 +65,15 @@ import { applyLlmEnrichment } from "../reporters/llm-enrichment.js";
 import { LlmProviderType, LlmConfig, LlmAnalysisRequest } from "../llm/types.js";
 import { createProvider, createProviderWithFallback } from "../llm/providers/index.js";
 import { validateLocalhostUrl, ALLOWED_LOCALHOST_LABEL } from "../llm/providers/provider-health.js";
+
+// Application context and adapters
+import { createApplicationContext } from "../application/context.js";
+import {
+  nodeFileAccess,
+  nodeHashService,
+  nodeClockService,
+  nodePathService,
+} from "../adapters/node-services.js";
 
 interface AnalyzeOptions {
   VERSION: string;
@@ -107,7 +119,7 @@ export function resolveSuppressionPath(
 ): string {
   const suppressionPath = suppressPath ?? policySuppressionPath ?? ".ctg/suppressions.yaml";
   const suppressionBaseDir = suppressPath ? cwd : repoRoot;
-  return path.resolve(suppressionBaseDir, suppressionPath);
+  return nodePathService.resolve(suppressionBaseDir, suppressionPath);
 }
 
 export async function analyzeCommand(args: string[], options: AnalyzeOptions): Promise<number> {
@@ -151,20 +163,34 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   }
 
   const cwd = process.cwd();
-  const repoRoot = path.resolve(cwd, repoArg);
+  const repoRoot = nodePathService.resolve(cwd, repoArg);
 
-  if (!existsSync(repoRoot)) {
+  // Create application context with injected services (Composition Root)
+  const applicationContext = createApplicationContext(
+    {
+      fileAccess: nodeFileAccess,
+      hashService: nodeHashService,
+      clockService: nodeClockService,
+      pathService: nodePathService,
+    },
+    new Map(), // parsers registered separately via initTreeSitterParsers
+    VERSION,
+    false // tree-sitter readiness set after initialization
+  );
+
+  if (!nodeFileAccess.exists(repoRoot)) {
     console.error(`repo does not exist: ${repoArg}`);
     return options.EXIT.USAGE_ERROR;
   }
 
-  if (!statSync(repoRoot).isDirectory()) {
+  const repoStats = nodeFileAccess.stat(repoRoot);
+  if (!repoStats || !repoStats.isDirectory) {
     console.error(`repo is not a directory: ${repoArg}`);
     return options.EXIT.USAGE_ERROR;
   }
 
   const emitFormats = parseEmitOption(emitValue);
-  const absoluteOutDir = path.resolve(cwd, outDir);
+  const absoluteOutDir = nodePathService.resolve(cwd, outDir);
 
   // Initialize tree-sitter parsers automatically
   // This enables WASM parsing for py/rb/go/rs when available
@@ -272,30 +298,51 @@ Provide concise, actionable findings.`,
       }
     }
 
-    // Generate findings
+    // Generate findings using application-layer evaluator with injected context
     const findings = applyLlmEnrichment(
-      buildFindingsFromGraph(graph, graph.run_id, graph.repo.root, policy?.policyId),
+      evaluateRules(graph, applicationContext, policy?.policyId),
       llmAnalysisResult,
       llmProviderName
     );
 
     // Load imported findings if --from-imports is specified (P1-04)
     if (fromImports) {
-      const importsDir = path.join(absoluteOutDir, "imports");
-      if (existsSync(importsDir)) {
+      const importsDir = nodePathService.join(absoluteOutDir, "imports");
+      if (nodeFileAccess.exists(importsDir)) {
         const importFiles = ["eslint-findings.json", "semgrep-findings.json", "tsc-findings.json", "coverage-findings.json", "test-findings.json"];
         for (const importFile of importFiles) {
-          const importPath = path.join(importsDir, importFile);
-          if (existsSync(importPath)) {
-            try {
-              const importedData = JSON.parse(readFileSync(importPath, "utf8")) as FindingsArtifact;
-              findings.findings.push(...importedData.findings);
-            } catch {
-              console.error(`Warning: Failed to load import file: ${importFile}`);
+          const importPath = nodePathService.join(importsDir, importFile);
+          if (nodeFileAccess.exists(importPath)) {
+            const importedContent = nodeFileAccess.readFile(importPath);
+            if (importedContent) {
+              try {
+                const importedData = JSON.parse(importedContent) as FindingsArtifact;
+                findings.findings.push(...importedData.findings);
+              } catch {
+                console.error(`Warning: Failed to load import file: ${importFile}`);
+              }
             }
           }
         }
       }
+    }
+
+    // Track generated artifacts
+    const generated: string[] = [];
+
+    // Generate raw-findings.json (all findings before suppression)
+    // This is emitted for self-analysis transparency and debt tracking
+    // Always emit when json format is requested (companion artifact)
+    if (emitFormats.includes("json")) {
+      const rawFindingsArtifact = generateRawFindingsArtifact(
+        findings,
+        graph.repo.root,
+        graph.run_id,
+        VERSION,
+        policy?.policyId
+      );
+      const rawFindingsPath = writeRawFindingsJson(absoluteOutDir, rawFindingsArtifact);
+      generated.push(rawFindingsPath);
     }
 
     // Evaluate policy using shared evaluator (unified with readiness)
@@ -321,9 +368,6 @@ Provide concise, actionable findings.`,
 
     // Generate risk register
     const riskRegister = buildRiskRegisterFromFindings(reportedFindings, policy?.policyId);
-
-    // Track generated artifacts
-    const generated: string[] = [];
 
     // Emit artifacts
     if (emitFormats.includes("json")) {
@@ -362,21 +406,24 @@ Provide concise, actionable findings.`,
     const invariantsPath = writeInvariantsJson(absoluteOutDir, invariants);
     generated.push(invariantsPath);
 
-    if (suppressions.length > 0) {
+    // Generate self-analysis-debt.json only when policy is provided
+    // When no policy, readiness command will generate authoritative debt artifact
+    if (policy && suppressions.length > 0) {
       const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
         findings,
         suppressions,
         suppressedFindings,
         graph.repo.root,
-        graph.run_id
+        graph.run_id,
+        VERSION
       );
       const selfAnalysisDebtPath = writeSelfAnalysisDebtJson(absoluteOutDir, selfAnalysisDebt);
       generated.push(selfAnalysisDebtPath);
     }
 
     // Generate repo-graph.json (P1-02)
-    const repoGraphPath = path.join(absoluteOutDir, "repo-graph.json");
-    writeFileSync(repoGraphPath, JSON.stringify(graph, null, 2) + "\n", "utf8");
+    const repoGraphPath = nodePathService.join(absoluteOutDir, "repo-graph.json");
+    nodeFileAccess.writeFile(repoGraphPath, JSON.stringify(graph, null, 2) + "\n");
     generated.push(repoGraphPath);
 
     // Generate audit summary message
@@ -398,7 +445,8 @@ Provide concise, actionable findings.`,
       policy,
       finalExitCode,
       mapStatusToAuditStatus(readinessStatus),
-      auditSummary
+      auditSummary,
+      VERSION
     );
 
     // Add LLM info to audit
@@ -407,8 +455,8 @@ Provide concise, actionable findings.`,
         provider: llmProviderName,
         model: llmModel ?? "default",
         prompt_version: "v1",
-        request_hash: sha256("analysis-request"),
-        response_hash: llmAnalysisResult ? sha256(llmAnalysisResult) : "",
+        request_hash: nodeHashService.sha256("analysis-request"),
+        response_hash: llmAnalysisResult ? nodeHashService.sha256(llmAnalysisResult) : "",
         redaction_enabled: true,
       };
     }
@@ -430,7 +478,7 @@ Provide concise, actionable findings.`,
           provider: "none",
           available: false,
         },
-        artifacts: generated.map((p) => path.relative(cwd, p)),
+        artifacts: generated.map((p) => nodePathService.relative(cwd, p)),
         summary: {
           findings: reportedFindings.findings.length,
           risks: riskRegister.risks.length,

@@ -10,7 +10,7 @@ import {
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { escapeMarkdownCell, inferFindingDomain } from "./domain-context.js";
+import { escapeMarkdownCell, inferFindingDomain } from "../core/domain-context.js";
 import type { SuppressionClass, BroadSuppression } from "../config/policy-loader.js";
 
 /**

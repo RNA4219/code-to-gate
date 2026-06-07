@@ -2,7 +2,7 @@
  * Integration test helper utilities
  */
 
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,27 +22,19 @@ export interface RunResult {
  * Run the code-to-gate CLI with given arguments
  */
 export function runCli(args: string[], cwd: string = PROJECT_ROOT, timeoutMs: number = 60000): RunResult {
-  const cmd = `node "${DIST_CLI}" ${args.join(" ")}`;
+  const result = spawnSync(process.execPath, [DIST_CLI, ...args], {
+    cwd,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+    timeout: timeoutMs,
+    shell: false,
+  });
 
-  let stdout = "";
-  let stderr = "";
-  let exitCode = 0;
-
-  try {
-    stdout = execSync(cmd, {
-      cwd,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: timeoutMs,
-    });
-  } catch (error: unknown) {
-    const execError = error as { stdout?: string; stderr?: string; status?: number };
-    stdout = execError.stdout || "";
-    stderr = execError.stderr || "";
-    exitCode = execError.status || 1;
-  }
-
-  return { stdout, stderr, exitCode };
+  return {
+    stdout: result.stdout || "",
+    stderr: result.stderr || result.error?.message || "",
+    exitCode: result.status ?? 1,
+  };
 }
 
 /**
