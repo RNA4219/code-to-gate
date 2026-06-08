@@ -443,7 +443,7 @@ Clean Architecture dependency boundaries 完全実装完了。
 | 1 | ✓ 完了 | Add contracts to types layer |
 | 2 | ✓ 完了 | Separate reporter dependencies |
 | 3 | ✓ 完了 | Create application layer (foundation) |
-| 4 | Deferred | Refactor core layer (ESLintで境界強制) |
+| 4 | ✓ 完了 | ParserRegistry注入によりcoreからparser adapter依存を除去 |
 | 5 | ✓ 完了 | Create adapter implementations |
 | 6 | ✓ 完了 | Update CLI as composition root |
 | 7 | ✓ 完了 | Add ESLint boundary rules |
@@ -462,19 +462,9 @@ Clean Architecture dependency boundaries 完全実装完了。
 | Boundary tests | 17 programmatic tests (types 1, reporters 4, rules 2, adapters 3, core 4, application 3) | `src/__tests__/architecture/dependency-boundary.test.ts` |
 | Package smoke test | npm pack validation | `scripts/package-smoke.mjs` |
 
-### Phase 4 Deferred Exception
+### Phase 4 Boundary Resolution
 
-`src/core/repo-graph-builder.ts` → `src/adapters/*` の依存は明示的な例外として継続:
-- repo-graph-builderはparser adaptersを直接import (ts-morph, tree-sitter)
-- 移動は影響範囲が大きく、ESLintルールとarchitecture testで境界強制のみ実施
-- 将来の Phase 4+ で application layer へ移動検討
-
-ESLint config:
-- `src/core/**/*.ts`: cli, application, reporters imports blocked (adapters allowed only for repo-graph-builder)
-- `src/core/repo-graph-builder.ts`: explicit exception file with adapters import allowed
-
-Architecture test:
-- `core layer > should not import from adapters layer (except repo-graph-builder)`: skips repo-graph-builder.ts
+`src/core/repo-graph-builder.ts` は `ParserRegistry` 契約だけに依存する。具体的なparser adapterの登録とTree-sitter初期化はCLI composition rootから呼ばれる `src/adapters/parser-registry.ts` が担当する。旧ESLint・architecture test例外は削除済み。
 
 ### Dependency Direction Rules (ESLint enforced)
 

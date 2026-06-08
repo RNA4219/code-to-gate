@@ -1,62 +1,37 @@
+/**
+ * Repo Graph Builder - Core module for building normalized repository graphs
+ *
+ * Refactored to accept parser registry via options (composition root pattern).
+ * No direct imports from adapter modules - parsers injected via ParserRegistry.
+ *
+ * Layer rules:
+ * - core: Uses ParserRegistry interface (no adapter imports)
+ * - adapters: Implements parser registry with adapter registrations
+ * - cli: Injects DefaultParserRegistry (composition root)
+ */
+
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { parseJavaScriptFile } from "../adapters/js-adapter.js";
-import { parsePythonFile } from "../adapters/py-adapter.js";
-import { parseRubyFile } from "../adapters/rb-adapter.js";
-import { parseRegexLanguageFile, type RegexLanguage } from "../adapters/regex-language-adapter.js";
-import { parseTypeScriptFile, type ParseResult } from "../adapters/ts-adapter.js";
-// Tree-sitter adapters
-import {
-  initPythonParser,
-  parsePythonFileSync,
-  isTreeSitterAvailable as isPythonTreeSitterAvailable,
-} from "../adapters/py-tree-sitter-adapter.js";
-import {
-  initRubyParser,
-  parseRubyFileSync,
-  isRubyTreeSitterAvailable as isRubyTreeSitterAvailable,
-} from "../adapters/rb-tree-sitter-adapter.js";
-import {
-  initGoParser,
-  parseGoFileSync,
-  isGoTreeSitterAvailable,
-} from "../adapters/go-tree-sitter-adapter.js";
-import {
-  initRustParser,
-  parseRustFileSync,
-  isRustTreeSitterAvailable,
-} from "../adapters/rs-tree-sitter-adapter.js";
 import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
+import type { ParserRegistry, ParserAdapterResult } from "../types/contracts.js";
 import { detectLanguage, detectRole, entrypointKind, isEntrypoint, walkDir } from "./file-utils.js";
 import { sha256, toPosix } from "./path-utils.js";
 
-type AdapterParseResult = ParseResult;
+/**
+ * Options for buildGraph function
+ */
+export interface BuildGraphOptions {
+  /** Parser registry with registered adapters (injected by CLI) */
+  parserRegistry?: ParserRegistry;
+  /** Explicitly request tree-sitter parsing (deprecated - registry handles this) */
+  useTreeSitter?: boolean;
+}
 
-const parseCache = new Map<string, AdapterParseResult>();
+// Parse cache for incremental processing
+const parseCache = new Map<string, ParserAdapterResult>();
 const graphCache = new Map<string, NormalizedRepoGraph>();
-
-// Tree-sitter initialization state
-let treeSitterInitialized = false;
-
-export async function initTreeSitterParsers(): Promise<void> {
-  if (treeSitterInitialized) return;
-
-  try {
-    await initPythonParser();
-    await initRubyParser();
-    await initGoParser();
-    await initRustParser();
-    treeSitterInitialized = true;
-  } catch (error) {
-    console.warn("Tree-sitter initialization failed:", error);
-  }
-}
-
-export function isTreeSitterReady(): boolean {
-  return treeSitterInitialized;
-}
 
 export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): NormalizedRepoGraph {
   const now = new Date().toISOString();
@@ -149,85 +124,82 @@ export function addGraphEntrypoint(graph: NormalizedRepoGraph, relPath: string, 
   }
 }
 
+/**
+ * Get cached parse result using registry
+ * Returns undefined if no parser available for language
+ */
 function getCachedParseResult(
+  registry: ParserRegistry | undefined,
   language: RepoFile["language"],
   file: string,
   repoRoot: string,
   fileId: string,
   bodyHash: string,
-  useTreeSitter: boolean = false
-): AdapterParseResult | undefined {
+  body: string
+): ParserAdapterResult | undefined {
+  // Skip parsing for non-code files
   if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php", "cs", "cpp"].includes(language)) {
     return undefined;
   }
 
-  const cacheKey = `${language}:${file}:${bodyHash}:${useTreeSitter}:${treeSitterInitialized}`;
+  // Without registry, no parsing available
+  if (!registry) {
+    return undefined;
+  }
+
+  // Check if parser available for this language
+  if (!registry.hasParser(language)) {
+    return undefined;
+  }
+
+  // Build cache key
+  const treeSitterReady = registry.isTreeSitterReady();
+  const cacheKey = `${language}:${file}:${bodyHash}:${treeSitterReady}`;
   const cached = parseCache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  // Try tree-sitter first if available (automatic when initialized)
-  // This enables tree-sitter for py/rb/go/rs even without --tree-sitter flag
-  if (treeSitterInitialized && ["py", "rb", "go", "rs"].includes(language)) {
-    const tsResult = tryTreeSitterParse(language, file, repoRoot, fileId);
-    if (tsResult) {
-      parseCache.set(cacheKey, tsResult);
-      return tsResult;
-    }
+  // Get parser from registry and parse
+  const repoFile: RepoFile = {
+    id: fileId,
+    path: toPosix(path.relative(repoRoot, file)),
+    language,
+    role: "source", // temporary for parser lookup
+    hash: bodyHash,
+    sizeBytes: Buffer.byteLength(body),
+    lineCount: body.split(/\r?\n/).length,
+    parser: { status: "skipped" },
+  };
+
+  const parser = registry.getParser(repoFile);
+  if (!parser || !parser.isAvailable()) {
+    return undefined;
   }
 
-  // Try tree-sitter if explicitly requested
-  if (useTreeSitter) {
-    const tsResult = tryTreeSitterParse(language, file, repoRoot, fileId);
-    if (tsResult) {
-      parseCache.set(cacheKey, tsResult);
-      return tsResult;
-    }
-  }
-
-  // Fallback to regex/standard parsers
-  const result =
-    language === "ts" || language === "tsx"
-      ? parseTypeScriptFile(file, repoRoot, fileId)
-      : language === "js" || language === "jsx"
-        ? parseJavaScriptFile(file, repoRoot, fileId)
-        : language === "py"
-          ? parsePythonFile(file, repoRoot, fileId)
-          : language === "rb"
-            ? parseRubyFile(file, repoRoot, fileId)
-            : parseRegexLanguageFile(file, repoRoot, fileId, language as RegexLanguage);
-
+  const result = parser.parse(body, file, repoRoot, fileId);
   parseCache.set(cacheKey, result);
   return result;
 }
 
-function tryTreeSitterParse(
-  language: string,
-  file: string,
+/**
+ * Build normalized repo graph from repository root
+ *
+ * @param repoRoot - Absolute path to repository root
+ * @param toolVersion - Version string for tool metadata
+ * @param options - Build options including parser registry
+ * @returns Normalized repo graph with files, symbols, relations, diagnostics
+ */
+export function buildGraph(
   repoRoot: string,
-  _fileId: string
-): AdapterParseResult | undefined {
-  const body = readFileSync(file, "utf8");
-  const relPath = toPosix(path.relative(repoRoot, file));
+  toolVersion: string,
+  options?: BuildGraphOptions
+): NormalizedRepoGraph {
+  // For backward compatibility, support useTreeSitter boolean parameter
+  const normalizedOptions: BuildGraphOptions = typeof options === "boolean"
+    ? { useTreeSitter: options }
+    : options ?? {};
 
-  if (language === "py" && isPythonTreeSitterAvailable()) {
-    return parsePythonFileSync(body, relPath);
-  }
-  if (language === "rb" && isRubyTreeSitterAvailable()) {
-    return parseRubyFileSync(body, relPath);
-  }
-  if (language === "go" && isGoTreeSitterAvailable()) {
-    return parseGoFileSync(body, relPath);
-  }
-  if (language === "rs" && isRustTreeSitterAvailable()) {
-    return parseRustFileSync(body, relPath);
-  }
-
-  return undefined;
-}
-
-export function buildGraph(repoRoot: string, toolVersion: string, useTreeSitter: boolean = false): NormalizedRepoGraph {
   const targetFiles = discoverGraphFiles(repoRoot);
   const shouldUseGraphCache = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
   const graphCacheKey = shouldUseGraphCache
@@ -236,7 +208,7 @@ export function buildGraph(repoRoot: string, toolVersion: string, useTreeSitter:
           const stat = statSync(file);
           return `${file}:${stat.size}:${stat.mtimeMs}`;
         })
-        .join("|")}:${useTreeSitter}`
+        .join("|")}:${normalizedOptions.useTreeSitter}`
     : undefined;
 
   if (graphCacheKey) {
@@ -260,7 +232,16 @@ export function buildGraph(repoRoot: string, toolVersion: string, useTreeSitter:
     let parserAdapter = "ctg-text-v0";
     let errorCode: string | undefined;
 
-    const result = getCachedParseResult(language, file, repoRoot, fileId, bodyHash, useTreeSitter);
+    const result = getCachedParseResult(
+      normalizedOptions.parserRegistry,
+      language,
+      file,
+      repoRoot,
+      fileId,
+      bodyHash,
+      body
+    );
+
     if (result) {
       graph.symbols.push(...result.symbols);
       graph.relations.push(...result.relations);
@@ -301,4 +282,18 @@ export function buildGraph(repoRoot: string, toolVersion: string, useTreeSitter:
   }
 
   return graph;
+}
+
+/**
+ * Clear parse cache (for testing)
+ */
+export function clearParseCache(): void {
+  parseCache.clear();
+}
+
+/**
+ * Clear graph cache (for testing)
+ */
+export function clearGraphCache(): void {
+  graphCache.clear();
 }

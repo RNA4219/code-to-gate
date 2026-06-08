@@ -7,19 +7,14 @@
  *
  * Boundary Rules:
  * - types: Innermost layer, no imports from other src layers
- * - core: Pure logic, no imports from cli/application/reporters layers
+ * - core: Pure logic, no imports from cli/application/reporters/adapters layers
  *         Node API whitelist: node:fs, node:crypto, node:path (for I/O, hashing, path operations)
- *         Phase 4 Deferred exception: repo-graph-builder→adapters (parser registry)
+ *         ParserRegistry interface imported from types/contracts.ts (composition root pattern)
  * - reporters: Cannot import from application/cli/adapters layers
  * - rules: Cannot import from cli or adapters layers
  * - adapters: Can import from types/core (permitted direction)
  *             Cannot import from cli/application/reporters layers
  * - application: Cannot import from reporters/cli/adapters layers
- *
- * Phase 4 Deferred Exception:
- * - core/repo-graph-builder.ts imports from adapters (parser registry)
- * - This is a known violation deferred for future refactoring
- * - Boundary tests and ESLint explicitly allow this file for adapters import check
  */
 
 import { describe, it, expect } from 'vitest';
@@ -106,6 +101,9 @@ describe('Dependency Boundaries', () => {
       const typesFiles = globSync('types/**/*.ts', { cwd: SRC_DIR });
 
       for (const file of typesFiles) {
+        // Skip test files - test files can import anything for testing purposes
+        if (file.includes('__tests__')) continue;
+
         const filePath = path.join(SRC_DIR, file);
         const imports = extractImports(filePath);
 
@@ -367,9 +365,6 @@ describe('Dependency Boundaries', () => {
   });
 
   describe('core layer', () => {
-    // Phase 4 Deferred Exception: repo-graph-builder.ts imports from adapters
-    const REPO_GRAPH_BUILDER = 'core/repo-graph-builder.ts';
-
     it('should not import from cli layer', () => {
       const coreFiles = globSync('core/**/*.ts', { cwd: SRC_DIR });
 
@@ -451,17 +446,12 @@ describe('Dependency Boundaries', () => {
       }
     });
 
-    it('should not import from adapters layer (except repo-graph-builder)', () => {
+    it('should not import from adapters layer', () => {
       const coreFiles = globSync('core/**/*.ts', { cwd: SRC_DIR });
 
       for (const file of coreFiles) {
         // Skip test files
         if (file.includes('__tests__')) continue;
-
-        // Phase 4 Deferred Exception: repo-graph-builder.ts imports from adapters
-        // Normalize path for Windows compatibility (globSync returns backslashes)
-        const normalizedFile = file.replace(/\\/g, '/');
-        if (normalizedFile === REPO_GRAPH_BUILDER) continue;
 
         const filePath = path.join(SRC_DIR, file);
         const imports = extractImports(filePath);
@@ -477,7 +467,7 @@ describe('Dependency Boundaries', () => {
 
           expect(isAdaptersImport).toBe(
             false,
-            `core/${normalizedFile} imports from adapters layer via '${importPath}' - core layer cannot import from adapters layer. Only repo-graph-builder.ts is allowed (Phase 4 Deferred exception)`
+            `core/${file.replace(/\\/g, '/')} imports from adapters layer via '${importPath}' - core layer cannot import from adapters layer. Use ParserRegistry interface from types/contracts.ts instead.`
           );
         }
       }

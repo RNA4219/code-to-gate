@@ -178,10 +178,9 @@ export default tseslint.config(
       ],
     },
   },
-  // Core layer boundary rules (Phase 4 Deferred: repo-graph-builder imports from adapters)
+  // Core layer boundary rules
   {
     files: ["src/core/**/*.ts"],
-    ignores: ["src/core/repo-graph-builder.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -201,32 +200,7 @@ export default tseslint.config(
             },
             {
               group: ["../adapters/**"],
-              message: "core layer cannot import from adapters layer. Only repo-graph-builder.ts is allowed as a Phase 4 Deferred exception.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  // Exception: repo-graph-builder.ts imports from adapters (parser registry)
-  {
-    files: ["src/core/repo-graph-builder.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["../cli/**"],
-              message: "repo-graph-builder cannot import from cli layer.",
-            },
-            {
-              group: ["../application/**"],
-              message: "repo-graph-builder cannot import from application layer.",
-            },
-            {
-              group: ["../reporters/**"],
-              message: "repo-graph-builder cannot import from reporters layer.",
+              message: "core layer cannot import from adapters layer. Use ParserRegistry interface from types/contracts.ts instead.",
             },
           ],
         },

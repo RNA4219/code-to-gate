@@ -39,6 +39,10 @@ import {
 import {
   generateQEGCodeToGateEvidence,
 } from "../qeg/qeg-connector.js";
+import { generateArtifactHashes } from "../qeg/qeg-artifact-io.js";
+import { nodeFileAccess } from "../adapters/node-file-access.js";
+import { nodeHashService } from "../adapters/node-hash-service.js";
+import { nodePathService } from "../adapters/node-path-service.js";
 import { validateAllArtifactsWithResults } from "./schema-validate.js";
 import { loadReleaseReadinessArtifact } from "./artifact-loader.js";
 
@@ -176,13 +180,19 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
         }
 
         // Generate evidence-only export (no decision)
+        const artifactHashes = generateArtifactHashes(artifactDir, {
+          fileAccess: nodeFileAccess,
+          hashService: nodeHashService,
+          pathService: nodePathService,
+        });
         const evidence = generateQEGCodeToGateEvidence(
           findings,
           readiness,
           schemaResults,
           artifactDir,
           findings.run_id,
-          process.env.GITHUB_SHA?.slice(0, 7)
+          process.env.GITHUB_SHA?.slice(0, 7),
+          artifactHashes
         );
 
         outputPath = path.resolve(cwd, outFile ?? path.join(artifactDir, "qeg-code-to-gate.json"));
