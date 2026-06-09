@@ -521,3 +521,28 @@ npm run release:validate  # Unified gate: lint + typecheck + smoke + architectur
 | 通常フルテスト | 104 files / 2744 tests passを確認 |
 
 固定ワーカー数によるCPU依存チューニングは行わず、Vitest既定値を使用する。`npm test` 3回連続測定は長時間実行中のセッション中断により完遂していない。
+
+---
+
+## 2026-06-09 Assurance Smell Detector Diff/QEG Hardening
+
+- `DiffAccess`契約とGit adapterを追加し、4つのdiff semantic ruleを`assurance inspect --base/--head`へ配線した。
+- 11 fixtureの精度評価は11件正分類、FP 0、FP rate 0%だった。
+- 既存`ctg.qeg-input/v1`へ任意`assurance-findings.json`要約とSHA-256 hashを追加した。
+- code-to-gateはevidence producerに留まり、decision field、release block、CI自動実行は追加していない。
+- 管理fixture外の実repo precision評価と、取得不能時のunsupported claim粒度改善は継続課題とする。
+
+### 検証結果
+
+| Gate | Result |
+|---|---|
+| lint / typecheck / build | pass |
+| targeted Diff/QEG/CLI tests | 70 passed |
+| smoke | 54 passed |
+| architecture | 18 passed |
+| package | pass |
+| npm audit | 0 vulnerabilities |
+| npm test | pass、約4分54秒 |
+| release:validate | pass、約4分43秒 |
+
+`diff-rules.ts`の単一module化を解消するため、共通処理と4つのdiff semantic ruleを専用moduleへ分離した。公開entrypointの`diff-rules.ts`は67行、最大rule moduleは196行となり、self-analysisの`LARGE_MODULE` highは解消された。新規suppressionは追加していない。

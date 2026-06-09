@@ -86,6 +86,12 @@ export interface ArtifactHash {
   hash: string;
 }
 
+export interface QEGAssuranceFindingsSummary {
+  total: number;
+  unsupported_claims: number;
+  by_rule: Record<string, number>;
+}
+
 /**
  * QEG Code-to-Gate Evidence - Evidence only, no decision
  * Decision is made by quality-evidence-graph repository exclusively
@@ -111,4 +117,7 @@ export interface QEGCodeToGateEvidence {
   quality_checks_actual: QualityCheckActual[];
 
   artifact_hashes: ArtifactHash[];
+
+  /** Optional evidence from assurance inspect. Candidate presence is not a release decision. */
+  assurance_findings_summary?: QEGAssuranceFindingsSummary;
 }

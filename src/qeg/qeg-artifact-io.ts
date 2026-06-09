@@ -15,6 +15,7 @@ const ARTIFACT_NAMES = [
   "risk-register.yaml",
   "test-seeds.json",
   "invariants.json",
+  "assurance-findings.json",
 ] as const;
 
 export function generateArtifactHashes(

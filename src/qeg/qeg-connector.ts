@@ -1,6 +1,7 @@
 import type { FindingsArtifact, ReleaseReadinessArtifact } from "../types/artifacts.js";
 import type {
   ArtifactHash,
+  QEGAssuranceFindingsSummary,
   QEGCodeToGateEvidence,
   QEGSchemaComplianceResult,
 } from "./qeg-types.js";
@@ -33,7 +34,8 @@ export function generateQEGCodeToGateEvidence(
   artifactDir: string,
   runId: string,
   commitSha?: string,
-  artifactHashes: ArtifactHash[] = []
+  artifactHashes: ArtifactHash[] = [],
+  assuranceSummary?: QEGAssuranceFindingsSummary
 ): QEGCodeToGateEvidence {
   return {
     version: CTG_QEG_VERSION,
@@ -44,8 +46,28 @@ export function generateQEGCodeToGateEvidence(
     findings_summary: summarizeFindings(findings),
     readiness_status: readiness.status,
     schema_compliance: schemaResults,
-    quality_checks_actual: [],
+    quality_checks_actual: [{
+      name: "assurance_inspection",
+      status: assuranceSummary ? "pass" : "skipped",
+      ...(assuranceSummary ? { evidence_path: "assurance-findings.json" } : {}),
+      details: assuranceSummary
+        ? `${assuranceSummary.total} review-required candidates recorded`
+        : "assurance-findings.json was not provided",
+    }],
     artifact_hashes: artifactHashes,
+    ...(assuranceSummary ? { assurance_findings_summary: assuranceSummary } : {}),
+  };
+}
+
+export function summarizeAssuranceFindings(findings: FindingsArtifact): QEGAssuranceFindingsSummary {
+  const by_rule: Record<string, number> = {};
+  for (const finding of findings.findings) {
+    by_rule[finding.ruleId] = (by_rule[finding.ruleId] ?? 0) + 1;
+  }
+  return {
+    total: findings.findings.length,
+    unsupported_claims: findings.unsupported_claims.length,
+    by_rule,
   };
 }
 

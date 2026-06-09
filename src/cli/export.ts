@@ -38,12 +38,13 @@ import {
 } from "./export-generators.js";
 import {
   generateQEGCodeToGateEvidence,
+  summarizeAssuranceFindings,
 } from "../qeg/qeg-connector.js";
 import { generateArtifactHashes } from "../qeg/qeg-artifact-io.js";
 import { nodeFileAccess } from "../adapters/node-file-access.js";
 import { nodeHashService } from "../adapters/node-hash-service.js";
 import { nodePathService } from "../adapters/node-path-service.js";
-import { validateAllArtifactsWithResults } from "./schema-validate.js";
+import { validateAllArtifactsWithResults, validateArtifactFile } from "./schema-validate.js";
 import { loadReleaseReadinessArtifact } from "./artifact-loader.js";
 
 export interface ExportOptions {
@@ -169,6 +170,17 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
         }
 
         const readiness = loadReleaseReadinessArtifact(readinessPath);
+        const assurancePath = path.join(artifactDir, "assurance-findings.json");
+        let assuranceSummary;
+        if (existsSync(assurancePath)) {
+          const assuranceValidation = await validateArtifactFile(assurancePath);
+          if (assuranceValidation.status === "error") {
+            console.error("qeg-code-to-gate requires schema-compliant assurance-findings.json when provided");
+            return options.EXIT.INTEGRATION_EXPORT_FAILED;
+          }
+          const assuranceFindings = JSON.parse(readFileSync(assurancePath, "utf8")) as FindingsArtifact;
+          assuranceSummary = summarizeAssuranceFindings(assuranceFindings);
+        }
         const schemaResults = await validateAllArtifactsWithResults(artifactDir, true, true);
         const schemaFailures = schemaResults.filter((result) => result.status === "error");
         if (schemaFailures.length > 0) {
@@ -192,7 +204,8 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
           artifactDir,
           findings.run_id,
           process.env.GITHUB_SHA?.slice(0, 7),
-          artifactHashes
+          artifactHashes,
+          assuranceSummary
         );
 
         outputPath = path.resolve(cwd, outFile ?? path.join(artifactDir, "qeg-code-to-gate.json"));

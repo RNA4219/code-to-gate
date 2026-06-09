@@ -86,4 +86,13 @@ describe("assurance inspect CLI", () => {
     );
     expect(code).toBe(EXIT.USAGE_ERROR);
   });
+
+  it("requires base and head together for diff inspection", async () => {
+    const fixture = createFixture();
+    const code = await assuranceCommand(
+      ["inspect", fixture.root, "--from", fixture.artifacts, "--base", "main"],
+      { VERSION, EXIT, getOption }
+    );
+    expect(code).toBe(EXIT.USAGE_ERROR);
+  });
 });

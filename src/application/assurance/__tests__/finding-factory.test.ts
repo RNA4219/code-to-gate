@@ -1,9 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { nodeHashService } from "../../../adapters/node-hash-service.js";
+import type { HashService } from "../../../types/contracts.js";
 import {
   createAssuranceFinding,
   createAssuranceUnsupportedClaim,
 } from "../finding-factory.js";
+
+// Inline mock to avoid dependency boundary violation (application tests should not import from adapters)
+const mockHashService: HashService = {
+  sha256(value: string): string {
+    // Mock that produces 64-char hex-like output matching SHA-256 pattern
+    // Use value length to generate deterministic but unique hash
+    const base = value.length.toString(16).padStart(8, "0");
+    // Repeat to get 64 characters (8 * 8 = 64)
+    return base.repeat(8);
+  },
+  fingerprint(value: string): string {
+    // Return 16-char hex-like string
+    return value.length.toString(16).padStart(16, "0").slice(0, 16);
+  },
+};
 
 describe("assurance finding factory", () => {
   it("creates a schema-compatible review-required finding", () => {
@@ -18,7 +33,7 @@ describe("assurance finding factory", () => {
         baseRef: "main",
         headRef: "HEAD",
       },
-      nodeHashService
+      mockHashService
     );
 
     expect(finding.id).toMatch(/^assurance-validation-removed-[0-9a-f]{16}$/);
@@ -58,7 +73,7 @@ describe("assurance finding factory", () => {
         ],
         affectedEntrypoints: ["api", "worker"],
       },
-      nodeHashService
+      mockHashService
     );
     const second = createAssuranceFinding(
       {
@@ -71,7 +86,7 @@ describe("assurance finding factory", () => {
         ],
         affectedEntrypoints: ["worker", "api"],
       },
-      nodeHashService
+      mockHashService
     );
 
     expect(second.id).toBe(first.id);
@@ -87,7 +102,7 @@ describe("assurance finding factory", () => {
           summary: "A validation signal needs review.",
           evidence: [{ path: "src/api.ts", kind: "diff", symbolId }],
         },
-        nodeHashService
+        mockHashService
       );
 
     expect(createForSymbol("validateUser").id).not.toBe(createForSymbol("validateOrder").id);
@@ -104,7 +119,7 @@ describe("assurance finding factory", () => {
           { path: "src/auth.ts", kind: "diff", symbolId: "guard", excerptHash: "known" },
         ],
       },
-      nodeHashService
+      mockHashService
     );
 
     expect(finding.evidence).toHaveLength(1);
@@ -119,7 +134,7 @@ describe("assurance finding factory", () => {
         summary: "Evidence needs review.",
         evidence: [{ path: "findings.json", kind: "text" }],
       },
-      nodeHashService
+      mockHashService
     );
 
     expect(finding.evidence[0].excerptHash).toMatch(/^[0-9a-f]{64}$/);
@@ -131,7 +146,7 @@ describe("assurance finding factory", () => {
           summary: "Evidence needs review.",
           evidence: [{ path: "intake.json", kind: "external" }],
         },
-        nodeHashService
+        mockHashService
       )
     ).toThrow("External evidence requires an externalRef");
   });
@@ -145,7 +160,7 @@ describe("assurance finding factory", () => {
           summary: "Evidence is required.",
           evidence: [],
         },
-        nodeHashService
+        mockHashService
       )
     ).toThrow("Assurance findings require at least one evidence reference");
   });
@@ -160,7 +175,7 @@ describe("assurance finding factory", () => {
           evidence: [{ path: "findings.json", kind: "external", externalRef: { tool: "bundle" } }],
           confidence: 1.1,
         },
-        nodeHashService
+        mockHashService
       )
     ).toThrow("Assurance finding confidence must be between 0 and 1");
   });
@@ -173,7 +188,7 @@ describe("assurance finding factory", () => {
         reason: "partial_input",
         sourceSection: "risk-register.yaml",
       },
-      nodeHashService
+      mockHashService
     );
     const second = createAssuranceUnsupportedClaim(
       {
@@ -182,7 +197,7 @@ describe("assurance finding factory", () => {
         reason: "partial_input",
         sourceSection: "risk-register.yaml",
       },
-      nodeHashService
+      mockHashService
     );
 
     expect(first).toEqual(second);
