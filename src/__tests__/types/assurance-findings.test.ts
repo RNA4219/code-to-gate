@@ -7,7 +7,8 @@ import { schemaValidate } from "../../cli/schema-validate.js";
 import type { Finding } from "../../types/artifacts.js";
 import {
   ASSURANCE_FINDING_RULE_IDS,
-  ASSURANCE_FINDING_TAGS,
+  REQUIRED_ASSURANCE_TAGS,
+  RULE_SPECIFIC_TAGS,
   assuranceFindingTags,
   isAssuranceFindingRuleId,
 } from "../../types/assurance-findings.js";
@@ -31,20 +32,19 @@ describe("Assurance Finding vocabulary", () => {
       title: "Risk/test linkage gap",
       summary: "Review required: no linked test evidence was recovered.",
       evidence: [{ type: "file", path: "docs/risk.md" }],
-      tags: assuranceFindingTags(ASSURANCE_FINDING_TAGS.RISK_WITHOUT_TEST),
+      tags: assuranceFindingTags("RISK_WITHOUT_TEST"),
     };
 
-    expect(finding.tags).toEqual(["assurance-smell", "risk-without-test"]);
+    expect(finding.tags).toEqual(["assurance-smell", "risk-without-test", "review-required"]);
     expect(finding.category).toBe("testing");
   });
 
-  it("deduplicates the base assurance-smell tag", () => {
-    expect(
-      assuranceFindingTags(
-        ASSURANCE_FINDING_TAGS.ASSURANCE_SMELL,
-        ASSURANCE_FINDING_TAGS.MISSING_EVIDENCE
-      )
-    ).toEqual(["assurance-smell", "missing-evidence"]);
+  it("generates correct tags for EVIDENCE_MISSING rule", () => {
+    expect(assuranceFindingTags("EVIDENCE_MISSING")).toEqual([
+      "assurance-smell",
+      "evidence-missing",
+      "review-required"
+    ]);
   });
 
   it("keeps assurance tags compatible with findings.json schema", async () => {
@@ -68,7 +68,7 @@ describe("Assurance Finding vocabulary", () => {
         title: "Evidence gap",
         summary: "Review required: expected evidence was not recovered.",
         evidence: [{ id: "evidence-1", path: "docs/release.md", kind: "ast" }],
-        tags: assuranceFindingTags(ASSURANCE_FINDING_TAGS.MISSING_EVIDENCE),
+        tags: assuranceFindingTags("EVIDENCE_MISSING"),
       }],
       unsupported_claims: [],
     }));

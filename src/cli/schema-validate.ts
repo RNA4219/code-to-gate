@@ -21,6 +21,44 @@ export interface SchemaValidationResult {
   errors?: string[];
 }
 
+export async function validateArtifactFile(filePath: string): Promise<SchemaValidationResult> {
+  if (!existsSync(filePath)) {
+    return { artifact: path.basename(filePath), status: "error", errors: ["file not found"] };
+  }
+
+  let data: unknown;
+  try {
+    data = readJson(filePath);
+  } catch (error) {
+    return {
+      artifact: path.basename(filePath),
+      status: "error",
+      errors: [`parse error: ${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
+
+  const schemaPath = schemaForArtifact(data);
+  if (!schemaPath) {
+    return { artifact: path.basename(filePath), status: "error", errors: ["no schema found"] };
+  }
+
+  const ajv = createAjv();
+  await loadSchemas(ajv);
+  const schema = readJson(schemaPath) as { $id?: string };
+  try {
+    const validate: ValidateFunction = ajv.getSchema(schema.$id || schemaPath) || ajv.compile(schema);
+    return validate(data)
+      ? { artifact: path.basename(filePath), status: "ok" }
+      : { artifact: path.basename(filePath), status: "error", errors: formatErrors(validate.errors) };
+  } catch (error) {
+    return {
+      artifact: path.basename(filePath),
+      status: "error",
+      errors: [`validation error: ${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
+}
+
 const SCHEMA_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",

@@ -96,6 +96,7 @@ export default tseslint.config(
   // Phase 7: Dependency boundary enforcement
   {
     files: ["src/types/**/*.ts"],
+    ignores: ["src/types/__tests__/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -156,11 +157,16 @@ export default tseslint.config(
   },
   {
     files: ["src/application/**/*.ts"],
+    ignores: ["src/application/**/__tests__/**"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            {
+              group: ["node:*"],
+              message: "application layer cannot import Node.js APIs directly. Inject contracts or load data in the CLI composition root.",
+            },
             {
               group: ["../cli/**"],
               message: "application layer cannot import from cli layer. CLI is the composition root that wires application dependencies.",

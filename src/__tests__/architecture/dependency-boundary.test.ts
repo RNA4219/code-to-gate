@@ -475,6 +475,24 @@ describe('Dependency Boundaries', () => {
   });
 
   describe('application layer', () => {
+    it('should not import Node.js APIs directly', () => {
+      const applicationFiles = globSync('application/**/*.ts', { cwd: SRC_DIR });
+
+      for (const file of applicationFiles) {
+        if (file.includes('__tests__')) continue;
+
+        const filePath = path.join(SRC_DIR, file);
+        const imports = extractImports(filePath);
+
+        for (const importPath of imports) {
+          expect(importPath.startsWith('node:')).toBe(
+            false,
+            `application/${file} imports Node.js API '${importPath}' - load data in CLI/adapters and pass typed inputs to application`
+          );
+        }
+      }
+    });
+
     it('should not import from cli layer', () => {
       const applicationFiles = globSync('application/**/*.ts', { cwd: SRC_DIR });
 
