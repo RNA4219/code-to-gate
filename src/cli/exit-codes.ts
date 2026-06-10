@@ -20,6 +20,7 @@ export interface ExitCodes {
   IMPORT_FAILED: number;
   INTEGRATION_EXPORT_FAILED: number;
   INTERNAL_ERROR: number;
+  ASSURANCE_FAILED: number;
 }
 
 export const EXIT: ExitCodes = {
@@ -34,6 +35,7 @@ export const EXIT: ExitCodes = {
   IMPORT_FAILED: 8,
   INTEGRATION_EXPORT_FAILED: 9,
   INTERNAL_ERROR: 10,
+  ASSURANCE_FAILED: 11,
 };
 
 // Re-export getOption for backward compatibility

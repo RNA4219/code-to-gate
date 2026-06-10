@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-06-10 - Assurance Smell Detector Release
+
+### Added
+
+- Artifact-only Assurance Smell Detector and assurance finding vocabulary.
+- Git diff access contract and four review-required diff semantic rules.
+- `assurance inspect` diff analysis and QEG assurance evidence export.
+- Precision evaluation suite for diff semantic findings.
+
+### Changed
+
+- Split diff semantic rules into focused modules while preserving the public API.
+- Extended QEG evidence with assurance findings without transferring release decision ownership.
+
+---
+
 ## [1.4.2] - 2026-06-08 - Quality Contract and Test Performance Release
 
 ### Added

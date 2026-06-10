@@ -3,7 +3,9 @@
  */
 
 import { ensureDir } from "../core/file-utils.js";
-import { buildGraph, initTreeSitterParsers } from "../core/repo-graph-builder.js";
+import { buildGraph } from "../core/repo-graph-builder.js";
+import type { ParserRegistry } from "../types/contracts.js";
+import { createParserRegistry } from "../adapters/parser-registry.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
@@ -173,9 +175,9 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
       clockService: nodeClockService,
       pathService: nodePathService,
     },
-    new Map(), // parsers registered separately via initTreeSitterParsers
+    new Map(), // parsers now handled via buildGraph options
     VERSION,
-    false // tree-sitter readiness set after initialization
+    false // tree-sitter readiness handled by parser registry
   );
 
   if (!nodeFileAccess.exists(repoRoot)) {
@@ -192,18 +194,19 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const emitFormats = parseEmitOption(emitValue);
   const absoluteOutDir = nodePathService.resolve(cwd, outDir);
 
-  // Initialize tree-sitter parsers automatically
-  // This enables WASM parsing for py/rb/go/rs when available
-  // Falls back to regex if WASM packages not installed
+  // Create parser registry with composition root pattern
+  // CLI injects initialized registry into buildGraph
+  let parserRegistry: ParserRegistry;
   try {
-    await initTreeSitterParsers();
+    parserRegistry = await createParserRegistry(useTreeSitter);
   } catch {
-    // Silently continue with regex fallback
+    // Fall back to empty registry (will use text-only parsing)
+    parserRegistry = { getParser: () => null, hasParser: () => false, getRegisteredLanguages: () => [], isTreeSitterReady: () => false };
   }
 
   try {
-    // Build repo graph (tree-sitter used automatically if initialized)
-    const graph = buildGraph(repoRoot, VERSION, useTreeSitter);
+    // Build repo graph with injected parser registry
+    const graph = buildGraph(repoRoot, VERSION, { parserRegistry, useTreeSitter });
 
     if (graph.files.length === 0) {
       console.error(`repo contains no target files: ${repoArg}`);

@@ -443,7 +443,7 @@ Clean Architecture dependency boundaries 完全実装完了。
 | 1 | ✓ 完了 | Add contracts to types layer |
 | 2 | ✓ 完了 | Separate reporter dependencies |
 | 3 | ✓ 完了 | Create application layer (foundation) |
-| 4 | Deferred | Refactor core layer (ESLintで境界強制) |
+| 4 | ✓ 完了 | ParserRegistry注入によりcoreからparser adapter依存を除去 |
 | 5 | ✓ 完了 | Create adapter implementations |
 | 6 | ✓ 完了 | Update CLI as composition root |
 | 7 | ✓ 完了 | Add ESLint boundary rules |
@@ -462,19 +462,9 @@ Clean Architecture dependency boundaries 完全実装完了。
 | Boundary tests | 17 programmatic tests (types 1, reporters 4, rules 2, adapters 3, core 4, application 3) | `src/__tests__/architecture/dependency-boundary.test.ts` |
 | Package smoke test | npm pack validation | `scripts/package-smoke.mjs` |
 
-### Phase 4 Deferred Exception
+### Phase 4 Boundary Resolution
 
-`src/core/repo-graph-builder.ts` → `src/adapters/*` の依存は明示的な例外として継続:
-- repo-graph-builderはparser adaptersを直接import (ts-morph, tree-sitter)
-- 移動は影響範囲が大きく、ESLintルールとarchitecture testで境界強制のみ実施
-- 将来の Phase 4+ で application layer へ移動検討
-
-ESLint config:
-- `src/core/**/*.ts`: cli, application, reporters imports blocked (adapters allowed only for repo-graph-builder)
-- `src/core/repo-graph-builder.ts`: explicit exception file with adapters import allowed
-
-Architecture test:
-- `core layer > should not import from adapters layer (except repo-graph-builder)`: skips repo-graph-builder.ts
+`src/core/repo-graph-builder.ts` は `ParserRegistry` 契約だけに依存する。具体的なparser adapterの登録とTree-sitter初期化はCLI composition rootから呼ばれる `src/adapters/parser-registry.ts` が担当する。旧ESLint・architecture test例外は削除済み。
 
 ### Dependency Direction Rules (ESLint enforced)
 
@@ -531,3 +521,28 @@ npm run release:validate  # Unified gate: lint + typecheck + smoke + architectur
 | 通常フルテスト | 104 files / 2744 tests passを確認 |
 
 固定ワーカー数によるCPU依存チューニングは行わず、Vitest既定値を使用する。`npm test` 3回連続測定は長時間実行中のセッション中断により完遂していない。
+
+---
+
+## 2026-06-09 Assurance Smell Detector Diff/QEG Hardening
+
+- `DiffAccess`契約とGit adapterを追加し、4つのdiff semantic ruleを`assurance inspect --base/--head`へ配線した。
+- 11 fixtureの精度評価は11件正分類、FP 0、FP rate 0%だった。
+- 既存`ctg.qeg-input/v1`へ任意`assurance-findings.json`要約とSHA-256 hashを追加した。
+- code-to-gateはevidence producerに留まり、decision field、release block、CI自動実行は追加していない。
+- 管理fixture外の実repo precision評価と、取得不能時のunsupported claim粒度改善は継続課題とする。
+
+### 検証結果
+
+| Gate | Result |
+|---|---|
+| lint / typecheck / build | pass |
+| targeted Diff/QEG/CLI tests | 70 passed |
+| smoke | 54 passed |
+| architecture | 18 passed |
+| package | pass |
+| npm audit | 0 vulnerabilities |
+| npm test | pass、約4分54秒 |
+| release:validate | pass、約4分43秒 |
+
+`diff-rules.ts`の単一module化を解消するため、共通処理と4つのdiff semantic ruleを専用moduleへ分離した。公開entrypointの`diff-rules.ts`は67行、最大rule moduleは196行となり、self-analysisの`LARGE_MODULE` highは解消された。新規suppressionは追加していない。

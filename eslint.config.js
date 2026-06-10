@@ -96,6 +96,7 @@ export default tseslint.config(
   // Phase 7: Dependency boundary enforcement
   {
     files: ["src/types/**/*.ts"],
+    ignores: ["src/types/__tests__/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -156,11 +157,16 @@ export default tseslint.config(
   },
   {
     files: ["src/application/**/*.ts"],
+    ignores: ["src/application/**/__tests__/**"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            {
+              group: ["node:*"],
+              message: "application layer cannot import Node.js APIs directly. Inject contracts or load data in the CLI composition root.",
+            },
             {
               group: ["../cli/**"],
               message: "application layer cannot import from cli layer. CLI is the composition root that wires application dependencies.",
@@ -178,10 +184,9 @@ export default tseslint.config(
       ],
     },
   },
-  // Core layer boundary rules (Phase 4 Deferred: repo-graph-builder imports from adapters)
+  // Core layer boundary rules
   {
     files: ["src/core/**/*.ts"],
-    ignores: ["src/core/repo-graph-builder.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -201,32 +206,7 @@ export default tseslint.config(
             },
             {
               group: ["../adapters/**"],
-              message: "core layer cannot import from adapters layer. Only repo-graph-builder.ts is allowed as a Phase 4 Deferred exception.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  // Exception: repo-graph-builder.ts imports from adapters (parser registry)
-  {
-    files: ["src/core/repo-graph-builder.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["../cli/**"],
-              message: "repo-graph-builder cannot import from cli layer.",
-            },
-            {
-              group: ["../application/**"],
-              message: "repo-graph-builder cannot import from application layer.",
-            },
-            {
-              group: ["../reporters/**"],
-              message: "repo-graph-builder cannot import from reporters layer.",
+              message: "core layer cannot import from adapters layer. Use ParserRegistry interface from types/contracts.ts instead.",
             },
           ],
         },

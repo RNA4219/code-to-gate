@@ -11,6 +11,7 @@ import { llmHealthCommand } from "./cli/llm-health.js";
 import { historicalCommand } from "./cli/historical.js";
 import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
+import { assuranceCommand } from "./cli/assurance.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 
 function printHelp(): void {
@@ -45,6 +46,7 @@ Usage:
     run:         Execute a plugin in sandbox mode
                  <plugin-path> --input <file> [--sandbox docker] [--timeout <s>]
     build-image: Build the Docker image for plugin execution
+  code-to-gate assurance inspect <repo> --from <artifact-dir> [--out <file>] [--min-confidence <0..1>] [--include-low-confidence]
 
 Options:
   --out <dir>        Output directory (default: .qh)
@@ -144,6 +146,10 @@ async function main(): Promise<number> {
 
     if (command === "plugin-sandbox") {
       return await pluginSandboxCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "assurance") {
+      return await assuranceCommand(args, { VERSION, EXIT, getOption });
     }
 
     console.error(`unknown command: ${command}`);

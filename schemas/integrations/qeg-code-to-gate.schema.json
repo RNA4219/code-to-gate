@@ -75,6 +75,19 @@
         }
       }
     },
+    "assurance_findings_summary": {
+      "type": "object",
+      "required": ["total", "unsupported_claims", "by_rule"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "unsupported_claims": { "type": "integer", "minimum": 0 },
+        "by_rule": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
     "artifact_hashes": {
       "type": "array",
       "items": {

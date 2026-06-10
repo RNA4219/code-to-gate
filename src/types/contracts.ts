@@ -179,14 +179,42 @@ export interface ParserAdapter {
 }
 
 /**
- * Result from parser adapter
+ * Result from parser adapter - typed using graph types
  */
 export interface ParserAdapterResult {
-  symbols: unknown[];
-  relations: unknown[];
-  diagnostics: unknown[];
-  parserStatus: "parsed" | "text_fallback" | "skipped" | "failed";
-  parserAdapter: string;
+  symbols: import("./graph.js").ParseResult["symbols"];
+  relations: import("./graph.js").ParseResult["relations"];
+  diagnostics: import("./graph.js").ParseResult["diagnostics"];
+  parserStatus: import("./graph.js").ParseResult["parserStatus"];
+  parserAdapter: import("./graph.js").ParseResult["parserAdapter"];
+}
+
+/**
+ * Read-only parser registry contract
+ * Core layer uses this interface to look up parsers without importing adapters
+ */
+export interface ParserRegistry {
+  /**
+   * Get parser for a file based on its language
+   * Returns null if no parser registered for that language
+   */
+  getParser(file: import("./graph.js").RepoFile): ParserAdapter | null;
+
+  /**
+   * Check if a parser is available for the given language
+   */
+  hasParser(language: import("./graph.js").RepoFile["language"]): boolean;
+
+  /**
+   * Get list of registered languages
+   */
+  getRegisteredLanguages(): import("./graph.js").RepoFile["language"][];
+
+  /**
+   * Check if tree-sitter parsers are initialized
+   * Used for deciding whether to use tree-sitter or regex fallback
+   */
+  isTreeSitterReady(): boolean;
 }
 
 /**
