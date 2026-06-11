@@ -12,6 +12,10 @@ import {
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
+function yamlString(value: string): string {
+  return JSON.stringify(value);
+}
+
 /**
  * Map finding severity to risk likelihood
  */
@@ -171,11 +175,11 @@ schema: risk-register@v1
 completeness: ${artifact.completeness}
 
 repo:
-  root: ${artifact.repo.root}
+  root: ${yamlString(artifact.repo.root)}
 
 tool:
-  name: ${artifact.tool.name}
-  version: ${artifact.tool.version}
+  name: ${yamlString(artifact.tool.name)}
+  version: ${yamlString(artifact.tool.version)}
   plugin_versions: []
 
 risks:
@@ -187,41 +191,31 @@ risks:
   } else {
     for (const risk of artifact.risks) {
       yaml += `
-  - id: ${risk.id}
-    title: ${risk.title}
+  - id: ${yamlString(risk.id)}
+    title: ${yamlString(risk.title)}
     severity: ${risk.severity}
     likelihood: ${risk.likelihood}
     confidence: ${risk.confidence}
     impact:
 `;
     for (const impactItem of risk.impact) {
-      // Quote impact items that contain colons or special characters
-      if (impactItem.includes(":") || impactItem.includes("#") || impactItem.includes("|")) {
-        yaml += `      - "${impactItem}"\n`;
-      } else {
-        yaml += `      - ${impactItem}\n`;
-      }
+      yaml += `      - ${yamlString(impactItem)}\n`;
     }
     yaml += `    sourceFindingIds:
 `;
     for (const findingId of risk.sourceFindingIds) {
-      yaml += `      - ${findingId}\n`;
+      yaml += `      - ${yamlString(findingId)}\n`;
     }
     yaml += `    evidence:
 `;
     for (const ev of risk.evidence || []) {
-      yaml += `      - id: ${ev.id}\n        path: ${ev.path}\n        kind: ${ev.kind}\n`;
+      yaml += `      - id: ${yamlString(ev.id)}\n        path: ${yamlString(ev.path)}\n        kind: ${ev.kind}\n`;
       if (ev.startLine) yaml += `        startLine: ${ev.startLine}\n`;
       if (ev.excerptHash) yaml += `        excerptHash: "${ev.excerptHash}"\n`;
     }
     yaml += `    recommendedActions:\n`;
     for (const action of risk.recommendedActions) {
-      // Quote actions that contain colons or special characters
-      if (action.includes(":") || action.includes("#") || action.includes("|")) {
-        yaml += `      - "${action}"\n`;
-      } else {
-        yaml += `      - ${action}\n`;
-      }
+      yaml += `      - ${yamlString(action)}\n`;
     }
     if (risk.narrative) {
       yaml += `    narrative: |

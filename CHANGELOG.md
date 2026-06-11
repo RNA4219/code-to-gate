@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- SPEC-29 SQL/database migration analysis behind `--database-analysis`.
+- Experimental `database-assets@v1alpha1` artifact with dialect and diagnostic evidence.
+- Base/head database operation diffing that reports only newly introduced DB risks.
+
+### Changed
+
+- Database findings now flow through risk, test seed, SARIF, and readiness inputs.
+- Database artifacts redact credential-like values and preserve partial-analysis diagnostics.
+
 ---
 
 ## [1.5.0] - 2026-06-10 - Assurance Smell Detector Release

@@ -146,6 +146,7 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "audit.schema.json",
     "evidence-ref.schema.json",
     "diff-analysis.schema.json",
+    "database-assets.schema.json",
   ];
 
   for (const file of schemaFiles) {
@@ -221,6 +222,7 @@ const OPTIONAL_ARTIFACTS = [
   "test-seeds.json",
   "invariants.json",
   "raw-findings.json",
+  "database-assets.json",
 ];
 
 /**

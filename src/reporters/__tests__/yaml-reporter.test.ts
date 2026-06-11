@@ -13,6 +13,7 @@ import {
 import { existsSync, readFileSync, rmSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import yaml from "js-yaml";
 import type { FindingsArtifact, Finding } from "../../types/artifacts.js";
 
 // Helper: Create findings artifact
@@ -178,6 +179,20 @@ describe("yaml-reporter", () => {
       expect(content).toContain("confidence:");
       expect(content).toContain("impact:");
       expect(content).toContain("recommendedActions:");
+    });
+
+    it("quotes finding titles and other scalar values with YAML special characters", () => {
+      const findings = createFindings([
+        createFinding({
+          severity: "high",
+          title: "DROP TABLE detected: users # destructive",
+          summary: "Impact: data loss # irreversible",
+        }),
+      ]);
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+      const filePath = writeRiskRegisterYaml(tempOutDir, riskRegister);
+
+      expect(() => yaml.load(readFileSync(filePath, "utf8"))).not.toThrow();
     });
   });
 

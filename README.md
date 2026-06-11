@@ -87,6 +87,14 @@ All languages can be scanned; depth of analysis varies by adapter. Tree-sitter i
 | `HARDCODED_SECRET` | security | Hardcoded credentials |
 | `UNSAFE_REDIRECT` | security | Unsafe redirect patterns |
 | `TRY_CATCH_SWALLOW` | maintainability | Empty/silent catch blocks |
+| `DB_DROP_TABLE` | data | DROP TABLE without safeguards |
+| `DB_DROP_COLUMN` | data | DROP COLUMN without rollback |
+| `DB_ADD_NOT_NULL_WITHOUT_DEFAULT` | data | NOT NULL constraint without default value |
+| `DB_RISKY_TYPE_CHANGE` | data | Column type change with data loss risk |
+| `DB_DROP_CONSTRAINT` | data | DROP CONSTRAINT without rollback |
+| `DB_DROP_INDEX` | data | DROP INDEX without rollback |
+| `DB_MIGRATION_NO_TRANSACTION_SIGNAL` | data | Migration without transaction signals |
+| `DB_ROLLBACK_NOT_EVIDENCED` | data | Rollback path not evidenced |
 | ... | | See [CLI Reference](docs/cli-reference.md) for full list |
 
 ---
@@ -219,9 +227,40 @@ node ./dist/cli.js analyze . --policy .github/ctg-policy.yaml --out .qh
 # With LLM
 node ./dist/cli.js analyze . --llm-provider ollama --llm-model llama3 --out .qh
 
+# With database migration analysis
+node ./dist/cli.js analyze . --database-analysis --out .qh
+
 # Diff analysis (PR mode)
 node ./dist/cli.js diff . --base origin/main --head HEAD --policy .github/ctg-policy.yaml --out .qh
 ```
+
+### Database Analysis
+
+Analyze database migration files for risky schema changes:
+
+```bash
+# Analyze database migrations with all other rules
+node ./dist/cli.js analyze . --database-analysis --out .qh
+
+# Diff analysis with database rules (PR review)
+node ./dist/cli.js diff . --base origin/main --head HEAD --database-analysis --out .qh
+```
+
+Initial analysis targets `.sql` DDL. Migration source files containing embedded
+SQL may be classified and inspected on a best-effort basis; ORM semantics are
+not fully interpreted.
+
+Detected risks:
+| Risk | Description |
+|------|-------------|
+| `DB_DROP_TABLE` | DROP TABLE without transaction/rollback |
+| `DB_DROP_COLUMN` | Column removal without rollback path |
+| `DB_ADD_NOT_NULL_WITHOUT_DEFAULT` | Adding NOT NULL without default value |
+| `DB_RISKY_TYPE_CHANGE` | Type narrowing (bigint→integer, decimal→integer) |
+| `DB_DROP_CONSTRAINT` | Dropping FK, unique, check constraints |
+| `DB_DROP_INDEX` | Index removal without rollback |
+| `DB_MIGRATION_NO_TRANSACTION_SIGNAL` | Missing transaction wrapper signals |
+| `DB_ROLLBACK_NOT_EVIDENCED` | Rollback path not documented |
 
 ### Readiness
 

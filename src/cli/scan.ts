@@ -16,6 +16,7 @@ import { initPythonParser } from "../adapters/py-tree-sitter-adapter.js";
 import { initRubyParser } from "../adapters/rb-tree-sitter-adapter.js";
 import { initGoParser } from "../adapters/go-tree-sitter-adapter.js";
 import { initRustParser } from "../adapters/rs-tree-sitter-adapter.js";
+import { analyzeDatabaseAssets } from "../core/database-analyzer.js";
 
 /**
  * Threshold for large repo processing
@@ -210,10 +211,11 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
   const cacheModeValue = options.getOption(args, "--cache");
   const parallelValue = options.getOption(args, "--parallel");
   const useTreeSitter = args.includes("--tree-sitter");
+  const useDatabaseAnalysis = args.includes("--database-analysis");
   const verbose = isVerbose(args);
 
   if (!repoArg) {
-    console.error("usage: code-to-gate scan <repo> --out <dir> [--cache <mode>] [--parallel <n>] [--tree-sitter] [--verbose]");
+    console.error("usage: code-to-gate scan <repo> --out <dir> [--cache <mode>] [--parallel <n>] [--tree-sitter] [--database-analysis] [--verbose]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -279,8 +281,31 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
   try {
     // Build graph with cache support
     const graph = await buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose, useTreeSitter, treeSitterAvailable);
+    let databaseFileCount = 0;
 
     writeJson(path.join(absoluteOutDir, "repo-graph.json"), graph);
+
+    // Database analysis (SPEC-29)
+    if (useDatabaseAnalysis) {
+      // Analyze database assets
+      const dbAssets = analyzeDatabaseAssets({
+        repoRoot,
+        graph,
+        verbose,
+      });
+      databaseFileCount = dbAssets.stats.filesAnalyzed;
+
+      writeJson(path.join(absoluteOutDir, "database-assets.json"), dbAssets);
+
+      if (verbose) {
+        console.log(JSON.stringify({
+          phase: "database-analysis",
+          migrationCount: dbAssets.stats.migrationCount,
+          rawSqlCount: dbAssets.stats.rawSqlCount,
+          ormCount: dbAssets.ormUsage.length,
+        }));
+      }
+    }
 
     // Save cache
     if (cacheManager.isEnabled()) {
@@ -300,6 +325,11 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
     if (cacheManager.isEnabled()) {
       output.cacheMode = cacheMode;
       output.cacheStats = cacheManager.getStats();
+    }
+
+    if (useDatabaseAnalysis) {
+      output.databaseAnalysis = true;
+      output.databaseFiles = databaseFileCount;
     }
 
     console.log(JSON.stringify(output));

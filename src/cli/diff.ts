@@ -7,13 +7,28 @@
 
 import { execSync } from "node:child_process";
 import { toPosix } from "../core/path-utils.js";
-import { detectLanguage, detectRole, walkDir, ensureDir } from "../core/file-utils.js";
+import {
+  detectLanguage,
+  detectRole,
+  walkDir,
+  ensureDir,
+  listDatabaseFilesAtGitRef,
+  readFileAtGitRef,
+} from "../core/file-utils.js";
+import {
+  analyzeDatabaseAssetsAtRef,
+  diffDatabaseAssets,
+} from "../core/database-analyzer.js";
+import type { DatabaseAssetsDiff } from "../core/database-analyzer.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
+import { CORE_RULES, DATABASE_RULES } from "../rules/index.js";
+import type { RulePlugin } from "../rules/index.js";
 
 import {
   NormalizedRepoGraph,
   FindingsArtifact,
   Finding,
+  RepoFile,
   CTG_VERSION,
   ToolRef,
 } from "../types/artifacts.js";
@@ -36,6 +51,7 @@ import {
   nodeClockService,
   nodePathService,
 } from "../adapters/node-services.js";
+import type { FileAccess } from "../types/contracts.js";
 
 interface DiffOptions {
   VERSION: string;
@@ -294,7 +310,8 @@ function buildDiffFindings(
   blastRadius: BlastRadius,
   runId: string,
   repoRoot: string,
-  toolVersion: string
+  toolVersion: string,
+  rules: RulePlugin[] = CORE_RULES
 ): FindingsArtifact {
   const findings: Finding[] = [];
 
@@ -326,7 +343,7 @@ function buildDiffFindings(
     false
   );
 
-  const allFindings = evaluateRules(filteredGraph, applicationContext);
+  const allFindings = evaluateRules(filteredGraph, applicationContext, undefined, rules);
 
   // Filter findings to only those in changed files or blast radius
   for (const finding of allFindings.findings) {
@@ -344,6 +361,91 @@ function buildDiffFindings(
     ...allFindings,
     findings,
     completeness: findings.length > 0 ? "complete" : "partial",
+  };
+}
+
+function findingSignature(finding: Finding): string {
+  const evidence = finding.evidence
+    .map((item) => item.path)
+    .sort()
+    .join("|");
+  return `${finding.ruleId}|${finding.title}|${evidence}`;
+}
+
+function buildDatabaseFindingsAtRef(
+  repoRoot: string,
+  gitRef: string,
+  runId: string,
+  toolVersion: string
+): FindingsArtifact {
+  const contents = new Map<string, string>();
+  const files: RepoFile[] = [];
+
+  for (const filePath of listDatabaseFilesAtGitRef(repoRoot, gitRef)) {
+    const content = readFileAtGitRef(repoRoot, gitRef, filePath);
+    if (content === null) continue;
+    const normalizedPath = toPosix(filePath);
+    contents.set(normalizedPath, content);
+    files.push({
+      id: `file:${normalizedPath}`,
+      path: normalizedPath,
+      language: detectLanguage(normalizedPath),
+      role: "source",
+      hash: nodeHashService.sha256(content),
+      sizeBytes: Buffer.byteLength(content),
+      lineCount: content.split(/\r?\n/).length,
+      parser: { status: "skipped", adapter: "ctg-db-ref-v0" },
+    });
+  }
+
+  const refFileAccess: FileAccess = {
+    ...nodeFileAccess,
+    readFile(filePath: string): string | null {
+      const relativePath = toPosix(nodePathService.relative(repoRoot, filePath));
+      return contents.get(relativePath) ?? null;
+    },
+  };
+  const applicationContext = createApplicationContext(
+    {
+      fileAccess: refFileAccess,
+      hashService: nodeHashService,
+      clockService: nodeClockService,
+      pathService: nodePathService,
+    },
+    new Map(),
+    toolVersion,
+    false
+  );
+
+  return evaluateRules(
+    {
+      files,
+      run_id: runId,
+      generated_at: nodeClockService.now(),
+      repo: { root: repoRoot },
+      stats: { partial: false },
+    },
+    applicationContext,
+    undefined,
+    DATABASE_RULES
+  );
+}
+
+function mergeNewDatabaseFindings(
+  coreFindings: FindingsArtifact,
+  baseDatabaseFindings: FindingsArtifact,
+  headDatabaseFindings: FindingsArtifact
+): FindingsArtifact {
+  const baseSignatures = new Set(baseDatabaseFindings.findings.map(findingSignature));
+  const newDatabaseFindings = headDatabaseFindings.findings.filter(
+    (finding) => !baseSignatures.has(findingSignature(finding))
+  );
+  return {
+    ...coreFindings,
+    findings: [...coreFindings.findings, ...newDatabaseFindings],
+    completeness: coreFindings.completeness === "complete" || newDatabaseFindings.length > 0
+      ? "complete"
+      : "partial",
   };
 }
 
@@ -478,9 +580,10 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
   const baseRef = options.getOption(args, "--base");
   const headRef = options.getOption(args, "--head");
   const outDir = options.getOption(args, "--out") ?? ".qh";
+  const useDatabaseAnalysis = args.includes("--database-analysis");
 
   if (!repoArg || !baseRef || !headRef) {
-    console.error("usage: code-to-gate diff <repo> --base <ref> --head <ref> --out <dir>");
+    console.error("usage: code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -502,7 +605,8 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
 
   try {
     // Build partial graph for analysis
-    const graph = buildPartialGraph(repoRoot);
+    const baseGraph = buildPartialGraph(repoRoot);
+    const graph = baseGraph;
 
     // Get changed files between base and head
     const changedFiles = getChangedFiles(repoRoot, baseRef, headRef);
@@ -564,7 +668,14 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     const blastRadius = calculateBlastRadius(graph, changedFiles);
 
     // Build diff findings
-    const findings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION);
+    const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES);
+    const findings = useDatabaseAnalysis
+      ? mergeNewDatabaseFindings(
+          coreFindings,
+          buildDatabaseFindingsAtRef(repoRoot, baseRef, graph.run_id, VERSION),
+          buildDatabaseFindingsAtRef(repoRoot, headRef, graph.run_id, VERSION)
+        )
+      : coreFindings;
 
     ensureDir(absoluteOutDir);
 
@@ -603,6 +714,38 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     // Generate findings.json
     const findingsPath = writeFindingsJson(absoluteOutDir, findings);
 
+    let databaseAssetsPath: string | undefined;
+    let databaseAssetsBasePath: string | undefined;
+    let databaseDiffPath: string | undefined;
+    let dbDiff: DatabaseAssetsDiff | undefined;
+
+    if (useDatabaseAnalysis) {
+      // Analyze database assets at base ref (SPEC-29: true base/head diff)
+      const baseAssets = analyzeDatabaseAssetsAtRef({ repoRoot, gitRef: baseRef });
+      databaseAssetsBasePath = nodePathService.join(absoluteOutDir, "database-assets-base.json");
+      nodeFileAccess.writeFile(databaseAssetsBasePath, JSON.stringify(baseAssets, null, 2) + "\n");
+
+      // Analyze database assets at head ref
+      const headAssets = analyzeDatabaseAssetsAtRef({ repoRoot, gitRef: headRef });
+      databaseAssetsPath = nodePathService.join(absoluteOutDir, "database-assets.json");
+      nodeFileAccess.writeFile(databaseAssetsPath, JSON.stringify(headAssets, null, 2) + "\n");
+
+      // Compute database assets diff (SPEC-29)
+      dbDiff = diffDatabaseAssets(baseAssets, headAssets);
+      databaseDiffPath = nodePathService.join(absoluteOutDir, "database-assets-diff.json");
+      nodeFileAccess.writeFile(databaseDiffPath, JSON.stringify(dbDiff, null, 2) + "\n");
+
+      // Update diff_analysis with database diff info
+      if (dbDiff) {
+        diffAnalysis.diff_findings.potentially_affected_findings = [
+          ...dbDiff.removedRollbackPatterns.map(r => `rollback-removed:${r.migrationPath}`),
+          ...dbDiff.removedTransactionSignals.map(r => `tx-signal-removed:${r.migrationPath}`),
+        ];
+        // Re-write diff-analysis.json with updated info
+        nodeFileAccess.writeFile(diffAnalysisPath, JSON.stringify(diffAnalysis, null, 2) + "\n");
+      }
+    }
+
     // Generate blast-radius.mmd
     const mermaid = generateBlastRadiusMermaid(blastRadius);
     const mermaidPath = nodePathService.join(absoluteOutDir, "blast-radius.mmd");
@@ -631,6 +774,9 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
         artifacts: [
           nodePathService.relative(cwd, diffAnalysisPath),
           nodePathService.relative(cwd, findingsPath),
+          ...(databaseAssetsPath ? [nodePathService.relative(cwd, databaseAssetsPath)] : []),
+          ...(databaseAssetsBasePath ? [nodePathService.relative(cwd, databaseAssetsBasePath)] : []),
+          ...(databaseDiffPath ? [nodePathService.relative(cwd, databaseDiffPath)] : []),
           nodePathService.relative(cwd, mermaidPath),
           nodePathService.relative(cwd, auditPath),
         ],
@@ -642,6 +788,11 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
           findings: findings.findings.length,
           critical: findings.findings.filter((f) => f.severity === "critical").length,
           high: findings.findings.filter((f) => f.severity === "high").length,
+          ...(dbDiff ? {
+            db_added_migrations: dbDiff.addedMigrations.length,
+            db_removed_rollback_patterns: dbDiff.removedRollbackPatterns.length,
+            db_removed_tx_signals: dbDiff.removedTransactionSignals.length,
+          } : {}),
         },
       })
     );

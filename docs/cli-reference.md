@@ -121,6 +121,7 @@ code-to-gate analyze <repo-path> --out <output-dir>
 | `--llm-model-path <path>` | none | Model file path for `llama.cpp` provider |
 | `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx,py,rb,go,rs,java,php`) |
 | `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns |
+| `--database-analysis` | false | Enable database migration analysis for risky schema changes |
 
 **Output Artifacts:**
 | Artifact | Description |
@@ -155,7 +156,39 @@ code-to-gate analyze ./my-repo --emit all --out .qh \
 # With policy and LLM required
 code-to-gate analyze ./my-repo --emit all --out .qh \
   --policy ./policies/strict.yaml --require-llm
+
+# With database migration analysis
+code-to-gate analyze ./my-repo --emit all --out .qh \
+  --database-analysis
 ```
+
+**Database Analysis:**
+
+When `--database-analysis` is enabled, code-to-gate scans database migration files for risky schema changes that could cause data loss, service disruption, or require manual intervention.
+
+**Supported Inputs:**
+
+- `.sql` DDL is the initial supported input.
+- Migration source files containing embedded SQL are inspected on a best-effort basis.
+- ORM-specific migration semantics are not fully interpreted.
+
+**Database Rules:**
+
+| Rule ID | Category | Description |
+|---------|----------|-------------|
+| `DB_DROP_TABLE` | data | DROP TABLE without transaction/rollback safeguards |
+| `DB_DROP_COLUMN` | data | Column removal without documented rollback path |
+| `DB_ADD_NOT_NULL_WITHOUT_DEFAULT` | data | Adding NOT NULL constraint without default value |
+| `DB_RISKY_TYPE_CHANGE` | data | Type narrowing (bigint→integer, decimal→integer) |
+| `DB_DROP_CONSTRAINT` | data | Dropping foreign key, unique, or check constraints |
+| `DB_DROP_INDEX` | data | Index removal without rollback consideration |
+| `DB_MIGRATION_NO_TRANSACTION_SIGNAL` | data | Missing transaction wrapper signals (BEGIN/COMMIT) |
+| `DB_ROLLBACK_NOT_EVIDENCED` | data | Rollback path not documented or implemented |
+
+**Severity:**
+
+- **High**: Operations without rollback evidence (e.g., DROP TABLE with no down method)
+- **Medium**: Operations with rollback evidence but still risky (e.g., DROP COLUMN with documented down)
 
 **Exit Codes:**
 | Code | Name | Description |
@@ -188,6 +221,7 @@ code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir>
 | `--base <ref>` | `main` | Base branch or commit reference |
 | `--head <ref>` | `HEAD` | Head branch or commit reference |
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
+| `--database-analysis` | false | Enable database migration analysis for risky schema changes |
 
 **Output:**
 | Artifact | Description |
@@ -201,6 +235,10 @@ code-to-gate diff ./my-repo --base main --head feature-x --out .qh
 
 # Compare commits
 code-to-gate diff ./my-repo --base abc123 --head def456 --out .qh
+
+# With database migration analysis (PR review)
+code-to-gate diff ./my-repo --base main --head feature-migration \
+  --database-analysis --out .qh
 ```
 
 **Exit Codes:**
@@ -568,6 +606,8 @@ blocking:
   rules:
     CLIENT_TRUSTED_PRICE: true  # Block on specific rule (high/critical only)
     WEAK_AUTH_GUARD: true       # Block on specific rule
+    DB_DROP_TABLE: true         # Block on database table deletion
+    DB_DROP_COLUMN: true        # Block on database column deletion
 
   count_threshold:
     critical_max: 0   # Max critical findings allowed
@@ -608,7 +648,9 @@ exit:
 | `blocking.severity.high: true` | Any high finding blocks release |
 | `blocking.category.auth: true` | Any auth-related finding blocks release |
 | `blocking.category.payment: true` | Any payment-related finding blocks release |
+| `blocking.category.data: true` | Any database-related finding blocks release |
 | `blocking.rules.CLIENT_TRUSTED_PRICE: true` | Specific rule blocks release (high/critical severity only) |
+| `blocking.rules.DB_DROP_TABLE: true` | Database table deletion blocks release |
 | `blocking.count_threshold.critical_max: 0` | Exceed threshold blocks release |
 
 ### Confidence Configuration

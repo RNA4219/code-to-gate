@@ -3,7 +3,7 @@
 **Version**: v1.0
 **Created**: 2026-05-04
 **Status**: draft
-**Total Specs**: 28
+**Total Specs**: 29
 **Purpose**: Comprehensive specification documents for all feature enhancement items
 
 ---
@@ -84,17 +84,23 @@ This document serves as the master index for all code-to-gate feature enhancemen
 | [SPEC-27](SPEC-27-java-adapter.md) | Java tree-sitter Adapter | P3 | 2 weeks | draft |
 | [SPEC-28](SPEC-28-cpp-adapter.md) | C/C++ tree-sitter Adapter | P3 | 2 weeks | draft |
 
+### I. Database & Data Analysis (1 spec)
+
+| Spec ID | Title | Priority | Est. Time | Status |
+|---|---|:---:|:---:|:---:|
+| [SPEC-29](SPEC-29-sql-database-analysis.md) | SQL・データベース変更リスク解析 | P1 | 2026-06-11 | done |
+
 ---
 
 ## Summary Statistics
 
 | Metric | Value |
 |---|:---:|
-| Total Specifications | 28 |
-| P1 (High Priority) | 7 |
+| Total Specifications | 29 |
+| P1 (High Priority) | 8 |
 | P2 (Medium Priority) | 14 |
 | P3 (Low Priority) | 7 |
-| Estimated Total Time | ~8 weeks |
+| Estimated Total Time | ~8 weeks; SPEC-29 completed |
 
 ---
 
@@ -142,3 +148,4 @@ This document serves as the master index for all code-to-gate feature enhancemen
 | Date | Version | Change |
 |---|---|---|
 | 2026-05-04 | v1.0 | Initial creation with 28 specs |
+| 2026-06-10 | v1.1 | Added SPEC-29 SQL・データベース変更リスク解析 |
