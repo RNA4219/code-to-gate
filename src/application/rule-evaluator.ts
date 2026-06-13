@@ -9,8 +9,8 @@
  */
 
 import type { Finding, FindingsArtifact, EvidenceRef, RepoFile, UnsupportedClaim } from "../types/artifacts.js";
-import type { RuleContext, SimpleGraph } from "../rules/index.js";
-import { ALL_RULES } from "../rules/index.js";
+import type { RuleContext, RulePlugin, SimpleGraph } from "../rules/index.js";
+import { CORE_RULES } from "../rules/index.js";
 import { domainTagForFinding, falsePositiveReviewTags } from "../core/domain-context.js";
 import type { ArtifactHeader } from "../types/artifacts.js";
 import type { ApplicationContext } from "./context.js";
@@ -40,7 +40,8 @@ export function createFindingsHeader(
   runId: string,
   repoRoot: string,
   applicationContext: ApplicationContext,
-  policyId?: string
+  policyId?: string,
+  rules: RulePlugin[] = CORE_RULES
 ): ArtifactHeader {
   const now = applicationContext.clockService.now();
   return {
@@ -55,7 +56,7 @@ export function createFindingsHeader(
       name: "code-to-gate",
       version: applicationContext.toolVersion,
       policy_id: policyId,
-      plugin_versions: ALL_RULES.map((r) => ({
+      plugin_versions: rules.map((r) => ({
         name: r.id,
         version: applicationContext.toolVersion,
         visibility: "public" as const,
@@ -113,13 +114,14 @@ export function evaluateRules(
     stats: { partial: boolean };
   },
   applicationContext: ApplicationContext,
-  policyId?: string
+  policyId?: string,
+  rules: RulePlugin[] = CORE_RULES
 ): FindingsArtifact {
   // Clear file content cache
   fileContentCache.clear();
 
   const repoRoot = graph.repo.root;
-  const header = createFindingsHeader(graph.run_id, repoRoot, applicationContext, policyId);
+  const header = createFindingsHeader(graph.run_id, repoRoot, applicationContext, policyId, rules);
 
   const allFindings: Finding[] = [];
   const unsupported_claims: UnsupportedClaim[] = [];
@@ -138,7 +140,7 @@ export function evaluateRules(
 
   // Evaluate all rules
   let findingIndex = 0;
-  for (const rule of ALL_RULES) {
+  for (const rule of rules) {
     const findings = rule.evaluate(context);
     for (const finding of findings) {
       // Normalize evidence IDs
@@ -150,7 +152,7 @@ export function evaluateRules(
 
       const normalizedFinding: Finding = {
         id: generateFindingId(rule.id, findingIndex),
-        ruleId: rule.id,
+        ruleId: finding.ruleId || rule.id, // Preserve finding's ruleId if set (for granular IDs)
         category: finding.category,
         severity: finding.severity,
         confidence: finding.confidence,

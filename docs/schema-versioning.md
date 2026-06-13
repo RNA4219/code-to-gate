@@ -47,6 +47,7 @@ The v1 schema freeze establishes the following guarantees:
 | release-readiness | `release-readiness@v1` | `release-readiness@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |
+| database-assets | - | `database-assets@v1alpha1` | Experimental |
 
 ### 2.3 Integration Schema Versions
 

@@ -481,10 +481,144 @@ export function ensureDir(dir: string): void {
 }
 
 /**
+ * Check if a file is a database/migration file (SPEC-29)
+ * @param filePath - Path to the file
+ * @returns True if the file is a database/migration file
+ */
+export function isDatabaseFile(filePath: string): boolean {
+  const normalized = toPosix(filePath);
+
+  // SQL files
+  if (normalized.endsWith(".sql")) return true;
+
+  // Migration directory patterns
+  if (
+    normalized.startsWith("migrations/") ||
+    normalized.startsWith("db/migrate/") ||
+    normalized.startsWith("src/migrations/") ||
+    normalized.includes("/migrations/") ||
+    normalized.includes("/db/migrate/") ||
+    normalized.includes("/src/migrations/")
+  ) {
+    // TypeScript/JavaScript/Python/Ruby migration files
+    if (/\.(ts|js|py|rb)$/.test(normalized)) return true;
+  }
+
+  // ORM-specific patterns
+  // TypeORM: migrations/1234567890-name.ts
+  if (/migrations\/\d{10,}-.*\.ts$/.test(normalized)) return true;
+
+  // Rails: db/migrate/20240115123456_name.rb
+  if (/db\/migrate\/\d{14}_.*\.rb$/.test(normalized)) return true;
+
+  // Flyway: V20240101__description.sql or U20240101__undo.sql
+  if (/V\d{8}__.*\.sql$/.test(normalized) || /U\d{8}__.*\.sql$/.test(normalized)) return true;
+
+  // Knex: migrations/20240115120000_name.js
+  if (/migrations\/\d{14}_.*\.js$/.test(normalized)) return true;
+
+  // Django: migrations/0001_initial.py
+  if (/migrations\/\d{4}_.*\.py$/.test(normalized)) return true;
+
+  return false;
+}
+
+/**
+ * Discover database/migration files in repository (SPEC-29)
+ * @param repoRoot - Repository root directory
+ * @returns Array of absolute paths to database/migration files
+ */
+export function discoverDatabaseFiles(repoRoot: string): string[] {
+  return walkDir(repoRoot).filter(isDatabaseFile);
+}
+
+/**
+ * Get ORM type based on file path patterns (SPEC-29)
+ * @param filePath - Path to the file
+ * @returns Detected ORM type
+ */
+export function detectOrmFromPath(filePath: string): "typeorm" | "rails" | "flyway" | "knex" | "django" | "sequelize" | "prisma" | "unknown" {
+  const normalized = toPosix(filePath);
+
+  // TypeORM
+  if (/migrations\/\d{10,}-.*\.ts$/.test(normalized)) return "typeorm";
+  if (normalized.includes("typeorm") || normalized.includes("typeorm-migration")) return "typeorm";
+
+  // Rails
+  if (/db\/migrate\/\d{14}_.*\.rb$/.test(normalized)) return "rails";
+
+  // Flyway
+  if (/V\d{8}__.*\.sql$/.test(normalized) || /U\d{8}__.*\.sql$/.test(normalized)) return "flyway";
+  if (normalized.includes("flyway")) return "flyway";
+
+  // Knex
+  if (/migrations\/\d{14}_.*\.js$/.test(normalized)) return "knex";
+
+  // Django
+  if (/migrations\/\d{4}_.*\.py$/.test(normalized)) return "django";
+
+  // Sequelize
+  if (normalized.includes("sequelize") || normalized.includes("/migrations/") && normalized.endsWith(".js")) return "sequelize";
+
+  // Prisma
+  if (normalized.endsWith(".prisma") || normalized.includes("prisma")) return "prisma";
+
+  return "unknown";
+}
+
+/**
  * Write JSON to a file with formatting
  * @param file - File path to write to
  * @param value - Value to serialize as JSON
  */
 export function writeJson(file: string, value: unknown): void {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+// Git utilities for diff analysis (SPEC-29)
+import { execSync } from "node:child_process";
+
+/**
+ * Read file content at a specific git ref using git show (SPEC-29 diff)
+ * @param repoRoot - Repository root directory
+ * @param gitRef - Git reference (commit hash, branch, tag, etc.)
+ * @param filePath - Relative file path from repo root
+ * @returns File content or null if file doesn't exist at that ref
+ */
+export function readFileAtGitRef(repoRoot: string, gitRef: string, filePath: string): string | null {
+  try {
+    const content = execSync(
+      `git show "${gitRef}:${toPosix(filePath)}"`,
+      { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
+    );
+    return content;
+  } catch {
+    // File doesn't exist at this ref
+    return null;
+  }
+}
+
+/**
+ * List database/migration files at a specific git ref (SPEC-29 diff)
+ * Uses git ls-tree to enumerate files at the ref
+ * @param repoRoot - Repository root directory
+ * @param gitRef - Git reference (commit hash, branch, tag, etc.)
+ * @returns Array of relative paths to database/migration files at that ref
+ */
+export function listDatabaseFilesAtGitRef(repoRoot: string, gitRef: string): string[] {
+  try {
+    // Get all files at the ref using git ls-tree
+    const output = execSync(
+      `git ls-tree -r --name-only "${gitRef}"`,
+      { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
+    );
+
+    // Filter to database/migration files
+    return output.split("\n")
+      .filter(line => line.trim())
+      .filter(filePath => isDatabaseFile(path.join(repoRoot, filePath)));
+  } catch {
+    // Ref doesn't exist or other error
+    return [];
+  }
 }

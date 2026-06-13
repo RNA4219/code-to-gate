@@ -96,6 +96,11 @@ export { DEPRECATED_API_USAGE_RULE } from "./deprecated-api.js";
 export { CIRCULAR_DEPENDENCY_RULE } from "./circular-dependency.js";
 export { MISSING_INPUT_SANITIZATION_RULE } from "./missing-input-sanitization.js";
 
+// New rules (Phase 3 - Database Analysis - SPEC-29)
+export { DB_DESTRUCTIVE_OPS_RULE, DatabaseFindingRuleId } from "./db-destructive-ops.js";
+export { DB_SCHEMA_CHANGE_RULE } from "./db-schema-change.js";
+export { DB_MIGRATION_OPS_RULE } from "./db-migration-ops.js";
+
 // All rules array for easy import
 import { CLIENT_TRUSTED_PRICE_RULE } from "./client-trusted-price.js";
 import { WEAK_AUTH_GUARD_RULE } from "./weak-auth-guard.js";
@@ -114,8 +119,11 @@ import { UNSAFE_REDIRECT_RULE } from "./unsafe-redirect.js";
 import { DEPRECATED_API_USAGE_RULE } from "./deprecated-api.js";
 import { CIRCULAR_DEPENDENCY_RULE } from "./circular-dependency.js";
 import { MISSING_INPUT_SANITIZATION_RULE } from "./missing-input-sanitization.js";
+import { DB_DESTRUCTIVE_OPS_RULE } from "./db-destructive-ops.js";
+import { DB_SCHEMA_CHANGE_RULE } from "./db-schema-change.js";
+import { DB_MIGRATION_OPS_RULE } from "./db-migration-ops.js";
 
-export const ALL_RULES: RulePlugin[] = [
+export const CORE_RULES: RulePlugin[] = [
   CLIENT_TRUSTED_PRICE_RULE,
   WEAK_AUTH_GUARD_RULE,
   TRY_CATCH_SWALLOW_RULE,
@@ -134,3 +142,11 @@ export const ALL_RULES: RulePlugin[] = [
   CIRCULAR_DEPENDENCY_RULE,
   MISSING_INPUT_SANITIZATION_RULE,
 ];
+
+export const DATABASE_RULES: RulePlugin[] = [
+  DB_DESTRUCTIVE_OPS_RULE,
+  DB_SCHEMA_CHANGE_RULE,
+  DB_MIGRATION_OPS_RULE,
+];
+
+export const ALL_RULES: RulePlugin[] = [...CORE_RULES, ...DATABASE_RULES];

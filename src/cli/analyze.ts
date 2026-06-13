@@ -4,8 +4,10 @@
 
 import { ensureDir } from "../core/file-utils.js";
 import { buildGraph } from "../core/repo-graph-builder.js";
+import { analyzeDatabaseAssets, createDatabaseRuleGraph } from "../core/database-analyzer.js";
 import type { ParserRegistry } from "../types/contracts.js";
 import { createParserRegistry } from "../adapters/parser-registry.js";
+import { CORE_RULES, DATABASE_RULES } from "../rules/index.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 
 import {
@@ -138,6 +140,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const requireLlm = args.includes("--require-llm");
   const fromImports = args.includes("--from-imports");
   const useTreeSitter = args.includes("--tree-sitter");
+  const useDatabaseAnalysis = args.includes("--database-analysis");
 
   // Validate LLM options
   if (llmProvider && !VALID_LLM_PROVIDERS.includes(llmProvider as LlmProviderType)) {
@@ -160,7 +163,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
 
   // Validate repo argument
   if (!repoArg) {
-    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--llm-base-url <url>] [--from-imports] [--tree-sitter]");
+    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--llm-base-url <url>] [--from-imports] [--tree-sitter] [--database-analysis]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -302,8 +305,10 @@ Provide concise, actionable findings.`,
     }
 
     // Generate findings using application-layer evaluator with injected context
+    const analysisGraph = useDatabaseAnalysis ? createDatabaseRuleGraph(graph, repoRoot) : graph;
+    const rules = useDatabaseAnalysis ? [...CORE_RULES, ...DATABASE_RULES] : CORE_RULES;
     const findings = applyLlmEnrichment(
-      evaluateRules(graph, applicationContext, policy?.policyId),
+      evaluateRules(analysisGraph, applicationContext, policy?.policyId, rules),
       llmAnalysisResult,
       llmProviderName
     );
@@ -332,6 +337,16 @@ Provide concise, actionable findings.`,
 
     // Track generated artifacts
     const generated: string[] = [];
+
+    if (useDatabaseAnalysis) {
+      const databaseAssets = analyzeDatabaseAssets({
+        repoRoot,
+        graph,
+      });
+      const databaseAssetsPath = nodePathService.join(absoluteOutDir, "database-assets.json");
+      nodeFileAccess.writeFile(databaseAssetsPath, JSON.stringify(databaseAssets, null, 2) + "\n");
+      generated.push(databaseAssetsPath);
+    }
 
     // Generate raw-findings.json (all findings before suppression)
     // This is emitted for self-analysis transparency and debt tracking

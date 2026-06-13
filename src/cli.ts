@@ -19,9 +19,9 @@ function printHelp(): void {
 
 Usage:
   code-to-gate schema validate <artifact-or-schema>
-  code-to-gate scan <repo> --out <dir>
-  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>]
-  code-to-gate diff <repo> --base <ref> --head <ref> --out <dir>
+  code-to-gate scan <repo> --out <dir> [--database-analysis]
+  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--database-analysis]
+  code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
   code-to-gate import <tool> <input-file> --out <dir>
     Tools: eslint, semgrep, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir>
@@ -66,6 +66,7 @@ Options:
                      disabled - Skip caching, fresh scan each time
                      force    - Ignore cache, rebuild and update cache
   --parallel <n>     Max parallel workers for file parsing (default: 4)
+  --database-analysis Enable SQL and migration risk analysis
   --plugin-sandbox   Sandbox mode for plugin execution: none, docker (default: none)
   --verbose          Show detailed progress and timing information
   --title <title>    Report title for viewer

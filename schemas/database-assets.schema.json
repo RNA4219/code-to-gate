@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/database-assets.schema.json",
+  "title": "Database Assets Artifact",
+  "description": "Detected database-related artifacts from code analysis (SPEC-29)",
+  "type": "object",
+  "required": ["version", "generated_at", "run_id", "repo", "tool", "artifact", "schema", "completeness", "dialects", "diagnostics", "tables", "columns", "indexes", "constraints", "migrations", "ormUsage", "rawSqlStatements", "stats"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["ctg/v1", "ctg/v1alpha1"],
+      "description": "Schema version of this artifact"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when artifact was generated"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier for this analysis run"
+    },
+    "repo": {
+      "$ref": "./shared-defs.schema.json#/$defs/repoRef"
+    },
+    "tool": {
+      "$ref": "./shared-defs.schema.json#/$defs/toolRef"
+    },
+    "artifact": {
+      "type": "string",
+      "const": "database-assets",
+      "description": "Artifact type identifier"
+    },
+    "schema": {
+      "type": "string",
+      "const": "database-assets@v1alpha1",
+      "description": "Specific schema version for database assets"
+    },
+    "completeness": {
+      "type": "string",
+      "enum": ["complete", "partial"],
+      "description": "Analysis completeness status"
+    },
+    "dialects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["postgresql", "mysql", "sqlite", "unknown"]
+      },
+      "description": "Estimated SQL dialects detected in analyzed files"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/diagnosticRef"
+      },
+      "description": "Analysis issues, failures, and partial parsing records"
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/tableRef"
+      },
+      "description": "Detected database tables"
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/columnRef"
+      },
+      "description": "Detected table columns"
+    },
+    "indexes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/indexRef"
+      },
+      "description": "Detected database indexes"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/constraintRef"
+      },
+      "description": "Detected table constraints"
+    },
+    "migrations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/migrationRef"
+      },
+      "description": "Detected migration files with analysis"
+    },
+    "ormUsage": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ormUsageRef"
+      },
+      "description": "ORM usage patterns detected"
+    },
+    "rawSqlStatements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/rawSqlRef"
+      },
+      "description": "Raw SQL statements found in code"
+    },
+    "stats": {
+      "$ref": "#/definitions/databaseAssetsStats"
+    }
+  },
+  "definitions": {
+    "sqlDialect": {
+      "type": "string",
+      "enum": ["postgresql", "mysql", "sqlite", "unknown"],
+      "description": "SQL dialect identifier"
+    },
+    "diagnosticSeverity": {
+      "type": "string",
+      "enum": ["error", "warning", "info"],
+      "description": "Diagnostic severity level"
+    },
+    "diagnosticRef": {
+      "type": "object",
+      "required": ["id", "severity", "code", "message", "filePath"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique diagnostic identifier"
+        },
+        "severity": {
+          "$ref": "#/definitions/diagnosticSeverity"
+        },
+        "code": {
+          "type": "string",
+          "description": "Diagnostic code (e.g., PARSE_ERROR, ENCODING_ERROR)"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable diagnostic message"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "File where diagnostic was generated"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Line number where issue starts (if applicable)"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional diagnostic context"
+        }
+      }
+    },
+    "databaseObjectType": {
+      "type": "string",
+      "enum": ["table", "column", "index", "constraint", "sequence", "view", "function", "trigger"]
+    },
+    "constraintType": {
+      "type": "string",
+      "enum": ["primary_key", "foreign_key", "unique", "check", "not_null"]
+    },
+    "indexType": {
+      "type": "string",
+      "enum": ["btree", "hash", "gin", "gist", "unique"]
+    },
+    "columnDataType": {
+      "type": "string",
+      "enum": ["integer", "bigint", "smallint", "decimal", "numeric", "float", "double", "boolean", "char", "varchar", "text", "date", "datetime", "timestamp", "time", "json", "jsonb", "blob", "clob", "uuid", "enum", "array", "unknown"]
+    },
+    "databaseObjectRef": {
+      "type": "object",
+      "required": ["id", "name", "type", "filePath", "startLine"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier: table:column format"
+        },
+        "name": {
+          "type": "string",
+          "description": "Object name"
+        },
+        "type": {
+          "$ref": "#/definitions/databaseObjectType"
+        },
+        "schema": {
+          "type": "string",
+          "description": "Database schema name"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "Source file path"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "tableRef": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/definitions/databaseObjectRef" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { "const": "table" },
+            "columns": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/columnRef" }
+            },
+            "indexes": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/indexRef" }
+            },
+            "constraints": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/constraintRef" }
+            }
+          },
+          "required": ["type", "columns"]
+        }
+      ]
+    },
+    "columnRef": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/definitions/databaseObjectRef" },
+        {
+          "type": "object",
+          "required": ["type", "tableName", "dataType", "nullable"],
+          "properties": {
+            "type": { "const": "column" },
+            "tableName": { "type": "string" },
+            "dataType": { "$ref": "#/definitions/columnDataType" },
+            "nullable": { "type": "boolean" },
+            "defaultValue": { "type": ["string", "null"] },
+            "isPrimaryKey": { "type": "boolean" },
+            "isForeignKey": { "type": "boolean" },
+            "references": {
+              "type": "object",
+              "properties": {
+                "table": { "type": "string" },
+                "column": { "type": "string" }
+              },
+              "required": ["table", "column"]
+            }
+          }
+        }
+      ]
+    },
+    "indexRef": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/definitions/databaseObjectRef" },
+        {
+          "type": "object",
+          "required": ["type", "tableName", "columns", "indexType", "isUnique"],
+          "properties": {
+            "type": { "const": "index" },
+            "tableName": { "type": "string" },
+            "columns": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "indexType": { "$ref": "#/definitions/indexType" },
+            "isUnique": { "type": "boolean" }
+          }
+        }
+      ]
+    },
+    "constraintRef": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/definitions/databaseObjectRef" },
+        {
+          "type": "object",
+          "required": ["type", "tableName", "constraintType"],
+          "properties": {
+            "type": { "const": "constraint" },
+            "tableName": { "type": "string" },
+            "constraintType": { "$ref": "#/definitions/constraintType" },
+            "columns": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "referencedTable": { "type": "string" },
+            "referencedColumns": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+    "migrationDirection": {
+      "type": "string",
+      "enum": ["up", "down"]
+    },
+    "migrationOperationType": {
+      "type": "string",
+      "enum": ["create_table", "drop_table", "alter_table", "add_column", "drop_column", "modify_column", "add_constraint", "drop_constraint", "add_index", "drop_index", "raw_sql"]
+    },
+    "migrationOperation": {
+      "type": "object",
+      "required": ["type", "startLine"],
+      "properties": {
+        "type": { "$ref": "#/definitions/migrationOperationType" },
+        "tableName": { "type": "string" },
+        "columnName": { "type": "string" },
+        "details": { "type": "object" },
+        "startLine": { "type": "integer", "minimum": 1 },
+        "rawSql": { "type": "string" }
+      }
+    },
+    "migrationRef": {
+      "type": "object",
+      "required": ["id", "filePath", "name", "direction", "startLine", "hasTransactionWrapper", "transactionSignalDetected", "hasRollbackPattern", "operations"],
+      "properties": {
+        "id": { "type": "string" },
+        "filePath": { "type": "string" },
+        "name": { "type": "string" },
+        "direction": { "$ref": "#/definitions/migrationDirection" },
+        "startLine": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "hasTransactionWrapper": { "type": "boolean" },
+        "transactionSignalDetected": { "type": "boolean" },
+        "transactionPattern": {
+          "type": "string",
+          "enum": ["begin-commit", "transaction-call", "decorator", "unknown"]
+        },
+        "hasRollbackPattern": { "type": "boolean" },
+        "rollbackPattern": {
+          "type": "string",
+          "enum": ["rollback-call", "down-method", "revert-method", "unknown"]
+        },
+        "operations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/migrationOperation" }
+        }
+      }
+    },
+    "detectedOrm": {
+      "type": "string",
+      "enum": ["typeorm", "prisma", "sequelize", "knex", "rails", "flyway", "django", "unknown", "none"]
+    },
+    "entityRef": {
+      "type": "object",
+      "required": ["name", "tableName", "filePath", "startLine", "columns"],
+      "properties": {
+        "name": { "type": "string" },
+        "tableName": { "type": "string" },
+        "filePath": { "type": "string" },
+        "startLine": { "type": "integer", "minimum": 1 },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/columnRef" }
+        }
+      }
+    },
+    "ormUsageRef": {
+      "type": "object",
+      "required": ["orm", "filePath", "patterns", "entities", "migrations"],
+      "properties": {
+        "orm": { "$ref": "#/definitions/detectedOrm" },
+        "filePath": { "type": "string" },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "entities": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/entityRef" }
+        },
+        "migrations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "rawSqlRef": {
+      "type": "object",
+      "required": ["id", "filePath", "startLine", "sql", "isDynamic", "context"],
+      "properties": {
+        "id": { "type": "string" },
+        "filePath": { "type": "string" },
+        "startLine": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "sql": { "type": "string" },
+        "isDynamic": { "type": "boolean" },
+        "context": {
+          "type": "string",
+          "enum": ["query", "migration", "unknown"]
+        }
+      }
+    },
+    "databaseAssetsStats": {
+      "type": "object",
+      "required": ["tableCount", "columnCount", "indexCount", "constraintCount", "migrationCount", "ormEntityCount", "rawSqlCount", "filesAnalyzed"],
+      "properties": {
+        "tableCount": { "type": "integer", "minimum": 0 },
+        "columnCount": { "type": "integer", "minimum": 0 },
+        "indexCount": { "type": "integer", "minimum": 0 },
+        "constraintCount": { "type": "integer", "minimum":  0},
+        "migrationCount": { "type": "integer", "minimum": 0 },
+        "ormEntityCount": { "type": "integer", "minimum": 0 },
+        "rawSqlCount": { "type": "integer", "minimum": 0 },
+        "filesAnalyzed": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

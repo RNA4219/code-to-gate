@@ -1,0 +1,5 @@
+{
+  "name": "demo-migrations-ts",
+  "version": "1.0.0",
+  "description": "Fixture for database migration risk detection tests"
+}
