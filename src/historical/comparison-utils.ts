@@ -146,8 +146,9 @@ function getRunReference(artifactDir: string): RunReference | null {
 
 /**
  * Build lookup map for findings using fingerprint
+ * Returns array for each fingerprint to handle duplicates safely (Phase C)
  */
-export function buildFingerprintMap(findings: Finding[]): Map<string, Finding> {
+export function buildFingerprintMap(findings: Finding[]): Map<string, Finding[]> {
   return buildFingerprintLookupMap(findings);
 }
 

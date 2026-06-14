@@ -206,6 +206,33 @@ function formatErrors(errors: ErrorObject[] | null | undefined): string[] {
 /**
  * Required artifacts - missing in strict mode will cause failure
  */
+/**
+ * Validation profile determines which artifacts are required.
+ *
+ * - analyze: analyze command output (findings, repo-graph, audit)
+ * - readiness: readiness command output (release-readiness only)
+ * - full: all required artifacts (default, backward compatible)
+ */
+export type ValidationProfile = "analyze" | "readiness" | "full";
+
+export interface ValidateAllOptions {
+  profile?: ValidationProfile;
+}
+
+/**
+ * Required artifacts by validation profile.
+ */
+const PROFILE_REQUIRED_ARTIFACTS: Record<ValidationProfile, string[]> = {
+  analyze: ["findings.json", "repo-graph.json", "audit.json"],
+  readiness: ["release-readiness.json"],
+  full: ["findings.json", "release-readiness.json", "repo-graph.json", "audit.json"],
+};
+
+/**
+ * Legacy required artifacts - kept for backward compatibility.
+ * Equivalent to 'full' profile.
+ * @deprecated Use PROFILE_REQUIRED_ARTIFACTS.full instead
+ */
 const REQUIRED_ARTIFACTS = [
   "findings.json",
   "release-readiness.json",
@@ -230,117 +257,91 @@ const OPTIONAL_ARTIFACTS = [
  */
 const ARTIFACTS_TO_VALIDATE = [...REQUIRED_ARTIFACTS, ...OPTIONAL_ARTIFACTS];
 
-async function validateAllArtifacts(
-  dirArg: string,
-  strictMode: boolean = false,
-  allowMissing: boolean = false
-): Promise<number> {
-  const dir = path.resolve(process.cwd(), dirArg);
-
-  if (!existsSync(dir)) {
-    console.error(`directory not found: ${dirArg}`);
-    return EXIT.USAGE_ERROR;
-  }
-
-  const ajv = createAjv();
-  await loadSchemas(ajv);
-
-  const failures: string[] = [];
-  const skipped: string[] = [];
-  const missingRequired: string[] = [];
-
-  for (const artifact of ARTIFACTS_TO_VALIDATE) {
-    const filePath = path.join(dir, artifact);
-
-    if (!existsSync(filePath)) {
-      const isRequired = REQUIRED_ARTIFACTS.includes(artifact);
-
-      if (strictMode && isRequired && !allowMissing) {
-        console.error(`ERROR: Required artifact missing: ${artifact}`);
-        missingRequired.push(artifact);
-        failures.push(artifact);
-      } else {
-        skipped.push(artifact);
-      }
-      continue;
-    }
-
-    // Read and parse artifact
-    let data: unknown;
-    try {
-      data = readJson(filePath);
-    } catch (err) {
-      if (err instanceof SyntaxError || err instanceof yamlImport.YAMLException) {
-        console.error(`parse error: ${artifact}`);
-        console.error(err.message);
-        failures.push(artifact);
-        continue;
-      }
-      throw err;
-    }
-
-    // Find schema for artifact
-    const schemaPath = schemaForArtifact(data);
-    if (!schemaPath) {
-      console.error(`no schema: ${artifact}`);
-      failures.push(artifact);
-      continue;
-    }
-
-    const schema = readJson(schemaPath) as { $id?: string };
-
-    try {
-      const validate: ValidateFunction = ajv.getSchema(schema.$id || schemaPath) || ajv.compile(schema);
-      const valid = validate(data);
-
-      if (!valid) {
-        console.error(`invalid: ${artifact}`);
-        for (const error of formatErrors(validate.errors)) {
-          console.error(`  ${error}`);
-        }
-        failures.push(artifact);
-      } else {
-        console.log(`ok: ${artifact}`);
-      }
-    } catch (err: unknown) {
-      console.error(`error: ${artifact}`);
-      if (err instanceof Error) {
-        console.error(`  ${err.message}`);
-      }
-      failures.push(artifact);
-    }
-  }
-
-  if (skipped.length > 0) {
-    console.log(`skipped (not found): ${skipped.join(", ")}`);
-  }
-
-  if (missingRequired.length > 0 && strictMode) {
-    console.error(`\nMISSING_REQUIRED_ARTIFACT: ${missingRequired.join(", ")}`);
-  }
-
-  if (failures.length > 0) {
-    console.error(`\nSchema validation failed for: ${failures.join(", ")}`);
-    return EXIT.SCHEMA_FAILED;
-  }
-
-  console.log(`\nAll artifacts validated successfully`);
-  return EXIT.OK;
+function getValidationProfile(options?: ValidateAllOptions): ValidationProfile {
+  return options?.profile ?? "full";
 }
 
-/**
- * Validate all artifacts and return results (for QEG integration)
- * @param dirArg Directory containing artifacts
- * @param silent If true, suppress console output
- * @param strictMode If true, fail on missing required artifacts
- * @param allowMissing If true, allow missing artifacts even in strict mode
- * @returns Array of validation results
- */
-export async function validateAllArtifactsWithResults(
+function isKnownValidateAllOption(value: string): value is "--profile" | "--strict" | "--allow-missing" {
+  return value === "--profile" || value === "--strict" || value === "--allow-missing";
+}
+
+function parseValidateAllArgs(args: string[]): {
+  dirArg: string;
+  profile: ValidationProfile;
+  strictMode: boolean;
+  allowMissing: boolean;
+} | { error: string } {
+  if (!args[0]) {
+    return { error: "usage: code-to-gate schema validate-all <dir> [--profile <analyze|readiness|full>] [--strict] [--allow-missing]" };
+  }
+
+  const dirArg = args[0];
+  const seen = new Set<string>();
+  let profile: ValidationProfile = "full";
+  let strictMode = false;
+  let allowMissing = false;
+
+  for (let i = 1; i < args.length; i += 1) {
+    const arg = args[i];
+
+    if (arg === "--profile") {
+      if (seen.has("--profile")) {
+        return { error: "Error: --profile specified more than once" };
+      }
+      seen.add("--profile");
+      const value = args[i + 1];
+      if (!value) {
+        return { error: "Error: --profile requires a value (analyze, readiness, or full)" };
+      }
+      if (value.startsWith("--")) {
+        return { error: `Error: --profile requires a value, got option '${value}'` };
+      }
+      if (value === "analyze" || value === "readiness" || value === "full") {
+        profile = value;
+        i += 1;
+        continue;
+      }
+      return { error: `Error: Invalid profile '${value}'. Valid profiles: analyze, readiness, full` };
+    }
+
+    if (arg === "--strict") {
+      if (seen.has("--strict")) {
+        return { error: "Error: --strict specified more than once" };
+      }
+      seen.add("--strict");
+      strictMode = true;
+      continue;
+    }
+
+    if (arg === "--allow-missing") {
+      if (seen.has("--allow-missing")) {
+        return { error: "Error: --allow-missing specified more than once" };
+      }
+      seen.add("--allow-missing");
+      allowMissing = true;
+      continue;
+    }
+
+    if (isKnownValidateAllOption(arg)) {
+      return { error: `Error: unexpected option '${arg}'` };
+    }
+
+    if (arg.startsWith("--")) {
+      return { error: `Error: unknown option '${arg}'` };
+    }
+
+    return { error: `Error: unexpected positional argument '${arg}'` };
+  }
+
+  return { dirArg, profile, strictMode, allowMissing };
+}
+
+async function validateArtifactsInDir(
   dirArg: string,
-  silent: boolean = false,
-  strictMode: boolean = false,
-  allowMissing: boolean = false
+  silent: boolean,
+  strictMode: boolean,
+  allowMissing: boolean,
+  profile: ValidationProfile
 ): Promise<SchemaValidationResult[]> {
   const dir = path.resolve(process.cwd(), dirArg);
 
@@ -352,34 +353,46 @@ export async function validateAllArtifactsWithResults(
   await loadSchemas(ajv);
 
   const results: SchemaValidationResult[] = [];
+  const skipped: string[] = [];
+  const missingRequired: string[] = [];
+  const requiredArtifacts = PROFILE_REQUIRED_ARTIFACTS[profile];
 
   for (const artifact of ARTIFACTS_TO_VALIDATE) {
     const filePath = path.join(dir, artifact);
 
     if (!existsSync(filePath)) {
-      const isRequired = REQUIRED_ARTIFACTS.includes(artifact);
-
+      const isRequired = requiredArtifacts.includes(artifact);
       if (strictMode && isRequired && !allowMissing) {
         results.push({ artifact, status: "error", errors: ["MISSING_REQUIRED_ARTIFACT"] });
+        missingRequired.push(artifact);
+        if (!silent) {
+          console.error(`ERROR: Required artifact missing: ${artifact}`);
+        }
+      } else {
+        skipped.push(artifact);
       }
-      // Skip missing artifacts (either optional or allowMissing is true)
       continue;
     }
 
-    // Read and parse artifact
     let data: unknown;
     try {
       data = readJson(filePath);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       results.push({ artifact, status: "error", errors: [`parse error: ${errorMsg}`] });
+      if (!silent) {
+        console.error(`parse error: ${artifact}`);
+        console.error(errorMsg);
+      }
       continue;
     }
 
-    // Find schema for artifact
     const schemaPath = schemaForArtifact(data);
     if (!schemaPath) {
       results.push({ artifact, status: "error", errors: ["no schema found"] });
+      if (!silent) {
+        console.error(`no schema: ${artifact}`);
+      }
       continue;
     }
 
@@ -392,6 +405,12 @@ export async function validateAllArtifactsWithResults(
       if (!valid) {
         const errors = formatErrors(validate.errors);
         results.push({ artifact, status: "error", errors });
+        if (!silent) {
+          console.error(`invalid: ${artifact}`);
+          for (const error of errors) {
+            console.error(`  ${error}`);
+          }
+        }
       } else {
         results.push({ artifact, status: "ok" });
         if (!silent) {
@@ -401,35 +420,92 @@ export async function validateAllArtifactsWithResults(
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       results.push({ artifact, status: "error", errors: [`validation error: ${errorMsg}`] });
+      if (!silent) {
+        console.error(`error: ${artifact}`);
+        console.error(`  ${errorMsg}`);
+      }
     }
+  }
+
+  if (!silent && skipped.length > 0) {
+    console.log(`skipped (not found): ${skipped.join(", ")}`);
+  }
+
+  if (!silent && missingRequired.length > 0 && strictMode) {
+    console.error(`\nMISSING_REQUIRED_ARTIFACT: ${missingRequired.join(", ")}`);
+  }
+
+  if (!silent && results.some((result) => result.status === "error")) {
+    const failures = results.filter((result) => result.status === "error").map((result) => result.artifact);
+    console.error(`\nSchema validation failed for: ${failures.join(", ")}`);
+  } else if (!silent) {
+    console.log(`\nAll artifacts validated successfully`);
   }
 
   return results;
 }
 
-export async function schemaValidate(args: string[]): Promise<number> {
-  // Parse --strict and --allow-missing options
-  const strictMode = args.includes("--strict");
-  const allowMissing = args.includes("--allow-missing");
-
-  // Filter out options from args
-  const filteredArgs = args.filter((a) => !a.startsWith("--"));
-
-  if (filteredArgs[0] === "validate-all") {
-    if (!filteredArgs[1]) {
-      console.error("usage: code-to-gate schema validate-all <dir> [--strict] [--allow-missing]");
-      return EXIT.USAGE_ERROR;
-    }
-    return validateAllArtifacts(filteredArgs[1], strictMode, allowMissing);
-  }
-
-  if (filteredArgs[0] !== "validate" || !filteredArgs[1]) {
-    console.error("usage: code-to-gate schema validate <artifact-or-schema>");
-    console.error("usage: code-to-gate schema validate-all <dir> [--strict] [--allow-missing]");
+async function validateAllArtifacts(
+  dirArg: string,
+  strictMode: boolean = false,
+  allowMissing: boolean = false,
+  options: ValidateAllOptions = {}
+): Promise<number> {
+  if (!existsSync(path.resolve(process.cwd(), dirArg))) {
+    console.error(`directory not found: ${dirArg}`);
     return EXIT.USAGE_ERROR;
   }
 
-  const targetArg = filteredArgs[1];
+  const profile = getValidationProfile(options);
+  const results = await validateArtifactsInDir(dirArg, false, strictMode, allowMissing, profile);
+  const failures = results.filter((result) => result.status === "error");
+  return failures.length > 0 ? EXIT.SCHEMA_FAILED : EXIT.OK;
+}
+
+/**
+ * Validate all artifacts and return results (for QEG integration)
+ * @param dirArg Directory containing artifacts
+ * @param silent If true, suppress console output
+ * @param profile Validation profile (analyze/readiness/full)
+ * @param strictMode If true, fail on missing required artifacts
+ * @param allowMissing If true, allow missing artifacts even in strict mode
+ * @returns Array of validation results
+ */
+export async function validateAllArtifactsWithResults(
+  dirArg: string,
+  silent: boolean = false,
+  strictMode: boolean = false,
+  allowMissing: boolean = false,
+  options: ValidateAllOptions = {}
+): Promise<SchemaValidationResult[]> {
+  return validateArtifactsInDir(dirArg, silent, strictMode, allowMissing, getValidationProfile(options));
+}
+
+export async function schemaValidate(args: string[]): Promise<number> {
+  const command = args[0];
+
+  if (command === "validate-all") {
+    const parsed = parseValidateAllArgs(args.slice(1));
+    if ("error" in parsed) {
+      console.error(parsed.error);
+      return EXIT.USAGE_ERROR;
+    }
+    return validateAllArtifacts(parsed.dirArg, parsed.strictMode, parsed.allowMissing, { profile: parsed.profile });
+  }
+
+  if (command === "validate") {
+    if (args.length !== 2 || !args[1] || args[1].startsWith("--")) {
+      console.error("usage: code-to-gate schema validate <artifact-or-schema>");
+      console.error("usage: code-to-gate schema validate-all <dir> [--profile <analyze|readiness|full>] [--strict] [--allow-missing]");
+      return EXIT.USAGE_ERROR;
+    }
+  } else {
+    console.error("usage: code-to-gate schema validate <artifact-or-schema>");
+    console.error("usage: code-to-gate schema validate-all <dir> [--profile <analyze|readiness|full>] [--strict] [--allow-missing]");
+    return EXIT.USAGE_ERROR;
+  }
+
+  const targetArg = args[1];
   const target = path.resolve(process.cwd(), targetArg);
 
   if (!existsSync(target)) {

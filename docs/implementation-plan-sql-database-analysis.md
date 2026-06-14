@@ -2,8 +2,8 @@
 intent_id: INT-SQL-DATABASE-ANALYSIS-001
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-06-11
-next_review_due: 2026-07-11
+last_reviewed_at: 2026-06-14
+next_review_due: 2026-07-14
 ---
 
 # SQL・データベース変更リスク解析 実装計画

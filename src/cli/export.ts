@@ -181,7 +181,7 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
           const assuranceFindings = JSON.parse(readFileSync(assurancePath, "utf8")) as FindingsArtifact;
           assuranceSummary = summarizeAssuranceFindings(assuranceFindings);
         }
-        const schemaResults = await validateAllArtifactsWithResults(artifactDir, true, true);
+        const schemaResults = await validateAllArtifactsWithResults(artifactDir, true, true, false, { profile: "full" });
         const schemaFailures = schemaResults.filter((result) => result.status === "error");
         if (schemaFailures.length > 0) {
           console.error("qeg-code-to-gate requires strict schema-compliant artifacts");

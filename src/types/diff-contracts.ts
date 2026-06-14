@@ -37,6 +37,19 @@ export interface DiffAccessLimits {
 }
 
 /**
+ * Changed file with status and line statistics
+ * Used for diff operations that need both status and line counts
+ */
+export interface ChangedFileStats {
+  path: string;
+  /** For renamed files, the previous path before rename */
+  previousPath?: string;
+  status: "added" | "modified" | "deleted" | "renamed";
+  additions: number;
+  deletions: number;
+}
+
+/**
  * Status codes for DiffAccess operations.
  *
  * Structured returns enable callers to distinguish:
@@ -153,4 +166,40 @@ export interface DiffAccess {
    * Get current limits configuration.
    */
   getLimits(): DiffAccessLimits;
+
+  /**
+   * List all files at a specific Git ref (structured result).
+   * @returns DiffAccessResult with relative file paths on success, or error status
+   */
+  listFilesAtRefResult(ref: string): DiffAccessResult<string[]>;
+
+  /**
+   * List all files at a specific Git ref (legacy).
+   * @returns relative paths from repo root (empty array on failure)
+   * @deprecated Use listFilesAtRefResult for structured error handling
+   */
+  listFilesAtRef(ref: string): LegacyFilesResult;
+
+  /**
+   * Validate if a Git ref exists (structured result).
+   * @returns DiffAccessResult indicating ref validity
+   */
+  validateRefResult(ref: string): DiffAccessResult<void>;
+
+  /**
+   * Validate if a Git ref exists (legacy boolean).
+   * @returns true if ref is valid, false otherwise
+   * @deprecated Use validateRefResult for structured error handling
+   */
+  validateRef(ref: string): boolean;
+
+  /**
+   * Get changed files with status and line statistics (structured result).
+   * Combines name-status and numstat outputs into single result.
+   * @returns DiffAccessResult with ChangedFileStats array on success, or error status
+   */
+  getChangedFilesWithStatsResult(
+    base: string,
+    head: string
+  ): DiffAccessResult<ChangedFileStats[]>;
 }

@@ -218,6 +218,52 @@ export interface ParserRegistry {
 }
 
 /**
+ * Git file access interface for reading files at specific git refs
+ * Used by database analyzer for git diff analysis
+ * Implementation provided by adapters layer (GitDiffAccess)
+ *
+ * SPEC-29 Phase 3: Structured result contract for error diagnostics
+ */
+export interface GitFileAccess {
+  /**
+   * Read file content at a specific git ref (structured result)
+   * @param gitRef - Git reference (commit hash, branch, tag, etc.)
+   * @param filePath - Relative file path from repo root
+   * @returns DiffAccessResult with content on success, or error status
+   */
+  getFileContentResult(
+    gitRef: string,
+    filePath: string
+  ): import("./diff-contracts.js").DiffAccessResult<string>;
+
+  /**
+   * Read file content at a specific git ref (legacy nullable)
+   * @param gitRef - Git reference (commit hash, branch, tag, etc.)
+   * @param filePath - Relative file path from repo root
+   * @returns File content or null if file doesn't exist at that ref
+   * @deprecated Use getFileContentResult for structured error handling
+   */
+  getFileContent(gitRef: string, filePath: string): string | null;
+
+  /**
+   * List files at a specific git ref (structured result)
+   * @param gitRef - Git reference (commit hash, branch, tag, etc.)
+   * @returns DiffAccessResult with relative file paths on success, or error status
+   */
+  listFilesAtRefResult(
+    gitRef: string
+  ): import("./diff-contracts.js").DiffAccessResult<string[]>;
+
+  /**
+   * List files at a specific git ref (legacy nullable)
+   * @param gitRef - Git reference (commit hash, branch, tag, etc.)
+   * @returns Array of relative file paths at that ref, or empty array on error
+   * @deprecated Use listFilesAtRefResult for structured error handling
+   */
+  listFilesAtRef(gitRef: string): string[];
+}
+
+/**
  * Combined application context with all injected services
  */
 export interface ServiceContext {

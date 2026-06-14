@@ -9,39 +9,52 @@ import { createHash } from "node:crypto";
 import { Finding } from "../types/artifacts.js";
 
 /**
+ * Normalize path separators to POSIX format
+ * This ensures fingerprints are stable across Windows/Linux
+ */
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/");
+}
+
+/**
  * Generate a stable fingerprint for a finding
  *
- * The fingerprint is based on:
- * - ruleId (primary identifier)
- * - primary evidence path (file location)
- * - affected symbols (if available, for more precise matching)
- * - excerpt hash (if available, for code content matching)
+ * Fingerprint contract (Phase C):
+ * - 16-character lowercase hex SHA-256 shortened value
+ * - Priority: rule-provided > DB semantic > generic utility
+ * - Normalized affected symbols (sorted, stable order)
+ * - Normalized primary evidence excerpt hash
+ * - Path excluded when excerpt/symbol available (rename-resistant)
+ * - Path only as fallback when identity info insufficient
+ * - Input excludes: severity, confidence, category, title, summary, finding/evidence ID, line numbers
  *
  * @param finding - The finding to fingerprint
- * @returns SHA-256 hash as fingerprint string
+ * @returns SHA-256 hash as 16-character hex fingerprint
  */
 export function generateFindingFingerprint(finding: Finding): string {
   const components: string[] = [];
 
-  // Always include ruleId
+  // Always include ruleId (primary identifier)
   components.push(`rule:${finding.ruleId}`);
 
-  // Include primary evidence path
-  const primaryPath = getPrimaryEvidencePath(finding);
-  if (primaryPath) {
-    components.push(`path:${primaryPath}`);
-  }
-
-  // Include affected symbols for more precise matching
+  // Include affected symbols (sorted for stable order)
   if (finding.affectedSymbols && finding.affectedSymbols.length > 0) {
     const sortedSymbols = [...finding.affectedSymbols].sort();
     components.push(`symbols:${sortedSymbols.join(",")}`);
   }
 
   // Include excerpt hash from primary evidence for content-based matching
+  // Prefer excerpt hash over path for rename resistance
   const primaryExcerptHash = getPrimaryExcerptHash(finding);
   if (primaryExcerptHash) {
     components.push(`excerpt:${primaryExcerptHash}`);
+  }
+
+  // Fallback: Include normalized path only when excerpt/symbol not available
+  // This ensures path rename doesn't change fingerprint when we have semantic identity
+  const primaryPath = getPrimaryEvidencePath(finding);
+  if (primaryPath && !primaryExcerptHash && (!finding.affectedSymbols || finding.affectedSymbols.length === 0)) {
+    components.push(`path:${normalizePath(primaryPath)}`);
   }
 
   // Combine components and hash
@@ -86,20 +99,21 @@ export function addFingerprintsToFindings(findings: Finding[]): Finding[] {
 }
 
 /**
- * Match findings by fingerprint
+ * Build fingerprint lookup map that safely handles duplicate fingerprints
  *
- * @param current - Current findings
- * @param previous - Previous findings
- * @returns Map of fingerprint to previous finding
+ * @param findings - Array of findings
+ * @returns Map of fingerprint to array of findings with that fingerprint
  */
 export function buildFingerprintLookupMap(
   findings: Finding[]
-): Map<string, Finding> {
-  const map = new Map<string, Finding>();
+): Map<string, Finding[]> {
+  const map = new Map<string, Finding[]>();
 
   for (const finding of findings) {
     if (finding.fingerprint) {
-      map.set(finding.fingerprint, finding);
+      const existing = map.get(finding.fingerprint) ?? [];
+      existing.push(finding);
+      map.set(finding.fingerprint, existing);
     }
   }
 

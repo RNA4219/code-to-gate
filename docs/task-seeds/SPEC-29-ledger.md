@@ -3,7 +3,7 @@ spec_id: SPEC-29
 title: SQL/Database Change Risk Analysis
 status: done
 created_at: 2026-06-11
-updated_at: 2026-06-11
+updated_at: 2026-06-14
 wave_count: 5
 task_count: 10
 ---
@@ -14,7 +14,7 @@ task_count: 10
 
 SPEC-29 implements SQL/Database change risk analysis in code-to-gate CLI.
 
-**Status**: ✓ Implementation complete - all tests pass
+**Status**: done - Phase 1-3全Verification Gate・strict品質ゲート通過
 
 **Key Constraints**:
 - No external SQL parser dependencies

@@ -14,6 +14,7 @@ import { CORE_RULES } from "../rules/index.js";
 import { domainTagForFinding, falsePositiveReviewTags } from "../core/domain-context.js";
 import type { ArtifactHeader } from "../types/artifacts.js";
 import type { ApplicationContext } from "./context.js";
+import { generateFindingFingerprint } from "../utils/fingerprint.js";
 
 // Import CTG_VERSION for header
 import { CTG_VERSION as SCHEMA_VERSION } from "../types/artifacts.js";
@@ -144,10 +145,12 @@ export function evaluateRules(
     const findings = rule.evaluate(context);
     for (const finding of findings) {
       // Normalize evidence IDs
+      // Note: excerptHash is NOT computed from path - if rule provides it, use it; otherwise leave undefined
       const normalizedEvidence: EvidenceRef[] = finding.evidence.map((e, i) => ({
         ...e,
         id: generateEvidenceId(generateFindingId(rule.id, findingIndex), i),
-        excerptHash: e.excerptHash || (e.kind === "text" ? applicationContext.hashService.sha256(e.path) : undefined),
+        // excerptHash: preserve rule-provided value; do NOT use path as fallback (Phase C fix)
+        excerptHash: e.excerptHash,
       }));
 
       const normalizedFinding: Finding = {
@@ -163,17 +166,29 @@ export function evaluateRules(
         affectedEntrypoints: finding.affectedEntrypoints,
         tags: finding.tags,
         upstream: finding.upstream,
+        // Preserve existing fingerprint if rule provided one (Phase C)
+        // Only generate if not already set
+        fingerprint: finding.fingerprint,
       };
 
-      // Apply domain tags
-      const tags = new Set(normalizedFinding.tags ?? []);
-      tags.add(domainTagForFinding(normalizedFinding));
-      for (const tag of falsePositiveReviewTags(normalizedFinding)) {
+      // Generate fingerprint BEFORE domain tag addition (Phase C)
+      // This ensures fingerprint doesn't change when tags are added
+      const findingWithFingerprint: Finding = normalizedFinding.fingerprint
+        ? normalizedFinding
+        : {
+            ...normalizedFinding,
+            fingerprint: generateFindingFingerprint(normalizedFinding),
+          };
+
+      // Apply domain tags (after fingerprint generation to avoid affecting it)
+      const tags = new Set(findingWithFingerprint.tags ?? []);
+      tags.add(domainTagForFinding(findingWithFingerprint));
+      for (const tag of falsePositiveReviewTags(findingWithFingerprint)) {
         tags.add(tag);
       }
-      normalizedFinding.tags = [...tags].sort();
+      findingWithFingerprint.tags = [...tags].sort();
 
-      allFindings.push(normalizedFinding);
+      allFindings.push(findingWithFingerprint);
       findingIndex++;
     }
   }

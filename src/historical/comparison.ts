@@ -62,6 +62,8 @@ export function compareFindings(
 
   // Track matched previous findings
   const matchedPreviousIds = new Set<string>();
+  // Track which fingerprint array index has been matched (for duplicate fingerprints)
+  const matchedFingerprintIndices = new Map<string, Set<number>>();
 
   // Process current findings
   for (const current of currentList) {
@@ -73,11 +75,19 @@ export function compareFindings(
     let matchedOn: "fingerprint" | "ruleId_path" | "ruleId_symbol" | "fuzzy_match" = "fingerprint";
 
     if (current.fingerprint) {
-      previousMatch = previousByFingerprint.get(current.fingerprint);
-      if (previousMatch && !matchedPreviousIds.has(previousMatch.id)) {
-        matchedOn = "fingerprint";
-      } else {
-        previousMatch = undefined;
+      const fingerprintFindings = previousByFingerprint.get(current.fingerprint);
+      if (fingerprintFindings && fingerprintFindings.length > 0) {
+        // Find first unmatched finding with this fingerprint
+        const matchedIndices = matchedFingerprintIndices.get(current.fingerprint) ?? new Set<number>();
+        for (let i = 0; i < fingerprintFindings.length; i++) {
+          if (!matchedIndices.has(i) && !matchedPreviousIds.has(fingerprintFindings[i].id)) {
+            previousMatch = fingerprintFindings[i];
+            matchedIndices.add(i);
+            matchedFingerprintIndices.set(current.fingerprint, matchedIndices);
+            matchedOn = "fingerprint";
+            break;
+          }
+        }
       }
     }
 

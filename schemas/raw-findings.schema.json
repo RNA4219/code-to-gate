@@ -33,6 +33,7 @@
           "affectedSymbols": { "type": "array", "items": { "type": "string" } },
           "affectedEntrypoints": { "type": "array", "items": { "type": "string" } },
           "tags": { "type": "array", "items": { "type": "string" } },
+          "fingerprint": { "type": "string", "minLength": 16, "maxLength": 16, "description": "Stable hash for historical matching across code changes" },
           "upstream": {
             "type": "object",
             "required": ["tool"],

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { schemaValidate } from "../schema-validate.js";
+import { schemaValidate, validateAllArtifactsWithResults } from "../schema-validate.js";
 import { existsSync, writeFileSync, rmSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -556,7 +556,8 @@ describe("schema-validate CLI", () => {
       artifact: "audit",
       schema: "audit@v1",
       inputs: [],
-      exit: { code: 0, status: "passed", message: "OK" }
+      policy: { id: "default", hash: "sha256:abc" },
+      exit: { code: 0, status: "passed", reason: "All checks passed" }
     }), "utf8");
 
     const args = ["validate", validAuditPath];
@@ -604,5 +605,363 @@ describe("schema-validate CLI", () => {
     const args = ["validate", schemaPath];
     const result = await schemaValidate(args);
     expect(result).toBe(EXIT.OK);
+  });
+
+  // --profile option tests (SPEC-29 Phase 2)
+
+  describe("validate-all --profile option", () => {
+    it("rejects validate-all without a directory", async () => {
+      const result = await schemaValidate(["validate-all"]);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("returns USAGE_ERROR when the directory does not exist", async () => {
+      const missingDir = path.join(tempDir, "missing");
+
+      const result = await schemaValidate(["validate-all", missingDir]);
+
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("accepts --profile analyze", async () => {
+      // Create artifacts for analyze profile (no release-readiness.json)
+      writeFileSync(path.join(tempDir, "findings.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "findings",
+        schema: "findings@v1",
+        completeness: "complete",
+        findings: [],
+        unsupported_claims: []
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "repo-graph.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "normalized-repo-graph",
+        schema: "normalized-repo-graph@v1",
+        files: [],
+        modules: [],
+        symbols: [],
+        relations: [],
+        tests: [],
+        configs: [],
+        entrypoints: [],
+        diagnostics: [],
+        stats: { partial: false }
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "audit.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "audit",
+        schema: "audit@v1",
+        inputs: [],
+        policy: { id: "default", hash: "sha256:abc" },
+        exit: { code: 0, status: "passed", reason: "All checks passed" }
+      }), "utf8");
+      // No release-readiness.json - should pass for analyze profile
+
+      const args = ["validate-all", tempDir, "--profile", "analyze"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.OK);
+    });
+
+    it("fails with --profile full when release-readiness missing", async () => {
+      // Create artifacts without release-readiness.json
+      writeFileSync(path.join(tempDir, "findings.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "findings",
+        schema: "findings@v1",
+        completeness: "complete",
+        findings: [],
+        unsupported_claims: []
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "repo-graph.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "normalized-repo-graph",
+        schema: "normalized-repo-graph@v1",
+        files: [],
+        modules: [],
+        symbols: [],
+        relations: [],
+        tests: [],
+        configs: [],
+        entrypoints: [],
+        diagnostics: [],
+        stats: { partial: false }
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "audit.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "audit",
+        schema: "audit@v1",
+        inputs: [],
+        policy: { id: "default", hash: "sha256:abc" },
+        exit: { code: 0, status: "passed", reason: "All checks passed" }
+      }), "utf8");
+
+      const args = ["validate-all", tempDir, "--profile", "full", "--strict"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.SCHEMA_FAILED);
+    });
+
+    it("defaults to full profile when --profile not specified", async () => {
+      // Same setup - missing release-readiness.json
+      writeFileSync(path.join(tempDir, "findings.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "findings",
+        schema: "findings@v1",
+        completeness: "complete",
+        findings: [],
+        unsupported_claims: []
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "repo-graph.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "normalized-repo-graph",
+        schema: "normalized-repo-graph@v1",
+        files: [],
+        modules: [],
+        symbols: [],
+        relations: [],
+        tests: [],
+        configs: [],
+        entrypoints: [],
+        diagnostics: [],
+        stats: { partial: false }
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "audit.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "audit",
+        schema: "audit@v1",
+        inputs: [],
+        policy: { id: "default", hash: "sha256:abc" },
+        exit: { code: 0, status: "passed", reason: "All checks passed" }
+      }), "utf8");
+
+      const args = ["validate-all", tempDir, "--strict"];
+      const result = await schemaValidate(args);
+      // Default is full, so missing release-readiness.json should fail
+      expect(result).toBe(EXIT.SCHEMA_FAILED);
+    });
+
+    it("returns USAGE_ERROR for invalid profile value", async () => {
+      const args = ["validate-all", tempDir, "--profile", "invalid"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("returns USAGE_ERROR when --profile has no value", async () => {
+      const args = ["validate-all", tempDir, "--profile"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("returns USAGE_ERROR when --profile value is another option", async () => {
+      const args = ["validate-all", tempDir, "--profile", "--strict"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("--allow-missing skips required artifacts even in strict mode", async () => {
+      // Create only findings.json
+      writeFileSync(path.join(tempDir, "findings.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "findings",
+        schema: "findings@v1",
+        completeness: "complete",
+        findings: [],
+        unsupported_claims: []
+      }), "utf8");
+
+      const args = ["validate-all", tempDir, "--profile", "analyze", "--strict", "--allow-missing"];
+      const result = await schemaValidate(args);
+      // Should pass even though repo-graph.json and audit.json are missing
+      expect(result).toBe(EXIT.OK);
+    });
+
+    it("accepts --profile readiness with only release-readiness.json", async () => {
+      writeFileSync(path.join(tempDir, "release-readiness.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "release-readiness",
+        schema: "release-readiness@v1",
+        status: "passed",
+        completeness: "complete",
+        summary: "All checks passed",
+        counts: { findings: 0, critical: 0, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 },
+        failedConditions: [],
+        recommendedActions: [],
+        artifactRefs: {}
+      }), "utf8");
+
+      const args = ["validate-all", tempDir, "--profile", "readiness"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.OK);
+    });
+
+    it("rejects unknown options", async () => {
+      const args = ["validate-all", tempDir, "--unknown"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("rejects duplicate --profile", async () => {
+      const args = ["validate-all", tempDir, "--profile", "analyze", "--profile", "full"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("rejects duplicate --strict", async () => {
+      const result = await schemaValidate(["validate-all", tempDir, "--strict", "--strict"]);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("rejects duplicate --allow-missing", async () => {
+      const result = await schemaValidate(["validate-all", tempDir, "--allow-missing", "--allow-missing"]);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("rejects extra positional arguments", async () => {
+      const args = ["validate-all", tempDir, "extra-arg"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.USAGE_ERROR);
+    });
+
+    it("accepts a directory named analyze", async () => {
+      const analyzeDir = path.join(tempDir, "analyze");
+      mkdirSync(analyzeDir, { recursive: true });
+      writeFileSync(path.join(analyzeDir, "findings.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "findings",
+        schema: "findings@v1",
+        completeness: "complete",
+        findings: [],
+        unsupported_claims: []
+      }), "utf8");
+      writeFileSync(path.join(analyzeDir, "repo-graph.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "normalized-repo-graph",
+        schema: "normalized-repo-graph@v1",
+        files: [],
+        modules: [],
+        symbols: [],
+        relations: [],
+        tests: [],
+        configs: [],
+        entrypoints: [],
+        diagnostics: [],
+        stats: { partial: false }
+      }), "utf8");
+      writeFileSync(path.join(analyzeDir, "audit.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "audit",
+        schema: "audit@v1",
+        inputs: [],
+        policy: { id: "default", hash: "sha256:abc" },
+        exit: { code: 0, status: "passed", reason: "All checks passed" }
+      }), "utf8");
+
+      const args = ["validate-all", analyzeDir, "--profile", "analyze", "--strict"];
+      const result = await schemaValidate(args);
+      expect(result).toBe(EXIT.OK);
+    });
+
+    it("keeps validateAllArtifactsWithResults 4-arg call compatible", async () => {
+      writeFileSync(path.join(tempDir, "findings.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "findings",
+        schema: "findings@v1",
+        completeness: "complete",
+        findings: [],
+        unsupported_claims: []
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "repo-graph.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "normalized-repo-graph",
+        schema: "normalized-repo-graph@v1",
+        files: [],
+        modules: [],
+        symbols: [],
+        relations: [],
+        tests: [],
+        configs: [],
+        entrypoints: [],
+        diagnostics: [],
+        stats: { partial: false }
+      }), "utf8");
+      writeFileSync(path.join(tempDir, "audit.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2025-01-01T00:00:00Z",
+        run_id: "test",
+        repo: { root: "/test" },
+        tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+        artifact: "audit",
+        schema: "audit@v1",
+        inputs: [],
+        policy: { id: "default", hash: "sha256:abc" },
+        exit: { code: 0, status: "passed", reason: "All checks passed" }
+      }), "utf8");
+
+      const results = await validateAllArtifactsWithResults(tempDir, true, true, false);
+      expect(results.some((result) => result.artifact === "release-readiness.json" && result.status === "error")).toBe(true);
+    });
   });
 });

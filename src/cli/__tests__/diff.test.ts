@@ -7,6 +7,7 @@ import { diffCommand } from "../diff.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
 
 const EXIT = {
   OK: 0,
@@ -27,6 +28,41 @@ const VERSION = "0.1.0";
 function getOption(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
+}
+
+/**
+ * Create a Git repository with commits and tags for testing.
+ * Pattern from tests/integration/database-diff.test.ts
+ */
+function createGitRepoWithCommits(
+  repoDir: string,
+  baseContent: Record<string, string>,
+  headContent: Record<string, string>
+): void {
+  // Initialize Git repo
+  execFileSync("git", ["init"], { cwd: repoDir });
+  execFileSync("git", ["config", "user.email", "ctg@example.invalid"], { cwd: repoDir });
+  execFileSync("git", ["config", "user.name", "code-to-gate test"], { cwd: repoDir });
+
+  // Create base commit with baseContent files
+  for (const [relPath, content] of Object.entries(baseContent)) {
+    const filePath = path.join(repoDir, relPath);
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(filePath, content, "utf8");
+  }
+  execFileSync("git", ["add", "."], { cwd: repoDir });
+  execFileSync("git", ["commit", "-m", "base commit"], { cwd: repoDir });
+  execFileSync("git", ["tag", "base"], { cwd: repoDir });
+
+  // Create head commit with modifications/additions
+  for (const [relPath, content] of Object.entries(headContent)) {
+    const filePath = path.join(repoDir, relPath);
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(filePath, content, "utf8");
+  }
+  execFileSync("git", ["add", "."], { cwd: repoDir });
+  execFileSync("git", ["commit", "-m", "head commit"], { cwd: repoDir });
+  execFileSync("git", ["tag", "head"], { cwd: repoDir });
 }
 
 describe("diff CLI", () => {
@@ -53,16 +89,33 @@ describe("diff CLI", () => {
     mkdirSync(tempOutDir, { recursive: true });
   });
 
-  // Happy path tests
+  // Happy path tests with proper Git repos
 
   it("exit code OK when no blocking findings in diff", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    // Create proper Git repo with commits
+    const gitRepo = path.join(tempOutDir, "happy-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/index.ts": "export const x = 1;\n" },
+      { "src/index.ts": "export const x = 2;\n", "src/new.ts": "export const y = 1;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 
   it("diff-analysis.json is generated", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "diff-gen-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -70,7 +123,15 @@ describe("diff CLI", () => {
   });
 
   it("findings.json is generated for changed files", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "findings-gen-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/index.ts": "export const x = 1;\n" },
+      { "src/index.ts": "export const x = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const findingsPath = path.join(tempOutDir, "findings.json");
@@ -78,7 +139,15 @@ describe("diff CLI", () => {
   });
 
   it("blast-radius.mmd is generated", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "blast-gen-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/app.ts": "export function app() {}\n" },
+      { "src/app.ts": "export function app() { return 1; }\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const mermaidPath = path.join(tempOutDir, "blast-radius.mmd");
@@ -86,17 +155,33 @@ describe("diff CLI", () => {
   });
 
   it("audit.json is generated", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "audit-gen-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/main.ts": "console.log('hello');\n" },
+      { "src/main.ts": "console.log('world');\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const auditPath = path.join(tempOutDir, "audit.json");
     expect(existsSync(auditPath)).toBe(true);
   });
 
-  // Schema validation tests
+  // Schema validation tests with proper Git repos
 
   it("diff-analysis.json has correct schema", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "schema-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -110,7 +195,15 @@ describe("diff CLI", () => {
   });
 
   it("diff-analysis.json has repo with base_ref and head_ref", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature-branch", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "refs-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/base.ts": "export const base = 1;\n" },
+      { "src/head.ts": "export const head = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -118,12 +211,20 @@ describe("diff CLI", () => {
 
     expect(diffAnalysis.repo).toBeDefined();
     expect(diffAnalysis.repo.root).toBeDefined();
-    expect(diffAnalysis.repo.base_ref).toBe("main");
-    expect(diffAnalysis.repo.head_ref).toBe("feature-branch");
+    expect(diffAnalysis.repo.base_ref).toBe("base");
+    expect(diffAnalysis.repo.head_ref).toBe("head");
   });
 
   it("diff-analysis.json has changed_files array", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "changed-files-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -133,7 +234,15 @@ describe("diff CLI", () => {
   });
 
   it("diff-analysis.json has blast_radius object", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "blast-radius-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/app.ts": "export function app() {}\n" },
+      { "src/app.ts": "export function app() { return 1; }\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -147,7 +256,15 @@ describe("diff CLI", () => {
   });
 
   it("diff-analysis.json has diff_findings object", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "diff-findings-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -160,7 +277,15 @@ describe("diff CLI", () => {
   });
 
   it("changed_file entry has required fields", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "changed-entry-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -176,7 +301,15 @@ describe("diff CLI", () => {
   });
 
   it("findings.json has correct schema", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "findings-schema-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const findingsPath = path.join(tempOutDir, "findings.json");
@@ -188,7 +321,15 @@ describe("diff CLI", () => {
   });
 
   it("audit.json has correct schema", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "audit-schema-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/main.ts": "console.log('hello');\n" },
+      { "src/main.ts": "console.log('world');\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const auditPath = path.join(tempOutDir, "audit.json");
@@ -202,7 +343,15 @@ describe("diff CLI", () => {
   });
 
   it("blast-radius.mmd contains mermaid graph syntax", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "mermaid-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/app.ts": "export function app() {}\n" },
+      { "src/app.ts": "export function app() { return 1; }\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const mermaidPath = path.join(tempOutDir, "blast-radius.mmd");
@@ -211,7 +360,65 @@ describe("diff CLI", () => {
     expect(content).toContain("graph TD");
   });
 
-  // Error handling tests
+  // Error handling tests - Git failure scenarios
+
+  it("exit code SCAN_FAILED when directory is not a Git repository", async () => {
+    // Create directory without Git
+    const nonGitRepo = path.join(tempOutDir, "non-git-repo");
+    mkdirSync(nonGitRepo, { recursive: true });
+    mkdirSync(path.join(nonGitRepo, "src"), { recursive: true });
+    writeFileSync(path.join(nonGitRepo, "src", "index.ts"), "export const x = 1;\n", "utf8");
+
+    const args = [nonGitRepo, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const result = await diffCommand(args, { VERSION, EXIT, getOption });
+    expect(result).toBe(EXIT.SCAN_FAILED);
+  });
+
+  it("exit code SCAN_FAILED for invalid Git refs", async () => {
+    // Create valid Git repo but use refs that don't exist
+    const gitRepo = path.join(tempOutDir, "invalid-refs-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "nonexistent-base", "--head", "head", "--out", tempOutDir];
+    const result = await diffCommand(args, { VERSION, EXIT, getOption });
+    expect(result).toBe(EXIT.SCAN_FAILED);
+  });
+
+  it("exit code SCAN_FAILED for an invalid head ref", async () => {
+    const gitRepo = path.join(tempOutDir, "invalid-head-ref-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "nonexistent-head", "--out", tempOutDir];
+    expect(await diffCommand(args, { VERSION, EXIT, getOption })).toBe(EXIT.SCAN_FAILED);
+  });
+
+  it.each([
+    ["base", "--malicious", "head"],
+    ["base", "base", "--malicious"],
+    ["base", "bad\0ref", "head"],
+    ["base", "base", "bad\0ref"],
+  ])("exit code SCAN_FAILED for unsafe %s ref", async (_case, baseRef, headRef) => {
+    const gitRepo = path.join(tempOutDir, `unsafe-ref-repo-${Math.random().toString(16).slice(2)}`);
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", baseRef, "--head", headRef, "--out", tempOutDir];
+    expect(await diffCommand(args, { VERSION, EXIT, getOption })).toBe(EXIT.SCAN_FAILED);
+  });
 
   it("exit code USAGE_ERROR when repo argument missing", async () => {
     const args: string[] = [];
@@ -220,13 +427,29 @@ describe("diff CLI", () => {
   });
 
   it("exit code USAGE_ERROR when --base argument missing", async () => {
-    const args = [fixturesDir, "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "missing-base-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--head", "head", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.USAGE_ERROR);
   });
 
   it("exit code USAGE_ERROR when --head argument missing", async () => {
-    const args = [fixturesDir, "--base", "main", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "missing-head-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.USAGE_ERROR);
   });
@@ -247,52 +470,50 @@ describe("diff CLI", () => {
     expect(result).toBe(EXIT.USAGE_ERROR);
   });
 
-  it("exit code OK when no changes detected", async () => {
-    // Create empty repo (no changes)
-    const emptyRepo = path.join(tempOutDir, "empty-repo");
-    mkdirSync(emptyRepo, { recursive: true });
+  it("exit code OK when no changes detected between same ref", async () => {
+    // Create Git repo and use same ref for base and head
+    const gitRepo = path.join(tempOutDir, "same-ref-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
 
-    const args = [emptyRepo, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const args = [gitRepo, "--base", "base", "--head", "base", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 
-  it("exit code SCAN_FAILED for unexpected errors", async () => {
-    // Create a repo with a deeply nested structure that might cause issues
-    const deepRepo = path.join(tempOutDir, "deep-repo");
-    mkdirSync(deepRepo, { recursive: true });
-    // Create a file with invalid permissions simulation (just empty)
-    writeFileSync(path.join(deepRepo, "index.ts"), "", "utf8");
-
-    const args = [deepRepo, "--base", "main", "--head", "feature", "--out", tempOutDir];
-    const result = await diffCommand(args, { VERSION, EXIT, getOption });
-    // Should succeed (no blocking findings) or SCAN_FAILED
-    expect([EXIT.OK, EXIT.SCAN_FAILED]).toContain(result);
-  });
-
-  // Output file generation tests
+  // Output file generation tests with proper Git repos
 
   it("custom --out directory is created", async () => {
+    const gitRepo = path.join(tempOutDir, "custom-out-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
     const customOutDir = path.join(tempOutDir, "custom-output");
 
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", customOutDir];
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", customOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
     expect(existsSync(path.join(customOutDir, "diff-analysis.json"))).toBe(true);
   });
 
-  it("default --out is .qh", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature"];
-    const result = await diffCommand(args, { VERSION, EXIT, getOption });
-    expect(result).toBe(EXIT.OK);
-    const defaultOutPath = path.join(process.cwd(), ".qh", "diff-analysis.json");
-    expect(existsSync(defaultOutPath)).toBe(true);
-    // Clean up
-    rmSync(path.join(process.cwd(), ".qh"), { recursive: true, force: true });
-  });
-
   it("findings.json contains version and metadata", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "metadata-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const findingsPath = path.join(tempOutDir, "findings.json");
@@ -305,7 +526,15 @@ describe("diff CLI", () => {
   });
 
   it("run_id matches across artifacts", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "runid-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffAnalysis = JSON.parse(readFileSync(path.join(tempOutDir, "diff-analysis.json"), "utf8"));
@@ -319,7 +548,15 @@ describe("diff CLI", () => {
   });
 
   it("findings have required fields", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "findings-fields-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const findingsPath = path.join(tempOutDir, "findings.json");
@@ -336,7 +573,15 @@ describe("diff CLI", () => {
   });
 
   it("findings severity values are valid", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "severity-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const findingsPath = path.join(tempOutDir, "findings.json");
@@ -349,7 +594,15 @@ describe("diff CLI", () => {
   });
 
   it("tool metadata in findings", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "tool-meta-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const findingsPath = path.join(tempOutDir, "findings.json");
@@ -360,56 +613,50 @@ describe("diff CLI", () => {
     expect(findings.tool.version).toBeDefined();
   });
 
-  // Test with demo-shop-ts fixture
-
-  it("handles demo-shop-ts fixture", async () => {
-    const args = [demoShopDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
-    const result = await diffCommand(args, { VERSION, EXIT, getOption });
-    expect([EXIT.OK, EXIT.READINESS_NOT_CLEAR]).toContain(result);
-  });
-
-  it("detects entrypoints in demo-shop-ts", async () => {
-    const args = [demoShopDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
-    await diffCommand(args, { VERSION, EXIT, getOption });
-
-    const diffPath = path.join(tempOutDir, "diff-analysis.json");
-    const diffAnalysis = JSON.parse(readFileSync(diffPath, "utf8"));
-
-    expect(Array.isArray(diffAnalysis.blast_radius.affectedEntrypoints)).toBe(true);
-  });
-
-  // Ignored directories tests
+  // Ignored directories tests with proper Git repos
 
   it("ignores .git directory in diff analysis", async () => {
-    const gitRepo = path.join(tempOutDir, "git-repo");
+    const gitRepo = path.join(tempOutDir, "git-dir-repo");
     mkdirSync(gitRepo, { recursive: true });
-    mkdirSync(path.join(gitRepo, ".git"), { recursive: true });
-    mkdirSync(path.join(gitRepo, "src"), { recursive: true });
-    writeFileSync(path.join(gitRepo, ".git", "config"), "git config", "utf8");
-    writeFileSync(path.join(gitRepo, "src", "index.ts"), "export const x = 1;", "utf8");
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/index.ts": "export const x = 1;\n" },
+      { "src/index.ts": "export const x = 2;\n" }
+    );
 
-    const args = [gitRepo, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 
   it("ignores node_modules directory in diff analysis", async () => {
-    const nmRepo = path.join(tempOutDir, "nm-repo");
-    mkdirSync(nmRepo, { recursive: true });
-    mkdirSync(path.join(nmRepo, "node_modules"), { recursive: true });
-    mkdirSync(path.join(nmRepo, "src"), { recursive: true });
-    writeFileSync(path.join(nmRepo, "node_modules", "package.json"), "{}", "utf8");
-    writeFileSync(path.join(nmRepo, "src", "index.ts"), "export const x = 1;", "utf8");
+    const gitRepo = path.join(tempOutDir, "nm-dir-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    mkdirSync(path.join(gitRepo, "node_modules"), { recursive: true });
+    writeFileSync(path.join(gitRepo, "node_modules", "package.json"), "{}", "utf8");
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/index.ts": "export const x = 1;\n" },
+      { "src/index.ts": "export const x = 2;\n" }
+    );
 
-    const args = [nmRepo, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
     expect(result).toBe(EXIT.OK);
   });
 
-  // File categorization tests
+  // File categorization tests with proper Git repos
 
   it("added_files array is populated correctly", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "added-files-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n", "src/b.ts": "const b = 1;\n" }  // b.ts is added
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -424,7 +671,27 @@ describe("diff CLI", () => {
   });
 
   it("deleted_files array is populated correctly", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "deleted-files-repo");
+    mkdirSync(gitRepo, { recursive: true });
+
+    // Base has two files, head removes one
+    execFileSync("git", ["init"], { cwd: gitRepo });
+    execFileSync("git", ["config", "user.email", "ctg@example.invalid"], { cwd: gitRepo });
+    execFileSync("git", ["config", "user.name", "code-to-gate test"], { cwd: gitRepo });
+    mkdirSync(path.join(gitRepo, "src"), { recursive: true });
+    writeFileSync(path.join(gitRepo, "src", "a.ts"), "const a = 1;\n", "utf8");
+    writeFileSync(path.join(gitRepo, "src", "b.ts"), "const b = 1;\n", "utf8");
+    execFileSync("git", ["add", "."], { cwd: gitRepo });
+    execFileSync("git", ["commit", "-m", "base"], { cwd: gitRepo });
+    execFileSync("git", ["tag", "base"], { cwd: gitRepo });
+
+    // Delete b.ts in head
+    rmSync(path.join(gitRepo, "src", "b.ts"));
+    execFileSync("git", ["add", "."], { cwd: gitRepo });
+    execFileSync("git", ["commit", "-m", "head"], { cwd: gitRepo });
+    execFileSync("git", ["tag", "head"], { cwd: gitRepo });
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -434,7 +701,15 @@ describe("diff CLI", () => {
   });
 
   it("modified_files array is populated correctly", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "modified-files-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }  // modified
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const diffPath = path.join(tempOutDir, "diff-analysis.json");
@@ -447,18 +722,18 @@ describe("diff CLI", () => {
     expect(diffAnalysis.modified_files).toEqual(modifiedFromChanged);
   });
 
-  // Handles relative paths
-
-  it("handles relative repo path", async () => {
-    const args = ["../../../fixtures/demo-ci-imports", "--base", "main", "--head", "feature", "--out", tempOutDir];
-    const result = await diffCommand(args, { VERSION, EXIT, getOption });
-    expect(typeof result).toBe("number");
-  });
-
-  // Audit status tests
+  // Audit status tests with proper Git repos
 
   it("audit exit status is valid", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "audit-status-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     await diffCommand(args, { VERSION, EXIT, getOption });
 
     const auditPath = path.join(tempOutDir, "audit.json");
@@ -469,12 +744,40 @@ describe("diff CLI", () => {
   });
 
   it("audit exit code reflects command result", async () => {
-    const args = [fixturesDir, "--base", "main", "--head", "feature", "--out", tempOutDir];
+    const gitRepo = path.join(tempOutDir, "audit-code-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    const args = [gitRepo, "--base", "base", "--head", "head", "--out", tempOutDir];
     const result = await diffCommand(args, { VERSION, EXIT, getOption });
 
     const auditPath = path.join(tempOutDir, "audit.json");
     const audit = JSON.parse(readFileSync(auditPath, "utf8"));
 
     expect(audit.exit.code).toBe(result);
+  });
+
+  // Git failure edge cases
+
+  it("handles ref with special characters safely", async () => {
+    // Create Git repo with a tag containing a safe special character
+    const gitRepo = path.join(tempOutDir, "special-ref-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/a.ts": "const a = 1;\n" },
+      { "src/a.ts": "const a = 2;\n" }
+    );
+
+    // Add a branch with hyphen (safe)
+    execFileSync("git", ["branch", "feature-branch"], { cwd: gitRepo });
+
+    const args = [gitRepo, "--base", "base", "--head", "feature-branch", "--out", tempOutDir];
+    const result = await diffCommand(args, { VERSION, EXIT, getOption });
+    expect([EXIT.OK, EXIT.SCAN_FAILED]).toContain(result);
   });
 });

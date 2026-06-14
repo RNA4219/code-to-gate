@@ -14,6 +14,13 @@ import type {
   ColumnDataType,
   RawSqlRef,
   DetectedOrm,
+  DiagnosticRef,
+  TableRef,
+  ColumnRef,
+  IndexRef,
+  ConstraintRef,
+  IndexType,
+  ConstraintType,
 } from "../types/database-assets.js";
 import type { HashService } from "../types/contracts.js";
 
@@ -69,6 +76,7 @@ export interface SqlToken {
   type: SqlTokenType;
   value: string;
   position: number;
+  line?: number; // Line number (1-based), optional for backward compatibility
 }
 
 // SQL Keywords (subset for detection)
@@ -100,24 +108,54 @@ const DANGEROUS_KEYWORDS = new Set([
 ]);
 
 // ============================================================================
-// SQL Tokenizer
+// SQL Tokenizer with Diagnostics
 // ============================================================================
 
 /**
- * Tokenize a SQL string into tokens.
+ * Result of tokenization including diagnostics.
+ * Internal use - provides enhanced parsing accuracy information.
+ */
+export interface TokenizeResult {
+  tokens: SqlToken[];
+  diagnostics: DiagnosticRef[];
+}
+
+/**
+ * Tokenize a SQL string into tokens (backward-compatible public API).
  * Simple tokenizer using regex patterns.
  */
 export function tokenizeSql(sql: string): SqlToken[] {
+  const result = tokenizeSqlWithDiagnostics(sql, "unknown-file", 1);
+  return result.tokens;
+}
+
+/**
+ * Tokenize a SQL string with full diagnostic tracking.
+ * Internal function for enhanced parsing accuracy.
+ *
+ * Tracks:
+ * - Unknown characters (UNSUPPORTED_SQL_SYNTAX)
+ * - Unterminated strings (UNTERMINATED_STRING)
+ * - Unterminated comments (UNTERMINATED_COMMENT)
+ * - Unbalanced parentheses (UNBALANCED_PARENTHESIS) - excluding string/comment content
+ */
+export function tokenizeSqlWithDiagnostics(
+  sql: string,
+  filePath: string,
+  startLine: number
+): TokenizeResult {
   const tokens: SqlToken[] = [];
+  const diagnostics: DiagnosticRef[] = [];
   let pos = 0;
+  let currentLine = startLine;
 
   // Token patterns in priority order - using slice approach for sticky flag
   const tokenPatterns: Array<[RegExp, SqlTokenType]> = [
     // Whitespace
     [/^\s+/y, "whitespace"],
-    // Comments
+    // Comments (block and line)
     [/^--[^\n]*|^\/\*[\s\S]*?\*\//y, "comment"],
-    // Strings
+    // Strings (single/double quotes, backticks)
     [/^'[^']*'|^"[^"]*"|^`[^`]*`/y, "string"],
     // Numbers
     [/^\d+(?:\.\d+)?/y, "number"],
@@ -155,7 +193,12 @@ export function tokenizeSql(sql: string): SqlToken[] {
           type: tokenType,
           value: value,
           position: pos,
+          line: currentLine,
         });
+
+        // Update line count based on newlines in the matched value
+        const newlinesInValue = countNewlines(value);
+        currentLine += newlinesInValue;
 
         pos += value.length;
         matched = true;
@@ -164,12 +207,175 @@ export function tokenizeSql(sql: string): SqlToken[] {
     }
 
     if (!matched) {
-      // Unknown character, skip
+      // Track unknown character as diagnostic (Phase A enhancement)
+      const unknownChar = sql[pos];
+      diagnostics.push({
+        id: `diag-${pos}`,
+        severity: "warning",
+        code: "UNSUPPORTED_SQL_SYNTAX",
+        message: `Unknown character in SQL: '${unknownChar}' (position ${pos})`,
+        filePath,
+        startLine: currentLine,
+        details: { character: unknownChar, position: pos },
+      });
+
+      // Create unknown token for tracking (instead of skipping)
+      tokens.push({
+        type: "unknown",
+        value: unknownChar,
+        position: pos,
+        line: currentLine,
+      });
+
+      // Check if unknown char is a newline
+      if (unknownChar === '\n') {
+        currentLine++;
+      }
+
       pos++;
     }
   }
 
-  return tokens;
+  // Check for unterminated string/comment patterns
+  diagnostics.push(...checkUnterminatedPatterns(sql, filePath, startLine));
+
+  // Check parenthesis balance (excluding strings/comments)
+  diagnostics.push(...checkParenthesisBalance(tokens, filePath, startLine));
+
+  return { tokens, diagnostics };
+}
+
+/**
+ * Count newlines in a string.
+ */
+function countNewlines(str: string): number {
+  let count = 0;
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === '\n') {
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Check for unterminated strings and comments in SQL.
+ */
+function checkUnterminatedPatterns(
+  sql: string,
+  filePath: string,
+  startLine: number
+): DiagnosticRef[] {
+  const diagnostics: DiagnosticRef[] = [];
+
+  // Check for unterminated single-quoted strings
+  const singleQuotePattern = /^'([^']*)'/g;
+  let match;
+  let lastSingleQuoteEnd = 0;
+  while ((match = singleQuotePattern.exec(sql)) !== null) {
+    lastSingleQuoteEnd = match.index + match[0].length;
+  }
+  // Check for any remaining unmatched single quote
+  const remainingAfterMatch = sql.slice(lastSingleQuoteEnd);
+  const unmatchedSingleQuote = remainingAfterMatch.indexOf("'");
+  if (unmatchedSingleQuote >= 0) {
+    const absolutePos = lastSingleQuoteEnd + unmatchedSingleQuote;
+    diagnostics.push({
+      id: `diag-unterminated-string-${absolutePos}`,
+      severity: "error",
+      code: "UNTERMINATED_STRING",
+      message: "Unterminated single-quoted string",
+      filePath,
+      startLine: startLine + countLinesBefore(sql, absolutePos),
+      details: { quoteType: "single", position: absolutePos },
+    });
+  }
+
+  // Check for unterminated double-quoted strings
+  const doubleQuotePattern = /^"([^"]*)"/g;
+  let lastDoubleQuoteEnd = 0;
+  while ((match = doubleQuotePattern.exec(sql)) !== null) {
+    lastDoubleQuoteEnd = match.index + match[0].length;
+  }
+  const remainingAfterDouble = sql.slice(lastDoubleQuoteEnd);
+  const unmatchedDoubleQuote = remainingAfterDouble.indexOf('"');
+  if (unmatchedDoubleQuote >= 0) {
+    const absolutePos = lastDoubleQuoteEnd + unmatchedDoubleQuote;
+    diagnostics.push({
+      id: `diag-unterminated-string-${absolutePos}`,
+      severity: "error",
+      code: "UNTERMINATED_STRING",
+      message: "Unterminated double-quoted string",
+      filePath,
+      startLine: startLine + countLinesBefore(sql, absolutePos),
+      details: { quoteType: "double", position: absolutePos },
+    });
+  }
+
+  // Check for unterminated block comments
+  const blockCommentStart = sql.indexOf("/*");
+  const blockCommentEnd = sql.indexOf("*/", blockCommentStart + 2);
+  if (blockCommentStart >= 0 && (blockCommentEnd < 0 || blockCommentEnd < blockCommentStart)) {
+    diagnostics.push({
+      id: `diag-unterminated-comment-${blockCommentStart}`,
+      severity: "error",
+      code: "UNTERMINATED_COMMENT",
+      message: "Unterminated block comment /* ... */",
+      filePath,
+      startLine: startLine + countLinesBefore(sql, blockCommentStart),
+      details: { startPosition: blockCommentStart },
+    });
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Check parenthesis balance using tokens (excluding strings and comments).
+ * This provides accurate balance checking that ignores parentheses inside strings/comments.
+ */
+function checkParenthesisBalance(
+  tokens: SqlToken[],
+  filePath: string,
+  startLine: number
+): DiagnosticRef[] {
+  const diagnostics: DiagnosticRef[] = [];
+
+  // Count parentheses only from relevant tokens (not strings/comments)
+  const parenTokens = tokens.filter(
+    (t) => t.type === "paren_open" || t.type === "paren_close"
+  );
+
+  const openCount = parenTokens.filter((t) => t.type === "paren_open").length;
+  const closeCount = parenTokens.filter((t) => t.type === "paren_close").length;
+
+  if (openCount !== closeCount) {
+    // Find the position of imbalance
+    const balance = openCount - closeCount;
+    const lastParen = parenTokens[parenTokens.length - 1];
+
+    diagnostics.push({
+      id: `diag-unbalanced-paren`,
+      severity: "error",
+      code: "UNBALANCED_PARENTHESIS",
+      message: balance > 0
+        ? `Unbalanced parentheses: ${openCount} open, ${closeCount} close (${balance} unmatched open)`
+        : `Unbalanced parentheses: ${openCount} open, ${closeCount} close (${Math.abs(balance)} unmatched close)`,
+      filePath,
+      startLine: lastParen?.line ?? startLine,
+      details: { openCount, closeCount, balance },
+    });
+  }
+
+  return diagnostics;
+}
+
+/**
+ * Count the number of newlines before a position in the string.
+ */
+function countLinesBefore(content: string, position: number): number {
+  const prefix = content.substring(0, position);
+  return prefix.split("\n").length - 1;
 }
 
 // ============================================================================
@@ -177,10 +383,22 @@ export function tokenizeSql(sql: string): SqlToken[] {
 // ============================================================================
 
 /**
- * Detect SQL operations from a SQL string.
+ * Result of SQL operation detection including diagnostics.
  */
-export function detectSqlOperations(sql: string): MigrationOperation[] {
-  const tokens = tokenizeSql(sql);
+export interface DetectOperationsResult {
+  operations: MigrationOperation[];
+  diagnostics: DiagnosticRef[];
+}
+
+/**
+ * Detect SQL operations from a SQL string with diagnostic tracking.
+ */
+export function detectSqlOperationsWithDiagnostics(
+  sql: string,
+  filePath: string,
+  startLine: number
+): DetectOperationsResult {
+  const { tokens, diagnostics } = tokenizeSqlWithDiagnostics(sql, filePath, startLine);
   const operations: MigrationOperation[] = [];
 
   // Look for DDL patterns
@@ -188,15 +406,15 @@ export function detectSqlOperations(sql: string): MigrationOperation[] {
   while (i < tokens.length) {
     const token = tokens[i];
 
-    // Skip whitespace and comments
-    if (token.type === "whitespace" || token.type === "comment") {
+    // Skip whitespace and comments (and unknown tokens)
+    if (token.type === "whitespace" || token.type === "comment" || token.type === "unknown") {
       i++;
       continue;
     }
 
     // Detect CREATE TABLE
     if (token.type === "keyword" && token.value.toUpperCase() === "CREATE") {
-      const op = detectCreateOperation(tokens, i);
+      const op = detectCreateOperation(tokens, i, startLine);
       if (op) {
         operations.push(op);
         i += (op.details?.tokenCount as number) ?? 5;
@@ -206,7 +424,7 @@ export function detectSqlOperations(sql: string): MigrationOperation[] {
 
     // Detect DROP operations
     if (token.type === "keyword" && token.value.toUpperCase() === "DROP") {
-      const op = detectDropOperation(tokens, i);
+      const op = detectDropOperation(tokens, i, startLine);
       if (op) {
         operations.push(op);
         i += (op.details?.tokenCount as number) ?? 3;
@@ -216,7 +434,7 @@ export function detectSqlOperations(sql: string): MigrationOperation[] {
 
     // Detect ALTER TABLE
     if (token.type === "keyword" && token.value.toUpperCase() === "ALTER") {
-      const op = detectAlterOperation(tokens, i);
+      const op = detectAlterOperation(tokens, i, startLine);
       if (op) {
         operations.push(op);
         i += (op.details?.tokenCount as number) ?? 5;
@@ -227,12 +445,40 @@ export function detectSqlOperations(sql: string): MigrationOperation[] {
     i++;
   }
 
-  return operations;
+  // Add INCOMPLETE_DDL diagnostic if operations detected but SQL appears truncated
+  if (operations.length > 0 && sql.trim().length > 0) {
+    const lastToken = tokens[tokens.length - 1];
+    // Check if SQL ends with incomplete statement (no semicolon, ends mid-keyword)
+    const endsIncomplete = !sql.trim().endsWith(";") &&
+      (lastToken?.type === "keyword" || lastToken?.type === "identifier" || lastToken?.type === "unknown");
+
+    if (endsIncomplete && !diagnostics.some(d => d.code === "INCOMPLETE_DDL")) {
+      diagnostics.push({
+        id: `diag-incomplete-ddl-${startLine}`,
+        severity: "warning",
+        code: "INCOMPLETE_DDL",
+        message: "SQL statement appears incomplete (missing semicolon or truncated)",
+        filePath,
+        startLine,
+        details: { lastToken: lastToken?.value, lastTokenType: lastToken?.type },
+      });
+    }
+  }
+
+  return { operations, diagnostics };
 }
 
-function detectCreateOperation(tokens: SqlToken[], startIdx: number): MigrationOperation | null {
+/**
+ * Detect SQL operations from a SQL string (backward-compatible public API).
+ */
+export function detectSqlOperations(sql: string): MigrationOperation[] {
+  const result = detectSqlOperationsWithDiagnostics(sql, "unknown-file", 1);
+  return result.operations;
+}
+
+function detectCreateOperation(tokens: SqlToken[], startIdx: number, startLine: number = 1): MigrationOperation | null {
   // CREATE TABLE <name>
-  // CREATE INDEX <name> ON <table>
+  // CREATE [UNIQUE] INDEX <name> ON <table>
 
   // Get TABLE or INDEX token (1st after CREATE)
   const typeIdx = getNthTokenIndex(tokens, startIdx, 1);
@@ -251,31 +497,41 @@ function detectCreateOperation(tokens: SqlToken[], startIdx: number): MigrationO
       return {
         type: "create_table",
         tableName: cleanIdentifier(nameToken.value),
-        startLine: 1,
+        startLine,
         details: { tokenCount: nameIdx - startIdx + 1 },
       };
     }
   }
 
-  if (typeToken.value.toUpperCase() === "INDEX") {
-    // Get index name (2nd after CREATE)
-    const idxNameIdx = getNthTokenIndex(tokens, startIdx, 2);
+  const type = typeToken.value.toUpperCase();
+  const isUniqueIndex = type === "UNIQUE" &&
+    tokens[getNthTokenIndex(tokens, startIdx, 2)]?.value.toUpperCase() === "INDEX";
+
+  if (type === "INDEX" || isUniqueIndex) {
+    const offset = isUniqueIndex ? 1 : 0;
+
+    // Get index name after CREATE [UNIQUE] INDEX
+    const idxNameIdx = getNthTokenIndex(tokens, startIdx, 2 + offset);
     if (idxNameIdx < 0) return null;
 
-    // Get ON keyword (3rd after CREATE)
-    const onIdx = getNthTokenIndex(tokens, startIdx, 3);
+    // Get ON keyword
+    const onIdx = getNthTokenIndex(tokens, startIdx, 3 + offset);
     if (onIdx < 0) return null;
 
     if (tokens[onIdx]?.value.toUpperCase() === "ON") {
-      // Get table name (4th after CREATE)
-      const tableNameIdx = getNthTokenIndex(tokens, startIdx, 4);
+      // Get table name after ON
+      const tableNameIdx = getNthTokenIndex(tokens, startIdx, 4 + offset);
       if (tableNameIdx < 0) return null;
 
       return {
         type: "add_index",
         tableName: cleanIdentifier(tokens[tableNameIdx].value),
-        startLine: 1,
-        details: { indexName: cleanIdentifier(tokens[idxNameIdx].value), tokenCount: tableNameIdx - startIdx + 1 },
+        startLine,
+        details: {
+          indexName: cleanIdentifier(tokens[idxNameIdx].value),
+          unique: isUniqueIndex,
+          tokenCount: tableNameIdx - startIdx + 1,
+        },
       };
     }
   }
@@ -283,7 +539,7 @@ function detectCreateOperation(tokens: SqlToken[], startIdx: number): MigrationO
   return null;
 }
 
-function detectDropOperation(tokens: SqlToken[], startIdx: number): MigrationOperation | null {
+function detectDropOperation(tokens: SqlToken[], startIdx: number, startLine: number = 1): MigrationOperation | null {
   // DROP TABLE <name>
   // DROP INDEX <name>
   // DROP CONSTRAINT <name>
@@ -305,7 +561,7 @@ function detectDropOperation(tokens: SqlToken[], startIdx: number): MigrationOpe
     return {
       type: "drop_table",
       tableName: cleanIdentifier(tokens[nameIdx].value),
-      startLine: 1,
+      startLine,
       details: { tokenCount: nameIdx - startIdx + 1 },
     };
   }
@@ -318,7 +574,7 @@ function detectDropOperation(tokens: SqlToken[], startIdx: number): MigrationOpe
     return {
       type: "drop_index",
       tableName: undefined,
-      startLine: 1,
+      startLine,
       details: { indexName: cleanIdentifier(tokens[nameIdx].value), tokenCount: nameIdx - startIdx + 1 },
     };
   }
@@ -331,7 +587,7 @@ function detectDropOperation(tokens: SqlToken[], startIdx: number): MigrationOpe
     return {
       type: "drop_constraint",
       tableName: undefined,
-      startLine: 1,
+      startLine,
       details: { constraintName: cleanIdentifier(tokens[nameIdx].value), tokenCount: nameIdx - startIdx + 1 },
     };
   }
@@ -339,7 +595,7 @@ function detectDropOperation(tokens: SqlToken[], startIdx: number): MigrationOpe
   return null;
 }
 
-function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOperation | null {
+function detectAlterOperation(tokens: SqlToken[], startIdx: number, startLine: number = 1): MigrationOperation | null {
   // ALTER TABLE <name> ADD COLUMN <col> ...
   // ALTER TABLE <name> DROP COLUMN <col> ...
   // ALTER TABLE <name> MODIFY COLUMN <col> ...
@@ -375,7 +631,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
         type: "add_column",
         tableName,
         columnName: cleanIdentifier(tokens[colNameIdx].value),
-        startLine: 1,
+        startLine,
         details: { tokenCount: colNameIdx - startIdx + 1 },
       };
     } else if (nextToken.value.toUpperCase() === "CONSTRAINT") {
@@ -386,7 +642,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
       return {
         type: "add_constraint",
         tableName,
-        startLine: 1,
+        startLine,
         details: { constraintName: cleanIdentifier(tokens[constraintNameIdx].value), tokenCount: constraintNameIdx - startIdx + 1 },
       };
     }
@@ -398,7 +654,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
       type: "add_column",
       tableName,
       columnName: cleanIdentifier(tokens[colNameIdx].value),
-      startLine: 1,
+      startLine,
       details: { tokenCount: colNameIdx - startIdx + 1 },
     };
   }
@@ -418,7 +674,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
         type: "drop_column",
         tableName,
         columnName: cleanIdentifier(tokens[colNameIdx].value),
-        startLine: 1,
+        startLine,
         details: { tokenCount: colNameIdx - startIdx + 1 },
       };
     } else if (nextToken.value.toUpperCase() === "CONSTRAINT") {
@@ -429,7 +685,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
       return {
         type: "drop_constraint",
         tableName,
-        startLine: 1,
+        startLine,
         details: { constraintName: cleanIdentifier(tokens[constraintNameIdx].value), tokenCount: constraintNameIdx - startIdx + 1 },
       };
     } else if (nextToken.value.toUpperCase() === "INDEX") {
@@ -441,7 +697,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
       return {
         type: "drop_index",
         tableName,
-        startLine: 1,
+        startLine,
         details: { indexName: cleanIdentifier(tokens[indexNameIdx].value), tokenCount: indexNameIdx - startIdx + 1 },
       };
     }
@@ -453,7 +709,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
       type: "drop_column",
       tableName,
       columnName: cleanIdentifier(tokens[colNameIdx].value),
-      startLine: 1,
+      startLine,
       details: { tokenCount: colNameIdx - startIdx + 1 },
     };
   }
@@ -471,7 +727,7 @@ function detectAlterOperation(tokens: SqlToken[], startIdx: number): MigrationOp
       type: "modify_column",
       tableName,
       columnName: cleanIdentifier(tokens[colNameIdx].value),
-      startLine: 1,
+      startLine,
       details: { tokenCount: colNameIdx - startIdx + 1 },
     };
   }
@@ -506,6 +762,22 @@ function getNthTokenIndex(tokens: SqlToken[], startIdx: number, n: number): numb
 function cleanIdentifier(id: string): string {
   // Remove quotes/backticks
   return id.replace(/[`'"]/g, "");
+}
+
+function isIdentifierLike(token: SqlToken | undefined): boolean {
+  return token?.type === "identifier" || token?.type === "string";
+}
+
+function isOpenParen(token: SqlToken | undefined): boolean {
+  return token?.type === "paren_open";
+}
+
+function isCloseParen(token: SqlToken | undefined): boolean {
+  return token?.type === "paren_close";
+}
+
+function isComma(token: SqlToken | undefined): boolean {
+  return token?.type === "comma";
 }
 
 // ============================================================================
@@ -807,14 +1079,23 @@ export function extractSqlFromOrmCode(sourceCode: string): string[] {
 // ============================================================================
 
 /**
- * Analyze a migration file content.
+ * Result of migration analysis including diagnostics.
  */
-export function analyzeMigration(
+export interface AnalyzeMigrationResult {
+  migrations: MigrationRef[];
+  diagnostics: DiagnosticRef[];
+}
+
+/**
+ * Analyze a migration file content with diagnostic tracking.
+ */
+export function analyzeMigrationWithDiagnostics(
   filePath: string,
   content: string,
   hashService: HashService
-): MigrationRef[] {
+): AnalyzeMigrationResult {
   const migrations: MigrationRef[] = [];
+  const diagnostics: DiagnosticRef[] = [];
 
   // Detect ORM type
   const ormType = detectOrmType(content);
@@ -839,27 +1120,36 @@ export function analyzeMigration(
   // Check for transaction patterns
   const transactionInfo = detectTransactionPatterns(content);
 
-  // Process SQL statements
+  // Process SQL statements with diagnostics
   const operations: MigrationOperation[] = [];
   let currentLine = 1;
 
   for (const sql of sqlStatements) {
-    const ops = detectSqlOperations(sql);
-    for (const op of ops) {
-      op.startLine = findSqlLine(content, sql, currentLine);
+    const sqlStartLine = findSqlLine(content, sql, currentLine);
+    const result = detectSqlOperationsWithDiagnostics(sql, filePath, sqlStartLine);
+
+    // Collect diagnostics
+    diagnostics.push(...result.diagnostics);
+
+    for (const op of result.operations) {
+      op.startLine = sqlStartLine;
       op.rawSql = sql;
       operations.push(op);
       currentLine = Math.max(currentLine, op.startLine ?? 1);
     }
   }
 
-  // Also check for raw SQL patterns in method bodies
+  // Also check for raw SQL patterns in method bodies with diagnostics
   const rawSqlPatterns = content.matchAll(/(?:query|execute|raw)\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/gi);
   for (const match of rawSqlPatterns) {
     const sql = match[1];
-    const ops = detectSqlOperations(sql);
-    for (const op of ops) {
-      const lineNum = getLineNumber(content, match.index ?? 0);
+    const lineNum = getLineNumber(content, match.index ?? 0);
+    const result = detectSqlOperationsWithDiagnostics(sql, filePath, lineNum);
+
+    // Collect diagnostics
+    diagnostics.push(...result.diagnostics);
+
+    for (const op of result.operations) {
       op.startLine = lineNum;
       op.rawSql = sql;
       operations.push(op);
@@ -912,7 +1202,19 @@ export function analyzeMigration(
     });
   }
 
-  return migrations;
+  return { migrations, diagnostics };
+}
+
+/**
+ * Analyze a migration file content (backward-compatible public API).
+ */
+export function analyzeMigration(
+  filePath: string,
+  content: string,
+  hashService: HashService
+): MigrationRef[] {
+  const result = analyzeMigrationWithDiagnostics(filePath, content, hashService);
+  return result.migrations;
 }
 
 function extractMigrationName(content: string): string | null {
@@ -996,17 +1298,671 @@ export function createRawSqlRefs(
 // ============================================================================
 
 export const SQL_LIGHTWEIGHT_PARSER = {
+  // Tokenizer with diagnostics (Phase A)
   tokenizeSql,
+  tokenizeSqlWithDiagnostics,
+  // Operation detection with diagnostics (Phase A)
   detectSqlOperations,
+  detectSqlOperationsWithDiagnostics,
+  // Dangerous operation detection
   containsDangerousOperation,
   containsDropTable,
   containsDropColumn,
   containsNotNullWithoutDefault,
+  // Type change detection
   isRiskyTypeChange,
   detectTypeChanges,
+  // Transaction/ORM patterns
   detectTransactionPatterns,
   detectOrmType,
   extractSqlFromOrmCode,
+  // Migration analysis with diagnostics (Phase A)
   analyzeMigration,
+  analyzeMigrationWithDiagnostics,
+  // Raw SQL extraction
   createRawSqlRefs,
 };
+
+// ============================================================================
+// Schema Inventory Extraction (Phase B - SPEC-29)
+// ============================================================================
+
+/**
+ * Result of schema inventory extraction including diagnostics.
+ */
+export interface SchemaInventoryResult {
+  tables: TableRef[];
+  columns: ColumnRef[];
+  indexes: IndexRef[];
+  constraints: ConstraintRef[];
+  diagnostics: DiagnosticRef[];
+}
+
+/**
+ * Map of SQL data types to normalized ColumnDataType.
+ */
+const SQL_TYPE_MAP: Record<string, ColumnDataType> = {
+  // Integer types
+  "int": "integer",
+  "integer": "integer",
+  "bigint": "bigint",
+  "smallint": "smallint",
+  "tinyint": "smallint",
+  "serial": "integer",
+  "bigserial": "bigint",
+  "smallserial": "smallint",
+  // Decimal/numeric types
+  "decimal": "decimal",
+  "numeric": "numeric",
+  "real": "float",
+  "float": "float",
+  "double": "double",
+  "double precision": "double",
+  "money": "decimal",
+  // Boolean
+  "boolean": "boolean",
+  "bool": "boolean",
+  // String types
+  "char": "char",
+  "character": "char",
+  "varchar": "varchar",
+  "character varying": "varchar",
+  "text": "text",
+  "string": "varchar",
+  // Date/time types
+  "date": "date",
+  "datetime": "datetime",
+  "timestamp": "timestamp",
+  "timestamptz": "timestamp",
+  "time": "time",
+  "timetz": "time",
+  // JSON types
+  "json": "json",
+  "jsonb": "jsonb",
+  // Binary types
+  "blob": "blob",
+  "bytea": "blob",
+  "binary": "blob",
+  "varbinary": "blob",
+  "clob": "clob",
+  // UUID
+  "uuid": "uuid",
+  // Array
+  "array": "array",
+};
+
+/**
+ * Normalize SQL data type to ColumnDataType.
+ */
+function normalizeDataType(sqlType: string): ColumnDataType {
+  const normalized = sqlType.toLowerCase().trim();
+  // Remove size specifiers like (255), (10,2)
+  const baseType = normalized.replace(/\s*\([^)]*\)/g, "");
+
+  // Check direct match
+  if (SQL_TYPE_MAP[baseType]) {
+    return SQL_TYPE_MAP[baseType];
+  }
+
+  // Check with spaces normalized
+  const spaceNormalized = baseType.replace(/\s+/g, " ");
+  if (SQL_TYPE_MAP[spaceNormalized]) {
+    return SQL_TYPE_MAP[spaceNormalized];
+  }
+
+  // Check enum pattern
+  if (baseType.startsWith("enum")) {
+    return "enum";
+  }
+
+  return "unknown";
+}
+
+/**
+ * Detect index type from SQL keywords.
+ * @internal Reserved for future use
+ */
+function _detectIndexType(tokens: SqlToken[], startIdx: number): IndexType {
+  // Check for UNIQUE keyword before INDEX
+  const uniqueIdx = getNthTokenIndex(tokens, startIdx, 1);
+  if (uniqueIdx >= 0 && tokens[uniqueIdx]?.value.toUpperCase() === "UNIQUE") {
+    return "unique";
+  }
+
+  // Default to btree
+  return "btree";
+}
+
+/**
+ * Detect constraint type from SQL keywords.
+ */
+function detectConstraintTypeFromSql(sqlKeywords: string[]): ConstraintType {
+  const upperKeywords = sqlKeywords.map(k => k.toUpperCase());
+
+  if (upperKeywords.includes("PRIMARY") && upperKeywords.includes("KEY")) {
+    return "primary_key";
+  }
+  if (upperKeywords.includes("FOREIGN") && upperKeywords.includes("KEY")) {
+    return "foreign_key";
+  }
+  if (upperKeywords.includes("UNIQUE")) {
+    return "unique";
+  }
+  if (upperKeywords.includes("CHECK")) {
+    return "check";
+  }
+
+  return "not_null";
+}
+
+/**
+ * Extract schema inventory from SQL content with diagnostic tracking.
+ * Supports CREATE TABLE, CREATE INDEX, and constraint extraction.
+ */
+export function extractSchemaInventory(
+  sql: string,
+  filePath: string,
+  startLine: number,
+  hashService: HashService
+): SchemaInventoryResult {
+  const { tokens, diagnostics } = tokenizeSqlWithDiagnostics(sql, filePath, startLine);
+
+  const tables: TableRef[] = [];
+  const columns: ColumnRef[] = [];
+  const indexes: IndexRef[] = [];
+  const constraints: ConstraintRef[] = [];
+
+  // Track seen objects to detect duplicates
+  const seenTables = new Map<string, { line: number; ref: TableRef }>();
+  const seenIndexes = new Map<string, { line: number; ref: IndexRef }>();
+
+  // Process DDL statements
+  let i = 0;
+  while (i < tokens.length) {
+    const token = tokens[i];
+
+    // Skip whitespace and comments
+    if (token.type === "whitespace" || token.type === "comment" || token.type === "unknown") {
+      i++;
+      continue;
+    }
+
+    // CREATE TABLE
+    if (token.type === "keyword" && token.value.toUpperCase() === "CREATE") {
+      const typeIdx = getNthTokenIndex(tokens, i, 1);
+      if (typeIdx >= 0 && tokens[typeIdx]?.value.toUpperCase() === "TABLE") {
+        const tableNameIdx = getNthTokenIndex(tokens, i, 2);
+        if (tableNameIdx >= 0 && isIdentifierLike(tokens[tableNameIdx])) {
+          const tableName = cleanIdentifier(tokens[tableNameIdx].value);
+          const tableLine = tokens[tableNameIdx].line ?? startLine;
+
+          // Check for duplicate
+          const tableId = `table:${tableName}`;
+          if (seenTables.has(tableId)) {
+            const existing = seenTables.get(tableId)!;
+            diagnostics.push({
+              id: `diag-duplicate-${tableId}-${tableLine}`,
+              severity: "warning",
+              code: "DUPLICATE_OBJECT_DECLARATION",
+              message: `Table "${tableName}" declared multiple times (first at line ${existing.line})`,
+              filePath,
+              startLine: tableLine,
+              details: { objectType: "table", objectName: tableName, firstLine: existing.line },
+            });
+          } else {
+            // Extract columns from table definition
+            const tableColumns = extractColumnsFromTableDef(
+              tokens, tableNameIdx, tableName, filePath, tableLine, hashService
+            );
+
+            const tableRef: TableRef = {
+              id: hashService.fingerprint(`${filePath}:${tableId}:${tableLine}`),
+              name: tableName,
+              type: "table",
+              filePath,
+              startLine: tableLine,
+              columns: tableColumns,
+            };
+
+            tables.push(tableRef);
+            columns.push(...tableColumns);
+            seenTables.set(tableId, { line: tableLine, ref: tableRef });
+          }
+        }
+      }
+
+      // CREATE INDEX / CREATE UNIQUE INDEX
+      if (typeIdx >= 0 && tokens[typeIdx]?.value.toUpperCase() === "INDEX") {
+        const result = extractIndexFromCreate(tokens, i, filePath, startLine, hashService);
+        if (result.index) {
+          const indexId = `index:${result.index.name}`;
+          if (seenIndexes.has(indexId)) {
+            const existing = seenIndexes.get(indexId)!;
+            diagnostics.push({
+              id: `diag-duplicate-${indexId}-${result.index.startLine}`,
+              severity: "warning",
+              code: "DUPLICATE_OBJECT_DECLARATION",
+              message: `Index "${result.index.name}" declared multiple times (first at line ${existing.line})`,
+              filePath,
+              startLine: result.index.startLine,
+              details: { objectType: "index", objectName: result.index.name, firstLine: existing.line },
+            });
+          } else {
+            indexes.push(result.index);
+            seenIndexes.set(indexId, { line: result.index.startLine, ref: result.index });
+          }
+        }
+      }
+
+      // CREATE UNIQUE INDEX
+      const maybeUniqueIdx = getNthTokenIndex(tokens, i, 1);
+      if (maybeUniqueIdx >= 0 && tokens[maybeUniqueIdx]?.value.toUpperCase() === "UNIQUE") {
+        const indexIdx = getNthTokenIndex(tokens, i, 2);
+        if (indexIdx >= 0 && tokens[indexIdx]?.value.toUpperCase() === "INDEX") {
+          const result = extractIndexFromCreate(tokens, i, filePath, startLine, hashService, true);
+          if (result.index) {
+            const indexId = `index:${result.index.name}`;
+            if (seenIndexes.has(indexId)) {
+              const existing = seenIndexes.get(indexId)!;
+              diagnostics.push({
+                id: `diag-duplicate-${indexId}-${result.index.startLine}`,
+                severity: "warning",
+                code: "DUPLICATE_OBJECT_DECLARATION",
+                message: `Index "${result.index.name}" declared multiple times (first at line ${existing.line})`,
+                filePath,
+                startLine: result.index.startLine,
+                details: { objectType: "index", objectName: result.index.name, firstLine: existing.line },
+              });
+            } else {
+              indexes.push(result.index);
+              seenIndexes.set(indexId, { line: result.index.startLine, ref: result.index });
+            }
+          }
+          i = result.nextTokenIndex;
+          continue;
+        }
+      }
+    }
+
+    // ALTER TABLE ADD CONSTRAINT
+    if (token.type === "keyword" && token.value.toUpperCase() === "ALTER") {
+      const constraint = extractConstraintFromAlter(tokens, i, filePath, startLine, hashService);
+      if (constraint) {
+        constraints.push(constraint);
+      }
+    }
+
+    i++;
+  }
+
+  return { tables, columns, indexes, constraints, diagnostics };
+}
+
+/**
+ * Extract columns from CREATE TABLE definition.
+ */
+function extractColumnsFromTableDef(
+  tokens: SqlToken[],
+  tableNameIdx: number,
+  tableName: string,
+  filePath: string,
+  tableLine: number,
+  hashService: HashService
+): ColumnRef[] {
+  const columns: ColumnRef[] = [];
+
+  // Find opening parenthesis
+  let parenIdx = -1;
+  for (let i = tableNameIdx + 1; i < tokens.length; i++) {
+    if (isOpenParen(tokens[i])) {
+      parenIdx = i;
+      break;
+    }
+  }
+
+  if (parenIdx < 0) return columns;
+
+  // Process column definitions inside parentheses
+  let depth = 1;
+  let i = parenIdx + 1;
+  let currentColumn: { name: string; type: string; line: number } | null = null;
+  let columnKeywords: string[] = [];
+  let columnConstraints: { isPrimaryKey: boolean; isForeignKey: boolean; nullable: boolean; references?: { table: string; column: string } } = {
+    isPrimaryKey: false,
+    isForeignKey: false,
+    nullable: true,
+  };
+
+  while (i < tokens.length && depth > 0) {
+    const token = tokens[i];
+
+    if (isOpenParen(token)) {
+      depth++;
+    } else if (isCloseParen(token)) {
+      depth--;
+      if (depth === 0 && currentColumn) {
+        finalizeColumn(currentColumn, columnConstraints, tableName, filePath, hashService, columns);
+      }
+    } else if (isComma(token) && depth === 1) {
+      if (currentColumn) {
+        finalizeColumn(currentColumn, columnConstraints, tableName, filePath, hashService, columns);
+        currentColumn = null;
+        columnKeywords = [];
+        columnConstraints = { isPrimaryKey: false, isForeignKey: false, nullable: true };
+      }
+    }
+
+    if (token.type === "keyword") {
+      const kw = token.value.toUpperCase();
+
+      if (!currentColumn && kw !== "PRIMARY" && kw !== "FOREIGN" && kw !== "UNIQUE" && kw !== "CHECK" && kw !== "CONSTRAINT") {
+        // First keyword after column name might be type - but we need identifier first
+        // Skip for now, column name should be identifier
+      } else if (currentColumn) {
+        columnKeywords.push(kw);
+
+        // Process constraints
+        const nextTokenIdx = getNthTokenIndex(tokens, i, 1);
+        const nextKeyword = nextTokenIdx >= 0 ? tokens[nextTokenIdx]?.value.toUpperCase() : undefined;
+
+        if (kw === "PRIMARY" && nextKeyword === "KEY") {
+          columnConstraints.isPrimaryKey = true;
+          columnConstraints.nullable = false;
+        }
+        if (kw === "NOT" && nextKeyword === "NULL") {
+          columnConstraints.nullable = false;
+        }
+        if (kw === "NULL" && !columnKeywords.includes("NOT")) {
+          columnConstraints.nullable = true;
+        }
+        if (kw === "REFERENCES") {
+          // Extract referenced table and column
+          const refTableIdx = getNthTokenIndex(tokens, i, 1);
+          const refColIdx = getNthTokenIndex(tokens, i, 3); // After table name and parentheses
+          if (refTableIdx >= 0) {
+            columnConstraints.isForeignKey = true;
+            columnConstraints.references = {
+              table: cleanIdentifier(tokens[refTableIdx].value),
+              column: refColIdx >= 0 ? cleanIdentifier(tokens[refColIdx].value) : "id",
+            };
+          }
+        }
+      }
+    }
+
+    if (token.type === "identifier" && depth === 1 && !currentColumn) {
+      // Potential column name
+      // Check if this is actually a constraint declaration
+      const prevKeyword = getTokenBefore(tokens, i);
+      if (prevKeyword?.value.toUpperCase() === "CONSTRAINT") {
+        // Skip constraint name, this is not a column
+      } else {
+        currentColumn = {
+          name: cleanIdentifier(token.value),
+          type: "",
+          line: token.line ?? tableLine,
+        };
+        // Get type from next token
+        const typeToken = getTokenSkippingWhitespace(tokens, i + 1);
+        if (typeToken && (typeToken.type === "keyword" || typeToken.type === "identifier")) {
+          currentColumn.type = typeToken.value;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return columns;
+}
+
+/**
+ * Finalize a column definition and add to columns array.
+ */
+function finalizeColumn(
+  current: { name: string; type: string; line: number },
+  constraints: { isPrimaryKey: boolean; isForeignKey: boolean; nullable: boolean; references?: { table: string; column: string } },
+  tableName: string,
+  filePath: string,
+  hashService: HashService,
+  columns: ColumnRef[]
+): void {
+  const columnRef: ColumnRef = {
+    id: hashService.fingerprint(`${filePath}:${tableName}:${current.name}:${current.line}`),
+    name: current.name,
+    type: "column",
+    tableName,
+    filePath,
+    startLine: current.line,
+    dataType: normalizeDataType(current.type),
+    nullable: constraints.nullable,
+    isPrimaryKey: constraints.isPrimaryKey,
+    isForeignKey: constraints.isForeignKey,
+    references: constraints.references,
+  };
+
+  columns.push(columnRef);
+}
+
+/**
+ * Get token before given index, skipping whitespace.
+ */
+function getTokenBefore(tokens: SqlToken[], idx: number): SqlToken | null {
+  for (let i = idx - 1; i >= 0; i--) {
+    if (tokens[i].type !== "whitespace" && tokens[i].type !== "comment") {
+      return tokens[i];
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract index from CREATE INDEX statement.
+ */
+function extractIndexFromCreate(
+  tokens: SqlToken[],
+  startIdx: number,
+  filePath: string,
+  startLine: number,
+  hashService: HashService,
+  isUnique: boolean = false
+): { index: IndexRef | null; nextTokenIndex: number } {
+  // CREATE [UNIQUE] INDEX <name> ON <table> (<columns>)
+
+  // Adjust offset for UNIQUE keyword
+  const offset = isUnique ? 1 : 0;
+
+  // Get index name
+  const idxNameIdx = getNthTokenIndex(tokens, startIdx, 2 + offset);
+  if (idxNameIdx < 0 || !isIdentifierLike(tokens[idxNameIdx])) {
+    return { index: null, nextTokenIndex: startIdx + 5 };
+  }
+
+  const indexName = cleanIdentifier(tokens[idxNameIdx].value);
+
+  // Find ON keyword
+  const onIdx = getNthTokenIndex(tokens, startIdx, 3 + offset);
+  if (onIdx < 0 || tokens[onIdx]?.value.toUpperCase() !== "ON") {
+    return { index: null, nextTokenIndex: startIdx + 5 };
+  }
+
+  // Get table name
+  const tableNameIdx = getNthTokenIndex(tokens, startIdx, 4 + offset);
+  if (tableNameIdx < 0 || !isIdentifierLike(tokens[tableNameIdx])) {
+    return { index: null, nextTokenIndex: startIdx + 5 };
+  }
+
+  const tableName = cleanIdentifier(tokens[tableNameIdx].value);
+
+  // Find opening parenthesis for columns
+  let parenIdx = -1;
+  for (let i = tableNameIdx + 1; i < tokens.length; i++) {
+    if (isOpenParen(tokens[i])) {
+      parenIdx = i;
+      break;
+    }
+  }
+
+  // Extract column names from parentheses
+  const indexColumns: string[] = [];
+  let closeParenIdx = -1;
+  if (parenIdx >= 0) {
+    let i = parenIdx + 1;
+    while (i < tokens.length) {
+      const token = tokens[i];
+      if (isCloseParen(token)) {
+        closeParenIdx = i;
+        break;
+      }
+      if (token.type === "identifier") {
+        indexColumns.push(cleanIdentifier(token.value));
+      }
+      i++;
+    }
+  }
+
+  const indexLine = tokens[idxNameIdx].line ?? startLine;
+
+  const indexRef: IndexRef = {
+    id: hashService.fingerprint(`${filePath}:index:${indexName}:${indexLine}`),
+    name: indexName,
+    type: "index",
+    tableName,
+    filePath,
+    startLine: indexLine,
+    columns: indexColumns,
+    indexType: isUnique ? "unique" : "btree",
+    isUnique,
+  };
+
+  return {
+    index: indexRef,
+    nextTokenIndex: closeParenIdx >= 0 ? closeParenIdx : (parenIdx >= 0 ? parenIdx : startIdx),
+  };
+}
+
+/**
+ * Extract constraint from ALTER TABLE ADD CONSTRAINT statement.
+ */
+function extractConstraintFromAlter(
+  tokens: SqlToken[],
+  startIdx: number,
+  filePath: string,
+  startLine: number,
+  hashService: HashService
+): ConstraintRef | null {
+  // ALTER TABLE <table> ADD CONSTRAINT <name> <type> ...
+
+  // Check TABLE keyword
+  const tableIdx = getNthTokenIndex(tokens, startIdx, 1);
+  if (tableIdx < 0 || tokens[tableIdx]?.value.toUpperCase() !== "TABLE") return null;
+
+  // Get table name
+  const tableNameIdx = getNthTokenIndex(tokens, startIdx, 2);
+  if (tableNameIdx < 0 || !isIdentifierLike(tokens[tableNameIdx])) return null;
+
+  const tableName = cleanIdentifier(tokens[tableNameIdx].value);
+
+  // Get ADD keyword
+  const addIdx = getNthTokenIndex(tokens, startIdx, 3);
+  if (addIdx < 0 || tokens[addIdx]?.value.toUpperCase() !== "ADD") return null;
+
+  // Get CONSTRAINT keyword
+  const constraintIdx = getNthTokenIndex(tokens, startIdx, 4);
+  if (constraintIdx < 0 || tokens[constraintIdx]?.value.toUpperCase() !== "CONSTRAINT") return null;
+
+  // Get constraint name
+  const nameIdx = getNthTokenIndex(tokens, startIdx, 5);
+  if (nameIdx < 0 || !isIdentifierLike(tokens[nameIdx])) return null;
+
+  const constraintName = cleanIdentifier(tokens[nameIdx].value);
+
+  // Get constraint type keywords
+  const typeKeywords: string[] = [];
+  let i = nameIdx + 1;
+  while (i < tokens.length && i < nameIdx + 10) {
+    const token = tokens[i];
+    if (token.type === "keyword") {
+      typeKeywords.push(token.value);
+    }
+    if (isOpenParen(token)) {
+      // Start of column list - stop type detection
+      break;
+    }
+    i++;
+  }
+
+  const constraintType = detectConstraintTypeFromSql(typeKeywords);
+  const constraintLine = tokens[nameIdx].line ?? startLine;
+
+  // Extract columns from parentheses
+  const constraintColumns: string[] = [];
+  let parenIdx = -1;
+  for (let j = i; j < tokens.length; j++) {
+    if (isOpenParen(tokens[j])) {
+      parenIdx = j;
+      break;
+    }
+  }
+
+  if (parenIdx >= 0) {
+    let j = parenIdx + 1;
+    while (j < tokens.length) {
+      const token = tokens[j];
+      if (isCloseParen(token)) break;
+      if (token.type === "identifier") {
+        constraintColumns.push(cleanIdentifier(token.value));
+      }
+      j++;
+    }
+  }
+
+  // Extract foreign key references if applicable
+  let referencedTable: string | undefined;
+  let referencedColumns: string[] | undefined;
+
+  if (constraintType === "foreign_key") {
+    // Find REFERENCES keyword
+    for (let j = nameIdx + 1; j < tokens.length; j++) {
+      if (tokens[j]?.value.toUpperCase() === "REFERENCES") {
+        const refTableIdx = getNthTokenIndex(tokens, j, 1);
+        if (refTableIdx >= 0) {
+          referencedTable = cleanIdentifier(tokens[refTableIdx].value);
+          // Find referenced columns in parentheses
+          for (let k = refTableIdx + 1; k < tokens.length; k++) {
+            if (isOpenParen(tokens[k])) {
+              let m = k + 1;
+              while (m < tokens.length) {
+                if (isCloseParen(tokens[m])) break;
+                if (tokens[m].type === "identifier") {
+                  const col = cleanIdentifier(tokens[m].value);
+                  if (referencedColumns) {
+                    referencedColumns.push(col);
+                  } else {
+                    referencedColumns = [col];
+                  }
+                }
+                m++;
+              }
+              break;
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return {
+    id: hashService.fingerprint(`${filePath}:constraint:${constraintName}:${constraintLine}`),
+    name: constraintName,
+    type: "constraint",
+    tableName,
+    filePath,
+    startLine: constraintLine,
+    constraintType,
+    columns: constraintColumns,
+    referencedTable,
+    referencedColumns,
+  };
+}

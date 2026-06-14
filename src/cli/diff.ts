@@ -5,15 +5,16 @@
  * generates blast radius and findings for changed files.
  */
 
-import { execSync } from "node:child_process";
+// SAFETY: Git operations delegated to GitDiffAccess for spawnSync-based safe execution
+import { GitDiffAccess } from "../adapters/git-diff-access.js";
+import { GitFileAccessAdapter, DB_ANALYSIS_LIMITS } from "../adapters/git-file-access-adapter.js";
 import { toPosix } from "../core/path-utils.js";
 import {
   detectLanguage,
   detectRole,
   walkDir,
   ensureDir,
-  listDatabaseFilesAtGitRef,
-  readFileAtGitRef,
+  isDatabaseFile,
 } from "../core/file-utils.js";
 import {
   analyzeDatabaseAssetsAtRef,
@@ -23,6 +24,7 @@ import type { DatabaseAssetsDiff } from "../core/database-analyzer.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { CORE_RULES, DATABASE_RULES } from "../rules/index.js";
 import type { RulePlugin } from "../rules/index.js";
+import type { DiffAccessResult } from "../types/diff-contracts.js";
 
 import {
   NormalizedRepoGraph,
@@ -101,126 +103,107 @@ interface DiffAnalysisArtifact {
 /**
  * Parse git diff numstat output
  */
-function parseNumstat(line: string): { additions: number; deletions: number; path: string } | null {
-  const parts = line.split("\t");
-  if (parts.length < 3) return null;
-  const additions = parseInt(parts[0], 10) || 0;
-  const deletions = parseInt(parts[1], 10) || 0;
-  const path = parts[2];
-  return { additions, deletions, path };
-}
-
 /**
- * Parse git diff hunk headers to get line ranges
+ * Parse hunk info from GitDiffAccess DiffHunk result
  */
-function parseHunkHeaders(diffOutput: string, _filePath: string): Array<{ startLine: number; endLine: number }> {
-  const hunks: Array<{ startLine: number; endLine: number }> = [];
-  const hunkRegex = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/gm;
-  let match;
-  while ((match = hunkRegex.exec(diffOutput)) !== null) {
-    const startLine = parseInt(match[1], 10);
-    // Estimate end line - in real impl would track actual lines
-    hunks.push({ startLine, endLine: startLine + 20 });
-  }
-  return hunks;
+function parseHunksFromResult(hunks: Array<{ oldStart: number; oldLines: number; newStart: number; newLines: number; lines: Array<{ type: string; content: string }> }>): Array<{ startLine: number; endLine: number }> {
+  return hunks.map(hunk => ({
+    startLine: hunk.newStart,
+    endLine: hunk.newStart + hunk.newLines - 1,
+  }));
 }
 
 /**
  * Get changed files between base and head refs using git
+ * Returns structured result with explicit failure modes (no fallback)
  */
-function getChangedFiles(repoRoot: string, baseRef: string, headRef: string): ChangedFile[] {
-  const changedFiles: ChangedFile[] = [];
+function getChangedFilesResult(
+  repoRoot: string,
+  baseRef: string,
+  headRef: string
+): DiffAccessResult<ChangedFile[]> {
+  const diffAccess = new GitDiffAccess(repoRoot);
 
-  try {
-    // Check if git is available
-    execSync("git --version", { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
+  // Validate refs exist
+  const baseResult = diffAccess.validateRefResult(baseRef);
+  const headResult = diffAccess.validateRefResult(headRef);
 
-    // Get name-status (A/M/D/R)
-    const nameStatusOutput = execSync(
-      `git diff --name-status "${baseRef}" "${headRef}"`,
-      { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
-    );
-
-    // Get numstat for additions/deletions
-    const numstatOutput = execSync(
-      `git diff --numstat "${baseRef}" "${headRef}"`,
-      { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }
-    );
-
-    // Parse name-status
-    const statusMap: Map<string, "added" | "modified" | "deleted" | "renamed"> = new Map();
-    for (const line of nameStatusOutput.split("\n").filter(l => l.trim())) {
-      const parts = line.split("\t");
-      if (parts.length >= 2) {
-        const status = parts[0];
-        const filePath = parts[1];
-        if (status === "A") statusMap.set(filePath, "added");
-        else if (status === "M") statusMap.set(filePath, "modified");
-        else if (status === "D") statusMap.set(filePath, "deleted");
-        else if (status.startsWith("R")) statusMap.set(filePath, "renamed");
-      }
-    }
-
-    // Parse numstat
-    const statsMap: Map<string, { additions: number; deletions: number }> = new Map();
-    for (const line of numstatOutput.split("\n").filter(l => l.trim())) {
-      const parsed = parseNumstat(line);
-      if (parsed) {
-        statsMap.set(parsed.path, { additions: parsed.additions, deletions: parsed.deletions });
-      }
-    }
-
-    // Build changed files list
-    for (const [filePath, status] of statusMap) {
-      const stats = statsMap.get(filePath) || { additions: 0, deletions: 0 };
-      const posixPath = toPosix(filePath);
-
-      // Get hunk info for modified files
-      let hunks: Array<{ startLine: number; endLine: number }> = [];
-      if (status === "modified") {
-        try {
-          const diffOutput = execSync(
-            `git diff "${baseRef}" "${headRef}" -- "${filePath}"`,
-            { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "ignore"], maxBuffer: 1024 * 1024 }
-          );
-          hunks = parseHunkHeaders(diffOutput, posixPath);
-        } catch {
-          // If diff fails, use empty hunks
-        }
-      }
-
-      changedFiles.push({
-        path: posixPath,
-        status,
-        additions: stats.additions,
-        deletions: stats.deletions,
-        hunks,
-      });
-    }
-  } catch (_error) {
-    // Git not available or not a git repo - fall back to file-based comparison
-    // This is a simplified fallback for non-git directories
-    const allFiles = walkDir(repoRoot);
-    const targetFiles = allFiles.filter(
-      (file) =>
-        /\.(ts|tsx|js|jsx|py|mjs|cjs)$/.test(file) &&
-        !file.endsWith(".d.ts")
-    );
-
-    // Treat first few files as "changed" for demo purposes
-    for (const file of targetFiles.slice(0, 5)) {
-      const rel = toPosix(nodePathService.relative(repoRoot, file));
-      changedFiles.push({
-        path: rel,
-        status: "modified",
-        additions: 10,
-        deletions: 5,
-        hunks: [{ startLine: 1, endLine: 20 }],
-      });
-    }
+  if (baseResult.status !== "success") {
+    return {
+      status: baseResult.status,
+      message: baseResult.message ?? `Base ref '${baseRef}' validation failed`,
+    };
   }
 
-  return changedFiles;
+  if (headResult.status !== "success") {
+    return {
+      status: headResult.status,
+      message: headResult.message ?? `Head ref '${headRef}' validation failed`,
+    };
+  }
+
+  // Get changed files with stats using safe GitDiffAccess
+  const statsResult = diffAccess.getChangedFilesWithStatsResult(baseRef, headRef);
+
+  if (statsResult.status === "git_failure") {
+    return {
+      status: "git_failure",
+      message: statsResult.message ?? "Git operation failed",
+    };
+  }
+
+  if (statsResult.status === "ref_invalid") {
+    return {
+      status: "ref_invalid",
+      message: statsResult.message ?? "Git refs are invalid",
+    };
+  }
+
+  // limit_exceeded: return truncated list with status
+  if (statsResult.status !== "success" && statsResult.status !== "limit_exceeded") {
+    return {
+      status: "git_failure",
+      message: statsResult.message ?? `Unexpected status: ${statsResult.status}`,
+    };
+  }
+
+  const filesWithStats = statsResult.value!;
+  const changedFiles: ChangedFile[] = [];
+
+  // Build changed files list with hunk info
+  for (const fileStat of filesWithStats) {
+    const posixPath = toPosix(fileStat.path);
+
+    // Get hunk info for modified files using safe GitDiffAccess
+    let hunks: Array<{ startLine: number; endLine: number }> = [];
+    if (fileStat.status === "modified") {
+      const diffResult = diffAccess.getFileDiffResult(baseRef, headRef, fileStat.path);
+      if (diffResult.status === "success") {
+        hunks = parseHunksFromResult(diffResult.value!);
+      }
+    }
+
+    changedFiles.push({
+      path: posixPath,
+      status: fileStat.status,
+      additions: fileStat.additions,
+      deletions: fileStat.deletions,
+      hunks,
+    });
+  }
+
+  // Return result with limit_exceeded status if applicable
+  return statsResult.status === "limit_exceeded"
+    ? {
+        status: "limit_exceeded",
+        value: changedFiles,
+        message: statsResult.message,
+        limit: statsResult.limit,
+      }
+    : {
+        status: "success",
+        value: changedFiles,
+      };
 }
 
 /**
@@ -378,11 +361,17 @@ function buildDatabaseFindingsAtRef(
   runId: string,
   toolVersion: string
 ): FindingsArtifact {
+  // Use GitFileAccessAdapter for safe git operations
+  // SPEC-29 Phase 3: Use DB_ANALYSIS_LIMITS to prevent SQL migration truncation at 500 files
+  const gitFileAccess = new GitFileAccessAdapter(repoRoot, DB_ANALYSIS_LIMITS);
   const contents = new Map<string, string>();
   const files: RepoFile[] = [];
 
-  for (const filePath of listDatabaseFilesAtGitRef(repoRoot, gitRef)) {
-    const content = readFileAtGitRef(repoRoot, gitRef, filePath);
+  // List all files at ref and filter to database files
+  const allFiles = gitFileAccess.listFilesAtRef(gitRef);
+  for (const filePath of allFiles) {
+    if (!isDatabaseFile(filePath)) continue;
+    const content = gitFileAccess.getFileContent(gitRef, filePath);
     if (content === null) continue;
     const normalizedPath = toPosix(filePath);
     contents.set(normalizedPath, content);
@@ -608,8 +597,35 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     const baseGraph = buildPartialGraph(repoRoot);
     const graph = baseGraph;
 
-    // Get changed files between base and head
-    const changedFiles = getChangedFiles(repoRoot, baseRef, headRef);
+    // Get changed files between base and head (no fallback)
+    const changedFilesResult = getChangedFilesResult(repoRoot, baseRef, headRef);
+
+    // Handle Git failures explicitly
+    if (changedFilesResult.status === "git_failure") {
+      console.error(`Git operation failed: ${changedFilesResult.message}`);
+      return options.EXIT.SCAN_FAILED;
+    }
+
+    if (changedFilesResult.status === "ref_invalid") {
+      console.error(`Invalid Git ref: ${changedFilesResult.message}`);
+      return options.EXIT.SCAN_FAILED;
+    }
+
+    if (changedFilesResult.status === "path_unsafe") {
+      console.error(`Unsafe Git ref path detected: ${changedFilesResult.message}`);
+      return options.EXIT.SCAN_FAILED;
+    }
+
+    // Handle limit exceeded as error - incomplete analysis is unacceptable
+    if (changedFilesResult.status === "limit_exceeded") {
+      console.error(
+        `Error: Changed files limit exceeded (${changedFilesResult.limit?.actual ?? "?"}/${changedFilesResult.limit?.max ?? "?"}). Cannot proceed with incomplete analysis.`
+      );
+      return options.EXIT.SCAN_FAILED;
+    }
+
+    // After handling all error cases, changedFilesResult.status must be "success"
+    const changedFiles: ChangedFile[] = changedFilesResult.value!;
 
     if (changedFiles.length === 0) {
       // Generate empty diff-analysis artifact even when no changes
@@ -720,13 +736,27 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     let dbDiff: DatabaseAssetsDiff | undefined;
 
     if (useDatabaseAnalysis) {
+      // Create GitFileAccess adapter for database analysis at refs
+      // SPEC-29 Phase 3: Use DB_ANALYSIS_LIMITS to prevent SQL migration truncation at 500 files
+      const gitFileAccess = new GitFileAccessAdapter(repoRoot, DB_ANALYSIS_LIMITS);
+
       // Analyze database assets at base ref (SPEC-29: true base/head diff)
-      const baseAssets = analyzeDatabaseAssetsAtRef({ repoRoot, gitRef: baseRef });
+      const baseAssets = analyzeDatabaseAssetsAtRef({
+        repoRoot,
+        gitRef: baseRef,
+        gitFileAccess,
+        hashService: nodeHashService,
+      });
       databaseAssetsBasePath = nodePathService.join(absoluteOutDir, "database-assets-base.json");
       nodeFileAccess.writeFile(databaseAssetsBasePath, JSON.stringify(baseAssets, null, 2) + "\n");
 
       // Analyze database assets at head ref
-      const headAssets = analyzeDatabaseAssetsAtRef({ repoRoot, gitRef: headRef });
+      const headAssets = analyzeDatabaseAssetsAtRef({
+        repoRoot,
+        gitRef: headRef,
+        gitFileAccess,
+        hashService: nodeHashService,
+      });
       databaseAssetsPath = nodePathService.join(absoluteOutDir, "database-assets.json");
       nodeFileAccess.writeFile(databaseAssetsPath, JSON.stringify(headAssets, null, 2) + "\n");
 

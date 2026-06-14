@@ -280,6 +280,35 @@ export const DATABASE_FINDING_RULE_IDS = [
 
 export type DatabaseFindingRuleId = typeof DATABASE_FINDING_RULE_IDS[number];
 
+// ============================================================================
+// SQL Parser Diagnostic Codes (Phase A Enhancement)
+// ============================================================================
+
+export const SQL_PARSER_DIAGNOSTIC_CODES = [
+  // Existing from database-analyzer
+  "PARTIAL_PARSE",
+  "ENCODING_ERROR",
+  "SIZE_LIMIT",
+  "UNKNOWN_DIALECT",
+  // New diagnostic codes for enhanced parser accuracy
+  "UNTERMINATED_STRING",
+  "UNTERMINATED_COMMENT",
+  "UNBALANCED_PARENTHESIS",
+  "INCOMPLETE_DDL",
+  "UNSUPPORTED_SQL_SYNTAX",
+  // Schema inventory diagnostics
+  "DUPLICATE_OBJECT_DECLARATION",
+] as const;
+
+export type SqlParserDiagnosticCode = typeof SQL_PARSER_DIAGNOSTIC_CODES[number];
+
+/**
+ * Type guard for SqlParserDiagnosticCode
+ */
+export function isSqlParserDiagnosticCode(value: string): value is SqlParserDiagnosticCode {
+  return SQL_PARSER_DIAGNOSTIC_CODES.includes(value as SqlParserDiagnosticCode);
+}
+
 /**
  * Type guard for DatabaseFindingRuleId
  */

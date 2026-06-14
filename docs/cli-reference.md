@@ -417,25 +417,54 @@ Validate artifacts against their schemas.
 **Usage:**
 ```bash
 code-to-gate schema validate <artifact-or-schema>
+code-to-gate schema validate-all <dir> [--profile <profile>] [--strict] [--allow-missing]
 ```
 
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<artifact-or-schema>` | Yes | Path to artifact JSON or schema JSON file |
+| `<artifact-or-schema>` | Yes (validate) | Path to artifact JSON or schema JSON file |
+| `<dir>` | Yes (validate-all) | Directory containing artifacts to validate |
+
+**Options (validate-all):**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--profile <profile>` | `full` | Validation profile: `analyze`, `readiness`, or `full` |
+| `--strict` | false | Fail when required artifacts for the selected profile are missing |
+| `--allow-missing` | false | Allow missing required artifacts even in strict mode |
+
+**Profile Definitions:**
+| Profile | Required Artifacts |
+|---------|-------------------|
+| `analyze` | `findings.json`, `repo-graph.json`, `audit.json` |
+| `readiness` | `release-readiness.json` |
+| `full` | `findings.json`, `release-readiness.json`, `repo-graph.json`, `audit.json` |
 
 **Behavior:**
 - If file ends with `.schema.json`: validates schema document structure
 - Otherwise: identifies artifact type and validates against appropriate schema
+- `validate-all`: validates all required artifacts for the selected profile
 
 **Example:**
 ```bash
-# Validate artifact
+# Validate single artifact
 code-to-gate schema validate .qh/findings.json
 code-to-gate schema validate .qh/release-readiness.json
 
 # Validate schema definition
 code-to-gate schema validate schemas/findings.schema.json
+
+# Validate all artifacts for analyze profile (no release-readiness required)
+code-to-gate schema validate-all .qh --profile analyze --strict
+
+# Validate all artifacts for readiness profile (release-readiness only)
+code-to-gate schema validate-all .qh --profile readiness --strict
+
+# Validate all artifacts for full profile (all artifacts required)
+code-to-gate schema validate-all .qh --profile full --strict
+
+# Allow missing artifacts
+code-to-gate schema validate-all .qh --allow-missing
 ```
 
 **Exit Codes:**
