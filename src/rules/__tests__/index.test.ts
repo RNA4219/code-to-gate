@@ -84,6 +84,13 @@ describe("rule utilities", () => {
       expect(evidence.excerptHash).toBe(hashExcerpt(excerpt));
     });
 
+    it("should create stable excerpt hash for text kind without excerpt", () => {
+      const evidence = createEvidence("src/api.ts", 10, 15, "text");
+
+      expect(evidence.kind).toBe("text");
+      expect(evidence.excerptHash).toBe(hashExcerpt("src/api.ts:10-15"));
+    });
+
     it("should create evidence without excerpt hash for non-text kinds", () => {
       const evidence = createEvidence("src/api.ts", 1, 5, "import");
 

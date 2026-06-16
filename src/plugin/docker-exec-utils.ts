@@ -98,13 +98,22 @@ export async function getContainerLogs(containerId: string): Promise<string> {
  */
 export async function stopAndRemoveContainer(containerId: string): Promise<boolean> {
   try {
-    await execDockerCommand(["docker", "stop", containerId], 10000);
-    await execDockerCommand(["docker", "rm", containerId], 5000);
-    return true;
+    const stopResult = await execDockerCommand(["docker", "stop", containerId], 10000);
+    const removeResult = await execDockerCommand(["docker", "rm", containerId], 5000);
+
+    if (isNoSuchContainer(stopResult.stderr) && isNoSuchContainer(removeResult.stderr)) {
+      return false;
+    }
+
+    return removeResult.exitCode === 0;
   } catch (e) {
     console.error(`[container-utils] Failed to stop/remove container ${containerId}: ${e instanceof Error ? e.message : String(e)}`);
     return false;
   }
+}
+
+function isNoSuchContainer(stderr: string): boolean {
+  return /No such container/i.test(stderr);
 }
 
 /**

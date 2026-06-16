@@ -324,6 +324,24 @@ function processData(data) {
     expect(findings[0].title).toContain("returns null");
   });
 
+  it("should not treat string mentions of catch as catch blocks", () => {
+    const content = `
+function findWeakeningSeverityBonus(content) {
+  for (const pattern of ERROR_WEAKENING_PATTERNS) {
+    if (pattern.test(content)) return content.includes("catch") ? 0.10 : 0;
+  }
+  return null;
+}
+`;
+
+    const files = [createMockFile("src/application/assurance/diff-rules/error-path-success-fallback.ts", content, "ts")];
+    const contents = new Map([["src/application/assurance/diff-rules/error-path-success-fallback.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = TRY_CATCH_SWALLOW_RULE.evaluate(context);
+    expect(findings).toEqual([]);
+  });
+
   it("should detect bare return in catch block", () => {
     const content = `
 function logEvent(event) {

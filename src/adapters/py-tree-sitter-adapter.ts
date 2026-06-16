@@ -2,6 +2,7 @@
  * Python tree-sitter WASM adapter
  *
  * Provides accurate Python AST parsing using tree-sitter WASM.
+ * Uses shared tree-sitter runtime to prevent parallel initialization race conditions.
  * Fallback to regex adapter if WASM not available.
  */
 
@@ -14,94 +15,66 @@ import type {
 
 export type { SymbolNode, GraphRelation, EvidenceRef, ParseResult };
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
-
-// Dynamic import for web-tree-sitter
-let ParserClass: any = null;
-let LanguageClass: any = null;
-let parserInstance: any = null;
-let pythonLanguage: any = null;
-let isInitialized = false;
+import {
+  initializeTreeSitterGrammars,
+  createParserWithLanguage,
+  getLanguageInitStatus,
+  isLanguageAvailable,
+  type TreeSitterLanguageInitResult,
+} from "./tree-sitter-initializer.js";
 
 /**
- * Initialize tree-sitter parser with Python grammar
+ * Initialize Python tree-sitter parser
+ *
+ * Uses shared sequential initialization to prevent WASM race conditions.
  */
 export async function initPythonParser(): Promise<boolean> {
-  if (isInitialized) {
-    return parserInstance !== null;
-  }
-
-  try {
-    // Dynamic import - get Parser and Language classes from module
-    const module = await import("web-tree-sitter");
-    ParserClass = module.Parser;
-    LanguageClass = module.Language;
-
-    await ParserClass.init();
-    parserInstance = new ParserClass();
-
-    // Load Python grammar - use Buffer in Node.js, URL in browser
-    const wasmBuffer = loadWasmBuffer("python");
-    if (wasmBuffer) {
-      // Node.js: load WASM from Buffer
-      pythonLanguage = await LanguageClass.load(wasmBuffer);
-    } else {
-      // Browser or fallback: load from URL
-      const wasmUrl = resolveWasmPath("python");
-      pythonLanguage = await LanguageClass.load(wasmUrl);
-    }
-    parserInstance.setLanguage(pythonLanguage);
-
-    isInitialized = true;
-    return true;
-  } catch (error: any) {
-    console.warn("tree-sitter WASM init failed, using regex fallback:", error?.message || error);
-    isInitialized = true;
-    parserInstance = null;
-    return false;
-  }
+  const report = await initializeTreeSitterGrammars();
+  const pythonStatus = report.languages.find((l) => l.language === "python");
+  return pythonStatus?.available ?? false;
 }
 
 /**
- * Parse Python source using tree-sitter
+ * Get initialization status for diagnostics
  */
-export async function parsePythonTreeSitter(
+export function getPythonInitStatus(): TreeSitterLanguageInitResult | null {
+  return getLanguageInitStatus("python");
+}
+
+/**
+ * Check if tree-sitter is available for Python
+ */
+export function isTreeSitterAvailable(): boolean {
+  return isLanguageAvailable("python");
+}
+
+/**
+ * Parse Python source using tree-sitter (synchronous)
+ *
+ * Requires initPythonParser() to be called first.
+ */
+export function parsePythonFileSync(
   content: string,
   filePath: string
-): Promise<ParseResult> {
-  if (!isInitialized) {
-    await initPythonParser();
-  }
-
-  if (!parserInstance || !pythonLanguage) {
+): ParseResult {
+  const parser = createParserWithLanguage("python");
+  if (!parser) {
     return parsePythonRegexFallback(content, filePath);
   }
 
-  const tree = parserInstance.parse(content);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];
   const relations: GraphRelation[] = [];
-  const diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }> = [];
+  const diagnostics: ParseResult["diagnostics"] = [];
 
-  // Check for syntax errors
   if (root.hasError) {
     collectErrors(root, diagnostics);
   }
 
-  // Extract imports
   extractImportsTreeSitter(root, filePath, symbols, relations);
-
-  // Extract functions
   extractFunctionsTreeSitter(root, filePath, symbols);
-
-  // Extract classes
   extractClassesTreeSitter(root, filePath, symbols);
 
   return {
@@ -111,6 +84,17 @@ export async function parsePythonTreeSitter(
     parserStatus: diagnostics.length > 0 ? "parsed" : "parsed",
     parserAdapter: diagnostics.length > 0 ? "py-tree-sitter-wasm-partial" : "py-tree-sitter-wasm",
   };
+}
+
+/**
+ * Parse Python source using tree-sitter (async wrapper)
+ */
+export async function parsePythonTreeSitter(
+  content: string,
+  filePath: string
+): Promise<ParseResult> {
+  await initPythonParser();
+  return parsePythonFileSync(content, filePath);
 }
 
 /**
@@ -131,8 +115,6 @@ function extractImportsTreeSitter(
     const endLine = importNode.endPosition?.row + 1 || line;
 
     if (importNode.type === "import_statement") {
-      // Simple import: import X
-      // Children: [identifier/dotted_name]
       for (const child of importNode.children || []) {
         if (child.type === "identifier" || child.type === "dotted_name") {
           const moduleName = child.text;
@@ -140,12 +122,9 @@ function extractImportsTreeSitter(
         }
       }
     } else if (importNode.type === "import_from_statement") {
-      // from X import Y, Z
-      // Children: [from, dotted_name(module), import, dotted_name(Y), comma, dotted_name(Z), ...]
       const moduleNode = importNode.childForFieldName?.("module_name");
       if (moduleNode) {
         const moduleName = moduleNode.text;
-        // Record the module import relation
         relations.push({
           id: `rel:${filePath}:imports:${moduleName}`,
           from: `file:${filePath}`,
@@ -164,10 +143,8 @@ function extractImportsTreeSitter(
         });
       }
 
-      // Extract imported names from children (skip keywords and module)
       for (const child of importNode.children || []) {
         if (child.type === "identifier" || child.type === "dotted_name") {
-          // Skip the module name (first dotted_name after 'from')
           if (moduleNode && child.id === moduleNode.id) continue;
           const importedName = child.text;
           addImportSymbol(importedName, filePath, line, endLine, symbols, relations);
@@ -304,7 +281,6 @@ function extractClassesTreeSitter(
     const endLine = classNode.endPosition?.row + 1 || line;
     const symbolId = `symbol:${filePath}:class:${name}`;
 
-    // Get inheritance from argument_list child (not field)
     const inherits: string[] = [];
     for (const child of classNode.children || []) {
       if (child.type === "argument_list") {
@@ -335,7 +311,6 @@ function extractClassesTreeSitter(
       typeInfo: inherits.length > 0 ? { implements: inherits } : undefined,
     });
 
-    // Extract methods from class body
     for (const child of classNode.children || []) {
       if (child.type === "block") {
         extractMethodsTreeSitter(child, filePath, name, symbols);
@@ -427,22 +402,14 @@ function parsePythonRegexFallback(
 ): ParseResult {
   const symbols: SymbolNode[] = [];
   const relations: GraphRelation[] = [];
-  const diagnostics: Array<{
-    id: string;
-    severity: "info" | "warning" | "error";
-    code: string;
-    message: string;
-    evidence?: EvidenceRef[];
-  }> = [];
+  const diagnostics: ParseResult["diagnostics"] = [];
 
   const lines = content.split("\n");
 
-  // Simple regex extraction
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lineNum = i + 1;
 
-    // Import statements
     const importMatch = line.match(/^import\s+([\w.]+)/);
     if (importMatch) {
       addImportSymbol(importMatch[1], filePath, lineNum, lineNum, symbols, relations);
@@ -456,7 +423,6 @@ function parsePythonRegexFallback(
       }
     }
 
-    // Function
     const funcMatch = line.match(/^(?:async\s+)?def\s+(\w+)\s*\(/);
     if (funcMatch) {
       const name = funcMatch[1];
@@ -481,7 +447,6 @@ function parsePythonRegexFallback(
       });
     }
 
-    // Class
     const classMatch = line.match(/^class\s+(\w+)(?:\s*\(([^)]*)\))?/);
     if (classMatch) {
       const name = classMatch[1];
@@ -516,47 +481,5 @@ function parsePythonRegexFallback(
     diagnostics,
     parserStatus: "parsed",
     parserAdapter: "py-regex-fallback",
-  };
-}
-
-export function isTreeSitterAvailable(): boolean {
-  return parserInstance !== null && pythonLanguage !== null;
-}
-
-/**
- * Synchronous parse function (requires pre-initialized parser)
- * Use this after calling initPythonParser() successfully
- */
-export function parsePythonFileSync(
-  content: string,
-  filePath: string
-): ParseResult {
-  if (!parserInstance || !pythonLanguage) {
-    return parsePythonRegexFallback(content, filePath);
-  }
-
-  // parser.parse() is synchronous
-  const tree = parserInstance.parse(content);
-  const root = tree.rootNode;
-
-  const symbols: SymbolNode[] = [];
-  const relations: GraphRelation[] = [];
-  const diagnostics: ParseResult["diagnostics"] = [];
-
-  if (root.hasError) {
-    collectErrors(root, diagnostics);
-  }
-
-  // Extract symbols using tree-sitter
-  extractImportsTreeSitter(root, filePath, symbols, relations);
-  extractFunctionsTreeSitter(root, filePath, symbols);
-  extractClassesTreeSitter(root, filePath, symbols);
-
-  return {
-    symbols,
-    relations,
-    diagnostics,
-    parserStatus: diagnostics.length > 0 ? "parsed" : "parsed",
-    parserAdapter: diagnostics.length > 0 ? "py-tree-sitter-wasm-partial" : "py-tree-sitter-wasm",
   };
 }

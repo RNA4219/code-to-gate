@@ -5,6 +5,7 @@ import type { QEGArtifactServices } from "../qeg-artifact-io.js";
 import {
   generateArtifactHashes,
   loadQEGCodeToGateEvidence,
+  loadQEGCodeToGateEvidenceResult,
   writeQEGCodeToGateEvidence,
 } from "../qeg-artifact-io.js";
 import {
@@ -87,6 +88,22 @@ describe("QEG evidence separation", () => {
     );
     expect(writeQEGCodeToGateEvidence(".qh", evidence, services)).toBe(".qh/qeg-code-to-gate.json");
     expect(loadQEGCodeToGateEvidence(".qh", services)).toEqual(evidence);
+    expect(loadQEGCodeToGateEvidenceResult(".qh", services)).toEqual({
+      status: "success",
+      value: evidence,
+    });
+  });
+
+  it("returns structured load failures while preserving legacy null wrapper", () => {
+    const services = createServices();
+
+    expect(loadQEGCodeToGateEvidenceResult(".qh", services)).toEqual({ status: "missing" });
+    expect(loadQEGCodeToGateEvidence(".qh", services)).toBeNull();
+
+    services.files.set(".qh/qeg-code-to-gate.json", "{not json");
+    const result = loadQEGCodeToGateEvidenceResult(".qh", services);
+    expect(result.status).toBe("invalid_json");
+    expect(loadQEGCodeToGateEvidence(".qh", services)).toBeNull();
   });
 
   it("adds optional assurance evidence without making a decision", () => {

@@ -113,7 +113,7 @@
         "properties": {
           "id": { "type": "string" },
           "severity": { "enum": ["info", "warning", "error"] },
-          "code": { "enum": ["PARSER_FAILED", "UNSUPPORTED_LANGUAGE", "MISSING_FILE", "PARTIAL_GRAPH", "EXTERNAL_IMPORT_FAILED", "UNBALANCED_BRACKETS"] },
+          "code": { "enum": ["PARSER_FAILED", "UNSUPPORTED_LANGUAGE", "MISSING_FILE", "PARTIAL_GRAPH", "EXTERNAL_IMPORT_FAILED", "TREE_SITTER_INIT_FAILED", "UNBALANCED_BRACKETS"] },
           "message": { "type": "string" },
           "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } }
         }

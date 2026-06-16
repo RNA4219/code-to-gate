@@ -123,6 +123,7 @@ export interface GraphDiagnostic {
     | "MISSING_FILE"
     | "PARTIAL_GRAPH"
     | "EXTERNAL_IMPORT_FAILED"
+    | "TREE_SITTER_INIT_FAILED"
     | "UNBALANCED_BRACKETS";
   message: string;
   evidence?: EvidenceRef[];

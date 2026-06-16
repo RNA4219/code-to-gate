@@ -2,7 +2,7 @@
  * Tests for Rust tree-sitter WASM adapter
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   initRustParser,
   parseRustTreeSitter,
@@ -18,12 +18,12 @@ describe("Rust tree-sitter adapter", () => {
   describe("initialization", () => {
     it("should attempt to initialize", async () => {
       const result = await initRustParser();
-      expect(typeof result).toBe("boolean");
+      expect(result).toBe(true);
     });
 
     it("should report availability", () => {
       const available = isRustTreeSitterAvailable();
-      expect(typeof available).toBe("boolean");
+      expect(available).toBe(true);
     });
   });
 
@@ -32,6 +32,7 @@ describe("Rust tree-sitter adapter", () => {
       const content = `use std::collections::HashMap;`;
       const result = await parseRustTreeSitter(content, "main.rs");
 
+      expect(result.parserAdapter).toBe("rs-tree-sitter-wasm");
       const useSymbols = result.symbols.filter(s => s.name.includes("std"));
       expect(useSymbols.length).toBeGreaterThan(0);
     });
@@ -200,6 +201,7 @@ fn main() {
       const result = await parseRustTreeSitter(content, "main.rs");
 
       expect(result.parserStatus).toBe("parsed");
+      expect(result.parserAdapter).toBe("rs-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
     });
 
@@ -208,6 +210,7 @@ fn main() {
       const result = parseRustFileSync(content, "main.rs");
 
       expect(result.parserStatus).toBe("parsed");
+      expect(result.parserAdapter).toBe("rs-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
     });
   });

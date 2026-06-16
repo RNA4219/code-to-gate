@@ -2,7 +2,7 @@
  * Tests for Python tree-sitter WASM adapter
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   initPythonParser,
   parsePythonTreeSitter,
@@ -18,13 +18,12 @@ describe("Python tree-sitter adapter", () => {
   describe("initialization", () => {
     it("should attempt to initialize", async () => {
       const result = await initPythonParser();
-      // Either succeeds or gracefully fails (regex fallback)
-      expect(typeof result).toBe("boolean");
+      expect(result).toBe(true);
     });
 
     it("should report availability", () => {
       const available = isTreeSitterAvailable();
-      expect(typeof available).toBe("boolean");
+      expect(available).toBe(true);
     });
   });
 
@@ -34,6 +33,7 @@ describe("Python tree-sitter adapter", () => {
 import sys`;
       const result = await parsePythonTreeSitter(content, "test.py");
 
+      expect(result.parserAdapter).toBe("py-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
       expect(result.relations.length).toBeGreaterThan(0);
 
@@ -156,6 +156,7 @@ def parse():
       const result = await parsePythonTreeSitter(content, "test.py");
 
       expect(result.parserStatus).toBe("parsed");
+      expect(result.parserAdapter).toBe("py-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
     });
   });

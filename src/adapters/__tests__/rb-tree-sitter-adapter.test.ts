@@ -2,7 +2,7 @@
  * Tests for Ruby tree-sitter WASM adapter
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   initRubyParser,
   parseRubyTreeSitter,
@@ -18,13 +18,12 @@ describe("Ruby tree-sitter adapter", () => {
   describe("initialization", () => {
     it("should attempt to initialize", async () => {
       const result = await initRubyParser();
-      // Either succeeds or gracefully fails (regex fallback)
-      expect(typeof result).toBe("boolean");
+      expect(result).toBe(true);
     });
 
     it("should report availability", () => {
       const available = isRubyTreeSitterAvailable();
-      expect(typeof available).toBe("boolean");
+      expect(available).toBe(true);
     });
   });
 
@@ -34,6 +33,7 @@ describe("Ruby tree-sitter adapter", () => {
 require 'net/http'`;
       const result = await parseRubyTreeSitter(content, "test.rb");
 
+      expect(result.parserAdapter).toBe("rb-tree-sitter-wasm");
       expect(result.relations.length).toBeGreaterThan(0);
 
       const requires = result.relations.filter((r) => r.kind === "imports");
@@ -165,6 +165,7 @@ end`;
       const result = await parseRubyTreeSitter(content, "test.rb");
 
       expect(result.parserStatus).toBe("parsed");
+      expect(result.parserAdapter).toBe("rb-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
     });
 
@@ -176,6 +177,7 @@ end`;
 end`;
       const result = await parseRubyTreeSitter(content, "test.rb");
 
+      expect(result.parserAdapter).toBe("rb-tree-sitter-wasm");
       const classSymbol = result.symbols.find((s) => s.kind === "class");
       expect(classSymbol).toBeDefined();
       expect(classSymbol?.typeInfo?.implements).toContain("Base");

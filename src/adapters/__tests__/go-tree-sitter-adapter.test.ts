@@ -2,7 +2,7 @@
  * Tests for Go tree-sitter WASM adapter
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   initGoParser,
   parseGoTreeSitter,
@@ -18,12 +18,12 @@ describe("Go tree-sitter adapter", () => {
   describe("initialization", () => {
     it("should attempt to initialize", async () => {
       const result = await initGoParser();
-      expect(typeof result).toBe("boolean");
+      expect(result).toBe(true);
     });
 
     it("should report availability", () => {
       const available = isGoTreeSitterAvailable();
-      expect(typeof available).toBe("boolean");
+      expect(available).toBe(true);
     });
   });
 
@@ -32,6 +32,7 @@ describe("Go tree-sitter adapter", () => {
       const content = `package main`;
       const result = await parseGoTreeSitter(content, "main.go");
 
+      expect(result.parserAdapter).toBe("go-tree-sitter-wasm");
       const packageSymbol = result.symbols.find(s => s.name === "main" && s.kind === "interface");
       expect(packageSymbol).toBeDefined();
     });
@@ -166,6 +167,7 @@ func hello() {
       const result = await parseGoTreeSitter(content, "hello.go");
 
       expect(result.parserStatus).toBe("parsed");
+      expect(result.parserAdapter).toBe("go-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
     });
 
@@ -176,6 +178,7 @@ func main() {}`;
       const result = parseGoFileSync(content, "main.go");
 
       expect(result.parserStatus).toBe("parsed");
+      expect(result.parserAdapter).toBe("go-tree-sitter-wasm");
       expect(result.symbols.length).toBeGreaterThan(0);
     });
   });

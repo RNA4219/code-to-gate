@@ -174,6 +174,32 @@ describe("markdown-reporter", () => {
       expect(report).toContain("Test Finding");
     });
 
+    it("keeps DEBT_MARKER in effective summary and all findings", () => {
+      const findings = createMockFindings();
+      const effectiveFindings: Finding[] = Array.from({ length: 10 }, (_, index) => ({
+        id: `finding-${index}`,
+        ruleId: index === 9 ? "DEBT_MARKER" : "TEST_RULE",
+        category: "maintainability",
+        severity: "medium",
+        confidence: 0.85,
+        title: index === 9 ? "Explicit debt marker found" : `Finding ${index}`,
+        summary: "Finding summary",
+        evidence: [],
+      }));
+      findings.findings.push(...effectiveFindings);
+      const riskRegister = createMockRiskRegister();
+
+      const report = generateAnalysisReport(findings, riskRegister, "/test/repo", {
+        effectiveFindings,
+      });
+
+      expect(report).toContain("| Effective Findings | 10 |");
+      expect(report).toContain("finding-9");
+      expect(report).toContain("DEBT_MARKER");
+      const allFindingsSection = report.split("## All Findings")[1]?.split("## False-Positive Review")[0];
+      expect(allFindingsSection?.match(/^\| finding-/gm)?.length).toBe(10);
+    });
+
     it("includes High-Priority Risks section when high risks exist", () => {
       const findings = createMockFindings();
       const riskRegister = createMockRiskRegister();

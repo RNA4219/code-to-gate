@@ -14,52 +14,24 @@ import type {
 
 export type { SymbolNode, GraphRelation, EvidenceRef, ParseResult };
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
-
-// Dynamic import for web-tree-sitter
-let ParserClass: any = null;
-let LanguageClass: any = null;
-let parserInstance: any = null;
-let rubyLanguage: any = null;
-let isInitialized = false;
+import {
+  createParserWithLanguage,
+  getLanguageInitStatus,
+  initializeTreeSitterGrammars,
+  isLanguageAvailable,
+  type TreeSitterLanguageInitResult,
+} from "./tree-sitter-initializer.js";
 
 /**
  * Initialize tree-sitter parser with Ruby grammar
  */
 export async function initRubyParser(): Promise<boolean> {
-  if (isInitialized) {
-    return parserInstance !== null;
-  }
+  const report = await initializeTreeSitterGrammars();
+  return report.available.ruby;
+}
 
-  try {
-    // Dynamic import - get Parser and Language classes from module
-    const module = await import("web-tree-sitter");
-    ParserClass = module.Parser;
-    LanguageClass = module.Language;
-
-    await ParserClass.init();
-    parserInstance = new ParserClass();
-
-    // Load Ruby grammar - use Buffer in Node.js, URL in browser
-    const wasmBuffer = loadWasmBuffer("ruby");
-    if (wasmBuffer) {
-      // Node.js: load WASM from Buffer
-      rubyLanguage = await LanguageClass.load(wasmBuffer);
-    } else {
-      // Browser or fallback: load from URL
-      const wasmUrl = resolveWasmPath("ruby");
-      rubyLanguage = await LanguageClass.load(wasmUrl);
-    }
-    parserInstance.setLanguage(rubyLanguage);
-
-    isInitialized = true;
-    return true;
-  } catch (error: any) {
-    console.warn("Ruby tree-sitter WASM init failed, using regex fallback:", error?.message || error);
-    isInitialized = true;
-    parserInstance = null;
-    return false;
-  }
+export function getRubyInitStatus(): TreeSitterLanguageInitResult | null {
+  return getLanguageInitStatus("ruby");
 }
 
 /**
@@ -69,15 +41,10 @@ export async function parseRubyTreeSitter(
   content: string,
   filePath: string
 ): Promise<ParseResult> {
-  if (!isInitialized) {
-    await initRubyParser();
-  }
-
-  if (!parserInstance || !rubyLanguage) {
-    return parseRubyRegexFallback(content, filePath);
-  }
-
-  const tree = parserInstance.parse(content);
+  await initRubyParser();
+  const parser = createParserWithLanguage("ruby");
+  if (!parser) return parseRubyRegexFallback(content, filePath);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];
@@ -537,7 +504,7 @@ function parseRubyRegexFallback(content: string, filePath: string): ParseResult 
 }
 
 export function isRubyTreeSitterAvailable(): boolean {
-  return parserInstance !== null && rubyLanguage !== null;
+  return isLanguageAvailable("ruby");
 }
 
 /**
@@ -548,12 +515,12 @@ export function parseRubyFileSync(
   content: string,
   filePath: string
 ): ParseResult {
-  if (!parserInstance || !rubyLanguage) {
+  const parser = createParserWithLanguage("ruby");
+  if (!parser) {
     return parseRubyRegexFallback(content, filePath);
   }
 
-  // parser.parse() is synchronous
-  const tree = parserInstance.parse(content);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];

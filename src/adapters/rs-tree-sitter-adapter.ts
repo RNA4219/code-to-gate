@@ -14,52 +14,24 @@ import type {
 
 export type { SymbolNode, GraphRelation, EvidenceRef, ParseResult };
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
-
-// Dynamic import for web-tree-sitter
-let ParserClass: any = null;
-let LanguageClass: any = null;
-let parserInstance: any = null;
-let rustLanguage: any = null;
-let isInitialized = false;
+import {
+  createParserWithLanguage,
+  getLanguageInitStatus,
+  initializeTreeSitterGrammars,
+  isLanguageAvailable,
+  type TreeSitterLanguageInitResult,
+} from "./tree-sitter-initializer.js";
 
 /**
  * Initialize tree-sitter parser with Rust grammar
  */
 export async function initRustParser(): Promise<boolean> {
-  if (isInitialized) {
-    return parserInstance !== null;
-  }
+  const report = await initializeTreeSitterGrammars();
+  return report.available.rust;
+}
 
-  try {
-    // Dynamic import
-    const module = await import("web-tree-sitter");
-    ParserClass = module.Parser;
-    LanguageClass = module.Language;
-
-    await ParserClass.init();
-    parserInstance = new ParserClass();
-
-    // Load Rust grammar - use Buffer in Node.js, URL in browser
-    const wasmBuffer = loadWasmBuffer("rust");
-    if (wasmBuffer) {
-      // Node.js: load WASM from Buffer
-      rustLanguage = await LanguageClass.load(wasmBuffer);
-    } else {
-      // Browser or fallback: load from URL
-      const wasmUrl = resolveWasmPath("rust");
-      rustLanguage = await LanguageClass.load(wasmUrl);
-    }
-    parserInstance.setLanguage(rustLanguage);
-
-    isInitialized = true;
-    return true;
-  } catch (error: any) {
-    console.warn("Rust tree-sitter WASM init failed, using regex fallback:", error?.message || error);
-    isInitialized = true;
-    parserInstance = null;
-    return false;
-  }
+export function getRustInitStatus(): TreeSitterLanguageInitResult | null {
+  return getLanguageInitStatus("rust");
 }
 
 /**
@@ -69,15 +41,10 @@ export async function parseRustTreeSitter(
   content: string,
   filePath: string
 ): Promise<ParseResult> {
-  if (!isInitialized) {
-    await initRustParser();
-  }
-
-  if (!parserInstance || !rustLanguage) {
-    return parseRustRegexFallback(content, filePath);
-  }
-
-  const tree = parserInstance.parse(content);
+  await initRustParser();
+  const parser = createParserWithLanguage("rust");
+  if (!parser) return parseRustRegexFallback(content, filePath);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];
@@ -122,11 +89,12 @@ export function parseRustFileSync(
   content: string,
   filePath: string
 ): ParseResult {
-  if (!parserInstance || !rustLanguage) {
+  const parser = createParserWithLanguage("rust");
+  if (!parser) {
     return parseRustRegexFallback(content, filePath);
   }
 
-  const tree = parserInstance.parse(content);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];
@@ -804,5 +772,5 @@ function parseRustRegexFallback(content: string, filePath: string): ParseResult 
 }
 
 export function isRustTreeSitterAvailable(): boolean {
-  return parserInstance !== null && rustLanguage !== null;
+  return isLanguageAvailable("rust");
 }

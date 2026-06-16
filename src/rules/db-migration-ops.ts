@@ -105,17 +105,18 @@ function isMigrationFile(filePath: string, role: string | undefined): boolean {
   // Also accept source role with migration path patterns
   if (role !== "source") return false;
 
-  // Common migration file patterns
+  // Common migration file patterns. Keep this path-based check narrow so rule
+  // implementation files such as src/rules/db-migration-ops.ts are not treated
+  // as real DB migrations merely because their names contain "migration".
   const migrationPatterns = [
-    /migration/i,
-    /migrations/i,
-    /\.migration\./i,
-    /db\/migrate/i,
-    /schema\/migrations/i,
+    /(^|\/)migrations?\//i,
+    /(^|\/)db\/migrate\//i,
+    /(^|\/)schema\/migrations\//i,
+    /\.migration\.[^.]+$/i,
     /_\d+_.*\.ts$/, // TypeORM timestamp format
     /\d{14}_.*\.ts$/, // Rails-style timestamp
-    /V\d+__.*\.sql$/, // Flyway format
-    /V\d+__.*\.java$/, // Flyway Java migrations
+    /(^|\/)V\d+__.*\.sql$/i, // Flyway format
+    /(^|\/)V\d+__.*\.java$/i, // Flyway Java migrations
   ];
 
   return migrationPatterns.some((p) => p.test(filePath));

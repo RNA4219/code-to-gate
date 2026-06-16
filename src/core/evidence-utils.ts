@@ -47,8 +47,8 @@ export function createRuleEvidence(
     kind,
   };
 
-  if (kind === "text" && excerpt) {
-    evidence.excerptHash = hashExcerpt(excerpt);
+  if (kind === "text") {
+    evidence.excerptHash = hashExcerpt(excerpt ?? `${path}:${startLine}-${endLine}`);
   }
 
   return evidence;

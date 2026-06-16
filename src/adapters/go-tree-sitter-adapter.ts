@@ -14,52 +14,24 @@ import type {
 
 export type { SymbolNode, GraphRelation, EvidenceRef, ParseResult };
 import { sha256 } from "../core/path-utils.js";
-import { resolveWasmPath, loadWasmBuffer } from "./tree-sitter-wasm-resolver.js";
-
-// Dynamic import for web-tree-sitter
-let ParserClass: any = null;
-let LanguageClass: any = null;
-let parserInstance: any = null;
-let goLanguage: any = null;
-let isInitialized = false;
+import {
+  createParserWithLanguage,
+  getLanguageInitStatus,
+  initializeTreeSitterGrammars,
+  isLanguageAvailable,
+  type TreeSitterLanguageInitResult,
+} from "./tree-sitter-initializer.js";
 
 /**
  * Initialize tree-sitter parser with Go grammar
  */
 export async function initGoParser(): Promise<boolean> {
-  if (isInitialized) {
-    return parserInstance !== null;
-  }
+  const report = await initializeTreeSitterGrammars();
+  return report.available.go;
+}
 
-  try {
-    // Dynamic import
-    const module = await import("web-tree-sitter");
-    ParserClass = module.Parser;
-    LanguageClass = module.Language;
-
-    await ParserClass.init();
-    parserInstance = new ParserClass();
-
-    // Load Go grammar - use Buffer in Node.js, URL in browser
-    const wasmBuffer = loadWasmBuffer("go");
-    if (wasmBuffer) {
-      // Node.js: load WASM from Buffer
-      goLanguage = await LanguageClass.load(wasmBuffer);
-    } else {
-      // Browser or fallback: load from URL
-      const wasmUrl = resolveWasmPath("go");
-      goLanguage = await LanguageClass.load(wasmUrl);
-    }
-    parserInstance.setLanguage(goLanguage);
-
-    isInitialized = true;
-    return true;
-  } catch (error: any) {
-    console.warn("Go tree-sitter WASM init failed, using regex fallback:", error?.message || error);
-    isInitialized = true;
-    parserInstance = null;
-    return false;
-  }
+export function getGoInitStatus(): TreeSitterLanguageInitResult | null {
+  return getLanguageInitStatus("go");
 }
 
 /**
@@ -69,15 +41,10 @@ export async function parseGoTreeSitter(
   content: string,
   filePath: string
 ): Promise<ParseResult> {
-  if (!isInitialized) {
-    await initGoParser();
-  }
-
-  if (!parserInstance || !goLanguage) {
-    return parseGoRegexFallback(content, filePath);
-  }
-
-  const tree = parserInstance.parse(content);
+  await initGoParser();
+  const parser = createParserWithLanguage("go");
+  if (!parser) return parseGoRegexFallback(content, filePath);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];
@@ -116,11 +83,12 @@ export function parseGoFileSync(
   content: string,
   filePath: string
 ): ParseResult {
-  if (!parserInstance || !goLanguage) {
+  const parser = createParserWithLanguage("go");
+  if (!parser) {
     return parseGoRegexFallback(content, filePath);
   }
 
-  const tree = parserInstance.parse(content);
+  const tree = parser.parse(content);
   const root = tree.rootNode;
 
   const symbols: SymbolNode[] = [];
@@ -642,5 +610,5 @@ function parseGoRegexFallback(content: string, filePath: string): ParseResult {
 }
 
 export function isGoTreeSitterAvailable(): boolean {
-  return parserInstance !== null && goLanguage !== null;
+  return isLanguageAvailable("go");
 }

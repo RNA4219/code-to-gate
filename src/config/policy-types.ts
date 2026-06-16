@@ -85,7 +85,7 @@ export type SuppressionClass =
   | "fixture-intentional" // Test fixtures with intentional vulnerability patterns
   | "generated-artifact"  // Compiled output, generated files
   | "accepted-design"     // Architecture decisions, intentional patterns
-  | "temporary-debt";     // Temporary workaround, needs repayment
+  | "temporary-debt";     // Time-boxed exception, needs repayment
 
 /**
  * Default suppression class when not specified

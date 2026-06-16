@@ -144,12 +144,9 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
         ) {
           // Check if this is inside a catch block
           const prevLines = lines.slice(Math.max(0, i - 5), i);
-          const prevContent = prevLines.join("\n");
 
           if (
-            prevContent.includes("catch") ||
-            prevContent.includes("except") ||
-            prevContent.includes("rescue") ||
+            prevLines.some((prevLine) => isCatchLikeOpener(prevLine.trim())) ||
             prevLines.some((l) => l.includes("SMELL: TRY_CATCH_SWALLOW"))
           ) {
             // Check if there's no logging before the return
@@ -197,3 +194,11 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
     return findings;
   },
 };
+
+function isCatchLikeOpener(trimmedLine: string): boolean {
+  return (
+    /^}?\s*catch\b/.test(trimmedLine) ||
+    /^except\b/.test(trimmedLine) ||
+    /^rescue\b/.test(trimmedLine)
+  );
+}

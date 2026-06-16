@@ -123,9 +123,7 @@ export function generateAnalysisReport(
     "temporary-debt": 0,
   };
 
-  const activeFindings = (options?.effectiveFindings ?? findings.findings).filter(
-    (f) => f.ruleId !== "SUPPRESSION_DEBT" && f.ruleId !== "DEBT_MARKER"
-  );
+  const activeFindings = options?.effectiveFindings ?? findings.findings;
   const debtMarkerFindings = findings.findings.filter(
     (f) => f.ruleId === "DEBT_MARKER"
   );

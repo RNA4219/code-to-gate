@@ -2,6 +2,7 @@ import path from "node:path";
 
 import type { ParserAdapter, ParserAdapterResult, ParserRegistry } from "../types/contracts.js";
 import type { RepoFile } from "../types/graph.js";
+import { initializeTreeSitterGrammars } from "./tree-sitter-initializer.js";
 
 type FileParser = (filePath: string, repoRoot: string, fileId: string) => ParserAdapterResult;
 type ContentParser = (content: string, relativePath: string) => ParserAdapterResult;
@@ -120,24 +121,24 @@ export async function createParserRegistry(useTreeSitter = false): Promise<Defau
 
   if (!useTreeSitter) return registry;
 
-  try {
-    const [
-      python,
-      ruby,
-      go,
-      rust,
-    ] = await Promise.all([
+  const [
+    python,
+    ruby,
+    go,
+    rust,
+  ] = await Promise.all([
       import("./py-tree-sitter-adapter.js"),
       import("./rb-tree-sitter-adapter.js"),
       import("./go-tree-sitter-adapter.js"),
       import("./rs-tree-sitter-adapter.js"),
-    ]);
-    const [pyReady, rbReady, goReady, rsReady] = await Promise.all([
-      python.initPythonParser(),
-      ruby.initRubyParser(),
-      go.initGoParser(),
-      rust.initRustParser(),
-    ]);
+  ]);
+
+  try {
+    const report = await initializeTreeSitterGrammars();
+    const pyReady = report.available.python;
+    const rbReady = report.available.ruby;
+    const goReady = report.available.go;
+    const rsReady = report.available.rust;
 
     if (pyReady) registry.register("py", new ContentParserAdapter("py", "ctg-py-tree-sitter-v0", python.parsePythonFileSync));
     if (rbReady) registry.register("rb", new ContentParserAdapter("rb", "ctg-rb-tree-sitter-v0", ruby.parseRubyFileSync));

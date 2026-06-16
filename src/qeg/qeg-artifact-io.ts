@@ -7,6 +7,11 @@ export interface QEGArtifactServices {
   pathService: PathService;
 }
 
+export type LoadQEGCodeToGateEvidenceResult =
+  | { status: "success"; value: QEGCodeToGateEvidence }
+  | { status: "missing" }
+  | { status: "invalid_json"; message: string };
+
 const ARTIFACT_NAMES = [
   "findings.json",
   "release-readiness.json",
@@ -53,12 +58,23 @@ export function loadQEGCodeToGateEvidence(
   dir: string,
   services: Pick<QEGArtifactServices, "fileAccess" | "pathService">
 ): QEGCodeToGateEvidence | null {
+  const result = loadQEGCodeToGateEvidenceResult(dir, services);
+  return result.status === "success" ? result.value : null;
+}
+
+export function loadQEGCodeToGateEvidenceResult(
+  dir: string,
+  services: Pick<QEGArtifactServices, "fileAccess" | "pathService">
+): LoadQEGCodeToGateEvidenceResult {
   const content = services.fileAccess.readFile(services.pathService.join(dir, "qeg-code-to-gate.json"));
-  if (content === null) return null;
+  if (content === null) return { status: "missing" };
 
   try {
-    return JSON.parse(content) as QEGCodeToGateEvidence;
-  } catch {
-    return null;
+    return { status: "success", value: JSON.parse(content) as QEGCodeToGateEvidence };
+  } catch (error) {
+    return {
+      status: "invalid_json",
+      message: error instanceof Error ? error.message : "Invalid JSON",
+    };
   }
 }

@@ -30,4 +30,27 @@ describe("parser registry", () => {
     expect(result).not.toBeInstanceOf(Promise);
     expect(result.parserAdapter).toContain("go");
   });
+
+  it("registers tree-sitter parsers for Python, Ruby, Go, and Rust when requested", async () => {
+    const registry = await createParserRegistry(true);
+    const repoRoot = path.resolve("fixtures/demo-tree-sitter");
+    const cases = [
+      { language: "py" as const, file: "main.py", adapter: "py-tree-sitter-wasm" },
+      { language: "rb" as const, file: "main.rb", adapter: "rb-tree-sitter-wasm" },
+      { language: "go" as const, file: "main.go", adapter: "go-tree-sitter-wasm" },
+      { language: "rs" as const, file: "main.rs", adapter: "rs-tree-sitter-wasm" },
+    ];
+
+    expect(registry.isTreeSitterReady()).toBe(true);
+
+    for (const testCase of cases) {
+      const filePath = path.join(repoRoot, testCase.file);
+      const parser = registry.getParser({ language: testCase.language } as RepoFile);
+
+      expect(parser).not.toBeNull();
+      const result = parser!.parse(readFileSync(filePath, "utf8"), filePath, repoRoot, `file:${testCase.file}`);
+      expect(result).not.toBeInstanceOf(Promise);
+      expect(result.parserAdapter).toBe(testCase.adapter);
+    }
+  });
 });

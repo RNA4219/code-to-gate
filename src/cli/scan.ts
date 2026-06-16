@@ -12,10 +12,7 @@ import { EXIT, getOption, VERSION, parseCacheMode, parseParallelWorkers, isVerbo
 import { CacheManager, LARGE_REPO_THRESHOLD } from "../cache/index.js";
 import { FileProcessor, type ProcessingProgressEvent } from "../parallel/index.js";
 import type { NormalizedRepoGraph } from "../types/artifacts.js";
-import { initPythonParser } from "../adapters/py-tree-sitter-adapter.js";
-import { initRubyParser } from "../adapters/rb-tree-sitter-adapter.js";
-import { initGoParser } from "../adapters/go-tree-sitter-adapter.js";
-import { initRustParser } from "../adapters/rs-tree-sitter-adapter.js";
+import { initializeTreeSitterGrammars, type TreeSitterInitializationReport } from "../adapters/tree-sitter-initializer.js";
 import { analyzeDatabaseAssets } from "../core/database-analyzer.js";
 
 /**
@@ -27,6 +24,19 @@ interface ScanOptions {
   VERSION: string;
   EXIT: typeof EXIT;
   getOption: typeof getOption;
+}
+
+function addTreeSitterDiagnostics(graph: NormalizedRepoGraph, report: TreeSitterInitializationReport | null): void {
+  if (!report) return;
+
+  for (const failure of report.failures) {
+    graph.diagnostics.push({
+      id: `diag:${graph.run_id}:tree-sitter:${failure.language}`,
+      severity: "warning",
+      code: "TREE_SITTER_INIT_FAILED",
+      message: `${failure.language} tree-sitter initialization failed; regex fallback used: ${failure.message}`,
+    });
+  }
 }
 
 /**
@@ -234,14 +244,14 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
 
   // Tree-sitter is opt-in because loading the four WASM parsers is expensive.
   let treeSitterAvailable = false;
+  let treeSitterReport: TreeSitterInitializationReport | null = null;
   if (useTreeSitter) {
     try {
-      const [pyAvailable, rbAvailable, goAvailable, rsAvailable] = await Promise.all([
-        initPythonParser(),
-        initRubyParser(),
-        initGoParser(),
-        initRustParser(),
-      ]);
+      treeSitterReport = await initializeTreeSitterGrammars(verbose);
+      const pyAvailable = treeSitterReport.available.python;
+      const rbAvailable = treeSitterReport.available.ruby;
+      const goAvailable = treeSitterReport.available.go;
+      const rsAvailable = treeSitterReport.available.rust;
       treeSitterAvailable = pyAvailable || rbAvailable || goAvailable || rsAvailable;
 
       if (verbose) {
@@ -252,6 +262,8 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
           go: goAvailable,
           rust: rsAvailable,
           available: treeSitterAvailable,
+          failures: treeSitterReport.failures,
+          timeMs: treeSitterReport.totalTimeMs,
         }));
       }
     } catch {
@@ -282,6 +294,7 @@ export async function scanCommand(args: string[], options: ScanOptions): Promise
     // Build graph with cache support
     const graph = await buildGraphWithCache(repoRoot, cacheManager, parallelWorkers, verbose, useTreeSitter, treeSitterAvailable);
     let databaseFileCount = 0;
+    addTreeSitterDiagnostics(graph, treeSitterReport);
 
     writeJson(path.join(absoluteOutDir, "repo-graph.json"), graph);
 

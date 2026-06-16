@@ -362,6 +362,21 @@ function someFunction() {
       const findings = DB_MIGRATION_OPS_RULE.evaluate(context);
       expect(findings.length).toBe(0);
     });
+
+    it("should not analyze rule implementation files containing migration text", () => {
+      const content = `
+const title = "DROP INDEX detected: \${indexName}";
+function createDropIndexFinding() {
+  return "DROP INDEX operations that may impact query performance";
+}
+`;
+      const context = createMockContext([
+        { path: "src/rules/db-migration-ops.ts", content },
+      ]);
+
+      const findings = DB_MIGRATION_OPS_RULE.evaluate(context);
+      expect(findings.length).toBe(0);
+    });
   });
 
   describe("Migration file patterns", () => {
