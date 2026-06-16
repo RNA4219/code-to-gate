@@ -42,19 +42,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit
-        run: npm audit --audit-level=high
-
-      - name: Generate audit.json
+      - name: Generate audit evidence and enforce high threshold
         run: |
           mkdir -p .qh
-          npm audit --json > .qh/audit.json
+          set +e
+          npm audit --audit-level=high --json > .qh/audit.json
+          AUDIT_EXIT=$?
+          set -e
+
+          if [ ! -s .qh/audit.json ]; then
+            echo "::error::npm audit did not produce .qh/audit.json"
+            exit "$AUDIT_EXIT"
+          fi
+
+          node -e "const audit = require('./.qh/audit.json'); const v = audit.metadata?.vulnerabilities ?? {}; console.log('npm audit summary: ' + (v.critical ?? 0) + ' critical, ' + (v.high ?? 0) + ' high, ' + (v.moderate ?? 0) + ' moderate, ' + (v.low ?? 0) + ' low');"
+
+          if [ "$AUDIT_EXIT" -ne 0 ]; then
+            echo "::error::npm audit found high or critical vulnerabilities; see .qh/audit.json"
+            exit "$AUDIT_EXIT"
+          fi
 
       - name: Upload audit artifact
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: ctg-audit-${{ github.sha }}
           path: .qh/audit.json
+          if-no-files-found: warn
           retention-days: 90
 
   macos-compatibility:
