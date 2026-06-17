@@ -54,7 +54,7 @@ npm publish --access public
 npm view @quality-harness/code-to-gate versions
 
 # Unpublish specific version
-npm unpublish @quality-harness/code-to-gate@1.4.0
+npm unpublish @quality-harness/code-to-gate@<version>
 
 # Or unpublish entire package (72h window only)
 npm unpublish @quality-harness/code-to-gate --force
@@ -64,7 +64,7 @@ npm unpublish @quality-harness/code-to-gate --force
 
 ```bash
 # Deprecate specific version
-npm deprecate @quality-harness/code-to-gate@1.4.0 "Critical bug found, use 1.4.1"
+npm deprecate @quality-harness/code-to-gate@<version> "Critical bug found, use <fixed-version>"
 
 # Deprecate all versions
 npm deprecate @quality-harness/code-to-gate "Package deprecated, use alternative"

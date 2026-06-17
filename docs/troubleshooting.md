@@ -212,7 +212,7 @@ cat .qh/audit.json | jq '.llm'
 **Symptoms:**
 ```
 $.findings[0]: missing required evidence
-$.version: expected const ctg/v1alpha1
+$.version: expected const ctg/v1
 ```
 
 **Causes and Solutions:**
@@ -220,7 +220,7 @@ $.version: expected const ctg/v1alpha1
 | Cause | Solution |
 |-------|----------|
 | Missing required field | Check artifact schema for required fields |
-| Wrong version | Ensure `version: ctg/v1alpha1` |
+| Wrong version | Ensure `version: ctg/v1` for new artifacts; `ctg/v1alpha1` is legacy-compatible |
 | Invalid enum value | Check valid values in schema |
 | Additional properties | Remove unexpected fields if `additionalProperties: false` |
 
@@ -234,7 +234,7 @@ cat schemas/findings.schema.json | jq '.required'
 
 # Check artifact
 cat .qh/findings.json | jq '.version'
-# Should be: "ctg/v1alpha1"
+# Should be: "ctg/v1"
 ```
 
 ---

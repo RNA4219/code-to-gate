@@ -136,4 +136,4 @@ All dependency decisions recorded in:
 ---
 
 Last updated: 2026-05-31
-Version: 1.4.0 (Public Readiness License/SBOM Policy added)
+Version: 1.5.0 (SQL Database Analysis release docs synchronized)

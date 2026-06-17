@@ -44,7 +44,7 @@ This document defines the boundary between OSS core and Enterprise offerings.
 | Feature | Included | Details |
 |---------|----------|---------|
 | CLI analysis | ✅ | `code-to-gate analyze` |
-| 17 built-in rules | ✅ | CLIENT_TRUSTED_PRICE, WEAK_AUTH_GUARD, etc. |
+| 17 core rules + optional DB analysis | ✅ | CLIENT_TRUSTED_PRICE, WEAK_AUTH_GUARD, DB rules behind `--database-analysis` |
 | SARIF output | ✅ | GitHub Code Scanning compatible |
 | JSON findings | ✅ | findings.json, audit.json |
 | Policy engine | ✅ | YAML policy files |
@@ -260,7 +260,7 @@ For enterprise prospects, provide:
 | Feature | OSS (Free) | Pro ($50/dev/mo) | Enterprise ($150k+/yr) |
 |---------|------------|------------------|-------------------------|
 | CLI analysis | ✅ | ✅ | ✅ |
-| 17 built-in rules | ✅ | ✅ | ✅ |
+| 17 core rules + optional DB analysis | ✅ | ✅ | ✅ |
 | SARIF output | ✅ | ✅ | ✅ |
 | Policy engine | ✅ | ✅ | ✅ |
 | Plugin SDK | ✅ | ✅ | ✅ |

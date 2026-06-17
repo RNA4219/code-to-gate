@@ -25,7 +25,7 @@ This document provides a single-page overview for external stakeholders and publ
 
 | Metric | Status | Evidence |
 |--------|--------|----------|
-| Version | 1.4.0 | Stable release |
+| Version | package `1.5.0`; GitHub release `v1.4.2`; npm pending | See `docs/distribution-status.md` |
 | Test Coverage | 80% threshold | CI enforced |
 | CI/CD | GitHub Actions | Passing |
 | Lint | 0 errors | ESLint strict |
@@ -110,4 +110,4 @@ Each release produces:
 ---
 
 Document Version: 1.0
-Last Updated: 2026-05-31
+Last Updated: 2026-06-17

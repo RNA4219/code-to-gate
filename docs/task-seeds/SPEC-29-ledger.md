@@ -3,7 +3,7 @@ spec_id: SPEC-29
 title: SQL/Database Change Risk Analysis
 status: done
 created_at: 2026-06-11
-updated_at: 2026-06-14
+updated_at: 2026-06-17
 wave_count: 5
 task_count: 10
 ---
@@ -35,7 +35,7 @@ SPEC-29 implements SQL/Database change risk analysis in code-to-gate CLI.
 | 3 | 20260611-07 | Scan wiring (--database-analysis) | done | 20260611-06 |
 | 3 | 20260611-08 | Analyze/Diff integration | done | 20260611-07 |
 | 4 | 20260611-09 | Integration tests + fixtures | done | 20260611-08 |
-| 4 | 20260611-10 | Public contract + docs | done | 20260611-09 |
+| 4 | 20260611-10 | Public contract + docs and v1.5.0 release mapping | done | 20260611-09 |
 
 ## Open Decisions (Finalized in Wave 0)
 
@@ -139,6 +139,13 @@ SPEC-29 implements SQL/Database change risk analysis in code-to-gate CLI.
 - `src/cli/diff.ts` (Diff semantic DB rules)
 - `src/rules/index.ts` (Register DB rules)
 - `src/application/rule-evaluator.ts` (Explicit rule set selection)
+
+## Release Mapping (2026-06-17)
+
+- Release version: `1.5.0`
+- Release note: `CHANGELOG.md`
+- Docs synced: README / README_EN / README_JA / CHANGELOG / Skill / Acceptance
+- Task 10 remains the public contract and documentation completion point for SPEC-29.
 
 ## Timeline
 

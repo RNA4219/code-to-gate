@@ -45,7 +45,7 @@ Turn repository signals into evidence-backed findings. No code leaves your machi
 
 ## 5-Minute Path
 
-npm install -g @quality-harness/code-to-gate
+npm install -g github:RNA4219/code-to-gate
 code-to-gate analyze ./src --out .qh
 
 → See findings.json, release-readiness.json, results.sarif
@@ -68,7 +68,7 @@ Your code never leaves your machine. No cloud required. No API keys. No data sha
 | Item | Status | Action | Owner |
 |------|--------|--------|-------|
 | npm registry publish | ⚠️ Pending | `npm publish --access public` | Release |
-| GitHub Release v1.4.0 | ✅ Complete | Release created with notes | Release |
+| GitHub Release v1.5.0 | ⚠️ Pending | Latest published release is v1.4.2 | Release |
 | GitHub topics/tags | ⚠️ Pending | Add: code-analysis, quality-gate, static-analysis | Release |
 | GitHub description | ⚠️ Pending | "Local-first quality gate CLI" | Release |
 
@@ -88,10 +88,10 @@ npm view @quality-harness/code-to-gate
 
 ### GitHub Release Checklist
 
-- [ ] Create tag: `git tag v1.4.0`
-- [ ] Push tag: `git push origin v1.4.0`
+- [ ] Create tag: `git tag v1.5.0`
+- [ ] Push tag: `git push origin v1.5.0`
 - [ ] Create GitHub Release with:
-  - Title: `v1.4.0 - Public Readiness Release`
+  - Title: `v1.5.0 - SQL Database Analysis Release`
   - Notes: Key features, installation, changelog summary
   - Assets: None (npm is distribution)
 
@@ -118,7 +118,7 @@ npm view @quality-harness/code-to-gate
 - Generate SARIF for GitHub Code Scanning
 - No code leaves your machine
 
-npm install -g @quality-harness/code-to-gate
+npm install -g github:RNA4219/code-to-gate
 
 github.com/RNA4219/code-to-gate
 ```
@@ -134,7 +134,7 @@ Features:
 - SARIF output for GitHub Code Scanning  
 - Plugin extensibility with Docker sandbox
 
-Open source (MIT). Available on npm.
+Open source (MIT). Install from GitHub until npm publication is complete.
 
 🔗 github.com/RNA4219/code-to-gate
 ```
@@ -215,7 +215,7 @@ Link to examples in README:
 |------|--------|----------|
 | 09:00 | npm publish | 5 min |
 | 09:05 | Verify npm package visible | 5 min |
-| 09:10 | GitHub Release v1.4.0 | 10 min |
+| 09:10 | GitHub Release v1.5.0 | 10 min |
 | 09:20 | Twitter/X announcement | 5 min |
 | 09:25 | LinkedIn announcement | 10 min |
 | 09:35 | Enable GitHub Discussions | 5 min |

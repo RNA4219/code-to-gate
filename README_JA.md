@@ -1,44 +1,30 @@
 # code-to-gate
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**ローカル実行前提の release readiness 品質ゲート CLI。**
+
+`code-to-gate` はリポジトリをローカルで解析し、finding、risk、test seed、
+SARIF、release-readiness evidence を生成します。linter / SAST そのものではなく、
+品質判断に使う証跡とゲート入力を作るレイヤーです。
 
 **日本語** | **[English](README.md)**
 
-`code-to-gate` は、リポジトリ構造と静的解析結果を入力し、品質判断用の成果物を生成する CLI です。
+## 公開状態
 
-**linter / static analyzer そのものではありません**。Semgrep / ESLint / SonarQube などの既存ツールやリポジトリ構造から、以下のような「品質判断用の成果物」に変換する上位レイヤーとして動作します。
+| チャネル | 状態 |
+|----------|------|
+| `package.json` | `1.5.0` |
+| GitHub Release | 公開済み最新は `v1.4.2` |
+| npm registry | 未公開 |
 
-- findings（証拠付き品質指摘）
-- risk register（リスク登録）
-- test seeds（テスト設計観点）
-- release readiness（リリース判断材料）
-
-QA / EM / 開発者がリリース判断・リスク確認・テスト観点抽出に使います。
-
-主に次のことを確認できます。
-
-- コード上に品質リスクの兆候がないか
-- 追加したほうがよいテストは何か
-- ポリシー上、リリース前に止めるべき状態か
-- GitHub Code Scanning や他の品質ゲートへ渡せる結果を作れるか
+詳細は [Distribution Status](docs/distribution-status.md) を正本にします。
 
 ## インストール
-
-**GitHub からインストール**（npm publication 待ちの場合はこちら）:
 
 ```bash
 npm install -g github:RNA4219/code-to-gate
 ```
 
-**npm registry からインストール**（publication 完了後）:
-
-```bash
-npm install -g @quality-harness/code-to-gate
-```
-
-**パッケージ名**: `@quality-harness/code-to-gate`
-
-このリポジトリを clone 済みの場合:
+source から使う場合:
 
 ```bash
 npm install
@@ -46,149 +32,62 @@ npm run build
 npm link
 ```
 
-## 前提条件
-
-| 要件 | バージョン |
-|------|------------|
-| Node.js | 20 以上 |
-| Git | 2.x |
+npm package 名は `@quality-harness/code-to-gate` ですが、registry publish はまだ完了していません。
 
 ## 基本の使い方
 
 ```bash
-# リポジトリ構造をスキャンする
 code-to-gate scan ./my-repo --out .qh
-
-# finding、リスク、テスト候補、レポートを作る
 code-to-gate analyze ./my-repo --emit all --out .qh
-
-# ポリシーに照らしてリリース準備状態を確認する
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
-
-# 企画・Phase 契約の未決事項も readiness に反映する
-code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh \
-  --intake phase-contract.yaml
-
-# SARIF を出力する
 code-to-gate export sarif --from .qh --out results.sarif
 ```
 
-## 主なコマンド
+DB migration 解析を含める場合:
 
-| コマンド | 役割 |
-|----------|------|
-| `scan` | リポジトリの構造を読み取る |
-| `analyze` | finding、リスク、テスト候補、レポートを生成する |
-| `readiness` | ポリシーに基づいてリリース準備状態を評価する |
-| `export` | SARIF などの形式に出力する |
-| `diff` | Git の差分から影響範囲を確認する |
-| `import` | ESLint、Semgrep、TypeScript、coverage などの結果を取り込む |
-| `historical` | 過去の実行結果と比較する |
-| `viewer` | HTML ビューアを起動する |
-| `llm-health` | ローカル LLM プロバイダの状態を確認する |
-| `evidence` | リリース判断用のエビデンスをまとめる |
-| `schema validate` | 出力ファイルをスキーマで検証する |
+```bash
+code-to-gate analyze ./my-repo --database-analysis --emit all --out .qh
+```
 
-## 言語対応レベル
-
-| 言語 | 対応レベル | 備考 |
-|------|------------|------|
-| TypeScript / JavaScript | **Primary** | AST 完全解析、主対象 |
-| Python / Ruby / Go / Rust | **Structured** | `--tree-sitter` 指定時は tree-sitter WASM、未指定時は正規表現 fallback |
-| Java / PHP / C# / C++ | **Baseline** | 正規表現 / ヒューリスティック fallback |
-
-全言語をスキャン可能ですが、解析深度は adapter により異なります。Tree-sitter はWASM初期化コストを避けるため明示指定です。
-
-## 出力されるもの
-
-通常は `--out .qh` で指定したディレクトリに生成されます。
+## 出力
 
 | ファイル | 内容 |
 |----------|------|
-| `repo-graph.json` | ファイル、依存、エントリポイントなどのリポジトリ構造 |
-| `findings.json` | コード上で見つかった注意点 |
-| `risk-register.yaml` | リスクとして確認したい項目 |
-| `invariants.yaml` | 守るべき条件の候補 |
-| `test-seeds.json` | 追加テストの候補 |
-| `release-readiness.json` | ポリシー評価の結果 |
-| `audit.json` | 実行時のメタデータ |
-| `analysis-report.md` | 人が読むためのサマリー |
-| `results.sarif` | Code Scanning 向けの SARIF |
+| `repo-graph.json` | リポジトリ構造 |
+| `database-assets.json` | `--database-analysis` 有効時の DB assets / DDL 操作 |
+| `findings.json` | 証拠付き finding |
+| `risk-register.yaml` | 確認すべきリスク |
+| `test-seeds.json` | 追加テスト候補 |
+| `release-readiness.json` | policy 評価結果 |
+| `analysis-report.md` | 人が読むサマリー |
+| `results.sarif` | GitHub Code Scanning 用 SARIF |
 
-## 組み込みルール
-
-| ルール ID | 見つけるもの |
-|-----------|--------------|
-| `CLIENT_TRUSTED_PRICE` | クライアントから来た価格をそのまま信用している可能性 |
-| `WEAK_AUTH_GUARD` | 認可チェックが弱い可能性 |
-| `MISSING_SERVER_VALIDATION` | リクエストボディの検証が不足している可能性 |
-| `UNTESTED_CRITICAL_PATH` | 重要な入口にテストが足りない可能性 |
-| `TRY_CATCH_SWALLOW` | エラーを握りつぶしている可能性 |
-| `RAW_SQL` | SQL 文字列を危険な形で組み立てている可能性 |
-| `ENV_DIRECT_ACCESS` | 環境変数を直接読んでいる箇所 |
-| `UNSAFE_DELETE` | 安全確認が弱い削除処理 |
-| `LARGE_MODULE` | 大きすぎるモジュール |
-
-## ポリシー例
+## Policy 例
 
 ```yaml
-version: ctg/v1alpha1
-name: strict
+version: ctg/v1
 blocking:
-  severities:
-    - critical
-  categories:
-    - payment
-  rules:
-    - CLIENT_TRUSTED_PRICE
+  severity:
+    critical: true
+    high: true
+  category:
+    payment: true
+    data: true
 readiness:
   criticalFindingStatus: blocked_input
 ```
 
-この例では、重大な payment 系 finding や `CLIENT_TRUSTED_PRICE` がある場合に、リリース準備状態をクリアにしません。
+`ctg/v1alpha1` は後方互換として受け付けますが、新しい例は `ctg/v1` を使います。
 
-## GitHub Actions 例
-
-```yaml
-name: code-to-gate PR Analysis
-
-on: [pull_request]
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm install -g @quality-harness/code-to-gate
-      - run: code-to-gate scan . --out .qh
-      - run: code-to-gate analyze . --emit all --out .qh
-      - run: code-to-gate export sarif --from .qh --out results.sarif
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-```
-
-## 関連プロジェクト
-
-code-to-gate は品質保証エコシステムの一部です:
-
-| プロジェクト | 役割 | 連携 |
-|--------------|------|------|
-| **manual-bb-test-harness** | 手動ブラックボックステスト設計 | risk/invariant seeds を code-to-gate から受ける |
-| **code-to-gate** | リポジトリ品質ゲート | findings, test seeds, readiness artifacts を生成 |
-| **RanD** | 要件定義 | 上流の requirements input (Kano mode 分析用) |
-| **workflow-cookbook** | ワークフロー知識ベース | Evidence 連携, CI/CD 手順 |
-| **agent-gatefield** | AI 成果物ゲーティング | code-to-gate export の static results を受ける |
-
-## 関連ドキュメント
+## ドキュメント
 
 | ドキュメント | 内容 |
 |--------------|------|
 | [docs/quickstart.md](docs/quickstart.md) | 初回実行ガイド |
-| [docs/cli-reference.md](docs/cli-reference.md) | CLI の詳しい使い方 |
-| [docs/integrations.md](docs/integrations.md) | 他ツールとの連携 |
-| [docs/plugin-development.md](docs/plugin-development.md) | プラグイン開発 |
-| [docs/local-llm-setup.md](docs/local-llm-setup.md) | ローカル LLM 設定 |
+| [docs/distribution-status.md](docs/distribution-status.md) | package / GitHub release / npm 公開状態 |
+| [docs/cli-reference.md](docs/cli-reference.md) | CLI 詳細 |
+| [docs/integrations.md](docs/integrations.md) | CI / 外部連携 |
+| [docs/plugin-development.md](docs/plugin-development.md) | Plugin 開発 |
 | [CHANGELOG.md](CHANGELOG.md) | 変更履歴 |
 
 ## 開発
@@ -199,28 +98,4 @@ npm run build
 npm test
 ```
 
-### テストの種類と境界
-
-| コマンド | 内容 | 実行時間 | 用途 |
-|----------|------|----------|------|
-| `npm test` | 通常並列グループ + Tree-sitter直列グループ | 5分以内を目標 | 通常開発、PR gate |
-| `npm run test:normal` | performance / real-repo / Tree-sitter専用を除く通常テスト | 環境依存 | 高速な通常ゲート |
-| `npm run test:tree-sitter` | Tree-sitter専用テスト | 数秒 | WASM parser gate |
-| `npm run test:smoke` | CLI smoke テスト (54 tests) | ~15秒 | quick validation |
-| `npm run test:coverage` | coverage付き単体テスト | ~5分 | release gate (Linux/macOS) |
-| `npm run test:real-repo` | express/axios/dayjs 検証 | ~10分 | product acceptance |
-| `npm run test:performance` | 性能閾値テスト | ~5分 | performance gate |
-
-**境界の定義**:
-- **Smoke**: CLI commands が基本動作するか (scan/analyze/readiness/export/viewer/schema)
-- **Unit/Integration**: 各モジュールの機能テスト、fixture 検証
-- **Real-repo**: 実際の OSS repo で findings が正しく生成されるか
-- **Performance**: scan/analyze の実行時間が閾値内か
-
-**CI workflow**:
-- PR: `npm run test:smoke` + `npm test` (coverageなし)
-- Release: `npm run test:coverage` + `npm run test:real-repo` (Linux/macOS)
-
-## ライセンス
-
-MIT ライセンスです。[LICENSE](LICENSE) を参照してください。
+MIT License. See [LICENSE](LICENSE).

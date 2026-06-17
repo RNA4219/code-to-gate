@@ -542,7 +542,7 @@ Standard JSON format with schema versioning. All JSON artifacts include:
 
 ```json
 {
-  "version": "ctg/v1alpha1",
+  "version": "ctg/v1",
   "generated_at": "2026-04-30T12:00:00Z",
   "run_id": "ctg-20260430120000",
   "repo": { "root": "." },
@@ -557,7 +557,7 @@ Standard JSON format with schema versioning. All JSON artifacts include:
 Human-readable format for risk-register and invariants:
 
 ```yaml
-version: ctg/v1alpha1
+version: ctg/v1
 generated_at: 2026-04-30T12:00:00Z
 artifact: risk-register
 risks:
@@ -612,7 +612,7 @@ Policy files define blocking thresholds for release readiness evaluation.
 
 ```yaml
 # policies/strict.yaml
-version: ctg/v1alpha1
+version: ctg/v1
 policy_id: strict
 
 blocking:
@@ -711,7 +711,7 @@ exit:
 
 ```yaml
 # .ctg/suppressions.yaml
-version: ctg/v1alpha1
+version: ctg/v1
 suppressions:
   -
     rule_id: CLIENT_TRUSTED_PRICE

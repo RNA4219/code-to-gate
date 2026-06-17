@@ -64,7 +64,7 @@ A static analysis tool that:
 | Feature | Status | Classification |
 |---------|--------|---------------|
 | **Scans code locally** | ✅ Implemented | Verified (architecture review) |
-| **Detects issues** | ✅ 17 built-in rules | Verified (src/rules/) |
+| **Detects issues** | ✅ 17 core rules + optional DB analysis | Verified (src/rules/) |
 | **Enforces gates** | ✅ Policy engine | Verified (src/config/) |
 | **Generates evidence** | ✅ SARIF, JSON, HTML | Verified (src/reporters/) |
 
@@ -82,7 +82,7 @@ A static analysis tool that:
 
 | Metric | Status | Classification |
 |--------|--------|---------------|
-| Version | 1.4.0 stable | ✅ Verified |
+| Version | package `1.5.0`; GitHub release `v1.4.2`; npm pending | ✅ Verified |
 | Test Coverage | 80% threshold | ✅ Verified (npm run test:coverage) |
 | CI/CD | GitHub Actions, passing | ✅ Verified (.github/workflows/) |
 | Languages Supported | 6 (TS, JS, Python, Go, Java, C#) | ⚠️ Partial verified (TS/JS fully, others via tree-sitter) |
@@ -126,7 +126,7 @@ A static analysis tool that:
 
 | Milestone | Status | Classification |
 |-----------|--------|---------------|
-| Version 1.4.0 stable release | ✅ | Verified (package.json, git tags) |
+| Package 1.5.0 prepared; GitHub release v1.5.0 pending | ⚠️ | Verified (package.json, release records) |
 | Core analysis engine complete | ✅ | Verified (src/core/) |
 | Plugin SDK available | ✅ | Verified (src/plugin/) |
 | 6 language support | ⚠️ Partial | TS/JS verified, others via tree-sitter |
@@ -242,4 +242,4 @@ GitHub: https://github.com/RNA4219/code-to-gate
 
 npm registry publication: pending. The package name is reserved in documentation as `@quality-harness/code-to-gate`, but npm publish has not yet been completed.
 
-Last Updated: 2026-05-31
+Last Updated: 2026-06-17

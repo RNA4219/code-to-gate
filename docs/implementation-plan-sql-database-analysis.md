@@ -2,7 +2,7 @@
 intent_id: INT-SQL-DATABASE-ANALYSIS-001
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-06-14
+last_reviewed_at: 2026-06-17
 next_review_due: 2026-07-14
 ---
 
@@ -58,6 +58,13 @@ npm run test:architecture
 npm run test:package
 npx vitest run src/adapters/__tests__/sql-lightweight-parser.test.ts src/rules/__tests__/db-destructive-ops.test.ts src/rules/__tests__/db-schema-change.test.ts src/rules/__tests__/db-migration-ops.test.ts tests/integration/demo-migrations-ts.test.ts --maxWorkers=1
 ```
+
+## Documentation Sync
+
+- Release version: `1.5.0`
+- Release focus: SQL / database migration analysis
+- Synchronized docs: README, README_EN, README_JA, CHANGELOG, Skill, Acceptance, Release Approval Record
+- Release mapping: `docs/releases/RA-20260617-01.md`
 
 ## References
 

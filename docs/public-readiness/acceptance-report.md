@@ -47,7 +47,7 @@ All dependency vulnerabilities resolved via `npm audit fix` (2026-05-31). Vulner
 | README.md rules count | 14 | 17 (src/rules/index.ts) | ✅ Fixed (updated to 17) |
 | adoption-metrics.md rules count | 9 | 17 | ✅ Fixed (updated to 17) |
 
-**Resolution**: README.md and adoption-metrics.md updated to reflect actual 17 built-in rules.
+**Resolution**: README.md and adoption-metrics.md updated to reflect 17 core rules plus optional database analysis.
 
 ---
 

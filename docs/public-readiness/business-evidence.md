@@ -22,7 +22,7 @@ This document tracks verifiable business metrics and evidence for external stake
 | Tests passing | 54 smoke tests | CI workflow | 2026-05-30 |
 | Lint clean | 0 errors, 0 warnings | ESLint | 2026-05-31 |
 | TypeScript clean | 0 errors | tsc --noEmit | 2026-05-30 |
-| npm pack valid | 343 files | npm pack --dry-run | 2026-05-30 |
+| npm pack valid | package smoke passed | npm run test:package | 2026-06-17 |
 | Documentation complete | 12 docs | File count | 2026-05-30 |
 
 ### Hypothesis Evidence
@@ -39,7 +39,7 @@ This document tracks verifiable business metrics and evidence for external stake
 |--------|--------|---------------|-----------|
 | External pilot users | 3 orgs | None identified | Outreach program |
 | Enterprise interest | 2 inquiries | None | Enterprise landing page |
-| Plugin ecosystem | 5 external plugins | 17 built-in only | Plugin SDK promotion |
+| Plugin ecosystem | 5 external plugins | 17 core rules only; no external plugins yet | Plugin SDK promotion |
 
 ---
 
@@ -50,7 +50,7 @@ This document tracks verifiable business metrics and evidence for external stake
 - [ ] README polished with clear value proposition
 - [ ] Quickstart guide tested with fresh Node 20 environment
 - [ ] Example repositories linked (demo-shop-ts, demo-ci-imports)
-- [ ] GitHub Release v1.4.0 created
+- [ ] GitHub Release v1.5.0 created
 - [ ] npm publish executed
 - [ ] Social announcement prepared (Twitter, LinkedIn, Dev.to)
 - [ ] Hacker News submission ready
@@ -59,8 +59,8 @@ This document tracks verifiable business metrics and evidence for external stake
 
 | Action | Target | Measurement |
 |--------|--------|-------------|
-| npm publish | Pending for v1.4.0 | npm registry check |
-| GitHub release | v1.4.0 tag | GitHub releases page |
+| npm publish | Pending for 1.5.0 | npm registry check |
+| GitHub release | v1.5.0 pending; latest published v1.4.2 | GitHub releases page |
 | Announcement posts | 3 platforms | Post URLs documented |
 | Star count baseline | 0 → Track daily | GitHub API |
 

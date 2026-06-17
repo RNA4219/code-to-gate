@@ -17,7 +17,7 @@ Get started with code-to-gate in 5 minutes. This guide covers installation, firs
 
 ## Install
 
-### npm (Recommended)
+### Install
 
 **From GitHub** (primary method while npm publication is pending):
 
@@ -25,17 +25,9 @@ Get started with code-to-gate in 5 minutes. This guide covers installation, firs
 npm install -g github:RNA4219/code-to-gate
 ```
 
-**From npm registry** (after publication):
-
-```bash
-# Install globally
-npm install -g @quality-harness/code-to-gate
-
-# Or install locally in your project
-npm install --save-dev @quality-harness/code-to-gate
-```
-
 **Package identity**: `@quality-harness/code-to-gate`
+
+Distribution status is tracked in [Distribution Status](distribution-status.md).
 
 ### From Source
 
@@ -164,7 +156,7 @@ All artifacts are generated in the `--out` directory (default `.qh/`):
 
 ```json
 {
-  "version": "ctg/v1alpha1",
+  "version": "ctg/v1",
   "status": "needs_review",
   "summary": "2 high finding(s) require human review.",
   "counts": {

@@ -1,351 +1,86 @@
 # code-to-gate
 
-**Local-first quality gate for release-readiness.**
+**Local-first quality gate for release readiness.**
 
-Turn repository signals into evidence-backed findings. No code leaves your machine.
+`code-to-gate` scans a repository locally and turns code signals into reviewable
+artifacts: findings, risks, test seeds, SARIF, and release-readiness evidence.
+It is not a replacement for a linter or SAST engine; it is the evidence and gate
+layer around repository structure and imported/static signals.
 
-**What it is**: code-to-gate is not a linter or static analyzer itself. It takes output from existing tools (Semgrep, ESLint, SonarQube, tsc) and repository structure, then generates artifacts for quality decisions: findings with evidence, risk registers, test design seeds, and release-readiness gate inputs.
-
-**Who uses it**: QA engineers, engineering managers, and developers use it to assess release readiness, review risks, and extract test perspectives before deployment.
-
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](CHANGELOG.md)
+[![Package](https://img.shields.io/badge/package-1.5.0-blue)](CHANGELOG.md)
+[![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.4.2-yellow)](https://github.com/RNA4219/code-to-gate/releases)
+[![npm](https://img.shields.io/badge/npm-not%20published-lightgrey)](https://www.npmjs.com/package/@quality-harness/code-to-gate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/RNA4219/code-to-gate/actions/workflows/code-to-gate-pr.yml/badge.svg)](https://github.com/RNA4219/code-to-gate/actions/workflows/code-to-gate-pr.yml)
-[![Node](https://img.shields.io/badge/Node-20%2B-green)](https://img.shields.io/badge/Node-20%2B-green)
+[![Node](https://img.shields.io/badge/Node-20%2B-green)](https://nodejs.org/)
 
 Language: English | [日本語](README_JA.md)
 
----
+## Current Distribution Status
 
-## 5-Minute Path
+| Channel | Status |
+|---------|--------|
+| `package.json` | `1.5.0` |
+| GitHub Release | `v1.4.2` latest published release |
+| npm registry | Not published yet |
 
-**Installation** (choose one):
+See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
+
+## Install
 
 ```bash
-# From GitHub (primary method while npm publication is pending)
+# Recommended until npm publication is complete
 npm install -g github:RNA4219/code-to-gate
 
-# From npm registry (after publication)
-npm install -g @quality-harness/code-to-gate
+# From source
+npm install
+npm run build
+npm link
 ```
 
-**Package identity**: `@quality-harness/code-to-gate` (npm scope)
-
-**Run**:
-
-```bash
-code-to-gate analyze ./src --out .qh
-```
-
-**Generated artifacts**:
-
-```text
-.qh/
-  repo-graph.json       # Repository structure (files, symbols, dependencies)
-  findings.json         # Quality issues with evidence
-  risk-register.yaml    # Risk items requiring review
-  test-seeds.json       # Test design recommendations
-  release-readiness.json # Release gate status
-  analysis-report.md    # Human-readable summary
-  results.sarif         # GitHub Code Scanning format
-```
-
-→ See quality risks, compliance evidence, SARIF for GitHub Code Scanning.
-
----
-
-## Language Support
-
-| Language | Support Level | Notes |
-|----------|---------------|-------|
-| TypeScript / JavaScript | **Primary** | Full AST analysis, main target |
-| Python / Ruby / Go / Rust | **Structured** | tree-sitter WASM with `--tree-sitter`; regex fallback by default |
-| Java / PHP / C# / C++ | **Baseline** | Regex/heuristic fallback |
-
-All languages can be scanned; depth of analysis varies by adapter. Tree-sitter is opt-in to avoid WASM initialization overhead.
-
----
-
-## What It Does
-
-| Feature | Description |
-|---------|-------------|
-| **Detect Risks** | 17 built-in rules for payment, auth, validation, security patterns |
-| **Quality Gates** | Policy-based release decisions (block on severity, category) |
-| **Evidence Generation** | SARIF, JSON, HTML artifacts for audits |
-| **CI Integration** | GitHub Actions workflow ready |
-| **Local-First** | No code upload, no cloud dependency |
-
-### Built-in Rules
-
-| Rule | Category | Detection |
-|------|----------|-----------|
-| `CLIENT_TRUSTED_PRICE` | payment | Client-side price calculation |
-| `WEAK_AUTH_GUARD` | auth | Weak authorization guards |
-| `MISSING_SERVER_VALIDATION` | validation | Missing request validation |
-| `RAW_SQL` | security | SQL string construction |
-| `HARDCODED_SECRET` | security | Hardcoded credentials |
-| `UNSAFE_REDIRECT` | security | Unsafe redirect patterns |
-| `TRY_CATCH_SWALLOW` | maintainability | Empty/silent catch blocks |
-| `DB_DROP_TABLE` | data | DROP TABLE without safeguards |
-| `DB_DROP_COLUMN` | data | DROP COLUMN without rollback |
-| `DB_ADD_NOT_NULL_WITHOUT_DEFAULT` | data | NOT NULL constraint without default value |
-| `DB_RISKY_TYPE_CHANGE` | data | Column type change with data loss risk |
-| `DB_DROP_CONSTRAINT` | data | DROP CONSTRAINT without rollback |
-| `DB_DROP_INDEX` | data | DROP INDEX without rollback |
-| `DB_MIGRATION_NO_TRANSACTION_SIGNAL` | data | Migration without transaction signals |
-| `DB_ROLLBACK_NOT_EVIDENCED` | data | Rollback path not evidenced |
-| ... | | See [CLI Reference](docs/cli-reference.md) for full list |
-
----
-
-## Why Local-First?
-
-| Aspect | code-to-gate | Cloud-Based Tools |
-|--------|--------------|-------------------|
-| Code location | Your machine only | Vendor servers |
-| Network required | No (except optional LLM) | Yes |
-| GDPR/CCPA risk | None | Potential exposure |
-| Setup time | npm install | Account + API keys |
-
-**Your code stays on your machine.** No data processing agreements needed.
-
----
-
-## Documentation
-
-### Getting Started
-
-| Guide | Description |
-|-------|-------------|
-| [Quickstart](docs/quickstart.md) | First analysis in 5 minutes |
-| [CLI Reference](docs/cli-reference.md) | All commands and options |
-| [Integration Guide](docs/integrations.md) | GitHub Actions, GitLab CI |
-| [Policy Guide](docs/policy-system.md) | YAML policy configuration |
-
-### Understanding the Product
-
-| Guide | Description |
-|-------|-------------|
-| [Product Narrative](docs/product-narrative.md) | Problem, solution, differentiation |
-| [Architecture](docs/architecture-for-public-readiness.md) | System design, data flow |
-| [Enterprise Packaging](docs/public-readiness/enterprise-packaging.md) | OSS vs Enterprise features |
-
-### For Contributors
-
-| Guide | Description |
-|-------|-------------|
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow, PR checklist |
-| [Plugin Development](docs/plugin-development.md) | Custom rule SDK |
-| [GOVERNANCE.md](GOVERNANCE.md) | Decision-making, evidence retention |
-
----
-
-## Related Projects
-
-code-to-gate is part of a quality assurance ecosystem:
-
-| Project | Role | Connection |
-|---------|------|------------|
-| **manual-bb-test-harness** | Manual black-box test design | Receives risk/invariant seeds from code-to-gate |
-| **code-to-gate** | Repository quality gate | Generates findings, test seeds, readiness artifacts |
-| **RanD** | Requirements definition | Upstream requirements input for Kano mode analysis |
-| **workflow-cookbook** | Workflow knowledge base | Evidence integration, CI/CD procedures |
-| **agent-gatefield** | AI artifact gating | Receives static results from code-to-gate exports |
-
----
-
-## Overview
-
-| Feature | Description |
-|---------|-------------|
-| **Repository Scanning** | Parse source files, extract symbols, build dependency graphs |
-| **Quality Analysis** | Detect 17 built-in vulnerability patterns |
-| **Release Readiness** | Generate gate inputs based on policy thresholds |
-| **Evidence Generation** | Export SARIF, gatefield, state-gate, workflow-evidence formats |
-| **Plugin System** | Docker sandbox supported for custom rules via plugin SDK |
-| **Incremental Cache** | Fast re-analysis with file-based cache |
-| **LLM Integration** | Optional LLM-powered analysis with local/remote providers |
-
-<!-- LLM-BOOTSTRAP v1 -->
-Recommended read order:
-
-1. `docs/birdseye/index.json` — Node graph (lightweight)
-2. `docs/birdseye/caps/<path>.json` — Point reads for needed nodes
-
-Focus procedure:
-
-- Find node IDs for recently changed files within +/-2 hops from `index.json`
-- Read only the matching `caps/*.json` files
-
-<!-- /LLM-BOOTSTRAP -->
-
----
+The npm package name is reserved in docs as `@quality-harness/code-to-gate`, but
+registry publication has not been completed yet.
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
-npm ci
-
-# 2. Build
-npm run build
-
-# 3. Run smoke tests
-npm run test:smoke
-
-# 4. Analyze a repository
-node ./dist/cli.js analyze ./fixtures/demo-shop-ts --out .qh
-
-# 5. Check release readiness
-node ./dist/cli.js readiness ./fixtures/demo-shop-ts --policy .github/ctg-policy.yaml --from .qh --out .qh
+code-to-gate scan ./my-repo --out .qh
+code-to-gate analyze ./my-repo --emit all --out .qh
+code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
+code-to-gate export sarif --from .qh --out results.sarif
 ```
 
----
-
-## CLI Commands
-
-### Scan
+For database migration analysis:
 
 ```bash
-# Scan repository, generate repo-graph.json
-node ./dist/cli.js scan . --out .qh
-
-# With incremental cache
-node ./dist/cli.js scan . --out .qh --cache
+code-to-gate analyze ./my-repo --database-analysis --emit all --out .qh
+code-to-gate diff ./my-repo --base origin/main --head HEAD --database-analysis --out .qh
 ```
 
-### Analyze
+## Outputs
 
-```bash
-# Full analysis with all artifacts
-node ./dist/cli.js analyze . --emit all --out .qh
+| Artifact | Purpose |
+|----------|---------|
+| `repo-graph.json` | Repository files, symbols, dependencies, and entrypoints |
+| `database-assets.json` | Optional DB assets and DDL operations from `--database-analysis` |
+| `findings.json` | Evidence-backed findings |
+| `risk-register.yaml` | Risks that need review |
+| `test-seeds.json` | Suggested test ideas |
+| `release-readiness.json` | Policy gate result |
+| `analysis-report.md` | Human-readable summary |
+| `results.sarif` | GitHub Code Scanning format |
 
-# With policy
-node ./dist/cli.js analyze . --policy .github/ctg-policy.yaml --out .qh
+## Capabilities
 
-# With LLM
-node ./dist/cli.js analyze . --llm-provider ollama --llm-model llama3 --out .qh
+| Area | Status |
+|------|--------|
+| TypeScript / JavaScript | Primary AST support |
+| Python / Ruby / Go / Rust | Tree-sitter with `--tree-sitter`, regex fallback otherwise |
+| Java / PHP / C# / C++ | Baseline heuristic support |
+| Core rules | 17 core rules |
+| Database analysis | Optional SQL / migration checks via `--database-analysis` |
+| Schema version | `ctg/v1`; `ctg/v1alpha1` is accepted for backward compatibility |
 
-# With database migration analysis
-node ./dist/cli.js analyze . --database-analysis --out .qh
-
-# Diff analysis (PR mode)
-node ./dist/cli.js diff . --base origin/main --head HEAD --policy .github/ctg-policy.yaml --out .qh
-```
-
-### Database Analysis
-
-Analyze database migration files for risky schema changes:
-
-```bash
-# Analyze database migrations with all other rules
-node ./dist/cli.js analyze . --database-analysis --out .qh
-
-# Diff analysis with database rules (PR review)
-node ./dist/cli.js diff . --base origin/main --head HEAD --database-analysis --out .qh
-```
-
-Initial analysis targets `.sql` DDL. Migration source files containing embedded
-SQL may be classified and inspected on a best-effort basis; ORM semantics are
-not fully interpreted.
-
-Detected risks:
-| Risk | Description |
-|------|-------------|
-| `DB_DROP_TABLE` | DROP TABLE without transaction/rollback |
-| `DB_DROP_COLUMN` | Column removal without rollback path |
-| `DB_ADD_NOT_NULL_WITHOUT_DEFAULT` | Adding NOT NULL without default value |
-| `DB_RISKY_TYPE_CHANGE` | Type narrowing (bigint→integer, decimal→integer) |
-| `DB_DROP_CONSTRAINT` | Dropping FK, unique, check constraints |
-| `DB_DROP_INDEX` | Index removal without rollback |
-| `DB_MIGRATION_NO_TRANSACTION_SIGNAL` | Missing transaction wrapper signals |
-| `DB_ROLLBACK_NOT_EVIDENCED` | Rollback path not documented |
-
-### Readiness
-
-```bash
-# Generate release-readiness.json
-node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out .qh
-```
-
-### Export
-
-```bash
-# Export SARIF for GitHub Code Scanning
-node ./dist/cli.js export sarif --from .qh --out .qh/results.sarif
-
-# Export gatefield format
-node ./dist/cli.js export gatefield --from .qh --out gatefield.json
-
-# Export state-gate format
-node ./dist/cli.js export state-gate --from .qh --out state-gate.json
-
-# Export workflow-evidence format
-node ./dist/cli.js export workflow-evidence --from .qh --out workflow.json
-```
-
-### Schema Validation
-
-```bash
-# Validate artifact JSON
-node ./dist/cli.js schema validate .qh/findings.json
-
-# Validate all schemas
-node ./dist/cli.js schema validate-all .qh
-```
-
-### Viewer
-
-```bash
-# Generate HTML viewer
-node ./dist/cli.js viewer --from .qh --out report.html
-```
-
-### LLM Health
-
-```bash
-# Check LLM provider status
-node ./dist/cli.js llm-health --provider ollama
-
-# Check all providers
-node ./dist/cli.js llm-health --all
-```
-
----
-
-## Architecture
-
-### Core Modules
-
-| Module | Purpose |
-|--------|---------|
-| `src/cli/` | CLI commands (scan, analyze, readiness, export, etc.) |
-| `src/adapters/` | Language parsers (TypeScript, JavaScript, Python, Go, Ruby, Rust) |
-| `src/rules/` | Detection rules (17 built-in) |
-| `src/cache/` | Incremental cache system |
-| `src/parallel/` | Worker-based parallel processing |
-| `src/plugin/` | Plugin SDK with Docker sandbox support |
-| `src/config/` | Policy loading and evaluation |
-| `src/historical/` | Baseline comparison |
-| `src/llm/` | LLM provider integration (OpenAI, Ollama, Anthropic) |
-| `src/github/` | GitHub API integration |
-| `src/evidence/` | Evidence bundle generation |
-| `src/viewer/` | HTML report viewer |
-
-### Data Flow
-
-```
-Repository → scan → repo-graph.json → analyze → findings.json → readiness → release-readiness.json
-                                              ↓
-                                    export → SARIF, gatefield, etc.
-```
-
----
-
-## Policy System
-
-Policies are YAML files that define blocking thresholds:
+## Policy Example
 
 ```yaml
 version: ctg/v1
@@ -353,149 +88,37 @@ blocking:
   severity:
     critical: true
     high: true
-    medium: false
   category:
     auth: true
     payment: true
-    validation: true
+    data: true
+  rules:
+    DB_DROP_TABLE: true
+readiness:
+  criticalFindingStatus: blocked_input
 ```
 
-### Policy Evaluation
+## Documentation
 
-- `blocking.severity`: Block on severity level
-- `blocking.category`: Block on category (payment, auth, etc.)
-- `blocking.rules`: Block on specific rule IDs
-- `readiness.criticalFindingStatus`: Status for critical findings (`blocked_input` / `needs_review`)
+| Document | Purpose |
+|----------|---------|
+| [Quickstart](docs/quickstart.md) | First run and CI setup |
+| [Distribution Status](docs/distribution-status.md) | Package, GitHub release, and npm publication state |
+| [CLI Reference](docs/cli-reference.md) | Commands, flags, output formats |
+| [Policy Guide](docs/policy-system.md) | Gate policy configuration |
+| [Integrations](docs/integrations.md) | GitHub Actions and downstream exports |
+| [Plugin Development](docs/plugin-development.md) | Custom rule SDK |
+| [Changelog](CHANGELOG.md) | Release history |
 
----
-
-## Integration Points
-
-### GitHub Actions
-
-```yaml
-- name: Run code-to-gate analysis
-  run: node ./dist/cli.js analyze . --emit all --out .qh
-
-- name: Check readiness
-  run: node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh --out .qh
-
-- name: Upload SARIF
-  uses: github/codeql-action/upload-sarif@v4
-  with:
-    sarif_file: .qh/results.sarif
-```
-
-### Downstream Consumers
-
-| Format | Consumer |
-|--------|----------|
-| `gatefield.json` | Gatefield CI integration |
-| `state-gate.json` | state-gate workflow |
-| `workflow.json` | workflow-evidence tracking |
-| `results.sarif` | GitHub Code Scanning |
-
----
-
-## Documentation Guide
-
-### Start Here
-
-| File | Description |
-|------|-------------|
-| [`CLAUDE.md`](CLAUDE.md) | Project context for AI assistants |
-| [`GUARDRAILS.md`](GUARDRAILS.md) | Implementation principles and bounds |
-| [`CHECKLISTS.md`](CHECKLISTS.md) | Development/PR/Release checklists |
-
-### CI / Governance
-
-| File | Description |
-|------|-------------|
-| [`.github/ctg-policy.yaml`](.github/ctg-policy.yaml) | CI policy configuration |
-| [`.ctg/suppressions.yaml`](.ctg/suppressions.yaml) | Suppression rules |
-| [`governance/policy.yaml`](governance/policy.yaml) | Self-modification bounds, SLOs |
-
-### Operations
-
-| File | Description |
-|------|-------------|
-| [`docs/Release_Checklist.md`](docs/Release_Checklist.md) | Release procedure |
-| [`docs/acceptance/`](docs/acceptance/) | Acceptance records |
-| [`docs/ADR/`](docs/ADR/) | Architecture Decision Records |
-
----
-
-## Development Commands
+## Development
 
 ```bash
-# Lint
-npm run lint
-
-# Fix lint issues
-npm run lint:fix
-
-# Full test suite
-npm test
-
-# Normal parallel and Tree-sitter serial groups
-npm run test:normal
-npm run test:tree-sitter
-
-# Coverage (80% threshold)
-npm run test:coverage
-
-# Smoke tests (quick)
+npm install
+npm run build
 npm run test:smoke
-
-# Performance tests
-npm run test:performance
-
-# Real repo tests
-npm run test:real-repo
-
-# Release validation
-npm run release:validate
+npm test
 ```
-
----
-
-## Testing Conventions
-
-- Unit tests: `src/**/__tests__/*.test.ts`
-- Integration tests: `tests/integration/*.test.ts`
-- Smoke tests: `src/__tests__/smoke/*.test.ts`
-- Coverage threshold: 80% mandatory
-
----
-
-## Schema Versioning
-
-**Current version**: `ctg/v1`
-
-All artifacts use stable schemas in `schemas/`:
-
-| Schema | Artifact |
-|--------|----------|
-| `findings.schema.json` | Quality findings |
-| `normalized-repo-graph.schema.json` | Repository structure |
-| `release-readiness.schema.json` | Release gate status |
-| `suppressions.schema.json` | Suppression rules |
-
----
-
-## Exit Codes
-
-| Code | Constant | Meaning |
-|------|----------|---------|
-| 0 | OK | Success |
-| 1 | USAGE_ERROR | Invalid arguments |
-| 2 | POLICY_FAILED | Policy violation |
-| 3 | SCAN_FAILED | Scan error |
-| 4 | ANALYZE_FAILED | Analysis error |
-| 5 | FINDINGS_THRESHOLD | Findings exceed threshold |
-
----
 
 ## License
 
-MIT. See [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).

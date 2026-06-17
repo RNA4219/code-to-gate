@@ -301,7 +301,7 @@ Compatible with GitHub Code Scanning:
     "tool": {
       "driver": {
         "name": "code-to-gate",
-        "version": "1.4.0"
+        "version": "1.5.0"
       }
     },
     "results": [...]
@@ -360,12 +360,15 @@ Compatible with GitHub Code Scanning:
 
 ## Deployment Options
 
-### npm Package
+### Package Install
 
 ```bash
-npm install -g @quality-harness/code-to-gate
+npm install -g github:RNA4219/code-to-gate
 code-to-gate scan ./src
 ```
+
+The future npm package path is `npm install -g @quality-harness/code-to-gate`
+after registry publication is complete.
 
 ### Docker Image
 
@@ -379,7 +382,7 @@ docker run -v $(pwd):/workspace qualityharness/code-to-gate scan /workspace
 # GitHub Actions
 - name: Scan with code-to-gate
   run: |
-    npm install -g @quality-harness/code-to-gate
+    npm install -g github:RNA4219/code-to-gate
     code-to-gate scan ./src --format sarif --output results.sarif
 - name: Upload SARIF
   uses: github/codeql-action/upload-sarif@v3

@@ -1,25 +1,29 @@
 # code-to-gate
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**Local-first quality gate for release readiness.**
+
+`code-to-gate` scans repositories locally and produces findings, risks, test
+seeds, SARIF, and release-readiness evidence.
 
 **[日本語](README_JA.md)** | **English**
 
-`code-to-gate` is a CLI that scans TypeScript, JavaScript, Python, Ruby, Go, Rust, Java, PHP, C#, and C++ repositories and produces release-review inputs.
+## Distribution Status
 
-It helps answer a few practical questions:
+| Channel | Status |
+|---------|--------|
+| `package.json` | `1.5.0` |
+| GitHub Release | `v1.4.2` latest published release |
+| npm registry | Not published yet |
 
-- Where does the code show signs of quality risk?
-- What tests would be useful to add?
-- Does the current result pass a release-readiness policy?
-- Can the result be exported to GitHub Code Scanning or another quality gate?
+See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
 
 ## Install
 
 ```bash
-npm install -g @quality-harness/code-to-gate
+npm install -g github:RNA4219/code-to-gate
 ```
 
-If you already cloned this repository:
+From source:
 
 ```bash
 npm install
@@ -27,127 +31,64 @@ npm run build
 npm link
 ```
 
-## Requirements
-
-| Requirement | Version |
-|-------------|---------|
-| Node.js | 20 or later |
-| Git | 2.x |
+The npm package name is `@quality-harness/code-to-gate`, but registry
+publication has not been completed yet.
 
 ## Basic Usage
 
 ```bash
-# Scan repository structure
 code-to-gate scan ./my-repo --out .qh
-
-# Generate findings, risks, test ideas, and reports
 code-to-gate analyze ./my-repo --emit all --out .qh
-
-# Check release readiness with a policy file
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
-
-# Include planning / phase-contract blockers in readiness
-code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh \
-  --intake phase-contract.yaml
-
-# Export SARIF
 code-to-gate export sarif --from .qh --out results.sarif
 ```
 
-## Main Commands
+Database migration analysis:
 
-| Command | Purpose |
-|---------|---------|
-| `scan` | Read repository structure |
-| `analyze` | Generate findings, risks, test ideas, and reports |
-| `readiness` | Evaluate release readiness with a policy |
-| `export` | Export artifacts, including SARIF |
-| `diff` | Inspect impact from a Git diff |
-| `import` | Import ESLint, Semgrep, TypeScript, coverage, and similar outputs |
-| `historical` | Compare against a previous run |
-| `viewer` | Start an HTML viewer |
-| `llm-health` | Check a local LLM provider |
-| `evidence` | Build release-review evidence |
-| `schema validate` | Validate output files against schemas |
+```bash
+code-to-gate analyze ./my-repo --database-analysis --emit all --out .qh
+```
 
 ## Outputs
 
-Files are usually written to the directory passed with `--out`, for example `.qh`.
-
 | File | Contents |
 |------|----------|
-| `repo-graph.json` | Repository structure, files, dependencies, and entrypoints |
-| `findings.json` | Static findings with supporting evidence |
-| `risk-register.yaml` | Items worth reviewing as risks |
-| `invariants.yaml` | Candidate conditions the system should preserve |
-| `test-seeds.json` | Suggested tests to add |
-| `release-readiness.json` | Policy evaluation result |
-| `audit.json` | Run metadata |
+| `repo-graph.json` | Repository structure |
+| `database-assets.json` | Optional DB assets from `--database-analysis` |
+| `findings.json` | Evidence-backed findings |
+| `risk-register.yaml` | Reviewable risks |
+| `test-seeds.json` | Suggested tests |
+| `release-readiness.json` | Policy result |
 | `analysis-report.md` | Human-readable summary |
-| `results.sarif` | SARIF for code scanning tools |
-
-## Built-in Rules
-
-| Rule ID | Detects |
-|---------|---------|
-| `CLIENT_TRUSTED_PRICE` | Client-supplied prices that may be trusted too much |
-| `WEAK_AUTH_GUARD` | Weak authorization checks |
-| `MISSING_SERVER_VALIDATION` | Request bodies used without enough validation |
-| `UNTESTED_CRITICAL_PATH` | Important entrypoints with weak test signals |
-| `TRY_CATCH_SWALLOW` | Caught errors that may be ignored |
-| `RAW_SQL` | Risky SQL string construction |
-| `ENV_DIRECT_ACCESS` | Direct environment variable reads |
-| `UNSAFE_DELETE` | Delete operations with weak safety checks |
-| `LARGE_MODULE` | Oversized modules |
+| `results.sarif` | GitHub Code Scanning format |
 
 ## Policy Example
 
 ```yaml
-version: ctg/v1alpha1
-name: strict
+version: ctg/v1
 blocking:
-  severities:
-    - critical
-  categories:
-    - payment
-  rules:
-    - CLIENT_TRUSTED_PRICE
+  severity:
+    critical: true
+    high: true
+  category:
+    payment: true
+    data: true
 readiness:
   criticalFindingStatus: blocked_input
 ```
 
-In this example, matching critical payment findings or `CLIENT_TRUSTED_PRICE` findings keep the release-readiness result from passing.
+`ctg/v1alpha1` is still accepted for backward compatibility, but new examples
+should use `ctg/v1`.
 
-## GitHub Actions Example
-
-```yaml
-name: code-to-gate PR Analysis
-
-on: [pull_request]
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm install -g @quality-harness/code-to-gate
-      - run: code-to-gate scan . --out .qh
-      - run: code-to-gate analyze . --emit all --out .qh
-      - run: code-to-gate export sarif --from .qh --out results.sarif
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-```
-
-## More Documentation
+## Documentation
 
 | Document | Contents |
 |----------|----------|
 | [docs/quickstart.md](docs/quickstart.md) | First-run guide |
+| [docs/distribution-status.md](docs/distribution-status.md) | Package, GitHub release, and npm publication state |
 | [docs/cli-reference.md](docs/cli-reference.md) | CLI details |
 | [docs/integrations.md](docs/integrations.md) | Tool integrations |
 | [docs/plugin-development.md](docs/plugin-development.md) | Plugin development |
-| [docs/local-llm-setup.md](docs/local-llm-setup.md) | Local LLM setup |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
 
 ## Development
@@ -157,20 +98,5 @@ npm install
 npm run build
 npm test
 ```
-
-### Test Boundaries
-
-| Test Type | Command | Purpose | Duration |
-|-----------|---------|---------|----------|
-| **Smoke tests** | `npm run test:smoke` | Quick validation (53 tests) | ~30s |
-| **Full tests** | `npm test` | Complete validation (~2400 tests) | ~5min |
-| **Performance** | `npm run test:performance` | Large repo benchmarks | ~10min |
-| **Real repo** | `npm run test:real-repo` | External repo acceptance | Optional |
-
-**Release gate**: `npm run test:smoke` + `npm run build` + schema validation.
-
-**CI gate**: Full tests on Linux/macOS, smoke tests on Windows.
-
-## License
 
 MIT License. See [LICENSE](LICENSE).

@@ -9,23 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+---
+
+## [1.5.0] - 2026-06-17 - SQL Database Analysis Release
+
 ### Added
 
 - SPEC-29 SQL/database migration analysis behind `--database-analysis`.
 - Experimental `database-assets@v1alpha1` artifact with dialect and diagnostic evidence.
 - Base/head database operation diffing that reports only newly introduced DB risks.
-
-### Changed
-
-- Database findings now flow through risk, test seed, SARIF, and readiness inputs.
-- Database artifacts redact credential-like values and preserve partial-analysis diagnostics.
-
----
-
-## [1.5.0] - 2026-06-10 - Assurance Smell Detector Release
-
-### Added
-
 - Artifact-only Assurance Smell Detector and assurance finding vocabulary.
 - Git diff access contract and four review-required diff semantic rules.
 - `assurance inspect` diff analysis and QEG assurance evidence export.
@@ -33,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Database findings now flow through risk, test seed, SARIF, and readiness inputs.
+- Database artifacts redact credential-like values and preserve partial-analysis diagnostics.
 - Split diff semantic rules into focused modules while preserving the public API.
 - Extended QEG evidence with assurance findings without transferring release decision ownership.
 

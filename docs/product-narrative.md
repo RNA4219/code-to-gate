@@ -83,7 +83,7 @@ Software teams face a growing challenge: **how do you ensure code quality and se
 | Feature | Description | Status |
 |---------|-------------|--------|
 | Repository scanning | Parse files, extract symbols, build graphs | ✅ Implemented |
-| Quality analysis | 17 built-in vulnerability patterns | ✅ Implemented |
+| Quality analysis | 17 core rules plus optional database analysis | ✅ Implemented |
 | Release readiness | Policy-based gate decisions | ✅ Implemented |
 | Evidence generation | SARIF, JSON, HTML, gatefield formats | ✅ Implemented |
 | Plugin SDK | Docker sandbox supported for custom rules | ✅ Implemented |
@@ -157,7 +157,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 
 | Metric | Status | Evidence |
 |--------|--------|----------|
-| Version stability | 1.4.0 | package.json, npm pack validated |
+| Version stability | package `1.5.0`; GitHub release `v1.4.2`; npm pending | package.json, release records, npm status |
 | Test coverage | 80% threshold | npm run test:coverage |
 | CI passing | ✅ Green | .github/workflows/ badges |
 | Smoke tests | 54 passing | npm run test:smoke |
@@ -199,7 +199,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 | Item | Status |
 |------|--------|
 | Core analysis engine | ✅ Complete |
-| 17 built-in rules | ✅ Complete |
+| 17 core rules + database analysis | ✅ Complete |
 | SARIF output | ✅ Complete |
 | Plugin SDK | ✅ Complete |
 | 6 language support | ⚠️ Partial (TS/JS full, others tree-sitter) |
@@ -211,7 +211,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 |------|--------|----------|
 | OSS public launch | ⚠️ Pending | P0 |
 | npm publish | ⚠️ Pending - npm registry publication not yet completed | P0 |
-| GitHub release v1.4.0 | ✅ Complete | P0 |
+| GitHub release v1.5.0 | ⚠️ Pending - latest published release is v1.4.2 | P0 |
 | Community outreach | ⚠️ Planned | P1 |
 | Enterprise pilot outreach | ⚠️ Planned | P1 |
 
@@ -240,7 +240,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 ### For Developers
 
 ```bash
-npm install -g @quality-harness/code-to-gate
+npm install -g github:RNA4219/code-to-gate
 code-to-gate analyze ./src --out .qh
 ```
 

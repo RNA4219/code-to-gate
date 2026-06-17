@@ -334,7 +334,7 @@ jobs:
           fetch-depth: 0
       
       - name: Install code-to-gate
-        run: npm install -g @quality-harness/code-to-gate
+        run: npm install -g github:RNA4219/code-to-gate
       
       - name: Run analysis
         run: |
