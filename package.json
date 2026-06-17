@@ -4,7 +4,7 @@
   "description": "A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs",
   "type": "module",
   "bin": {
-    "code-to-gate": "./dist/cli.js"
+    "code-to-gate": "dist/cli.js"
   },
   "main": "./dist/cli.js",
   "exports": {

@@ -17,8 +17,9 @@ npm publication status.
 |---------|---------------|-------|
 | `package.json` | `1.5.0` | Local package version prepared for the SQL Database Analysis release |
 | GitHub Release | `v1.4.2` | Latest published GitHub release |
-| npm registry | Not published | `@quality-harness/code-to-gate` is the intended package name |
+| npm registry | Not published | `npm view @quality-harness/code-to-gate` returns `E404` |
 | Recommended install | GitHub install | Use `npm install -g github:RNA4219/code-to-gate` until npm publish is complete |
+| Local npm auth | Not authenticated | `npm whoami` returns `ENEEDAUTH`; maintainer login is required before publish |
 
 ## Install Commands
 
@@ -38,6 +39,18 @@ npm install -g @quality-harness/code-to-gate
 | GitHub release | Publish `v1.5.0` release notes from `CHANGELOG.md` |
 | npm package | Run `npm publish --access public` after npm authentication |
 | Docs | Keep README, Quickstart, Release Approval Record, and this file aligned |
+
+## npm Publication Blocker
+
+The package name `@quality-harness/code-to-gate` is not currently visible on
+the public npm registry. Publication is blocked only by local npm
+authentication on this machine:
+
+```bash
+npm login
+npm publish --access public
+npm view @quality-harness/code-to-gate version dist-tags --json
+```
 
 ## Schema Version Guidance
 

@@ -7,6 +7,10 @@ code-to-gate is a local-first quality harness CLI tool that analyzes repositorie
 **Type**: TypeScript CLI tool (ESM)
 **Node**: 20+
 **Framework**: Vitest for testing, ts-morph for AST parsing
+**Package**: `@quality-harness/code-to-gate`
+**Current package version**: `1.5.0`
+**Latest GitHub release**: `v1.4.2` until the v1.5.0 release is published
+**npm registry**: not published until npm authentication is completed
 
 ## Key Commands
 
@@ -16,14 +20,18 @@ npm run build        # TypeScript compilation
 
 # Test
 npm test             # Full test suite (~3000 tests)
-npm run test:smoke   # Quick smoke tests (53 tests)
+npm run test:smoke   # Quick smoke tests (54 tests)
+npm run test:tree-sitter
+npm run test:architecture
+npm run test:package
 
 # CLI Usage
 npm run ctg -- <command>  # Run CLI via npm
 node ./dist/cli.js <command>  # Run directly
 
 # Release validation
-npm run release:validate  # Build + smoke + pack dry-run
+npm run release:validate
+npm run release:public
 ```
 
 ## Architecture
@@ -33,20 +41,22 @@ npm run release:validate  # Build + smoke + pack dry-run
 | Module | Purpose |
 |--------|---------|
 | `src/cli/` | CLI commands (scan, analyze, readiness, etc.) |
-| `src/adapters/` | Language parsers (TS, JS, Python) |
-| `src/rules/` | Detection rules (9 built-in) |
+| `src/adapters/` | Language parsers and tree-sitter adapters |
+| `src/rules/` | Detection rules, including database migration rules |
 | `src/cache/` | Incremental cache system |
 | `src/parallel/` | Worker-based parallel processing |
 | `src/plugin/` | Plugin SDK with Docker sandbox |
 | `src/config/` | Policy loading and evaluation |
 | `src/historical/` | Baseline comparison |
+| `src/core/database-analyzer.ts` | Optional SQL/database migration analysis |
 
 ### Data Flow
 
 ```
-Repository → scan → repo-graph.json → analyze → findings.json → readiness → release-readiness.json
-                                              ↓
-                                    export → SARIF, gatefield, etc.
+Repository -> scan -> repo-graph.json -> analyze -> findings.json -> readiness -> release-readiness.json
+                                                |
+                                                v
+                                      export -> SARIF, gatefield, etc.
 ```
 
 ## Schema Versioning
@@ -57,10 +67,14 @@ All artifacts use stable schemas in `schemas/`:
 - `findings.schema.json` - Quality findings
 - `normalized-repo-graph.schema.json` - Repository structure
 - `release-readiness.schema.json` - Release gate status
+- `database-assets.schema.json` - Optional database analysis output
 
 ## Policy System
 
-Policies are YAML files in `fixtures/policies/`:
+Policies are YAML files. See `docs/policy-guide.md` for the public guide.
+
+Common fields:
+
 - `blocking.severities` - Block on severity level
 - `blocking.categories` - Block on category (payment, auth, etc.)
 - `blocking.rules` - Block on specific rule IDs
@@ -71,6 +85,9 @@ Policies are YAML files in `fixtures/policies/`:
 Located in `src/config/policy-loader.ts` and `src/config/policy-evaluator.ts`.
 
 ## Built-in Rules
+
+Current public docs describe 17 core rules plus optional database analysis rules.
+The high-level rule families are:
 
 | Rule | Category | Detection |
 |------|----------|-----------|
@@ -83,6 +100,7 @@ Located in `src/config/policy-loader.ts` and `src/config/policy-evaluator.ts`.
 | ENV_DIRECT_ACCESS | security | Direct env var access |
 | UNSAFE_DELETE | maintainability | Unsafe delete operations |
 | LARGE_MODULE | maintainability | Module size thresholds |
+| DB_* | data | Optional database migration findings when `--database-analysis` is enabled |
 
 ## Testing Conventions
 
@@ -127,6 +145,12 @@ Defined in `src/cli/exit-codes.ts`:
 4. Create tests in `src/rules/__tests__/my-rule.test.ts`
 5. Update fixtures if needed
 
+### Database Analysis
+
+Use `--database-analysis` with `scan`, `analyze`, or `diff` to emit
+`database-assets.json` and database-related findings. The analyzer is local only
+and does not connect to a real database or print credentials.
+
 ### Fixing Policy Issues
 
 Policy parsing and evaluation are in:
@@ -157,6 +181,9 @@ node ./dist/cli.js analyze . --verbose
 
 # Check specific file parsing
 node ./dist/cli.js scan . --verbose --out .qh-debug
+
+# Analyze database migrations
+node ./dist/cli.js analyze . --database-analysis --emit all --out .qh-db
 
 # View generated artifacts
 cat .qh/findings.json | jq '.findings[0]'

@@ -87,6 +87,7 @@ should use `ctg/v1`.
 | [docs/quickstart.md](docs/quickstart.md) | First-run guide |
 | [docs/distribution-status.md](docs/distribution-status.md) | Package, GitHub release, and npm publication state |
 | [docs/cli-reference.md](docs/cli-reference.md) | CLI details |
+| [docs/policy-guide.md](docs/policy-guide.md) | Gate policy configuration |
 | [docs/integrations.md](docs/integrations.md) | Tool integrations |
 | [docs/plugin-development.md](docs/plugin-development.md) | Plugin development |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |

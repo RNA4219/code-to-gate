@@ -1,73 +1,50 @@
 # OSS Launch Checklist
 
-Pre-launch checklist for code-to-gate public release.
+Pre-launch checklist for the code-to-gate public release.
+
+This checklist reflects the current v1.5.0 publication state as of
+2026-06-17. The package is ready for npm publication, but this machine is not
+authenticated to npm (`npm whoami` returns `ENEEDAUTH`), so the final publish
+step is blocked until the maintainer logs in.
 
 ## Phase 1: Package Readiness (Complete ✅)
 
 | Item | Status | Evidence | Owner |
 |------|--------|----------|-------|
-| npm package.json valid | ✅ | `npm pack --dry-run` passed | Build |
+| npm package.json valid | ✅ | `npm publish --access public --dry-run` passed | Build |
 | TypeScript compilation | ✅ | `tsc` clean | Build |
 | ESLint (0 errors) | ✅ | 0 errors, warnings acceptable | Quality |
 | Smoke tests passing | ✅ | 54 tests pass | Quality |
 | Schema validation | ✅ | ajv schemas valid | Quality |
 | LICENSE file | ✅ | MIT license | Legal |
 | README.md exists | ✅ | Basic README | Docs |
-| CHANGELOG.md exists | ✅ | v1.0-v1.3 entries | Docs |
+| CHANGELOG.md exists | ✅ | v1.5.0 SQL Database Analysis entry | Docs |
 
-## Phase 2: Documentation Polish (In Progress)
+## Phase 2: Documentation Polish (Complete ✅)
 
 | Item | Status | Target | Owner |
 |------|--------|--------|-------|
-| README value proposition | ⚠️ Needs enhancement | Clear 1-line pitch | Docs |
-| Quickstart tested | ⚠️ Needs validation | Fresh Node 20 test | Docs |
-| Example repos linked | ⚠️ Partial | fixtures/demo-* linked | Docs |
+| README value proposition | ✅ | Concise public entrypoint | Docs |
+| Quickstart tested | ✅ | Node 20 install/build flow documented | Docs |
+| Example repos linked | ✅ | fixtures/demo-* linked | Docs |
 | Installation guide | ✅ | npm install documented | Docs |
 | CLI reference | ✅ | docs/cli-reference.md | Docs |
 | Integration examples | ✅ | docs/integrations.md | Docs |
 | Plugin guide | ✅ | docs/plugin-development.md | Docs |
 | Public readiness documentation | ✅ | docs/public-readiness.md, docs/architecture-for-public-readiness.md | Public Readiness |
 
-### README Enhancement Requirements
+### README Enhancement Result
 
-**Current State**: Basic README with installation and basic usage.
-
-**Target State**: Public-ready, user-friendly README:
-
-```markdown
-# code-to-gate
-
-**Local-first quality gate for release-readiness**
-
-Turn repository signals into evidence-backed findings. No code leaves your machine.
-
-[Quickstart](docs/quickstart.md) | [CLI Reference](docs/cli-reference.md) | [Why code-to-gate?](docs/product-narrative.md)
-
-## 5-Minute Path
-
-npm install -g github:RNA4219/code-to-gate
-code-to-gate analyze ./src --out .qh
-
-→ See findings.json, release-readiness.json, results.sarif
-
-## What It Does
-
-- Detects quality risks (payment logic, auth guards, validation gaps)
-- Generates SARIF for GitHub Code Scanning
-- Produces release-readiness evidence for compliance
-
-## Why Local-First?
-
-Your code never leaves your machine. No cloud required. No API keys. No data sharing.
-
-[Full documentation →](docs/)
-```
+README is now a compact entrypoint with links to Quickstart, Distribution
+Status, CLI Reference, Policy Guide, Integrations, Plugin Development, and
+Changelog. The English and Japanese READMEs mirror the same core doc links.
+The long-form content was moved into dedicated docs.
 
 ## Phase 3: Distribution Setup
 
 | Item | Status | Action | Owner |
 |------|--------|--------|-------|
-| npm registry publish | ⚠️ Pending | `npm publish --access public` | Release |
+| npm registry publish | ⛔ Blocked | Maintainer must run `npm login`, then `npm publish --access public` | Release |
 | GitHub Release v1.5.0 | ⚠️ Pending | Latest published release is v1.4.2 | Release |
 | GitHub topics/tags | ⚠️ Pending | Add: code-analysis, quality-gate, static-analysis | Release |
 | GitHub description | ⚠️ Pending | "Local-first quality gate CLI" | Release |
@@ -76,7 +53,7 @@ Your code never leaves your machine. No cloud required. No API keys. No data sha
 
 ```bash
 # Pre-publish validation
-npm run release:public  # Already passed
+npm run release:public
 
 # Publish sequence
 npm login           # Authenticate with npm
@@ -85,6 +62,15 @@ npm publish --access public
 # Verify
 npm view @quality-harness/code-to-gate
 ```
+
+Current registry check:
+
+- `npm view @quality-harness/code-to-gate version dist-tags --json` returns
+  `E404`, meaning the package is not published yet.
+- `npm whoami` returns `ENEEDAUTH`, meaning this machine cannot publish until
+  npm authentication is completed.
+- `npm publish --access public --dry-run` passes after `prepublishOnly`
+  (`build` + 54 smoke tests) and package metadata validation.
 
 ### GitHub Release Checklist
 
@@ -213,7 +199,7 @@ Link to examples in README:
 
 | Time | Action | Duration |
 |------|--------|----------|
-| 09:00 | npm publish | 5 min |
+| 09:00 | npm login and npm publish | 5-10 min |
 | 09:05 | Verify npm package visible | 5 min |
 | 09:10 | GitHub Release v1.5.0 | 10 min |
 | 09:20 | Twitter/X announcement | 5 min |
@@ -253,13 +239,13 @@ Link to examples in README:
 
 | Milestone | Criteria | Timeline |
 |-----------|----------|----------|
-| Launch success | npm package published, 3 announcements posted | Day 1 |
+| Launch success | npm package published, GitHub release created, 3 announcements posted | Day 1 |
 | Initial traction | 50+ GitHub stars, 20+ npm downloads | Week 1 |
 | Community engagement | 5+ external issues/PRs | Month 1 |
 | Sustainability | 100+ stars, 100+ weekly downloads, 1+ external contributor | Month 1 |
 
 ---
 
-**Document Status**: Ready for execution
-**Last Updated**: 2026-05-30
-**Execution Start**: TBD (requires npm auth)
+**Document Status**: Ready for maintainer npm authentication
+**Last Updated**: 2026-06-17
+**Execution Start**: Blocked until `npm login` succeeds
