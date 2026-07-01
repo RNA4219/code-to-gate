@@ -52,7 +52,7 @@ export function generateRawFindingsArtifact(
     version: findings.version,
     generated_at: findings.generated_at,
     run_id: runId,
-    repo: { root: repoRoot },
+    repo: { ...findings.repo, root: repoRoot },
     tool: {
       name: "code-to-gate",
       version: toolVersion,

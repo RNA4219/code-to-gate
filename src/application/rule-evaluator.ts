@@ -8,7 +8,7 @@
  * - Applies domain tags
  */
 
-import type { Finding, FindingsArtifact, EvidenceRef, RepoFile, UnsupportedClaim } from "../types/artifacts.js";
+import type { Finding, FindingsArtifact, EvidenceRef, RepoFile, RepoRef, UnsupportedClaim } from "../types/artifacts.js";
 import type { RuleContext, RulePlugin, SimpleGraph } from "../rules/index.js";
 import { CORE_RULES } from "../rules/index.js";
 import { domainTagForFinding, falsePositiveReviewTags } from "../core/domain-context.js";
@@ -39,20 +39,18 @@ function generateEvidenceId(findingId: string, index: number): string {
  */
 export function createFindingsHeader(
   runId: string,
-  repoRoot: string,
+  repo: string | RepoRef,
   applicationContext: ApplicationContext,
   policyId?: string,
   rules: RulePlugin[] = CORE_RULES
 ): ArtifactHeader {
   const now = applicationContext.clockService.now();
+  const repoRef = typeof repo === "string" ? { root: repo } : repo;
   return {
     version: SCHEMA_VERSION,
     generated_at: now,
     run_id: runId,
-    repo: {
-      root: repoRoot,
-      dirty: false,
-    },
+    repo: repoRef,
     tool: {
       name: "code-to-gate",
       version: applicationContext.toolVersion,
@@ -111,7 +109,7 @@ export function evaluateRules(
     files: RepoFile[];
     run_id: string;
     generated_at: string;
-    repo: { root: string };
+    repo: { root: string; dirty?: boolean; revision?: string; branch?: string; base_ref?: string; head_ref?: string };
     stats: { partial: boolean };
   },
   applicationContext: ApplicationContext,
@@ -122,7 +120,7 @@ export function evaluateRules(
   fileContentCache.clear();
 
   const repoRoot = graph.repo.root;
-  const header = createFindingsHeader(graph.run_id, repoRoot, applicationContext, policyId, rules);
+  const header = createFindingsHeader(graph.run_id, graph.repo, applicationContext, policyId, rules);
 
   const allFindings: Finding[] = [];
   const unsupported_claims: UnsupportedClaim[] = [];

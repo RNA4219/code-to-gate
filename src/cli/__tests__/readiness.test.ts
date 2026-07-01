@@ -216,6 +216,73 @@ describe("readiness CLI", () => {
       expect(readiness.artifactRefs.findings).toBeDefined();
     });
 
+    it("propagates repo metadata from findings into readiness artifact", async () => {
+      const findingsDir = path.join(tempOutDir, "repo-metadata-findings");
+      mkdirSync(findingsDir, { recursive: true });
+      writeFileSync(
+        path.join(findingsDir, "findings.json"),
+        JSON.stringify(createFindingsArtifact([], {
+          repo: {
+            root: "/analysis/repo",
+            dirty: true,
+            branch: "riskfix",
+            revision: "abc123def456",
+          },
+        })),
+        "utf8"
+      );
+
+      const args = [fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", tempOutDir];
+      const { readiness } = await runReadiness(args);
+
+      expect(readiness.repo.root).toBe(fixturesDir);
+      expect(readiness.repo.dirty).toBe(true);
+      expect(readiness.repo.branch).toBe("riskfix");
+      expect(readiness.repo.revision).toBe("abc123def456");
+    });
+
+    it("resolves relative policy suppression files from the target repo root", async () => {
+      const repoDir = path.join(tempOutDir, "repo-relative-suppressions");
+      mkdirSync(path.join(repoDir, ".ctg"), { recursive: true });
+      writeFileSync(path.join(repoDir, "package.json"), "{}", "utf8");
+      writeFileSync(
+        path.join(repoDir, ".ctg", "suppressions.yaml"),
+        [
+          "version: ctg/v1",
+          "suppressions:",
+          "  - rule_id: LARGE_MODULE",
+          "    path: src/specific-file.ts",
+          "    reason: Specific file debt only",
+          "    expiry: 2027-04-30",
+        ].join("\n"),
+        "utf8"
+      );
+
+      const policyWithRepoSuppressions = path.join(tempOutDir, "repo-suppressions-policy.yaml");
+      writeFileSync(policyWithRepoSuppressions, `
+version: ctg/v1
+policy_id: repo-suppression-root-test
+
+blocking:
+  severity:
+    critical: true
+    high: true
+  category:
+    auth: true
+    payment: true
+
+suppression:
+  file: .ctg/suppressions.yaml
+`, "utf8");
+
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "repo-suppressions-findings"), []);
+      const args = [repoDir, "--policy", policyWithRepoSuppressions, "--from", findingsDir, "--out", tempOutDir];
+      const { readiness } = await runReadiness(args);
+
+      expect(readiness.selfAnalysis.broadSuppressions).toBe(0);
+      expect(readiness.recommendedActions.some((action: string) => action.includes("broad suppression"))).toBe(false);
+    });
+
     it("handles nonexistent --from directory and empty findings", async () => {
       // Nonexistent --from - now returns POLICY_FAILED (P0-01 fix)
       const args1 = [fixturesDir, "--policy", policyFile, "--from", "/nonexistent", "--out", tempOutDir];

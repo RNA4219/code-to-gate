@@ -483,6 +483,30 @@ describe("analyze CLI", () => {
     expect(findings.artifact).toBe("findings");
   });
 
+  it("uses lightweight text graph by default", async () => {
+    const repoDir = path.join(tempOutDir, "lightweight-analyze-repo");
+    const srcDir = path.join(repoDir, "src");
+    mkdirSync(srcDir, { recursive: true });
+
+    for (let index = 0; index < 25; index++) {
+      writeFileSync(
+        path.join(srcDir, `module-${index}.ts`),
+        `export function module${index}(): number { return ${index}; }\n`,
+        "utf8"
+      );
+    }
+
+    const outDir = path.join(tempOutDir, "lightweight-analyze-out");
+    const result = await analyzeCommand([repoDir, "--emit", "json", "--out", outDir], { VERSION, EXIT, getOption });
+
+    expect(result).toBe(EXIT.OK);
+    const graph = JSON.parse(readFileSync(path.join(outDir, "repo-graph.json"), "utf8"));
+    const tsFiles = graph.files.filter((file: { language: string }) => file.language === "ts");
+    expect(tsFiles.length).toBe(25);
+    expect(tsFiles.every((file: { parser: { status: string } }) => file.parser.status === "skipped")).toBe(true);
+    expect(graph.symbols).toEqual([]);
+  });
+
   it("test files are detected correctly", async () => {
     const args = [fixturesDir, "--out", tempOutDir];
     await analyzeCommand(args, { VERSION, EXIT, getOption });

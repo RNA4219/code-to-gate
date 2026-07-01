@@ -10,10 +10,11 @@
  * - cli: Injects DefaultParserRegistry (composition root)
  */
 
+import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
+import type { NormalizedRepoGraph, RepoFile, RepoRef } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
 import type { ParserRegistry, ParserAdapterResult } from "../types/contracts.js";
 import { detectLanguage, detectRole, entrypointKind, isEntrypoint, walkDir } from "./file-utils.js";
@@ -33,9 +34,45 @@ export interface BuildGraphOptions {
 const parseCache = new Map<string, ParserAdapterResult>();
 const graphCache = new Map<string, NormalizedRepoGraph>();
 
+function runGit(repoRoot: string, args: string[]): string | undefined {
+  const result = spawnSync("git", ["-c", `safe.directory=${toPosix(repoRoot)}`, ...args], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    timeout: 5000,
+    windowsHide: true,
+  });
+  if (result.error || result.status !== 0) {
+    return undefined;
+  }
+  return result.stdout.trim();
+}
+
+function readRepoRef(repoRoot: string): RepoRef {
+  const relativeRoot = toPosix(path.relative(process.cwd(), repoRoot) || ".");
+  const repo: RepoRef = { root: relativeRoot };
+
+  if (runGit(repoRoot, ["rev-parse", "--is-inside-work-tree"]) !== "true") {
+    return repo;
+  }
+
+  const revision = runGit(repoRoot, ["rev-parse", "--short=12", "HEAD"]);
+  if (revision) {
+    repo.revision = revision;
+  }
+
+  const branch = runGit(repoRoot, ["branch", "--show-current"]);
+  if (branch) {
+    repo.branch = branch;
+  }
+
+  const status = runGit(repoRoot, ["status", "--porcelain=v1", "--untracked-files=all"]);
+  repo.dirty = status !== undefined ? status.length > 0 : undefined;
+  return repo;
+}
+
 export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): NormalizedRepoGraph {
   const now = new Date().toISOString();
-  const relativeRoot = toPosix(path.relative(process.cwd(), repoRoot) || ".");
+  const repo = readRepoRef(repoRoot);
   const commitSha = process.env.GITHUB_SHA?.slice(0, 7) || "local";
   const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 12)}-${commitSha}`;
 
@@ -43,7 +80,7 @@ export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): Nor
     version: CTG_VERSION,
     generated_at: now,
     run_id: runId,
-    repo: { root: relativeRoot },
+    repo,
     tool: { name: "code-to-gate", version: toolVersion, plugin_versions: [] },
     artifact: "normalized-repo-graph",
     schema: "normalized-repo-graph@v1",

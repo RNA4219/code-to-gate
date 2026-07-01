@@ -149,10 +149,7 @@ export function buildInvariantsFromFindings(
     version: CTG_VERSION,
     generated_at: now,
     run_id: runId,
-    repo: {
-      root: repoRoot,
-      dirty: false,
-    },
+    repo: { ...findings.repo, root: repoRoot },
     tool: {
       name: "code-to-gate",
       version: findings.tool.version,

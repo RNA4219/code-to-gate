@@ -173,6 +173,12 @@ function getMergedStatusSummary(
   return getStatusSummary(status, evalResult);
 }
 
+function resolvePolicySuppressionPath(suppressionPath: string, repoRoot: string): string {
+  return path.isAbsolute(suppressionPath)
+    ? suppressionPath
+    : path.resolve(repoRoot, suppressionPath);
+}
+
 export async function readinessCommand(args: string[], options: ReadinessOptions): Promise<number> {
   const repoArg = args[0];
   const policyPath = options.getOption(args, "--policy");
@@ -230,7 +236,10 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     let suppressions: SuppressionEntry[] = [];
     let expiryWarnings: SuppressionExpiryWarning[] = [];
     if (policy.suppression?.file) {
-      const suppressionFile = loadSuppressionFile(policy.suppression.file, cwd);
+      const suppressionFile = loadSuppressionFile(
+        resolvePolicySuppressionPath(policy.suppression.file, repoRoot),
+        cwd
+      );
       suppressions = suppressionFile.suppressions;
 
       // Check for expired or expiring suppressions
@@ -338,7 +347,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       version: CTG_VERSION,
       generated_at: now,
       run_id: runId,
-      repo: { root: repoRoot },
+      repo: { ...findings.repo, root: repoRoot },
       tool: {
         name: "code-to-gate",
         version: VERSION,

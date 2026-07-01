@@ -197,14 +197,15 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const emitFormats = parseEmitOption(emitValue);
   const absoluteOutDir = nodePathService.resolve(cwd, outDir);
 
-  // Create parser registry with composition root pattern
-  // CLI injects initialized registry into buildGraph
-  let parserRegistry: ParserRegistry;
-  try {
-    parserRegistry = await createParserRegistry(useTreeSitter);
-  } catch {
-    // Fall back to empty registry (will use text-only parsing)
-    parserRegistry = { getParser: () => null, hasParser: () => false, getRegisteredLanguages: () => [], isTreeSitterReady: () => false };
+  // Analyze uses text-based rules by default so large TypeScript repos stay responsive.
+  // Symbol parsers are opt-in via --tree-sitter.
+  let parserRegistry: ParserRegistry | undefined;
+  if (useTreeSitter) {
+    try {
+      parserRegistry = await createParserRegistry(true);
+    } catch {
+      parserRegistry = undefined;
+    }
   }
 
   try {
