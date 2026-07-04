@@ -51,6 +51,10 @@ git branch
 # Check current version
 cat package.json | jq '.version'
 
+# Check published versions and publication state
+npm view @quality-harness/code-to-gate version dist-tags --json
+gh release view v$(cat package.json | jq -r '.version')
+
 # Check for uncommitted changes
 git status
 
@@ -78,14 +82,17 @@ For alpha releases, 80% test pass rate is acceptable. For beta, 90%. For stable,
 ```bash
 # Test basic commands
 node dist/cli.js scan fixtures/demo-shop-ts --out .qh-test-release
-node dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-test-release --llm-mode none
-node dist/cli.js readiness fixtures/demo-shop-ts --out .qh-test-release --llm-mode none
+node dist/cli.js analyze fixtures/demo-shop-ts --emit all --out .qh-test-release --llm-mode local-only --llm-provider deterministic
+node dist/cli.js readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh-test-release --out .qh-test-release
 
 # Verify artifacts
 ls -la .qh-test-release
 
 # Validate schemas
 node dist/cli.js schema validate schemas/*.schema.json
+
+# Verify package contents before publication
+npm pack --dry-run
 
 # Cleanup
 rm -rf .qh-test-release
@@ -279,7 +286,11 @@ See [CHANGELOG.md](CHANGELOG.md) for complete details.
 ## Installation
 
 ```bash
-npm install code-to-gate@X.Y.Z-alpha.N
+# Current public path while npm publication is pending
+npm install -g github:RNA4219/code-to-gate
+
+# Future npm path after publication
+npm install -g @quality-harness/code-to-gate@X.Y.Z-alpha.N
 ```
 
 ## Validation Results
@@ -327,6 +338,7 @@ Check GitHub Actions:
 - Build workflow triggered and passed
 - Release workflow triggered (if configured)
 - SARIF uploaded (if configured)
+- QEG evidence input generated and schema-valid (`.qh/qeg-code-to-gate.json`)
 
 #### 8.3 Test Released Version
 
@@ -335,8 +347,26 @@ Check GitHub Actions:
 gh release download vX.Y.Z-alpha.N
 
 # If npm package exists
-npm install code-to-gate@X.Y.Z-alpha.N
+npm install -g @quality-harness/code-to-gate@X.Y.Z-alpha.N
+code-to-gate --version
 ```
+
+#### 8.4 Verify Distribution Alignment
+
+Record the following in the release evidence:
+
+```bash
+cat package.json | jq -r '.version'
+gh release view vX.Y.Z-alpha.N
+npm view @quality-harness/code-to-gate version dist-tags --json
+npm pack --dry-run
+node ./dist/cli.js export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
+node ./dist/cli.js schema validate .qh/qeg-code-to-gate.json
+```
+
+If `npm view` returns `E404`, the release is not npm-published. Keep README and
+`docs/distribution-status.md` on the GitHub/source install path until npm
+publication is complete.
 
 ---
 
@@ -367,8 +397,12 @@ The `.github/workflows/code-to-gate-release.yml` workflow provides automated rel
 - Runs on push to main branch
 - Can be triggered manually with inputs
 - Generates release evidence artifacts
+- Generates QEG evidence-only input for quality-evidence-graph
 - Uploads SARIF to code scanning
 - Blocks release if not ready
+
+`qeg-code-to-gate.json` is not a release approval. QEG and the human release
+gate own final verdict, waiver, approval, and record retention.
 
 ---
 
@@ -483,6 +517,10 @@ Share release information:
 [X] Version updated
 [X] CHANGELOG updated
 [X] README updated
+[X] Distribution status updated
+[X] GitHub release version matches package version or mismatch is documented
+[X] npm publication state verified (`npm view` result recorded)
+[X] Package dry-run reviewed and `dist/cli.js` included
 ```
 
 All checks must pass for stable release. Threshold-based passes acceptable for alpha/beta.
