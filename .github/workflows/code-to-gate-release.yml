@@ -68,6 +68,7 @@ jobs:
         with:
           name: ctg-audit-${{ github.sha }}
           path: .qh/audit.json
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 90
 
@@ -275,6 +276,7 @@ jobs:
             .qh/audit.json
             .qh/package/package-integrity.json
             coverage/coverage-summary.json
+          include-hidden-files: true
           retention-days: 90
 
       - name: Block release if not ready
@@ -326,4 +328,5 @@ jobs:
         with:
           name: ctg-acceptance-evidence-${{ github.sha }}
           path: .qh/acceptance/
+          include-hidden-files: true
           retention-days: 90

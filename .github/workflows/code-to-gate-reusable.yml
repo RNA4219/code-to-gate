@@ -96,4 +96,5 @@ jobs:
         with:
           name: code-to-gate-artifacts-${{ github.sha }}
           path: ${{ inputs.artifact_dir }}/
+          include-hidden-files: true
           retention-days: 90
