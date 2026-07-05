@@ -118,6 +118,7 @@ next_review_due: 2026-05-15
 | `invariants.yaml` | 不変条件候補 | QA、manual-bb |
 | `test-seeds.json` | QA 設計 seed | manual-bb-test-harness |
 | `release-readiness.json` | 判断材料 bundle | agent-state-gate、CI |
+| `spec-drift.json` | docs/schema/CLI/test の不整合検出 | CI、reviewer |
 | `analysis-report.md` | 人間向け要約 | 開発者、レビュアー |
 | `audit.json` | run metadata | 監査、再現 |
 | `results.sarif` | code scanning | GitHub |

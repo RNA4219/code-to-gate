@@ -40,7 +40,9 @@ publication has not been completed yet.
 code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
+code-to-gate spec-drift ./my-repo --out .qh
 code-to-gate export sarif --from .qh --out results.sarif
+code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 ```
 
 Database migration analysis:
@@ -59,6 +61,8 @@ code-to-gate analyze ./my-repo --database-analysis --emit all --out .qh
 | `risk-register.yaml` | Reviewable risks |
 | `test-seeds.json` | Suggested tests |
 | `release-readiness.json` | Policy result |
+| `evidence-dag.json` | Cross-artifact evidence graph |
+| `spec-drift.json` | Docs, schema, CLI, and test drift checks |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 

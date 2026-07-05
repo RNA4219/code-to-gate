@@ -43,3 +43,13 @@ plugin marketplace を作る前に、rule 自体の品質を測る。
 - schema compatibility
 - runtime cost
 
+## 5. Self-Auditing Drift Budget
+
+`spec-drift.json` を継続的に蓄積し、docs/schema/test/help の不整合に
+「drift budget」を設定する。release branch では budget 超過を block、
+通常PRでは PR comment に修正対象を列挙する。
+
+- public schema 追加時に docs と schema coverage の更新を要求する。
+- CLI target 追加時に `--help` と CLI reference の更新を要求する。
+- RUNBOOK / Task Seed / CI workflow まで比較範囲を広げ、実装済み宣言と
+  実装証跡のズレを status drift として扱う。

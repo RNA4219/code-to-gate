@@ -50,6 +50,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates raw-findings schema", () => {
+      const schemaFile = schemaPath("raw-findings");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates risk-register schema", () => {
       const schemaFile = schemaPath("risk-register");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -106,6 +114,38 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates spec-drift schema", () => {
+      const schemaFile = schemaPath("spec-drift");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
+    it("validates diff-analysis schema", () => {
+      const schemaFile = schemaPath("diff-analysis");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
+    it("validates database-assets schema", () => {
+      const schemaFile = schemaPath("database-assets");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
+    it("validates self-analysis-debt schema", () => {
+      const schemaFile = schemaPath("self-analysis-debt");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates evidence-ref schema", () => {
       const schemaFile = schemaPath("evidence-ref");
       // Note: evidence-ref.schema.json may be empty in some versions
@@ -151,6 +191,7 @@ describe("schema coverage integration", () => {
     it("all main schema files are valid JSON", () => {
       const schemaFiles = [
         "normalized-repo-graph.schema.json",
+        "raw-findings.schema.json",
         "findings.schema.json",
         "risk-register.schema.json",
         "audit.schema.json",
@@ -159,6 +200,10 @@ describe("schema coverage integration", () => {
         "test-seeds.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
+        "spec-drift.schema.json",
+        "diff-analysis.schema.json",
+        "database-assets.schema.json",
+        "self-analysis-debt.schema.json",
       ];
 
       for (const file of schemaFiles) {
@@ -527,6 +572,51 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalEvidenceDagPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal spec-drift artifact", () => {
+      const minimalSpecDriftPath = path.join(tempDir, "minimal-spec-drift.json");
+      writeFileSync(
+        minimalSpecDriftPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "test-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "spec-drift",
+          schema: "spec-drift@v1",
+          completeness: "complete",
+          status: "passed",
+          checks: [
+            {
+              id: "command.export-targets.cli-help",
+              type: "command",
+              status: "pass",
+              summary: "CLI help is aligned.",
+              expected: ["gatefield"],
+              actual: ["gatefield"],
+              evidence: [
+                {
+                  path: "src/cli.ts",
+                  detail: "CLI help lists supported targets.",
+                },
+              ],
+            },
+          ],
+          findings: [],
+          summary: {
+            checks: 1,
+            failed: 0,
+            warnings: 0,
+            findings: 0,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalSpecDriftPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

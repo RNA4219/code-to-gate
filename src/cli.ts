@@ -12,6 +12,7 @@ import { historicalCommand } from "./cli/historical.js";
 import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { assuranceCommand } from "./cli/assurance.js";
+import { specDriftCommand } from "./cli/spec-drift.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -30,6 +31,7 @@ Usage:
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
+  code-to-gate spec-drift <repo> --out <dir>
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
     Commands: bundle, validate, list, extract
@@ -145,6 +147,10 @@ async function main(): Promise<number> {
 
     if (command === "historical") {
       return await historicalCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "spec-drift") {
+      return await specDriftCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "evidence") {

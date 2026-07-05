@@ -428,6 +428,51 @@ export interface EvidenceDagArtifact extends ArtifactHeader {
   };
 }
 
+// === Spec Drift ===
+
+export type SpecDriftCheckType = "command" | "schema" | "test" | "status";
+export type SpecDriftCheckStatus = "pass" | "fail" | "warning";
+
+export interface SpecDriftEvidence {
+  path: string;
+  detail: string;
+}
+
+export interface SpecDriftCheck {
+  id: string;
+  type: SpecDriftCheckType;
+  status: SpecDriftCheckStatus;
+  summary: string;
+  expected?: string[];
+  actual?: string[];
+  evidence: SpecDriftEvidence[];
+}
+
+export interface SpecDriftFinding {
+  id: string;
+  severity: Severity;
+  category: "release-risk";
+  title: string;
+  summary: string;
+  sourceCheckId: string;
+  evidence: SpecDriftEvidence[];
+}
+
+export interface SpecDriftArtifact extends ArtifactHeader {
+  artifact: "spec-drift";
+  schema: "spec-drift@v1";
+  completeness: Completeness;
+  status: "passed" | "failed";
+  checks: SpecDriftCheck[];
+  findings: SpecDriftFinding[];
+  summary: {
+    checks: number;
+    failed: number;
+    warnings: number;
+    findings: number;
+  };
+}
+
 // === Normalized Repo Graph (for analyze input) ===
 
 export interface RepoFile {

@@ -41,11 +41,22 @@ Requirements:
 
 Objective: docs/schema/CLI/test の不整合を release risk として検出する。
 
+Status: in_progress
+
 Requirements:
 
 - CLI reference と `src/cli.ts` help の option drift を検出する。
 - docs artifact field と schema field の drift を検出する。
 - drift finding は `release-risk` category にする。
+- `code-to-gate spec-drift <repo> --out <dir>` で `spec-drift.json` を生成する。
+- drift がある場合は `READINESS_NOT_CLEAR` を返す。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/spec-drift.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run lint`
+- `npm run docs:lint-refs`
 
 ## Task Seed QEOS-P1-03 QEG Viewer
 

@@ -43,6 +43,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Detect spec drift
+        run: |
+          node ./dist/cli.js spec-drift . --out "${{ inputs.artifact_dir }}"
+          node ./dist/cli.js schema validate "${{ inputs.artifact_dir }}/spec-drift.json"
+
       - name: Analyze repository
         run: |
           set +e

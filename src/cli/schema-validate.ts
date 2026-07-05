@@ -138,6 +138,7 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
   const schemaFiles = [
     "shared-defs.schema.json",
     "normalized-repo-graph.schema.json",
+    "raw-findings.schema.json",
     "findings.schema.json",
     "risk-register.schema.json",
     "invariants.schema.json",
@@ -146,8 +147,10 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "audit.schema.json",
     "evidence-ref.schema.json",
     "evidence-dag.schema.json",
+    "spec-drift.schema.json",
     "diff-analysis.schema.json",
     "database-assets.schema.json",
+    "self-analysis-debt.schema.json",
   ];
 
   for (const file of schemaFiles) {
@@ -251,7 +254,9 @@ const OPTIONAL_ARTIFACTS = [
   "invariants.json",
   "raw-findings.json",
   "database-assets.json",
+  "diff.json",
   "evidence-dag.json",
+  "spec-drift.json",
 ];
 
 /**

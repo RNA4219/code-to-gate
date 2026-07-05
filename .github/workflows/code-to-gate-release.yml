@@ -127,6 +127,11 @@ jobs:
       - name: Check distribution status docs
         run: npm run docs:distribution
 
+      - name: Detect spec drift
+        run: |
+          node ./dist/cli.js spec-drift . --out .qh
+          node ./dist/cli.js schema validate .qh/spec-drift.json
+
       - name: Run full analysis
         id: analyze
         run: |
@@ -247,6 +252,7 @@ jobs:
           ## Artifacts
           - [Release Readiness](./release-readiness.json)
           - [Findings](./findings.json)
+          - [Spec Drift](./spec-drift.json)
           - [Risk Register](./risk-register.yaml)
           - [Test Seeds](./test-seeds.json)
           - [Package Integrity](./package/package-integrity.json)
@@ -266,6 +272,7 @@ jobs:
           path: |
             .qh/release-readiness.json
             .qh/findings.json
+            .qh/spec-drift.json
             .qh/risk-register.yaml
             .qh/test-seeds.json
             .qh/analysis-report.md

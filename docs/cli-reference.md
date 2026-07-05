@@ -14,6 +14,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [export](#export)
    - [viewer](#viewer)
    - [historical](#historical)
+   - [spec-drift](#spec-drift)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
    - [plugin-sandbox](#plugin-sandbox)
@@ -46,6 +47,7 @@ These options apply to all commands:
 | `analyze` | Run scan plus rules/report generation. It does not create release-readiness. | `raw-findings.json`, `findings.json`, `risk-register.yaml`, `analysis-report.md`, `test-seeds.json`, `invariants.json`, `repo-graph.json`, `audit.json` |
 | `readiness` | Evaluate existing analysis artifacts against policy. Requires `--from <artifact-dir>`. | `release-readiness.json` |
 | `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
+| `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
 
 ### scan
 
@@ -498,6 +500,49 @@ code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--histo
 | `--previous <dir>` | Required | Previous run artifact directory |
 | `--out <file>` | stdout/default path | Historical comparison output |
 | `--history <dir>` | none | Directory containing multiple historical runs |
+
+---
+
+### spec-drift
+
+Detect drift between the public contract and implementation surfaces.
+
+**Usage:**
+```bash
+code-to-gate spec-drift <repo> --out <dir>
+```
+
+**Arguments:**
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `<repo>` | Yes | Repository root to inspect |
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--out <dir>` | `.qh` | Output directory for `spec-drift.json` |
+| `--quiet` | false | Suppress the JSON stdout summary |
+
+**Checks:**
+| Check | Description |
+|-------|-------------|
+| command drift | Verifies `SUPPORTED_TARGETS` is reflected in top-level CLI help and this CLI reference |
+| schema drift | Verifies documented public artifacts have schemas and public schemas are preloaded by schema validation |
+| test drift | Verifies public schemas are explicitly covered by schema coverage tests |
+| status drift | Verifies required docs, schema, implementation, and test surfaces exist |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `spec-drift.json` | Drift checks, release-risk findings, and summary counts |
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | No drift detected |
+| 1 | READINESS_NOT_CLEAR | Drift detected and emitted as release-risk findings |
+| 2 | USAGE_ERROR | Invalid arguments or repository path |
+| 10 | INTERNAL_ERROR | Unexpected internal error |
 
 ---
 

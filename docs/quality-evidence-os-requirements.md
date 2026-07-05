@@ -65,7 +65,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-001 | Evidence DAG | P1 | finding、audit、readiness、QEG、manual-bb、Gatefield、CI artifact を node/edge として出力できる |
 | QEOS-002 | PR Reviewer Bot | P2 | PR comment が block理由、許容理由、追加テスト、仕様差分、artifact link を含む |
 | QEOS-003 | Baseline/Ratchet Gate | P0 | baseline 既知findingは gate 対象外、新規・severity悪化だけ policy 評価対象になる |
-| QEOS-004 | Spec Drift Detector | P1 | README/RUNBOOK/schema/実装/テストの不整合を finding または drift artifact にできる |
+| QEOS-004 | Spec Drift Detector | P1 | README/RUNBOOK/schema/実装/テストの不整合を `spec-drift.json` と `release-risk` finding にできる |
 | QEOS-005 | QEG Viewer | P1 | QEG JSON を standalone HTML として閲覧でき、finding単位に drill-down できる |
 | QEOS-006 | Rule SDK | P2 | `ctg rule new <id>` で rule/test/docs/schema fixture の雛形を生成できる |
 | QEOS-007 | Quality Packs | P2 | `security-basic` などの pack を選択し、rule/policy/export を一括適用できる |
@@ -97,4 +97,3 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 - baseline 比較は deterministic に行い、LLM判断に依存しない。
 - public fixtures は synthetic のみを使う。
 - CI では JSON summary と artifact hash により再現性を確認できる。
-

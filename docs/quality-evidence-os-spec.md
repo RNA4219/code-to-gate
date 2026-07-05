@@ -135,7 +135,7 @@ PR comment は次の固定セクションを持つ。
 LLM は文章化だけを担い、finding identity、gate status、artifact hash は
 deterministic artifact から取得する。
 
-## 5. Spec Drift Detector 将来仕様
+## 5. Spec Drift Detector 初期実装と将来仕様
 
 drift detector は docs と実装を比較し、次の種別を出す。
 
@@ -146,8 +146,27 @@ drift detector は docs と実装を比較し、次の種別を出す。
 | test drift | spec の受入条件を覆う test がない |
 | status drift | roadmap が implemented と言うが実装証跡がない |
 
-初期実装は `docs/product-*`、`docs/cli-reference.md`、`schemas/*.json`、
-`src/cli.ts` の静的比較から始める。
+初期実装は次のコマンドで実行する。
+
+```bash
+code-to-gate spec-drift <repo> --out .qh
+```
+
+出力は `.qh/spec-drift.json` とし、`artifact: "spec-drift"`、
+`schema: "spec-drift@v1"`、`status: "passed" | "failed"` を持つ。
+drift がある場合は `findings[]` に `category: "release-risk"` の証跡付き
+finding を出し、CLI は `READINESS_NOT_CLEAR` を返す。
+
+初期比較範囲:
+
+- `src/cli/export-types.ts` の `SUPPORTED_TARGETS` と `src/cli.ts` help。
+- `SUPPORTED_TARGETS` と `docs/cli-reference.md`。
+- README / README_JA / CLI reference に記載された public artifact と `schemas/*.schema.json`。
+- public artifact schema と `src/cli/schema-validate.ts` preload。
+- public artifact schema と `tests/integration/schema-coverage.test.ts`。
+
+将来拡張では `RUNBOOK.md`、要件定義、Task Seed status、CI workflow artifact、
+PR comment template まで対象を広げる。
 
 ## 6. Acceptance
 
@@ -157,6 +176,8 @@ P0 の acceptance は次の通り。
 - baseline にない high finding は strict policy で `blocked_input` になる。
 - baseline にある finding が medium から high に悪化した場合は `blocked_input` になる。
 - `release-readiness.json` は schema validation を通る。
+- `spec-drift` は docs / CLI / schema / test の不整合を `spec-drift.json`
+  に記録し、不整合があれば exit 1 になる。
 
 P1 Evidence DAG の acceptance は次の通り。
 

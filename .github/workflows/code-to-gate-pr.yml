@@ -194,6 +194,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Detect spec drift
+        run: |
+          node ./dist/cli.js spec-drift . --out .qh
+          node ./dist/cli.js schema validate .qh/spec-drift.json
+
       - name: Run diff analysis
         run: |
           set +e
