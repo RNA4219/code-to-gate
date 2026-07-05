@@ -581,7 +581,7 @@ Commands:
 
 Objective: baseline debt を owner/expiry/承認者/更新理由/残工数/再発防止メモ付きledgerとして管理する。
 
-Status: planned
+Status: done
 
 Requirements:
 

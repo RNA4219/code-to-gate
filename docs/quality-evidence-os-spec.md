@@ -503,7 +503,9 @@ P2 Quality Pack Golden Repository Suite の初期 acceptance は次の通り。
 P1 Baseline Debt Ledger の初期 acceptance は次の通り。
 
 - `baseline-debt-ledger@v1` は baseline debt item の owner、expiry、approver、approval reason、refresh reason、estimated effort、prevention note を保持する。
+- `code-to-gate baseline-ledger --from <artifact-dir>` は `release-readiness.json.baseline` から ledger item を生成する。
 - expired debt は readiness、review queue、hosted portal に表示できる。
+- `review-queue` は `baseline-debt-ledger.json` が存在する場合、同 artifact の expired item を `release-readiness.baseline` より優先する。
 - ledger は既存 `release-readiness.baseline` と後方互換に接続し、既存consumerを壊さない。
 
 P2 Hosted Evidence Portal の初期 acceptance は次の通り。

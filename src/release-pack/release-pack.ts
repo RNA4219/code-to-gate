@@ -225,6 +225,14 @@ const OPTIONAL_INPUTS: InputSpec[] = [
     description: "Golden repository suite evidence for pack detection and false-positive expectations.",
   },
   {
+    id: "baseline-debt-ledger",
+    role: "artifact",
+    label: "Baseline debt ledger",
+    files: ["baseline-debt-ledger.json"],
+    required: false,
+    description: "Baseline debt owner, expiry, approval, refresh, effort, and prevention evidence.",
+  },
+  {
     id: "spec-drift",
     role: "artifact",
     label: "Spec drift",

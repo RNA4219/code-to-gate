@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import path from "node:path";
 
 import type {
+  BaselineDebtLedgerArtifact,
   DriftBudgetArtifact,
   ReleaseReadinessArtifact,
   ReviewQueueArtifact,
@@ -84,6 +85,7 @@ function byType(items: ReviewQueueItem[]): Record<ReviewQueueItemType, number> {
 export function createReviewQueue(input: { fromDir: string; version: string; now?: Date }): ReviewQueueArtifact {
   const now = input.now ?? new Date();
   const readiness = readOptionalJson<ReleaseReadinessArtifact>(input.fromDir, "release-readiness.json");
+  const baselineLedger = readOptionalJson<BaselineDebtLedgerArtifact>(input.fromDir, "baseline-debt-ledger.json");
   const testPlan = readOptionalJson<TestPlanArtifact>(input.fromDir, "test-plan.json");
   const driftBudget = readOptionalJson<DriftBudgetArtifact>(input.fromDir, "drift-budget.json");
   const historical = readOptionalJson<HistoricalWithSlo>(input.fromDir, "historical-comparison.json");
@@ -104,7 +106,22 @@ export function createReviewQueue(input: { fromDir: string; version: string; now
     }));
   }
 
-  if (readiness?.baseline?.expired) {
+  const expiredLedgerItems = (baselineLedger?.items ?? []).filter((ledgerItem) => ledgerItem.expired);
+  for (const ledgerItem of expiredLedgerItems) {
+    items.push(item({
+      id: `baseline-expired-${ledgerItem.id}`,
+      type: "baseline_expiry",
+      title: "Baseline debt is expired",
+      detail: `${ledgerItem.refreshReason} Prevention: ${ledgerItem.preventionNote}`,
+      priority: "high",
+      owner: ledgerItem.owner,
+      dueDate: dueDate(now, 3),
+      sourceArtifact: "baseline-debt-ledger.json",
+      sourceIds: [ledgerItem.id, ...ledgerItem.sourceIds],
+    }));
+  }
+
+  if (expiredLedgerItems.length === 0 && readiness?.baseline?.expired) {
     items.push(item({
       id: "baseline-expired",
       type: "baseline_expiry",

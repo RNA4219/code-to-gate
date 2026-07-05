@@ -215,6 +215,11 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   expected artifacts、expected finding profile、FP/FN summary、pack update diff を持つ
   `quality-pack-golden-suite@v1` を出力する。`quality-pack@v1` の distribution は
   bundled golden suite candidate を宣言し、release pack は同artifactを任意証跡として同梱できる。
+- QEOS-039: `code-to-gate baseline-ledger --from <artifact-dir>` が
+  `release-readiness.json.baseline` から owner、expiry、approver、approval reason、
+  refresh reason、estimated effort、prevention note を持つ
+  `baseline-debt-ledger@v1` を出力する。期限切れ item は `review-queue@v1` の
+  `baseline_expiry` item と `release-pack --include-optional` に接続される。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

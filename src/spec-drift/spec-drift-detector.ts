@@ -51,6 +51,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "drift-budget.json": "drift-budget.schema.json",
   "evidence-provenance-index.json": "evidence-provenance-index.schema.json",
   "review-queue.json": "review-queue.schema.json",
+  "baseline-debt-ledger.json": "baseline-debt-ledger.schema.json",
   "qeos-acceptance-matrix.json": "qeos-acceptance-matrix.schema.json",
   "schema-migration.json": "schema-migration.schema.json",
   "ownership-risk.json": "ownership-risk.schema.json",

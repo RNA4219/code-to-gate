@@ -17,6 +17,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [spec-drift](#spec-drift)
    - [drift-budget](#drift-budget)
    - [review-queue](#review-queue)
+   - [baseline-ledger](#baseline-ledger)
    - [rule](#rule)
    - [pack](#pack)
    - [doctor](#doctor)
@@ -64,6 +65,7 @@ These options apply to all commands:
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
 | `drift-budget` | Track failed, warning, and recurring spec-drift checks against branch policy budgets. | `drift-budget.json` |
 | `review-queue` | Convert SLO breaches, baseline expiry, manual oracle gaps, and spec-drift recurrence into App/Bot queue items. | `review-queue.json` |
+| `baseline-ledger` | Convert `release-readiness.json.baseline` into owner, expiry, approval, refresh, effort, and prevention debt evidence. | `baseline-debt-ledger.json` |
 | `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
 | `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
@@ -1015,6 +1017,7 @@ code-to-gate review-queue --from <artifact-dir> [--out <file-or-dir>] [--quiet]
 | Artifact | Queue item source |
 |----------|-------------------|
 | `historical-comparison.json` | `qualitySlo.indicators[]` with `warn` or `fail` status |
+| `baseline-debt-ledger.json` | expired ledger items; preferred when present |
 | `release-readiness.json` | expired `baseline` summary |
 | `test-plan.json` | `oracleGaps[]` manual verification needs |
 | `drift-budget.json` | recurring spec-drift checks |
@@ -1034,6 +1037,59 @@ code-to-gate schema validate .qh/review-queue.json
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | OK | Review queue artifact was generated |
+| 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
+### baseline-ledger
+
+Generate a baseline debt ledger from `release-readiness.json.baseline`. The
+ledger keeps the existing readiness baseline contract intact while adding
+explicit owner, expiry, approver, approval reason, refresh reason, estimated
+effort, and prevention note fields for debt management.
+
+**Usage:**
+```bash
+code-to-gate baseline-ledger --from <artifact-dir> [--out <file-or-dir>] [--owner <owner>] [--approver <approver>] [--approval-reason <text>] [--refresh-reason <text>] [--estimated-effort <text>] [--prevention-note <text>] [--quiet]
+```
+
+**Inputs:**
+| Artifact | Purpose |
+|----------|---------|
+| `release-readiness.json` | Optional `baseline` summary used as the backward-compatible debt source |
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing `release-readiness.json`. |
+| `--out <file-or-dir>` | `<from>/baseline-debt-ledger.json` | Output file or directory. |
+| `--owner <owner>` | readiness baseline owner or `unassigned` | Ledger debt owner. |
+| `--approver <approver>` | `unspecified` | Human or team that approved carrying the debt. |
+| `--approval-reason <text>` | baseline ratchet default | Why the debt is accepted for this run. |
+| `--refresh-reason <text>` | expiry-aware default | Why the baseline must be refreshed or resolved. |
+| `--estimated-effort <text>` | finding count | Remaining effort estimate. |
+| `--prevention-note <text>` | regression coverage default | Note describing how to avoid recurrence. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `baseline-debt-ledger.json` | `baseline-debt-ledger@v1` artifact with debt owner, expiry, approval, refresh, effort, prevention, source artifact, and source IDs |
+
+Expired ledger items are consumed by `review-queue`, can be included in
+`release-pack --include-optional`, and are intended for the hosted evidence
+portal.
+
+**Example:**
+```bash
+code-to-gate baseline-ledger --from .qh --out .qh --approver @lead --estimated-effort 2d
+code-to-gate schema validate .qh/baseline-debt-ledger.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Baseline debt ledger artifact was generated |
 | 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
 
 ---

@@ -28,6 +28,7 @@ export const SCHEMA_VERSIONS = {
   evidenceProvenanceIndex: "evidence-provenance-index@v1",
   reviewQueue: "review-queue@v1",
   qualityPackGoldenSuite: "quality-pack-golden-suite@v1",
+  baselineDebtLedger: "baseline-debt-ledger@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -59,6 +60,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   evidenceProvenanceIndex: "evidence-provenance-index@v1",
   reviewQueue: "review-queue@v1",
   qualityPackGoldenSuite: "quality-pack-golden-suite@v1",
+  baselineDebtLedger: "baseline-debt-ledger@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -796,6 +798,40 @@ export interface ReviewQueueArtifact extends ArtifactHeader {
     byType: Record<ReviewQueueItemType, number>;
   };
   generated_by: "ctg-review-queue-v1";
+}
+
+// === Baseline Debt Ledger ===
+
+export type BaselineDebtLedgerStatus = "empty" | "active" | "expired";
+
+export interface BaselineDebtLedgerItem {
+  id: string;
+  owner: string;
+  expiresAt: string;
+  expired: boolean;
+  approver: string;
+  approvalReason: string;
+  refreshReason: string;
+  estimatedEffort: string;
+  preventionNote: string;
+  sourceArtifact: string;
+  sourceIds: string[];
+  baselineSource?: string;
+}
+
+export interface BaselineDebtLedgerArtifact extends ArtifactHeader {
+  artifact: "baseline-debt-ledger";
+  schema: "baseline-debt-ledger@v1";
+  completeness: Completeness;
+  status: BaselineDebtLedgerStatus;
+  items: BaselineDebtLedgerItem[];
+  summary: {
+    items: number;
+    active: number;
+    expired: number;
+    unowned: number;
+  };
+  generated_by: "ctg-baseline-ledger-v1";
 }
 
 // === Doctor ===

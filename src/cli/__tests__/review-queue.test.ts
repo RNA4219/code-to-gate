@@ -87,6 +87,29 @@ function writeQueueSources(dir: string): void {
     recommendedActions: [],
     artifactRefs: {},
   });
+  writeJson(path.join(dir, "baseline-debt-ledger.json"), {
+    ...header,
+    artifact: "baseline-debt-ledger",
+    schema: "baseline-debt-ledger@v1",
+    completeness: "complete",
+    status: "expired",
+    items: [{
+      id: "baseline-debt-001",
+      owner: "@quality-ledger",
+      expiresAt: "2026-07-01",
+      expired: true,
+      approver: "@lead",
+      approvalReason: "Accepted debt.",
+      refreshReason: "Baseline debt is expired and must be refreshed or resolved.",
+      estimatedEffort: "1d",
+      preventionNote: "Add regression tests.",
+      sourceArtifact: "release-readiness.json",
+      sourceIds: ["finding-001"],
+      baselineSource: ".ctg/baseline.json",
+    }],
+    summary: { items: 1, active: 0, expired: 1, unowned: 0 },
+    generated_by: "ctg-baseline-ledger-v1",
+  });
   writeJson(path.join(dir, "test-plan.json"), {
     ...header,
     artifact: "test-plan",
@@ -162,7 +185,9 @@ describe("review-queue CLI", () => {
       spec_drift_recurrence: 1,
     });
     expect(artifact.items.every((item: { status: string }) => item.status === "open")).toBe(true);
-    expect(artifact.items.find((item: { type: string }) => item.type === "baseline_expiry").owner).toBe("@quality");
+    const baselineItem = artifact.items.find((item: { type: string }) => item.type === "baseline_expiry");
+    expect(baselineItem.owner).toBe("@quality-ledger");
+    expect(baselineItem.sourceArtifact).toBe("baseline-debt-ledger.json");
   });
 
   it("rejects unknown options", async () => {

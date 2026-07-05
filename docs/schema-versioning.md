@@ -55,6 +55,7 @@ The v1 schema freeze establishes the following guarantees:
 | drift-budget | `drift-budget@v1` | `drift-budget@v1` | Stable |
 | evidence-provenance-index | `evidence-provenance-index@v1` | `evidence-provenance-index@v1` | Stable |
 | review-queue | `review-queue@v1` | `review-queue@v1` | Stable |
+| baseline-debt-ledger | `baseline-debt-ledger@v1` | `baseline-debt-ledger@v1` | Stable |
 | qeos-acceptance-matrix | `qeos-acceptance-matrix@v1` | `qeos-acceptance-matrix@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |

@@ -729,6 +729,66 @@ suppression:
         ])
       );
     });
+
+    it("surfaces expired baseline debt in readiness recommendations", async () => {
+      const previousOwner = process.env.CTG_BASELINE_OWNER;
+      const previousExpiresAt = process.env.CTG_BASELINE_EXPIRES_AT;
+      process.env.CTG_BASELINE_OWNER = "@quality";
+      process.env.CTG_BASELINE_EXPIRES_AT = "2000-01-01T00:00:00Z";
+      try {
+        const fingerprint = "expiredbaseline01";
+        const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-expired-readiness"), [
+          createFinding({
+            id: "baseline-high",
+            ruleId: "WEAK_AUTH_GUARD",
+            category: "auth",
+            severity: "high",
+            fingerprint,
+          }),
+        ]);
+        const currentDir = writeFindingsToDir(path.join(tempOutDir, "current-expired-readiness"), [
+          createFinding({
+            id: "current-high",
+            ruleId: "WEAK_AUTH_GUARD",
+            category: "auth",
+            severity: "high",
+            fingerprint,
+          }),
+        ]);
+
+        const { exitCode, readiness } = await runReadiness([
+          fixturesDir,
+          "--policy",
+          policyFile,
+          "--from",
+          currentDir,
+          "--out",
+          tempOutDir,
+          "--baseline",
+          baselineDir,
+        ]);
+
+        expect(exitCode).toBe(EXIT.OK);
+        expect(readiness.baseline.expired).toBe(true);
+        expect(readiness.baseline.owner).toBe("@quality");
+        expect(readiness.recommendedActions).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining("Baseline ratchet: baseline expired"),
+          ])
+        );
+      } finally {
+        if (previousOwner === undefined) {
+          delete process.env.CTG_BASELINE_OWNER;
+        } else {
+          process.env.CTG_BASELINE_OWNER = previousOwner;
+        }
+        if (previousExpiresAt === undefined) {
+          delete process.env.CTG_BASELINE_EXPIRES_AT;
+        } else {
+          process.env.CTG_BASELINE_EXPIRES_AT = previousExpiresAt;
+        }
+      }
+    });
   });
 
   describe("intake artifact evidence", () => {

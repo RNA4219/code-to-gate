@@ -283,6 +283,7 @@ describe("schema coverage integration", () => {
         "drift-budget.schema.json",
         "evidence-provenance-index.schema.json",
         "review-queue.schema.json",
+        "baseline-debt-ledger.schema.json",
         "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
@@ -1728,6 +1729,46 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalReviewQueuePath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal baseline-debt-ledger artifact", () => {
+      const minimalLedgerPath = path.join(tempDir, "minimal-baseline-debt-ledger.json");
+      writeFileSync(
+        minimalLedgerPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "baseline-ledger-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "baseline-debt-ledger",
+          schema: "baseline-debt-ledger@v1",
+          completeness: "complete",
+          status: "expired",
+          items: [
+            {
+              id: "baseline-debt-001",
+              owner: "@quality",
+              expiresAt: "2024-01-01",
+              expired: true,
+              approver: "@lead",
+              approvalReason: "Accepted known debt for release.",
+              refreshReason: "Debt reached expiry.",
+              estimatedEffort: "2d",
+              preventionNote: "Add regression tests before refresh.",
+              sourceArtifact: "release-readiness.json",
+              sourceIds: ["finding-001"],
+              baselineSource: ".ctg/baseline-findings.json",
+            },
+          ],
+          summary: { items: 1, active: 0, expired: 1, unowned: 0 },
+          generated_by: "ctg-baseline-ledger-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalLedgerPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });
