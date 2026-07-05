@@ -509,6 +509,34 @@ describe("markdown-reporter", () => {
       expect(report).toContain("reflected");
     });
 
+    it("includes human review guide with impact, evidence, confidence, and verification hint", () => {
+      const findings = createMockFindings();
+      findings.findings.push({
+        id: "finding-human-001",
+        ruleId: "WEAK_AUTH_GUARD",
+        category: "auth",
+        severity: "high",
+        confidence: 0.72,
+        title: "Weak auth guard",
+        summary: "Admin route may have weak guard",
+        evidence: [{ id: "e1", path: "src/auth/admin.ts", kind: "text", startLine: 42 }],
+      });
+      const riskRegister = createMockRiskRegister();
+
+      const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
+
+      expect(report).toContain("## Human Review Guide");
+      expect(report).toContain("review-required candidates");
+      expect(report).toContain("Suggested confirmation commands");
+      expect(report).toContain('code-to-gate analyze "/test/repo" --emit all --out .qh');
+      expect(report).toContain("code-to-gate schema validate .qh/findings.json");
+      expect(report).toContain('code-to-gate readiness "/test/repo" --from .qh --out .qh');
+      expect(report).toContain("Admin route may have weak guard");
+      expect(report).toContain("src/auth/admin.ts (text)");
+      expect(report).toContain("0.72");
+      expect(report).toContain("Inspect src/auth/admin.ts:42");
+    });
+
     it("lists unsupported claims with LLM source", () => {
       const findings = createMockFindings();
       findings.unsupported_claims.push({

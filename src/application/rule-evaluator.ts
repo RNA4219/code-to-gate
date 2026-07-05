@@ -15,6 +15,7 @@ import { domainTagForFinding, falsePositiveReviewTags } from "../core/domain-con
 import type { ArtifactHeader } from "../types/artifacts.js";
 import type { ApplicationContext } from "./context.js";
 import { generateFindingFingerprint } from "../utils/fingerprint.js";
+import { hashExcerpt } from "../core/evidence-utils.js";
 
 // Import CTG_VERSION for header
 import { CTG_VERSION as SCHEMA_VERSION } from "../types/artifacts.js";
@@ -31,6 +32,84 @@ function generateFindingId(ruleId: string, index: number): string {
  */
 function generateEvidenceId(findingId: string, index: number): string {
   return `evidence-${findingId}-${index.toString().padStart(2, "0")}`;
+}
+
+function generateUnsupportedClaimId(ruleId: string, index: number): string {
+  return `unsupported-${ruleId}-${index.toString().padStart(3, "0")}`;
+}
+
+function evidenceIssue(
+  finding: Finding,
+  reason: UnsupportedClaim["reason"],
+  sourceSection: string
+): Omit<UnsupportedClaim, "id"> {
+  return {
+    claim: `${finding.ruleId}: ${finding.title}`,
+    reason,
+    sourceSection,
+  };
+}
+
+function normalizeEvidence(
+  evidence: EvidenceRef,
+  evidenceId: string,
+  fileByPath: Map<string, RepoFile>,
+  context: RuleContext
+): EvidenceRef | Omit<UnsupportedClaim, "id"> {
+  const file = fileByPath.get(evidence.path);
+  if (!file) {
+    return {
+      claim: `Evidence path is not present in repo graph: ${evidence.path}`,
+      reason: "missing_evidence",
+      sourceSection: "rule-evaluator:evidence-path",
+    };
+  }
+
+  if (evidence.startLine !== undefined || evidence.endLine !== undefined) {
+    if (evidence.startLine === undefined || evidence.endLine === undefined) {
+      return {
+        claim: `Evidence line range is incomplete: ${evidence.path}`,
+        reason: "schema_invalid",
+        sourceSection: "rule-evaluator:evidence-range",
+      };
+    }
+    if (evidence.startLine > evidence.endLine || evidence.endLine > file.lineCount) {
+      return {
+        claim: `Evidence line range is outside file bounds: ${evidence.path}:${evidence.startLine}-${evidence.endLine}`,
+        reason: "schema_invalid",
+        sourceSection: "rule-evaluator:evidence-range",
+      };
+    }
+  }
+
+  const normalized: EvidenceRef = {
+    ...evidence,
+    id: evidenceId,
+  };
+
+  if (evidence.kind === "text") {
+    if (evidence.startLine === undefined || evidence.endLine === undefined) {
+      return {
+        claim: `Text evidence requires a concrete line range: ${evidence.path}`,
+        reason: "schema_invalid",
+        sourceSection: "rule-evaluator:text-evidence",
+      };
+    }
+
+    const content = context.getFileContent(evidence.path);
+    if (!content) {
+      return {
+        claim: `Text evidence cannot be hashed because source content is unavailable: ${evidence.path}`,
+        reason: "missing_evidence",
+        sourceSection: "rule-evaluator:text-evidence",
+      };
+    }
+
+    const excerpt = content.split(/\r?\n/).slice(evidence.startLine - 1, evidence.endLine).join("\n");
+    normalized.excerptHash = hashExcerpt(excerpt);
+  }
+
+  return normalized;
 }
 
 /**
@@ -124,6 +203,7 @@ export function evaluateRules(
 
   const allFindings: Finding[] = [];
   const unsupported_claims: UnsupportedClaim[] = [];
+  let unsupportedClaimIndex = 0;
 
   // Create simple graph for rule context
   const simpleGraph: SimpleGraph = {
@@ -142,17 +222,47 @@ export function evaluateRules(
   for (const rule of rules) {
     const findings = rule.evaluate(context);
     for (const finding of findings) {
+      const findingId = generateFindingId(rule.id, findingIndex);
+      if (!finding.evidence || finding.evidence.length === 0) {
+        unsupported_claims.push({
+          id: generateUnsupportedClaimId(rule.id, unsupportedClaimIndex++),
+          ...evidenceIssue(finding, "missing_evidence", "rule-evaluator:evidence"),
+        });
+        continue;
+      }
+
       // Normalize evidence IDs
-      // Note: excerptHash is NOT computed from path - if rule provides it, use it; otherwise leave undefined
-      const normalizedEvidence: EvidenceRef[] = finding.evidence.map((e, i) => ({
-        ...e,
-        id: generateEvidenceId(generateFindingId(rule.id, findingIndex), i),
-        // excerptHash: preserve rule-provided value; do NOT use path as fallback (Phase C fix)
-        excerptHash: e.excerptHash,
-      }));
+      const normalizedEvidence: EvidenceRef[] = [];
+      const evidenceIssues: Array<Omit<UnsupportedClaim, "id">> = [];
+      const fileByPath = new Map(graph.files.map((file) => [file.path, file]));
+      for (let i = 0; i < finding.evidence.length; i++) {
+        const normalized = normalizeEvidence(
+          finding.evidence[i],
+          generateEvidenceId(findingId, i),
+          fileByPath,
+          context
+        );
+        if ("reason" in normalized) {
+          evidenceIssues.push(normalized);
+        } else {
+          normalizedEvidence.push(normalized);
+        }
+      }
+
+      if (normalizedEvidence.length === 0 || evidenceIssues.length > 0) {
+        for (const issue of evidenceIssues.length > 0
+          ? evidenceIssues
+          : [evidenceIssue(finding, "missing_evidence", "rule-evaluator:evidence")]) {
+          unsupported_claims.push({
+            id: generateUnsupportedClaimId(rule.id, unsupportedClaimIndex++),
+            ...issue,
+          });
+        }
+        continue;
+      }
 
       const normalizedFinding: Finding = {
-        id: generateFindingId(rule.id, findingIndex),
+        id: findingId,
         ruleId: finding.ruleId || rule.id, // Preserve finding's ruleId if set (for granular IDs)
         category: finding.category,
         severity: finding.severity,
@@ -195,7 +305,7 @@ export function evaluateRules(
     ...header,
     artifact: "findings",
     schema: "findings@v1",
-    completeness: allFindings.length > 0 ? "complete" : "partial",
+    completeness: graph.stats.partial || allFindings.length === 0 ? "partial" : "complete",
     findings: allFindings,
     unsupported_claims,
   };

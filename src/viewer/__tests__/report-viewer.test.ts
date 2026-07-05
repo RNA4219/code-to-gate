@@ -18,6 +18,7 @@ import {
   sortFindingsBySeverity,
   filterFindingsBySeverity,
   filterFindingsByCategory,
+  filterFindingsBySuppression,
   searchFindings,
   countBySeverity,
   countByCategory,
@@ -164,6 +165,100 @@ describe("report-viewer", () => {
       // Toolbar appears in findings explorer when showFilters is true
       expect(html).toContain("filter-btn");
       expect(html).toContain("Severity:");
+      expect(html).toContain("Suppression:");
+    });
+
+    it("limits rendered findings for large reports", () => {
+      const findings = createMockFindings({
+        findings: Array.from({ length: 3 }, (_, i) => ({
+          ...createMockFinding("high", "security"),
+          id: `large-${i}`,
+          title: `Large ${i}`,
+        })),
+      });
+
+      const html = generateReportHtml(
+        { findings },
+        { findingsConfig: { maxRenderedFindings: 2 } }
+      );
+
+      expect(html).toContain("Viewer limit applied");
+      expect(html).toContain("large-0");
+      expect(html).toContain("large-1");
+      expect(html).not.toContain("large-2");
+    });
+
+    it("includes historical comparison tab when artifact is provided", () => {
+      const findings = createMockFindings();
+      const html = generateReportHtml(
+        {
+          findings,
+          historicalComparison: {
+            version: "ctg/v1",
+            generated_at: "2026-07-04T00:00:00Z",
+            run_id: "hist-1",
+            repo: { root: "/repo" },
+            tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+            artifact: "historical-comparison",
+            schema: "historical-comparison@v1",
+            completeness: "complete",
+            currentRun: { run_id: "current", generated_at: "2026-07-04T00:00:00Z", artifact_dir: ".qh" },
+            previousRun: { run_id: "previous", generated_at: "2026-07-03T00:00:00Z", artifact_dir: ".qh-prev" },
+            findingsComparison: {
+              new: [],
+              resolved: [],
+              unchanged: [],
+              modified: [],
+              regressions: [],
+              summary: {
+                totalCurrent: 2,
+                totalPrevious: 1,
+                newCount: 1,
+                resolvedCount: 0,
+                unchangedCount: 1,
+                modifiedCount: 0,
+                regressionCount: 0,
+                bySeverity: {
+                  critical: { new: 0, resolved: 0, unchanged: 0 },
+                  high: { new: 1, resolved: 0, unchanged: 1 },
+                  medium: { new: 0, resolved: 0, unchanged: 0 },
+                  low: { new: 0, resolved: 0, unchanged: 0 },
+                },
+                byCategory: {
+                  security: { new: 1, resolved: 0, unchanged: 1 },
+                },
+              },
+            },
+            riskTrends: {
+              trendDirection: "stable",
+              trendScore: 0,
+              criticalTrend: "stable",
+              highTrend: "stable",
+              riskScoreChange: 0,
+              historyPoints: [
+                {
+                  run_id: "current",
+                  generated_at: "2026-07-04T00:00:00Z",
+                  criticalFindings: 0,
+                  highFindings: 2,
+                  mediumFindings: 0,
+                  lowFindings: 0,
+                  totalFindings: 2,
+                  riskCount: 0,
+                  readinessStatus: "passed_with_risk",
+                },
+              ],
+            },
+            recommendations: [],
+            generated_by: "ctg-historical-v1",
+          },
+        },
+        { showTabs: true, showHistorical: true }
+      );
+
+      expect(html).toContain("Historical");
+      expect(html).toContain("Historical Diff");
+      expect(html).toContain("timeline-chart");
     });
   });
 
@@ -444,6 +539,16 @@ describe("finding-viewer utilities", () => {
 
       expect(filtered.length).toBe(1);
       expect(filtered[0].category).toBe("auth");
+    });
+  });
+
+  describe("filterFindingsBySuppression", () => {
+    it("filters suppressed findings by tag", () => {
+      const active = createMockFinding("high", "security");
+      const suppressed = { ...createMockFinding("high", "security"), tags: ["suppressed"] };
+
+      expect(filterFindingsBySuppression([active, suppressed], "active")).toEqual([active]);
+      expect(filterFindingsBySuppression([active, suppressed], "suppressed")).toEqual([suppressed]);
     });
   });
 

@@ -42,6 +42,15 @@ export const LARGE_MODULE_RULE: RulePlugin = {
         file.path.endsWith("index.ts") ||
         file.path.endsWith("index.js") ||
         file.path.includes("config/") ||
+        file.path.includes("fixtures/") ||
+        file.path.includes("/.qh/") ||
+        file.path.includes(".qh/") ||
+        file.path.includes("generated/") ||
+        file.path.includes("__generated__/") ||
+        file.path.includes("reports/") ||
+        file.path.includes("coverage/") ||
+        file.path.endsWith("analysis-report.md") ||
+        file.path.endsWith("report.html") ||
         file.path.includes("__tests__/") ||
         file.path.includes("tests/") ||
         file.path.includes("test/")

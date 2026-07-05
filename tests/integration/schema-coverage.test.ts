@@ -573,6 +573,39 @@ describe("schema coverage integration", () => {
       expect(result.exitCode).toBe(7);
     });
 
+    it("fails on findings with empty evidence arrays", () => {
+      const emptyEvidencePath = path.join(tempDir, "empty-evidence.json");
+      writeFileSync(
+        emptyEvidencePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "test-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "findings",
+          schema: "findings@v1",
+          completeness: "complete",
+          findings: [
+            {
+              id: "finding-001",
+              ruleId: "TEST_RULE",
+              category: "auth",
+              severity: "low",
+              confidence: 0.8,
+              title: "Test Finding",
+              summary: "Test summary",
+              evidence: [],
+            },
+          ],
+          unsupported_claims: [],
+        })
+      );
+
+      const result = runCli(["schema", "validate", emptyEvidencePath]);
+      expect(result.exitCode).toBe(7);
+    });
+
     it("fails on evidence missing required path", () => {
       const missingEvidencePath_ = path.join(tempDir, "missing-evidence-path.json");
       writeFileSync(

@@ -148,6 +148,29 @@ describe("yaml-reporter", () => {
       expect(riskRegister.risks.length).toBe(0);
       expect(riskRegister.completeness).toBe("partial");
     });
+
+    it("builds package-level risk summary from finding evidence paths", () => {
+      const findings = createFindings([
+        createFinding({
+          id: "finding-api-critical",
+          severity: "critical",
+          evidence: [{ id: "e1", path: "packages/api/src/index.ts", kind: "text" }],
+        }),
+        createFinding({
+          id: "finding-web-high",
+          severity: "high",
+          evidence: [{ id: "e2", path: "packages/web/src/app.ts", kind: "text" }],
+        }),
+      ]);
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+      expect(riskRegister.packageSummary).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ packagePath: "packages/api", findingCount: 1, critical: 1 }),
+          expect.objectContaining({ packagePath: "packages/web", findingCount: 1, high: 1 }),
+        ])
+      );
+    });
   });
 
   describe("writeRiskRegisterYaml", () => {
@@ -179,6 +202,7 @@ describe("yaml-reporter", () => {
       expect(content).toContain("confidence:");
       expect(content).toContain("impact:");
       expect(content).toContain("recommendedActions:");
+      expect(content).toContain("packageSummary:");
     });
 
     it("quotes finding titles and other scalar values with YAML special characters", () => {
@@ -349,6 +373,18 @@ describe("yaml-reporter", () => {
       const riskRegister = buildRiskRegisterFromFindings(findings);
 
       expect(riskRegister.completeness).toBeDefined();
+    });
+
+    it("inherits partial completeness from findings", () => {
+      const findings = createFindings(
+        [createFinding({ severity: "high" })],
+        { completeness: "partial" }
+      );
+
+      const riskRegister = buildRiskRegisterFromFindings(findings);
+
+      expect(riskRegister.risks.length).toBeGreaterThan(0);
+      expect(riskRegister.completeness).toBe("partial");
     });
   });
 });

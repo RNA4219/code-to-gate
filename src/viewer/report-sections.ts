@@ -12,6 +12,7 @@ import {
   TestLevel,
 } from "../types/artifacts.js";
 import { NormalizedRepoGraph, SymbolNode, GraphRelation } from "../types/graph.js";
+import type { HistoricalSummaryReport } from "../historical/types.js";
 import { GraphData, generateMermaidFlowchart } from "./graph-viewer.js";
 
 const VERSION = "0.2.0";
@@ -37,6 +38,7 @@ export interface LoadedArtifacts {
   testSeeds?: TestSeedsArtifact;
   readiness?: ReleaseReadinessArtifact;
   graph?: NormalizedRepoGraph;
+  historicalComparison?: HistoricalSummaryReport;
 }
 
 /**
@@ -83,6 +85,7 @@ export function generateTabsNav(config: {
   showTestSeeds?: boolean;
   showReadiness?: boolean;
   showGraph?: boolean;
+  showHistorical?: boolean;
 }): string {
   if (!config.showTabs) return "";
 
@@ -92,6 +95,7 @@ export function generateTabsNav(config: {
     { id: "risks", label: "Risks", active: false },
     { id: "tests", label: "Test Seeds", active: false },
     { id: "readiness", label: "Readiness", active: false },
+    { id: "historical", label: "Historical", active: false },
   ];
 
   let nav = '<div class="tabs">';
@@ -100,7 +104,8 @@ export function generateTabsNav(config: {
       (tab.id === "risks" && !config.showRiskRegister) ||
       (tab.id === "tests" && !config.showTestSeeds) ||
       (tab.id === "readiness" && !config.showReadiness) ||
-      (tab.id === "graph" && !config.showGraph)
+      (tab.id === "graph" && !config.showGraph) ||
+      (tab.id === "historical" && !config.showHistorical)
     ) {
       continue;
     }
@@ -114,6 +119,60 @@ export function generateTabsNav(config: {
   nav += "</div>";
 
   return nav;
+}
+
+export function generateHistoricalSection(
+  historical?: HistoricalSummaryReport
+): string {
+  if (!historical) {
+    return `
+<div id="historical-tab" class="tab-content">
+  <div class="empty-state">
+    <span class="empty-state-icon">-</span>
+    <p>No historical comparison available</p>
+  </div>
+</div>
+`;
+  }
+
+  const summary = historical.findingsComparison.summary;
+  const trendPoints = historical.riskTrends.historyPoints ?? [];
+  const bars = trendPoints.slice(-12).map((point) => {
+    const total = Math.max(point.totalFindings, 1);
+    const height = Math.min(100, Math.max(8, total * 6));
+    return `
+      <div class="timeline-bar" title="${escapeHtml(point.run_id)}: ${point.totalFindings} findings">
+        <div class="timeline-bar-fill" style="height:${height}px"></div>
+        <span>${escapeHtml(point.generated_at.slice(0, 10))}</span>
+      </div>
+`;
+  }).join("\n");
+
+  return `
+<div id="historical-tab" class="tab-content">
+  <div class="section">
+    <div class="section-title">
+      <h2>Historical Diff</h2>
+      <span class="section-count">${summary.totalCurrent} current / ${summary.totalPrevious} previous</span>
+    </div>
+    <div class="dashboard">
+      <div class="card"><div class="card-title">New</div><div class="card-value">${summary.newCount}</div></div>
+      <div class="card"><div class="card-title">Resolved</div><div class="card-value">${summary.resolvedCount}</div></div>
+      <div class="card"><div class="card-title">Unchanged</div><div class="card-value">${summary.unchangedCount}</div></div>
+      <div class="card"><div class="card-title">Regressions</div><div class="card-value">${summary.regressionCount}</div></div>
+    </div>
+    <div class="risk-narrative">
+      <p>Trend: ${escapeHtml(historical.riskTrends.trendDirection)} (score ${historical.riskTrends.trendScore.toFixed(2)})</p>
+    </div>
+    ${bars ? `<div class="timeline-chart">${bars}</div>` : `
+    <div class="empty-state">
+      <span class="empty-state-icon">-</span>
+      <p>No timeline history points available</p>
+    </div>
+    `}
+  </div>
+</div>
+`;
 }
 
 /**

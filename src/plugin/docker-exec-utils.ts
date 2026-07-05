@@ -5,6 +5,9 @@
 
 import { exec } from "child_process";
 
+const DOCKER_PROBE_TIMEOUT_MS = Number(process.env.CTG_DOCKER_PROBE_TIMEOUT_MS ?? "1000");
+const DOCKER_STOP_TIMEOUT_MS = Number(process.env.CTG_DOCKER_STOP_TIMEOUT_MS ?? "1500");
+
 /**
  * Execute command with timeout
  */
@@ -70,7 +73,7 @@ export async function listRunningPluginContainers(prefix: string): Promise<strin
   try {
     const result = await execDockerCommand(
       ["docker", "ps", "-q", "--filter", `name=${prefix}`],
-      5000
+      DOCKER_PROBE_TIMEOUT_MS
     );
 
     return result.stdout.trim().split("\n").filter(id => id.length > 0);
@@ -85,7 +88,7 @@ export async function listRunningPluginContainers(prefix: string): Promise<strin
  */
 export async function getContainerLogs(containerId: string): Promise<string> {
   try {
-    const result = await execDockerCommand(["docker", "logs", containerId], 5000);
+    const result = await execDockerCommand(["docker", "logs", containerId], DOCKER_PROBE_TIMEOUT_MS);
     return result.stdout;
   } catch (e) {
     console.error(`[container-utils] Failed to get logs for container ${containerId}: ${e instanceof Error ? e.message : String(e)}`);
@@ -98,8 +101,8 @@ export async function getContainerLogs(containerId: string): Promise<string> {
  */
 export async function stopAndRemoveContainer(containerId: string): Promise<boolean> {
   try {
-    const stopResult = await execDockerCommand(["docker", "stop", containerId], 10000);
-    const removeResult = await execDockerCommand(["docker", "rm", containerId], 5000);
+    const stopResult = await execDockerCommand(["docker", "stop", containerId], DOCKER_STOP_TIMEOUT_MS);
+    const removeResult = await execDockerCommand(["docker", "rm", containerId], DOCKER_PROBE_TIMEOUT_MS);
 
     if (isNoSuchContainer(stopResult.stderr) && isNoSuchContainer(removeResult.stderr)) {
       return false;
@@ -121,7 +124,7 @@ function isNoSuchContainer(stderr: string): boolean {
  */
 export async function checkDockerVersion(): Promise<{ available: boolean; version?: string }> {
   try {
-    const result = await execDockerCommand(["docker", "--version"], 5000);
+    const result = await execDockerCommand(["docker", "--version"], DOCKER_PROBE_TIMEOUT_MS);
     if (result.exitCode === 0) {
       return { available: true, version: result.stdout.trim() };
     }
@@ -136,7 +139,7 @@ export async function checkDockerVersion(): Promise<{ available: boolean; versio
  */
 export async function checkDockerImageExists(imageName: string): Promise<boolean> {
   try {
-    const result = await execDockerCommand(["docker", "image", "inspect", imageName], 5000);
+    const result = await execDockerCommand(["docker", "image", "inspect", imageName], DOCKER_PROBE_TIMEOUT_MS);
     return result.exitCode === 0;
   } catch {
     return false;
@@ -149,8 +152,8 @@ export async function checkDockerImageExists(imageName: string): Promise<boolean
 export async function getDockerSystemMemory(): Promise<number | undefined> {
   try {
     const result = await execDockerCommand(
-      ["docker", "system", "info", "--format", "{{.MemTotal}}"],
-      5000
+      ["docker", "info", "--format", "{{.MemTotal}}"],
+      DOCKER_PROBE_TIMEOUT_MS
     );
     if (result.exitCode === 0) {
       const memTotal = parseInt(result.stdout.trim(), 10);

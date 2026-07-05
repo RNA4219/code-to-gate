@@ -23,6 +23,7 @@ import {
   generateTestSeedsSection,
   generateReadinessSection,
   generateGraphSection,
+  generateHistoricalSection,
   generateFooter,
 } from "./report-sections.js";
 import { getReportJavaScript } from "./report-scripts.js";
@@ -43,10 +44,12 @@ export interface ReportViewerConfig {
   showRiskRegister?: boolean;
   showTestSeeds?: boolean;
   showReadiness?: boolean;
+  showHistorical?: boolean;
   findingsConfig?: {
     showFilters?: boolean;
     showSearch?: boolean;
     collapsibleEvidence?: boolean;
+    maxRenderedFindings?: number;
   };
 }
 
@@ -66,6 +69,7 @@ export function generateReportHtml(
       showFilters: config.findingsConfig?.showFilters ?? true,
       showSearch: config.findingsConfig?.showSearch ?? true,
       collapsibleEvidence: config.findingsConfig?.collapsibleEvidence ?? true,
+      maxRenderedFindings: config.findingsConfig?.maxRenderedFindings,
     }
   );
   const graphSection = config.showGraph
@@ -79,6 +83,9 @@ export function generateReportHtml(
     : "";
   const readinessSection = config.showReadiness
     ? generateReadinessSection(artifacts.readiness)
+    : "";
+  const historicalSection = config.showHistorical
+    ? generateHistoricalSection(artifacts.historicalComparison)
     : "";
   const footer = generateFooter();
   const script = getReportJavaScript({ darkModeDefault: config.darkModeDefault });
@@ -104,6 +111,7 @@ ${graphSection}
 ${riskSection}
 ${testSection}
 ${readinessSection}
+${historicalSection}
 ${footer}
 ${script}
 </body>

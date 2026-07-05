@@ -93,6 +93,26 @@ app.post("/search", (req, res) => {
     });
   });
 
+  describe("false-positive guards", () => {
+    it("does not flag CLI health check status logging", () => {
+      const context = createMockContext([
+        {
+          path: "src/cli/llm-health.ts",
+          content: `
+async function reportHealth(providerStatus: string) {
+  console.log("provider status", providerStatus);
+  logger.info("llm health check complete");
+}
+`,
+        },
+      ]);
+
+      const findings = MISSING_INPUT_SANITIZATION_RULE.evaluate(context);
+
+      expect(findings).toHaveLength(0);
+    });
+  });
+
   describe("XSS detection", () => {
     it("should detect innerHTML assignment with user input", () => {
       const context = createMockContext([

@@ -15,6 +15,7 @@ import {
   TestSeedsArtifact,
   ReleaseReadinessArtifact,
 } from "../types/artifacts.js";
+import type { HistoricalSummaryReport } from "../historical/types.js";
 import { NormalizedRepoGraph } from "../types/graph.js";
 import {
   generateReportHtml,
@@ -108,6 +109,16 @@ function loadArtifactsFromDir(artifactDir: string): LoadedArtifacts {
     }
   }
 
+  const historicalPath = path.join(artifactDir, "historical-comparison.json");
+  if (existsSync(historicalPath)) {
+    try {
+      const content = readFileSync(historicalPath, "utf8");
+      artifacts.historicalComparison = JSON.parse(content) as HistoricalSummaryReport;
+    } catch (error) {
+      console.error(`Warning: Failed to load historical-comparison.json: ${error}`);
+    }
+  }
+
   return artifacts;
 }
 
@@ -167,10 +178,12 @@ export async function viewerCommand(
     showRiskRegister: !!artifacts.riskRegister,
     showTestSeeds: !!artifacts.testSeeds,
     showReadiness: !!artifacts.readiness,
+    showHistorical: !!artifacts.historicalComparison,
     findingsConfig: {
       showFilters: true,
       showSearch: true,
       collapsibleEvidence: true,
+      maxRenderedFindings: 1000,
     },
   };
 
@@ -199,6 +212,7 @@ export async function viewerCommand(
       testSeeds: artifacts.testSeeds?.seeds?.length || 0,
       readiness: artifacts.readiness?.status || "none",
       graph: artifacts.graph?.symbols?.length || 0,
+      historical: artifacts.historicalComparison ? "loaded" : "none",
     },
     config: {
       title: config.title,

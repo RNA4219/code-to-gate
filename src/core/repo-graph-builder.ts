@@ -14,10 +14,10 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import type { NormalizedRepoGraph, RepoFile, RepoRef } from "../types/artifacts.js";
+import type { NormalizedRepoGraph, RepoFile, RepoModule, RepoRef } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
 import type { ParserRegistry, ParserAdapterResult } from "../types/contracts.js";
-import { detectLanguage, detectRole, entrypointKind, isEntrypoint, walkDir } from "./file-utils.js";
+import { detectLanguage, detectRole, entrypointKind, isEntrypoint, isGeneratedVendoredOrMinifiedPath, walkDir } from "./file-utils.js";
 import { sha256, toPosix } from "./path-utils.js";
 
 /**
@@ -70,6 +70,65 @@ function readRepoRef(repoRoot: string): RepoRef {
   return repo;
 }
 
+function detectPackageManager(repoRoot: string): RepoModule["packageManager"] {
+  const lockfiles: Array<[string, RepoModule["packageManager"]]> = [
+    ["pnpm-lock.yaml", "pnpm"],
+    ["yarn.lock", "yarn"],
+    ["package-lock.json", "npm"],
+  ];
+
+  for (const [lockfile, manager] of lockfiles) {
+    try {
+      statSync(path.join(repoRoot, lockfile));
+      return manager;
+    } catch {
+      // Keep probing other package managers.
+    }
+  }
+
+  return "unknown";
+}
+
+function collectWorkspaceModules(repoRoot: string): RepoModule[] {
+  const packageManager = detectPackageManager(repoRoot);
+  return walkDir(repoRoot)
+    .filter((file) => path.basename(file) === "package.json")
+    .flatMap((packageFile): RepoModule[] => {
+      try {
+        const packageJson = JSON.parse(readFileSync(packageFile, "utf8")) as {
+          name?: string;
+          version?: string;
+          dependencies?: Record<string, unknown>;
+          devDependencies?: Record<string, unknown>;
+          workspaces?: unknown;
+        };
+        const modulePath = toPosix(path.relative(repoRoot, path.dirname(packageFile)) || ".");
+        return [{
+          id: `module:${modulePath}`,
+          path: modulePath,
+          name: packageJson.name,
+          version: packageJson.version,
+          packageManager,
+          workspace: modulePath === "." ? Array.isArray(packageJson.workspaces) || Boolean(packageJson.workspaces) : true,
+          dependencies: [
+            ...Object.keys(packageJson.dependencies ?? {}),
+            ...Object.keys(packageJson.devDependencies ?? {}),
+          ].sort(),
+        }];
+      } catch {
+        return [];
+      }
+    })
+    .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function moduleIdForFile(modules: RepoModule[], relPath: string): string | undefined {
+  const owner = modules
+    .filter((module) => module.path === "." || relPath === module.path || relPath.startsWith(`${module.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+  return owner?.id;
+}
+
 export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): NormalizedRepoGraph {
   const now = new Date().toISOString();
   const repo = readRepoRef(repoRoot);
@@ -97,7 +156,7 @@ export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): Nor
 }
 
 export function isGraphTargetFile(filePath: string): boolean {
-  return /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|cs|cpp|cc|cxx|hpp|hxx|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !filePath.endsWith(".d.ts");
+  return /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|cs|cpp|cc|cxx|hpp|hxx|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !isGeneratedVendoredOrMinifiedPath(filePath);
 }
 
 export function discoverGraphFiles(repoRoot: string): string[] {
@@ -256,6 +315,7 @@ export function buildGraph(
   }
 
   const graph = createEmptyRepoGraph(repoRoot, toolVersion);
+  graph.modules = collectWorkspaceModules(repoRoot);
 
   for (const file of targetFiles) {
     const rel = toPosix(path.relative(repoRoot, file));
@@ -300,7 +360,7 @@ export function buildGraph(
       hash: bodyHash,
       sizeBytes: Buffer.byteLength(body),
       lineCount: body.split(/\r?\n/).length,
-      moduleId: `module:${rel}`,
+      moduleId: moduleIdForFile(graph.modules, rel),
       parser: {
         status: parserStatus,
         adapter: parserAdapter,

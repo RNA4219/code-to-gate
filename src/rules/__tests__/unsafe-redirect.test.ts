@@ -163,6 +163,46 @@ app.get('/go', (req, res) => {
       const findings = UNSAFE_REDIRECT_RULE.evaluate(context);
       expect(findings.length).toBe(0);
     });
+
+    it("should NOT detect same-origin redirect after origin check", () => {
+      const context = createMockContext([
+        {
+          path: "src/routes/same-origin.ts",
+          content: `
+app.get('/go', (req, res) => {
+  const target = new URL(String(req.query.next), req.origin);
+  if (target.origin === req.origin) {
+    res.redirect(target.pathname);
+  }
+});
+`,
+        },
+      ]);
+
+      const findings = UNSAFE_REDIRECT_RULE.evaluate(context);
+      expect(findings.length).toBe(0);
+    });
+
+    it("should NOT detect OAuth callback redirects with allowed scheme validation", () => {
+      const context = createMockContext([
+        {
+          path: "src/routes/oauth-callback.ts",
+          content: `
+app.get('/oauth/callback', (req, res) => {
+  const callbackUrl = String(req.query.callback);
+  const allowedCallbackSchemes = ['myapp:', 'com.example.app:'];
+  const callback = new URL(callbackUrl);
+  if (allowedCallbackSchemes.includes(callback.protocol)) {
+    res.redirect(callbackUrl);
+  }
+});
+`,
+        },
+      ]);
+
+      const findings = UNSAFE_REDIRECT_RULE.evaluate(context);
+      expect(findings.length).toBe(0);
+    });
   });
 
   describe("Frontend patterns", () => {

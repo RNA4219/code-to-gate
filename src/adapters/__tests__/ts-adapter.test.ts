@@ -112,6 +112,37 @@ describe('ts-adapter', () => {
     });
   });
 
+  describe('Call graph extraction', () => {
+    it('extracts function call relations with caller evidence', () => {
+      const filePath = path.join(demoShopTsDir, 'src/api/order/create.ts');
+      const result = parseTypeScriptFile(filePath, demoShopTsDir, 'file:create');
+
+      const createOrderRoute = result.symbols.find(s => s.name === 'createOrderRoute');
+      expect(createOrderRoute).toBeDefined();
+
+      const callRelations = result.relations.filter(r => r.kind === 'calls' && r.from === createOrderRoute?.id);
+      expect(callRelations.length).toBeGreaterThan(0);
+      expect(callRelations.some(r => r.to.includes('requireUser'))).toBe(true);
+      expect(callRelations.every(r => r.evidence[0]?.kind === 'ast')).toBe(true);
+      expect(callRelations.every(r => typeof r.evidence[0]?.startLine === 'number')).toBe(true);
+    });
+
+    it('extracts method call relations separately from class symbol', () => {
+      const filePath = path.join(demoShopTsDir, 'src/domain/cart.ts');
+      const result = parseTypeScriptFile(filePath, demoShopTsDir, 'file:cart');
+
+      const methods = result.symbols.filter(s => s.kind === 'method');
+      const methodWithCall = methods.find(method =>
+        result.relations.some(relation => relation.kind === 'calls' && relation.from === method.id)
+      );
+
+      expect(methodWithCall).toBeDefined();
+      const methodCalls = result.relations.filter(r => r.kind === 'calls' && r.from === methodWithCall?.id);
+      expect(methodCalls.length).toBeGreaterThan(0);
+      expect(methodCalls.every(r => r.from.includes('.'))).toBe(true);
+    });
+  });
+
   describe('Evidence generation', () => {
     it('should generate evidence for each symbol', () => {
       const filePath = path.join(demoShopTsDir, 'src/api/order/create.ts');

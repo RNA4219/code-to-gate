@@ -477,6 +477,38 @@ describe("schema-validate CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
+  it("rejects invalid test-seeds intent values", async () => {
+    const invalidSeedsPath = path.join(tempDir, "invalid-test-seeds.json");
+    writeFileSync(invalidSeedsPath, JSON.stringify({
+      version: "ctg/v1",
+      generated_at: "2025-01-01T00:00:00Z",
+      run_id: "test-run-001",
+      repo: { root: "/test" },
+      tool: {
+        name: "code-to-gate",
+        version: "0.1.0",
+        plugin_versions: []
+      },
+      artifact: "test-seeds",
+      schema: "test-seeds@v1",
+      completeness: "complete",
+      seeds: [
+        {
+          id: "seed-001",
+          title: "Reject non-canonical intent",
+          intent: "happy-path",
+          sourceRiskIds: [],
+          sourceFindingIds: ["finding-001"],
+          evidence: [],
+          suggestedLevel: "unit"
+        }
+      ]
+    }), "utf8");
+
+    const result = await schemaValidate(["validate", invalidSeedsPath]);
+    expect(result).toBe(EXIT.SCHEMA_FAILED);
+  });
+
   it("validates release-readiness schema", async () => {
     const schemaPath = path.join(schemasDir, "release-readiness.schema.json");
     if (!existsSync(schemaPath)) {

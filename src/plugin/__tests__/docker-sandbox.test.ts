@@ -26,6 +26,7 @@ import {
   createSandboxConfigFromManifest,
   DEFAULT_ENV_VAR_FILTER,
 } from "../sandbox-config.js";
+import { buildDockerRunCommand } from "../docker-command-builder.js";
 import { createDefaultManifest, PLUGIN_OUTPUT_VERSION } from "../plugin-schema.js";
 import type { PluginRegistryEntry, SandboxConfig, PluginInput } from "../types.js";
 import * as fs from "fs/promises";
@@ -482,6 +483,38 @@ describe("DockerSandboxRunner", () => {
       // Access internal method via reflection would require testing the output
       // For now, verify the runner can be created with network disabled
       expect(runner).toBeDefined();
+    });
+
+    it("should pass --network=none when network access is disabled", () => {
+      const manifest = createDefaultManifest("test-plugin");
+      manifest.entry.command = ["node", "index.js"];
+
+      const command = buildDockerRunCommand(
+        manifest,
+        { ...DEFAULT_SANDBOX_CONFIG, networkAccess: false },
+        "ctg-plugin-test",
+        [],
+        "/tmp/input.json",
+        "/tmp/output.json"
+      );
+
+      expect(command).toContain("--network=none");
+    });
+
+    it("should omit --network=none only when network access is explicitly enabled", () => {
+      const manifest = createDefaultManifest("test-plugin");
+      manifest.entry.command = ["node", "index.js"];
+
+      const command = buildDockerRunCommand(
+        manifest,
+        { ...DEFAULT_SANDBOX_CONFIG, networkAccess: true },
+        "ctg-plugin-test",
+        [],
+        "/tmp/input.json",
+        "/tmp/output.json"
+      );
+
+      expect(command).not.toContain("--network=none");
     });
   });
 

@@ -36,11 +36,16 @@ export function buildAuditArtifact(
     });
   }
 
+  const policyHash = policy ? createHash("sha256").update(JSON.stringify(policy)).digest("hex") : "none";
+  const configHash = createHash("sha256")
+    .update(JSON.stringify({ policy: policy ?? null, toolVersion }))
+    .digest("hex");
+
   // Build policy section
   const policySection: AuditPolicy = {
     id: policy?.policyId ?? "default",
     name: policy?.policyId,
-    hash: policy ? createHash("sha256").update(JSON.stringify(policy)).digest("hex") : "none",
+    hash: policyHash,
   };
 
   return {
@@ -51,6 +56,7 @@ export function buildAuditArtifact(
     tool: {
       name: "code-to-gate",
       version: toolVersion,
+      config_hash: configHash,
       policy_id: policy?.policyId,
       plugin_versions: [],
     },

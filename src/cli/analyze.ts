@@ -9,9 +9,11 @@ import type { ParserRegistry } from "../types/contracts.js";
 import { createParserRegistry } from "../adapters/parser-registry.js";
 import { CORE_RULES, DATABASE_RULES } from "../rules/index.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
+import { emitCliError, emitCliSummary } from "./output.js";
 
 import {
   EmitFormat,
+  AuditOutputArtifact,
   FindingsArtifact,
 } from "../types/artifacts.js";
 import {
@@ -89,6 +91,79 @@ interface AnalyzeOptions {
 const VALID_LLM_PROVIDERS: LlmProviderType[] = ["ollama", "llamacpp", "deterministic"];
 const VALID_LLM_MODES = ["local-only", "allow-cloud"];
 
+function classifyGeneratedArtifact(filePath: string): AuditOutputArtifact["kind"] {
+  const name = nodePathService.basename(filePath);
+  if (name === "repo-graph.json") {
+    return "graph";
+  }
+  if (name === "risk-register.yaml") {
+    return "yaml";
+  }
+  if (name === "analysis-report.md") {
+    return "markdown";
+  }
+  if (name === "test-seeds.json") {
+    return "test-seeds";
+  }
+  if (name === "invariants.json") {
+    return "invariants";
+  }
+  if (name === "self-analysis-debt.json") {
+    return "self-analysis";
+  }
+  if (name === "database-assets.json" || name === "database-rule-graph.json") {
+    return "database";
+  }
+  return "json";
+}
+
+function canonicalizeForStableHash(content: string, filePath: string): string {
+  const name = nodePathService.basename(filePath);
+  if (name.endsWith(".json")) {
+    try {
+      return JSON.stringify(stripVolatileArtifactFields(JSON.parse(content) as unknown));
+    } catch {
+      return content;
+    }
+  }
+
+  return content
+    .split(/\r?\n/)
+    .filter((line) =>
+      !/^#\s*(Generated|Run ID):/.test(line) &&
+      !/^\*\*(Generated|Run ID)\*\*:/.test(line) &&
+      !/^(generated_at|run_id):\s*/.test(line)
+    )
+    .join("\n");
+}
+
+function stripVolatileArtifactFields(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripVolatileArtifactFields);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key]) => key !== "generated_at" && key !== "run_id")
+        .map(([key, child]) => [key, stripVolatileArtifactFields(child)])
+    );
+  }
+  return value;
+}
+
+export function buildGeneratedArtifactRefs(paths: string[], cwd: string): AuditOutputArtifact[] {
+  return paths.map((filePath) => {
+    const content = nodeFileAccess.readFile(filePath) ?? "";
+    const stableContent = canonicalizeForStableHash(content, filePath);
+    return {
+      path: nodePathService.relative(cwd, filePath),
+      hash: `sha256:${nodeHashService.sha256(content)}`,
+      stable_hash: `sha256:${nodeHashService.sha256(stableContent)}`,
+      kind: classifyGeneratedArtifact(filePath),
+    };
+  });
+}
+
 function parseEmitOption(value: string | undefined): EmitFormat[] {
   if (!value || value === "all") {
     return ["json", "yaml", "md", "mermaid"];
@@ -132,38 +207,66 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   const emitValue = options.getOption(args, "--emit");
   const policyPath = options.getOption(args, "--policy");
   const suppressPath = options.getOption(args, "--suppress");
+  const outputFormat = options.getOption(args, "--format") ?? "json";
   const llmProvider = options.getOption(args, "--llm-provider");
   const llmMode = options.getOption(args, "--llm-mode") ?? "local-only";
   const llmModel = options.getOption(args, "--llm-model");
   const llmPort = options.getOption(args, "--llm-port");
   const llmBaseUrl = options.getOption(args, "--llm-base-url");
   const requireLlm = args.includes("--require-llm");
+  const debugLlmTrace = args.includes("--debug-llm-trace");
   const fromImports = args.includes("--from-imports");
   const useTreeSitter = args.includes("--tree-sitter");
   const useDatabaseAnalysis = args.includes("--database-analysis");
 
   // Validate LLM options
+  if (outputFormat !== "json") {
+    emitCliError(`Unsupported output format: ${outputFormat}`, {
+      code: "UNSUPPORTED_OUTPUT_FORMAT",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
+    console.error("Valid formats: json");
+    return options.EXIT.USAGE_ERROR;
+  }
+
   if (llmProvider && !VALID_LLM_PROVIDERS.includes(llmProvider as LlmProviderType)) {
-    console.error(`Invalid LLM provider: ${llmProvider}`);
+    emitCliError(`Invalid LLM provider: ${llmProvider}`, {
+      code: "INVALID_LLM_PROVIDER",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
     console.error(`Valid providers: ${VALID_LLM_PROVIDERS.join(", ")}`);
     return options.EXIT.USAGE_ERROR;
   }
 
   if (!VALID_LLM_MODES.includes(llmMode)) {
-    console.error(`Invalid LLM mode: ${llmMode}`);
+    emitCliError(`Invalid LLM mode: ${llmMode}`, {
+      code: "INVALID_LLM_MODE",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
     console.error(`Valid modes: ${VALID_LLM_MODES.join(", ")}`);
     return options.EXIT.USAGE_ERROR;
   }
 
   if (llmBaseUrl && !validateLocalhostUrl(llmBaseUrl)) {
-    console.error(`Invalid LLM base URL: ${llmBaseUrl}`);
+    emitCliError(`Invalid LLM base URL: ${llmBaseUrl}`, {
+      code: "INVALID_LLM_BASE_URL",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
     console.error(`Local LLM providers only allow localhost URLs: ${ALLOWED_LOCALHOST_LABEL}`);
     return options.EXIT.USAGE_ERROR;
   }
 
   // Validate repo argument
   if (!repoArg) {
-    console.error("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--llm-base-url <url>] [--from-imports] [--tree-sitter] [--database-analysis]");
+    emitCliError("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--llm-base-url <url>] [--from-imports] [--tree-sitter] [--database-analysis]", {
+      code: "USAGE_ERROR",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -184,13 +287,21 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
   );
 
   if (!nodeFileAccess.exists(repoRoot)) {
-    console.error(`repo does not exist: ${repoArg}`);
+    emitCliError(`repo does not exist: ${repoArg}`, {
+      code: "REPO_NOT_FOUND",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
     return options.EXIT.USAGE_ERROR;
   }
 
   const repoStats = nodeFileAccess.stat(repoRoot);
   if (!repoStats || !repoStats.isDirectory) {
-    console.error(`repo is not a directory: ${repoArg}`);
+    emitCliError(`repo is not a directory: ${repoArg}`, {
+      code: "REPO_NOT_DIRECTORY",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -213,7 +324,11 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     const graph = buildGraph(repoRoot, VERSION, { parserRegistry, useTreeSitter });
 
     if (graph.files.length === 0) {
-      console.error(`repo contains no target files: ${repoArg}`);
+      emitCliError(`repo contains no target files: ${repoArg}`, {
+        code: "NO_TARGET_FILES",
+        command: "analyze",
+        exitCode: options.EXIT.SCAN_FAILED,
+      });
       return options.EXIT.SCAN_FAILED;
     }
 
@@ -250,6 +365,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     let llmUsed = false;
     let llmProviderName = "none";
     let llmAnalysisResult: string | undefined;
+    let llmTraceRequest: LlmAnalysisRequest | undefined;
 
     if (llmProvider || requireLlm) {
       const providerType = llmProvider as LlmProviderType | undefined;
@@ -292,6 +408,7 @@ Provide concise, actionable findings.`,
             temperature: 0.1,
           };
 
+          llmTraceRequest = analysisRequest;
           llmAnalysisResult = (await provider.analyze(analysisRequest)).content;
         }
       } catch (llmError) {
@@ -470,24 +587,44 @@ Provide concise, actionable findings.`,
 
     // Add LLM info to audit
     if (llmUsed) {
+      const requestBody = llmTraceRequest ? JSON.stringify(llmTraceRequest) : "analysis-request";
       audit.llm = {
         provider: llmProviderName,
         model: llmModel ?? "default",
         prompt_version: "v1",
-        request_hash: nodeHashService.sha256("analysis-request"),
+        request_hash: nodeHashService.sha256(requestBody),
         response_hash: llmAnalysisResult ? nodeHashService.sha256(llmAnalysisResult) : "",
         redaction_enabled: true,
       };
+
+      if (debugLlmTrace && llmTraceRequest) {
+        const tracePath = nodePathService.join(absoluteOutDir, "llm-trace.json");
+        nodeFileAccess.writeFile(tracePath, JSON.stringify({
+          schema: "ctg.llm-trace@v1",
+          provider: llmProviderName,
+          model: llmModel ?? "default",
+          prompt_version: "v1",
+          request_hash: audit.llm.request_hash,
+          response_hash: audit.llm.response_hash,
+          redaction_enabled: true,
+          request: llmTraceRequest,
+          response: llmAnalysisResult ?? "",
+        }, null, 2) + "\n");
+      }
     }
+
+    audit.artifacts = buildGeneratedArtifactRefs(generated, cwd);
 
     const auditPath = writeAuditJson(absoluteOutDir, audit);
     generated.push(auditPath);
 
     // Output summary
-    console.log(
-      JSON.stringify({
+    emitCliSummary(args, {
+        schema: "ctg.cli.summary@v1",
         tool: "code-to-gate",
         command: "analyze",
+        status: mapStatusToAuditStatus(readinessStatus),
+        exit_code: finalExitCode,
         run_id: graph.run_id,
         llm: llmUsed ? {
           provider: llmProviderName,
@@ -507,12 +644,15 @@ Provide concise, actionable findings.`,
           low: reportedFindings.findings.filter((f) => f.severity === "low").length,
           suppressed: suppressedIds.length,
         },
-      })
-    );
+      });
 
     return finalExitCode;
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    emitCliError(error instanceof Error ? error.message : String(error), {
+      code: "SCAN_FAILED",
+      command: "analyze",
+      exitCode: options.EXIT.SCAN_FAILED,
+    });
     return options.EXIT.SCAN_FAILED;
   }
 }

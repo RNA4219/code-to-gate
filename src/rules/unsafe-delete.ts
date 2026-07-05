@@ -41,8 +41,8 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
         // MongoDB/ORM: deleteMany({}) or deleteMany() without filter
         /\.deleteMany\s*\(\s*\{\s*\}\s*\)/g,
         /\.deleteMany\s*\(\s*\)/g,
-        /\.remove\s*\(\s*\{\s*\}\s*\)/g,
-        /\.remove\s*\(\s*\)/g,
+        /(?:\b(?:collection|db|database|model|repo|repository|record|records|row|rows|table|store|user|users|order|orders|session|sessions|account|accounts|log|logs)|\b[A-Z]\w*)\.remove\s*\(\s*\{\s*\}\s*\)/g,
+        /(?:\b(?:collection|db|database|model|repo|repository|record|records|row|rows|table|store|user|users|order|orders|session|sessions|account|accounts|log|logs)|\b[A-Z]\w*)\.remove\s*\(\s*\)/g,
         // fs.unlink / fs.rm without checks
         /fs\.unlink\s*\(/g,
         /fs\.rm\s*\(/g,
@@ -201,7 +201,8 @@ export const UNSAFE_DELETE_RULE: RulePlugin = {
         if (inSmellComment) {
           // Look for delete-related code in the smell block
           const hasDeleteKeyword = line.toUpperCase().includes("DELETE") ||
-            line.includes(".remove") ||
+            /\.(?:deleteMany|delete_all|destroy_all)\s*\(\s*(?:\{\s*\})?\s*\)/.test(line) ||
+            /(?:\b(?:collection|db|database|model|repo|repository|record|records|row|rows|table|store|user|users|order|orders|session|sessions|account|accounts|log|logs)|\b[A-Z]\w*)\.remove\s*\(\s*(?:\{\s*\})?\s*\)/.test(line) ||
             line.includes(".unlink") ||
             line.includes(".rm");
 

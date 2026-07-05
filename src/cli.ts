@@ -13,6 +13,7 @@ import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { assuranceCommand } from "./cli/assurance.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
+import { emitCliError } from "./cli/output.js";
 
 function printHelp(): void {
   console.log(`code-to-gate ${VERSION}
@@ -20,7 +21,7 @@ function printHelp(): void {
 Usage:
   code-to-gate schema validate <artifact-or-schema>
   code-to-gate scan <repo> --out <dir> [--database-analysis]
-  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--database-analysis]
+  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--debug-llm-trace] [--database-analysis]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
   code-to-gate import <tool> <input-file> --out <dir>
     Tools: eslint, semgrep, tsc, coverage, test
@@ -61,11 +62,14 @@ Options:
   --llm-model        Model name for provider
   --llm-port         Custom port for provider
   --llm-base-url     Localhost base URL for provider (for example http://localhost:11434)
+  --debug-llm-trace  Write redacted LLM request/response trace to output dir
   --cache <mode>     Cache mode: enabled, disabled, force (default: enabled)
                      enabled  - Use incremental cache for faster scans
                      disabled - Skip caching, fresh scan each time
                      force    - Ignore cache, rebuild and update cache
   --parallel <n>     Max parallel workers for file parsing (default: 4)
+  --format <format>  Machine output format for supported commands (json)
+  --quiet            Suppress success summary on stdout; diagnostics still use stderr
   --database-analysis Enable SQL and migration risk analysis
   --plugin-sandbox   Sandbox mode for plugin execution: none, docker (default: none)
   --verbose          Show detailed progress and timing information
@@ -153,11 +157,18 @@ async function main(): Promise<number> {
       return await assuranceCommand(args, { VERSION, EXIT, getOption });
     }
 
-    console.error(`unknown command: ${command}`);
+    emitCliError(`unknown command: ${command}`, {
+      code: "UNKNOWN_COMMAND",
+      command,
+      exitCode: EXIT.USAGE_ERROR,
+    });
     console.error("Run 'code-to-gate --help' for usage information");
     return EXIT.USAGE_ERROR;
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    emitCliError(error instanceof Error ? error.message : String(error), {
+      code: "INTERNAL_ERROR",
+      exitCode: EXIT.INTERNAL_ERROR,
+    });
     return EXIT.INTERNAL_ERROR;
   }
 }

@@ -72,6 +72,22 @@ describe("SUPPRESSION_DEBT_RULE", () => {
     expect(findings[0].summary).toContain("missing expiry");
   });
 
+  it("detects generic Japanese reasons", () => {
+    const content = [
+      "suppressions:",
+      "  -",
+      "    rule_id: LARGE_MODULE",
+      "    path: src/payment/checkout.ts",
+      "    reason: 一時対応のため許容",
+      "    expiry: 2026-06-01",
+    ].join("\n");
+
+    const findings = SUPPRESSION_DEBT_RULE.evaluate(createContext(".ctg/suppressions.yaml", content));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].summary).toContain("generic reason");
+  });
+
   it("ignores narrow suppressions with expiry and specific reason", () => {
     vi.setSystemTime(new Date("2026-05-02T00:00:00Z"));
     const content = [

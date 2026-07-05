@@ -169,11 +169,22 @@ export interface RiskSeed {
   recommendedActions: string[];
 }
 
+export interface PackageRiskSummary {
+  packagePath: string;
+  findingCount: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  riskIds: string[];
+}
+
 export interface RiskRegisterArtifact extends ArtifactHeader {
   artifact: "risk-register";
   schema: "risk-register@v1";
   completeness: Completeness;
   risks: RiskSeed[];
+  packageSummary?: PackageRiskSummary[];
 }
 
 // === Test Seeds ===
@@ -314,6 +325,13 @@ export interface AuditInput {
   kind: "source" | "config" | "policy" | "external-result";
 }
 
+export interface AuditOutputArtifact {
+  path: string;
+  hash: string;
+  stable_hash?: string;
+  kind: "json" | "yaml" | "markdown" | "graph" | "test-seeds" | "invariants" | "self-analysis" | "database";
+}
+
 export interface AuditLlm {
   provider: string;
   model: string;
@@ -339,6 +357,7 @@ export interface AuditArtifact extends ArtifactHeader {
   artifact: "audit";
   schema: "audit@v1";
   inputs: AuditInput[];
+  artifacts?: AuditOutputArtifact[];
   llm?: AuditLlm;
   policy: AuditPolicy;
   exit: AuditExit;
@@ -362,11 +381,21 @@ export interface RepoFile {
   };
 }
 
+export interface RepoModule {
+  id: string;
+  path: string;
+  name?: string;
+  version?: string;
+  packageManager?: "npm" | "pnpm" | "yarn" | "unknown";
+  workspace?: boolean;
+  dependencies?: string[];
+}
+
 export interface NormalizedRepoGraph extends ArtifactHeader {
   artifact: "normalized-repo-graph";
   schema: "normalized-repo-graph@v1";
   files: RepoFile[];
-  modules: unknown[];
+  modules: RepoModule[];
   symbols: unknown[];
   relations: unknown[];
   tests: unknown[];

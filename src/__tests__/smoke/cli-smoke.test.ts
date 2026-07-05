@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { EXIT } from '../../cli/exit-codes.js';
 
 const CLI_PATH = './dist/cli.js';
 const FIXTURES_DIR = './fixtures';
@@ -17,13 +18,56 @@ const TEMP_DIR = './.test-temp/smoke-cli';
 describe('CLI Smoke Tests', () => {
   it('--help works and shows available commands', () => {
     const result = execSync(`node ${CLI_PATH} --help`).toString();
-    expect(result).toContain('scan');
-    expect(result).toContain('analyze');
-    expect(result).toContain('diff');
-    expect(result).toContain('import');
-    expect(result).toContain('readiness');
-    expect(result).toContain('export');
-    expect(result).toContain('viewer');
+    for (const command of [
+      'scan',
+      'analyze',
+      'diff',
+      'import',
+      'readiness',
+      'export',
+      'viewer',
+      'historical',
+      'llm-health',
+      'evidence',
+      'plugin-sandbox',
+      'assurance inspect',
+    ]) {
+      expect(result).toContain(command);
+    }
+  });
+
+  it('cli reference lists every command shown in --help', () => {
+    const help = execSync(`node ${CLI_PATH} --help`).toString();
+    const docs = readFileSync('./docs/cli-reference.md', 'utf-8');
+    const commandUsages = [
+      'schema validate',
+      'scan',
+      'analyze',
+      'diff',
+      'import',
+      'readiness',
+      'export',
+      'viewer',
+      'historical',
+      'llm-health',
+      'evidence',
+      'plugin-sandbox',
+      'assurance inspect',
+    ];
+
+    for (const usage of commandUsages) {
+      expect(help).toContain(`code-to-gate ${usage}`);
+      const anchorText = usage.split(' ')[0];
+      expect(docs).toContain(`### ${anchorText}`);
+    }
+  });
+
+  it('cli reference documents every implemented exit code', () => {
+    const docs = readFileSync('./docs/cli-reference.md', 'utf-8');
+
+    for (const code of Object.values(EXIT)) {
+      expect(docs).toContain(`| ${code} |`);
+    }
   });
 
   it('--version shows version number', () => {

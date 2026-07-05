@@ -395,7 +395,9 @@ describe("audit-writer", () => {
       expect(audit.tool.name).toBe("code-to-gate");
       expect(audit.tool.version).toBe(VERSION);
       expect(audit.tool.policy_id).toBe("release-policy");
+      expect(audit.tool.config_hash).toMatch(/^[a-f0-9]{64}$/);
       expect(Array.isArray(audit.tool.plugin_versions)).toBe(true);
+      expect(audit.policy.hash).toMatch(/^[a-f0-9]{64}$/);
     });
 
     it("generated_at is valid ISO 8601", () => {

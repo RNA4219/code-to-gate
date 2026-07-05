@@ -178,7 +178,7 @@ export function buildTestSeedsFromFindings(
     ...header,
     artifact: "test-seeds",
     schema: "test-seeds@v1",
-    completeness: seeds.length > 0 ? "complete" : "partial",
+    completeness: findings.completeness === "partial" || seeds.length === 0 ? "partial" : "complete",
     seeds,
     oracle_gaps,
     known_gaps,

@@ -64,6 +64,25 @@ function findingReviewFlags(finding: Finding): string {
   return fpTags.map((tag) => tag.replace("fp-review:", "")).join(", ");
 }
 
+function evidenceKindSummary(finding: Finding): string {
+  const kinds = new Set(finding.evidence.map((evidence) => evidence.kind ?? "unknown"));
+  return [...kinds].join(", ") || "missing";
+}
+
+function impactHypothesis(finding: Finding): string {
+  const domain = inferFindingDomain(finding).label;
+  return `${domain}: ${finding.summary || finding.title}`;
+}
+
+function reviewVerificationHint(finding: Finding): string {
+  const evidence = finding.evidence[0];
+  if (!evidence) {
+    return "Add or inspect evidence before accepting this finding.";
+  }
+  const location = evidence.startLine ? `${evidence.path}:${evidence.startLine}` : evidence.path;
+  return `Inspect ${location} and confirm whether the signal reaches a risky runtime path.`;
+}
+
 function summarizeDomains(findings: Finding[]): Array<{ domain: string; count: number; high: number; paths: string[] }> {
   const domains = new Map<string, { domain: string; count: number; high: number; paths: Set<string> }>();
   for (const finding of findings) {
@@ -232,6 +251,29 @@ Repository: ${repoRoot}
 `;
     for (const domain of domainSummary) {
       md += `| ${escapeMarkdownCell(domain.domain)} | ${domain.count} | ${domain.high} | ${escapeMarkdownCell(domain.paths.join(", ") || "n/a")} |\n`;
+    }
+    md += "\n";
+  }
+
+  if (activeFindings.length > 0) {
+    md += `## Human Review Guide
+
+Findings in this report are review-required candidates. Severity is a gate
+priority label, not proof of a confirmed incident.
+
+Suggested confirmation commands:
+
+\`\`\`sh
+code-to-gate analyze "${repoRoot}" --emit all --out .qh
+code-to-gate schema validate .qh/findings.json
+code-to-gate readiness "${repoRoot}" --from .qh --out .qh
+\`\`\`
+
+| Finding | Review Priority | Impact Hypothesis | Evidence | Confidence | Verification Hint |
+|---------|-----------------|-------------------|----------|------------|-------------------|
+`;
+    for (const finding of activeFindings) {
+      md += `| ${finding.id} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(impactHypothesis(finding))} | ${escapeMarkdownCell(`${firstEvidencePath(finding)} (${evidenceKindSummary(finding)})`)} | ${finding.confidence.toFixed(2)} | ${escapeMarkdownCell(reviewVerificationHint(finding))} |\n`;
     }
     md += "\n";
   }

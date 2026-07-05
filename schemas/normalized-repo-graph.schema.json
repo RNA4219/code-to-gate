@@ -41,7 +41,23 @@
         }
       }
     },
-    "modules": { "type": "array", "items": { "type": "object" } },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^module:" },
+          "path": { "type": "string" },
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "packageManager": { "enum": ["npm", "pnpm", "yarn", "unknown"] },
+          "workspace": { "type": "boolean" },
+          "dependencies": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
     "symbols": {
       "type": "array",
       "items": {

@@ -4,7 +4,7 @@ const Ajv = AjvImport.default || AjvImport;
 import type { ValidateFunction, ErrorObject } from "ajv";
 import addFormatsImport from "ajv-formats";
 const addFormats = addFormatsImport.default || addFormatsImport;
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import yamlImport from "js-yaml";
@@ -380,6 +380,7 @@ async function validateArtifactsInDir(
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       results.push({ artifact, status: "error", errors: [`parse error: ${errorMsg}`] });
+      quarantineInvalidArtifact(dir, filePath, artifact);
       if (!silent) {
         console.error(`parse error: ${artifact}`);
         console.error(errorMsg);
@@ -390,6 +391,7 @@ async function validateArtifactsInDir(
     const schemaPath = schemaForArtifact(data);
     if (!schemaPath) {
       results.push({ artifact, status: "error", errors: ["no schema found"] });
+      quarantineInvalidArtifact(dir, filePath, artifact);
       if (!silent) {
         console.error(`no schema: ${artifact}`);
       }
@@ -405,6 +407,7 @@ async function validateArtifactsInDir(
       if (!valid) {
         const errors = formatErrors(validate.errors);
         results.push({ artifact, status: "error", errors });
+        quarantineInvalidArtifact(dir, filePath, artifact);
         if (!silent) {
           console.error(`invalid: ${artifact}`);
           for (const error of errors) {
@@ -420,6 +423,7 @@ async function validateArtifactsInDir(
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       results.push({ artifact, status: "error", errors: [`validation error: ${errorMsg}`] });
+      quarantineInvalidArtifact(dir, filePath, artifact);
       if (!silent) {
         console.error(`error: ${artifact}`);
         console.error(`  ${errorMsg}`);
@@ -443,6 +447,21 @@ async function validateArtifactsInDir(
   }
 
   return results;
+}
+
+function quarantineInvalidArtifact(dir: string, filePath: string, artifact: string): void {
+  if (!existsSync(filePath)) return;
+
+  const invalidDir = path.join(dir, "invalid");
+  mkdirSync(invalidDir, { recursive: true });
+
+  let target = path.join(invalidDir, artifact);
+  if (existsSync(target)) {
+    const parsed = path.parse(artifact);
+    target = path.join(invalidDir, `${parsed.name}-${Date.now()}${parsed.ext}`);
+  }
+
+  renameSync(filePath, target);
 }
 
 async function validateAllArtifacts(

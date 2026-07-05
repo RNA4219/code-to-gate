@@ -133,6 +133,16 @@ export interface GraphStats {
   partial: boolean;
 }
 
+export interface RepoModule {
+  id: string;
+  path: string;
+  name?: string;
+  version?: string;
+  packageManager?: "npm" | "pnpm" | "yarn" | "unknown";
+  workspace?: boolean;
+  dependencies?: string[];
+}
+
 export interface NormalizedRepoGraph {
   version: "ctg/v1" | "ctg/v1alpha1";
   generated_at: string;
@@ -142,7 +152,7 @@ export interface NormalizedRepoGraph {
   artifact: "normalized-repo-graph";
   schema: "normalized-repo-graph@v1";
   files: RepoFile[];
-  modules: unknown[];
+  modules: RepoModule[];
   symbols: SymbolNode[];
   relations: GraphRelation[];
   tests: TestNode[];

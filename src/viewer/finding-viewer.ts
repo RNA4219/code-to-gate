@@ -12,6 +12,7 @@ import {
   countBySeverity,
   countByCategory,
   getUniqueCategories,
+  isSuppressedFinding,
 } from "./finding-viewer-utils.js";
 
 // Re-export utility functions
@@ -20,6 +21,8 @@ export {
   sortFindingsBySeverity,
   filterFindingsBySeverity,
   filterFindingsByCategory,
+  filterFindingsBySuppression,
+  isSuppressedFinding,
   searchFindings,
   getUniqueCategories,
   countBySeverity,
@@ -38,6 +41,7 @@ export interface FindingViewerConfig {
   defaultCategoryFilter?: FindingCategory | "all";
   collapsibleEvidence?: boolean;
   maxEvidenceLength?: number;
+  maxRenderedFindings?: number;
 }
 
 /**
@@ -96,7 +100,7 @@ export function generateFindingCard(
   const evidenceHtml = generateEvidenceHtml(finding.evidence, config);
 
   return `
-<div class="finding" data-finding-id="${escapeHtml(finding.id)}" data-severity="${finding.severity}" data-category="${finding.category}">
+<div class="finding" data-finding-id="${escapeHtml(finding.id)}" data-severity="${finding.severity}" data-category="${finding.category}" data-suppressed="${isSuppressedFinding(finding) ? "true" : "false"}">
   <div class="collapsible">
     <div class="collapsible-header" onclick="toggleFinding('${escapeHtml(finding.id)}')">
       <div class="finding-header">
@@ -151,6 +155,8 @@ export function generateFilterToolbar(
   const severityCounts = countBySeverity(findings);
   const categories = getUniqueCategories(findings);
   const categoryCounts = countByCategory(findings);
+  const suppressedCount = findings.filter(isSuppressedFinding).length;
+  const activeCount = findings.length - suppressedCount;
 
   let severityFilters = `
 <div class="toolbar-group">
@@ -191,6 +197,21 @@ export function generateFilterToolbar(
   }
   categoryFilters += "</div>";
 
+  const suppressionFilters = `
+<div class="toolbar-group">
+  <span class="toolbar-label">Suppression:</span>
+  <button class="filter-btn active" data-filter="suppression" data-value="all" onclick="filterFindings('suppression', 'all')">
+    All (${findings.length})
+  </button>
+  <button class="filter-btn" data-filter="suppression" data-value="active" onclick="filterFindings('suppression', 'active')">
+    Active (${activeCount})
+  </button>
+  <button class="filter-btn" data-filter="suppression" data-value="suppressed" onclick="filterFindings('suppression', 'suppressed')">
+    Suppressed (${suppressedCount})
+  </button>
+</div>
+`;
+
   const searchInput = config.showSearch
     ? `
 <div class="toolbar-group">
@@ -204,6 +225,7 @@ export function generateFilterToolbar(
 <div class="toolbar fade-in">
   ${severityFilters}
   ${categoryFilters}
+  ${suppressionFilters}
   ${searchInput}
 </div>
 `;
@@ -217,6 +239,9 @@ export function generateFindingsExplorer(
   config: FindingViewerConfig = {}
 ): string {
   const findings = sortFindingsBySeverity(findingsArtifact.findings);
+  const maxRenderedFindings = config.maxRenderedFindings ?? 1000;
+  const renderedFindings = findings.slice(0, maxRenderedFindings);
+  const hiddenFindingCount = Math.max(0, findings.length - renderedFindings.length);
   const filterToolbar = generateFilterToolbar(findings, config);
   const counts = countBySeverity(findings);
 
@@ -286,13 +311,19 @@ export function generateFindingsExplorer(
 <div class="section">
   <div class="section-title">
     <h2>Findings List</h2>
-    <span class="section-count">${findings.length} findings</span>
+  <span class="section-count">${renderedFindings.length} findings</span>
   </div>
+  ${hiddenFindingCount > 0 ? `
+  <div class="risk-actions" data-viewer-limit="true">
+    <strong>Viewer limit applied:</strong>
+    Showing ${renderedFindings.length} of ${findings.length} findings. Use JSON artifacts or narrower filters for the full set.
+  </div>
+  ` : ""}
   <div id="findings-list">
 `;
 
-    for (let i = 0; i < findings.length; i++) {
-      findingsList += generateFindingCard(findings[i], i, config);
+    for (let i = 0; i < renderedFindings.length; i++) {
+      findingsList += generateFindingCard(renderedFindings[i], i, config);
     }
 
     findingsList += `
@@ -324,6 +355,7 @@ function getFindingsScript(): string {
 // Finding filtering and interactivity
 let currentSeverityFilter = 'all';
 let currentCategoryFilter = 'all';
+let currentSuppressionFilter = 'all';
 let currentSearchQuery = '';
 
 function filterFindings(filterType, value) {
@@ -332,6 +364,8 @@ function filterFindings(filterType, value) {
     currentSeverityFilter = value;
   } else if (filterType === 'category') {
     currentCategoryFilter = value;
+  } else if (filterType === 'suppression') {
+    currentSuppressionFilter = value;
   }
 
   // Update button states
@@ -354,6 +388,7 @@ function applyFilters() {
   document.querySelectorAll('.finding').forEach(el => {
     const severity = el.dataset.severity;
     const category = el.dataset.category;
+    const suppressed = el.dataset.suppressed === 'true';
     const title = el.querySelector('.finding-title').textContent.toLowerCase();
 
     let show = true;
@@ -363,6 +398,14 @@ function applyFilters() {
     }
 
     if (currentCategoryFilter !== 'all' && category !== currentCategoryFilter) {
+      show = false;
+    }
+
+    if (currentSuppressionFilter === 'active' && suppressed) {
+      show = false;
+    }
+
+    if (currentSuppressionFilter === 'suppressed' && !suppressed) {
       show = false;
     }
 

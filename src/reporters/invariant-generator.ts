@@ -197,7 +197,7 @@ export function buildInvariantsFromFindings(
     ...header,
     artifact: "invariants",
     schema: "invariants@v1",
-    completeness: invariants.length > 0 ? "complete" : "partial",
+    completeness: findings.completeness === "partial" || invariants.length === 0 ? "partial" : "complete",
     invariants,
   };
 }

@@ -53,8 +53,21 @@ describe("llm-enrichment", () => {
       "deterministic"
     );
 
-    expect(enriched.findings[0].tags).not.toContain("llm-reviewed");
+    expect(enriched.findings[0].tags ?? []).not.toContain("llm-reviewed");
     expect(enriched.unsupported_claims).toHaveLength(1);
     expect(enriched.unsupported_claims[0].reason).toBe("missing_evidence");
+  });
+
+  it("isolates JSON-like invalid LLM output as schema_invalid", () => {
+    const enriched = applyLlmEnrichment(
+      createFindings(),
+      '{"claims":[{"summary":"auth review",}',
+      "deterministic"
+    );
+
+    expect(enriched.findings[0].tags ?? []).not.toContain("llm-reviewed");
+    expect(enriched.unsupported_claims).toHaveLength(1);
+    expect(enriched.unsupported_claims[0].reason).toBe("schema_invalid");
+    expect(enriched.unsupported_claims[0].sourceSection).toBe("llm:deterministic");
   });
 });

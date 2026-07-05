@@ -425,4 +425,39 @@ console.log(JSON.stringify({ version: "invalid-version", findings: [] }));
 
     await runner.shutdown();
   }, 10000);
+
+  it("should isolate plugin crash without adopting output", async () => {
+    const runner = new PluginRunnerImpl();
+    await runner.initialize({ workDir: TEST_DIR, retry: 0 });
+
+    const pluginDir = path.join(TEST_DIR, "crash-plugin");
+    await fs.mkdir(pluginDir, { recursive: true });
+    const scriptPath = path.join(pluginDir, "index.js");
+
+    await fs.writeFile(scriptPath, `
+process.stderr.write("intentional crash");
+process.exit(42);
+`);
+
+    const manifest = createDefaultManifest("crash-plugin");
+    manifest.entry.command = ["node", scriptPath];
+    manifest.entry.timeout = 10;
+
+    const entry: PluginRegistryEntry = {
+      manifest,
+      path: pluginDir,
+      loaded: true,
+      enabled: true,
+    };
+
+    const input = createPluginInput({ version: "ctg/v1" });
+    const result = await runner.executePlugin(entry, input);
+
+    expect(result.status).toBe("failed");
+    expect(result.output).toBeUndefined();
+    expect(result.error?.code).toBe("EXECUTION_ERROR");
+    expect(result.error?.message).toContain("EXIT_CODE_42");
+
+    await runner.shutdown();
+  }, 10000);
 });

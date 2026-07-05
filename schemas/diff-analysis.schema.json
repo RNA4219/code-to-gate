@@ -58,7 +58,8 @@
         "affectedFiles": { "type": "array", "items": { "type": "string" } },
         "affectedSymbols": { "type": "array", "items": { "type": "string" } },
         "affectedTests": { "type": "array", "items": { "type": "string" } },
-        "affectedEntrypoints": { "type": "array", "items": { "type": "string" } }
+        "affectedEntrypoints": { "type": "array", "items": { "type": "string" } },
+        "maxDepth": { "type": "integer", "minimum": 1, "maximum": 10 }
       }
     },
     "diff_findings": {

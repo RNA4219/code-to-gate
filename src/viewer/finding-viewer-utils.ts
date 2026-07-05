@@ -5,6 +5,8 @@
 
 import { Finding, Severity, FindingCategory } from "../types/artifacts.js";
 
+export type SuppressionFilter = "all" | "active" | "suppressed";
+
 /**
  * Escape HTML special characters
  */
@@ -80,6 +82,21 @@ export function filterFindingsByCategory(
 ): Finding[] {
   if (category === "all") return findings;
   return findings.filter((f) => f.category === category);
+}
+
+export function isSuppressedFinding(finding: Finding): boolean {
+  return (finding.tags ?? []).some((tag) => {
+    const normalized = tag.toLowerCase();
+    return normalized === "suppressed" || normalized.startsWith("suppression:");
+  });
+}
+
+export function filterFindingsBySuppression(
+  findings: Finding[],
+  suppression: SuppressionFilter
+): Finding[] {
+  if (suppression === "all") return findings;
+  return findings.filter((f) => isSuppressedFinding(f) === (suppression === "suppressed"));
 }
 
 /**

@@ -241,6 +241,34 @@ describe("export CLI", () => {
       // Known gaps
       expect(Array.isArray(output.known_gaps)).toBe(true);
     });
+
+    it("includes known gaps and oracle gaps for manual test planning", async () => {
+      writeFindings(tempOutDir, [
+        createFinding({
+          id: "finding-low-confidence",
+          confidence: 0.55,
+          category: "security",
+          ruleId: "LOW_CONFIDENCE_RULE",
+        }),
+        createFinding({
+          id: "finding-testing-oracle",
+          category: "testing",
+          ruleId: "MISSING_TEST_COVERAGE",
+        }),
+      ]);
+
+      const { exitCode, output } = await runExport("manual-bb", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(Array.isArray(output.known_gaps)).toBe(true);
+      expect(Array.isArray(output.oracle_gaps)).toBe(true);
+      expect(output.known_gaps).toEqual(
+        expect.arrayContaining([expect.stringContaining("LOW_CONFIDENCE_RULE")])
+      );
+      expect(output.oracle_gaps).toEqual(
+        expect.arrayContaining([expect.stringContaining("MISSING_TEST_COVERAGE")])
+      );
+    });
   });
 
   describe("workflow-evidence export", () => {

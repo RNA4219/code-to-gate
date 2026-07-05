@@ -45,6 +45,10 @@ export const DEFAULT_IGNORED_DIRS = new Set([
   "build",
   "out",
   ".out",
+  "vendor",
+  "vendors",
+  "third_party",
+  "third-party",
   // Generated documentation
   "_build",  // Sphinx
   "site",    // MkDocs/Jekyll
@@ -92,6 +96,33 @@ export function detectLanguage(filePath: string): Language {
     cjs: "js",
   };
   return langMap[ext] || "unknown";
+}
+
+export function isGeneratedVendoredOrMinifiedPath(relPath: string): boolean {
+  const normalized = toPosix(relPath);
+  const basename = path.posix.basename(normalized);
+
+  return (
+    normalized.startsWith("dist/") ||
+    normalized.startsWith("build/") ||
+    normalized.startsWith("generated/") ||
+    normalized.startsWith("out/") ||
+    normalized.startsWith("vendor/") ||
+    normalized.startsWith("vendors/") ||
+    normalized.startsWith("third_party/") ||
+    normalized.startsWith("third-party/") ||
+    normalized.includes("/dist/") ||
+    normalized.includes("/build/") ||
+    normalized.includes("/generated/") ||
+    normalized.includes("__generated__/") ||
+    normalized.includes("/out/") ||
+    normalized.includes("/vendor/") ||
+    normalized.includes("/vendors/") ||
+    normalized.includes("/third_party/") ||
+    normalized.includes("/third-party/") ||
+    /\.min\.(?:js|css|mjs|cjs)$/.test(basename) ||
+    normalized.endsWith(".d.ts")
+  );
 }
 
 /**
@@ -181,18 +212,7 @@ export function detectRole(relPath: string): FileRole {
   }
 
   // Generated patterns
-  if (
-    normalized.startsWith("dist/") ||
-    normalized.startsWith("build/") ||
-    normalized.startsWith("generated/") ||
-    normalized.startsWith("out/") ||
-    normalized.includes("/dist/") ||
-    normalized.includes("/build/") ||
-    normalized.includes("/generated/") ||
-    normalized.includes("__generated__/") ||
-    normalized.includes("/out/") ||
-    normalized.endsWith(".d.ts")
-  ) {
+  if (isGeneratedVendoredOrMinifiedPath(normalized)) {
     return "generated";
   }
 
