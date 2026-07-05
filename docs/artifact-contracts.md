@@ -496,6 +496,7 @@ v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を�
 - `schemas/release-readiness.schema.json`
 - `schemas/self-analysis-debt.schema.json`
 - `schemas/audit.schema.json`
+- `schemas/schema-migration.schema.json`
 
 受入条件:
 

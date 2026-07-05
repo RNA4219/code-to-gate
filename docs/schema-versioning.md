@@ -96,11 +96,20 @@ The following changes are allowed without version bump:
 
 ### 4.1 v1alpha1 to v1 Migration
 
-v1 parsers must accept v1alpha1 artifacts by:
+Use the built-in migration command before strict v1 validation:
+
+```bash
+code-to-gate schema migrate .qh/legacy/findings.json --out .qh/migrated
+code-to-gate schema validate .qh/migrated/findings.json
+code-to-gate schema validate .qh/migrated/schema-migration.json
+```
+
+v1 consumers should handle v1alpha1 artifacts by:
 
 1. Recognizing `ctg/v1alpha1` version string as valid
-2. Applying schema validation against v1 definitions
-3. Normalizing missing optional fields to defaults
+2. Migrating or normalizing the version string to `ctg/v1`
+3. Applying schema validation against v1 definitions
+4. Keeping `schema-migration.json` with the validation evidence when artifacts are transformed
 
 ### 4.2 Implementation Guidelines
 
@@ -147,6 +156,7 @@ schemas/
   audit.schema.json            # Audit artifact
   normalized-repo-graph.schema.json # Repository graph
   evidence-ref.schema.json     # Evidence reference
+  schema-migration.schema.json # Migration report artifact
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

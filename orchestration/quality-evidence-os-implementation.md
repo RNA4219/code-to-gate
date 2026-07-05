@@ -178,7 +178,6 @@ Commands:
 ## Task Seed QEOS-P2/P3 Backlog
 
 - QEOS-002 PR Reviewer Bot
-- QEOS-011 Schema Evolution
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
 
@@ -278,5 +277,25 @@ Requirements:
 Commands:
 
 - `npx vitest run src/cli/__tests__/viewer.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-06 Schema Evolution / Migration
+
+Objective: 古いCI artifactやリリース証跡を現行schemaへ検証・変換し、migration結果を証跡として残せるようにする。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate schema migrate <artifact> --out <file-or-dir>` は `ctg/v1alpha1` artifact を `ctg/v1` artifact に変換できる。
+- 変換後 artifact は `schema validate` に合格する。
+- `schema-migration.json` は source、target、changes、validation result を記録する。
+- `schema-migration.json` は `schema-migration@v1` schema に合格する。
+- 未対応versionや不正な `--target-version` は usage/schema error として失敗する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/schema-validate.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`

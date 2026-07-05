@@ -24,6 +24,7 @@ optional artifact / optional field を追加する。
 | `release-pack.html` | human-readable release evidence review | P1 |
 | `release-pack.zip` | release evidence pack archive | P1 |
 | `hosted-static-report.json` | static hosting manifest for single-file viewer HTML | P2 |
+| `schema-migration.json` | artifact schema migration evidence and validation result | P2 |
 | `doctor.json` | local/CI readiness diagnosis | P0 |
 
 ## 2. Baseline/Ratchet Gate
@@ -308,3 +309,13 @@ P2 Hosted Static Report の初期 acceptance は次の通り。
   static host target、optional public URL を含む。
 - `--hosted-target` は `github-pages`、`artifact-preview`、`generic-static`
   を受け付け、未知の target は usage error にする。
+
+P2 Schema Evolution / Migration の初期 acceptance は次の通り。
+
+- `code-to-gate schema migrate <artifact> --out <file-or-dir>` は
+  `ctg/v1alpha1` artifact を `ctg/v1` artifact に変換できる。
+- 変換後 artifact は既存 `schema validate` に合格する。
+- migration は `schema-migration.json` を生成し、source、target、changes、
+  validation result を記録する。
+- `schema-migration.json` は `schema-migration@v1` schema に合格する。
+- 未対応versionや不正な target version は usage/schema error として失敗する。

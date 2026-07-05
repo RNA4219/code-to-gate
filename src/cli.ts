@@ -26,6 +26,7 @@ function printHelp(): void {
 
 Usage:
   code-to-gate schema validate <artifact-or-schema>
+  code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]
   code-to-gate scan <repo> --out <dir> [--database-analysis]
   code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--debug-llm-trace] [--database-analysis]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
@@ -105,6 +106,8 @@ Options:
   --previous <dir>   Previous run artifact directory (historical)
   --history <dir>    Directory with historical runs for trend analysis
   --ci-url <url>     CI run URL for release-pack
+  --target-version <version>
+                     Target version for schema migrate; inferred from source version by default
   --help, -h         Show this help
   --version          Show version
 

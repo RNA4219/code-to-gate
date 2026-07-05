@@ -130,6 +130,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates schema-migration schema", () => {
+      const schemaFile = schemaPath("schema-migration");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -250,6 +258,7 @@ describe("schema coverage integration", () => {
         "quality-pack.schema.json",
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
+        "schema-migration.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "historical-comparison.schema.json",
@@ -988,6 +997,53 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalHostedReportPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal schema-migration artifact", () => {
+      const minimalMigrationPath = path.join(tempDir, "minimal-schema-migration.json");
+      writeFileSync(
+        minimalMigrationPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "schema-migration-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "schema-migration",
+          schema: "schema-migration@v1",
+          completeness: "complete",
+          status: "migrated",
+          source: {
+            path: ".qh/legacy/findings.json",
+            artifact: "findings",
+            schema: "findings@v1",
+            version: "ctg/v1alpha1",
+          },
+          target: {
+            path: ".qh/migrated/findings.json",
+            artifact: "findings",
+            schema: "findings@v1",
+            version: "ctg/v1",
+          },
+          changes: [
+            {
+              path: "/version",
+              from: "ctg/v1alpha1",
+              to: "ctg/v1",
+              reason: "Normalize legacy version.",
+            },
+          ],
+          validation: {
+            status: "ok",
+            errors: [],
+          },
+          generated_by: "ctg-schema-migrate-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalMigrationPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

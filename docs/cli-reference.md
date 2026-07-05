@@ -937,6 +937,7 @@ Validate artifacts against their schemas.
 ```bash
 code-to-gate schema validate <artifact-or-schema>
 code-to-gate schema validate-all <dir> [--profile <profile>] [--strict] [--allow-missing]
+code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]
 ```
 
 **Arguments:**
@@ -944,13 +945,16 @@ code-to-gate schema validate-all <dir> [--profile <profile>] [--strict] [--allow
 |----------|----------|-------------|
 | `<artifact-or-schema>` | Yes (validate) | Path to artifact JSON or schema JSON file |
 | `<dir>` | Yes (validate-all) | Directory containing artifacts to validate |
+| `<artifact>` | Yes (migrate) | Legacy JSON artifact to migrate |
 
-**Options (validate-all):**
+**Options:**
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--profile <profile>` | `full` | Validation profile: `analyze`, `readiness`, or `full` |
 | `--strict` | false | Fail when required artifacts for the selected profile are missing |
 | `--allow-missing` | false | Allow missing required artifacts even in strict mode |
+| `--out <file-or-dir>` | Required for migrate | Migrated artifact file or output directory |
+| `--target-version <version>` | inferred | Optional target version; must match the supported migration path for the source artifact |
 
 **Profile Definitions:**
 | Profile | Required Artifacts |
@@ -963,6 +967,9 @@ code-to-gate schema validate-all <dir> [--profile <profile>] [--strict] [--allow
 - If file ends with `.schema.json`: validates schema document structure
 - Otherwise: identifies artifact type and validates against appropriate schema
 - `validate-all`: validates all required artifacts for the selected profile
+- `migrate`: rewrites supported legacy version strings such as `ctg/v1alpha1`
+  or `ctg.state-gate/v1alpha1` to their stable v1-family target, writes the
+  migrated artifact, and emits `schema-migration.json` with validation results
 
 **Example:**
 ```bash
@@ -984,6 +991,11 @@ code-to-gate schema validate-all .qh --profile full --strict
 
 # Allow missing artifacts
 code-to-gate schema validate-all .qh --allow-missing
+
+# Migrate a legacy artifact and validate the result
+code-to-gate schema migrate .qh/legacy/findings.json --out .qh/migrated
+code-to-gate schema validate .qh/migrated/findings.json
+code-to-gate schema validate .qh/migrated/schema-migration.json
 ```
 
 **Exit Codes:**

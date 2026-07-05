@@ -114,3 +114,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   readiness/finding trend と regression の時系列表示。
 - QEOS-020: `code-to-gate viewer --hosted` による単一HTML品質レポートと
   `hosted-static-report@v1` manifest の GitHub Pages / artifact preview 対応。
+- QEOS-011: `code-to-gate schema migrate` による v1alpha1 -> v1 artifact migration、
+  変換後validation、`schema-migration@v1` report。

@@ -19,6 +19,7 @@ export const SCHEMA_VERSIONS = {
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
+  schemaMigration: "schema-migration@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1",
@@ -36,6 +37,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
+  schemaMigration: "schema-migration@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1alpha1",
@@ -707,6 +709,42 @@ export interface HostedStaticReportArtifact extends ArtifactHeader {
   };
   compatibleHosts: HostedStaticReportTarget[];
   generated_by: "ctg-viewer-hosted-v1";
+}
+
+// === Schema Migration ===
+
+export type SchemaMigrationStatus = "migrated" | "unchanged" | "failed";
+
+export interface SchemaMigrationChange {
+  path: string;
+  from?: string;
+  to?: string;
+  reason: string;
+}
+
+export interface SchemaMigrationArtifact extends ArtifactHeader {
+  artifact: "schema-migration";
+  schema: "schema-migration@v1";
+  completeness: Completeness;
+  status: SchemaMigrationStatus;
+  source: {
+    path: string;
+    artifact?: string;
+    schema?: string;
+    version?: string;
+  };
+  target: {
+    path: string;
+    artifact?: string;
+    schema?: string;
+    version: string;
+  };
+  changes: SchemaMigrationChange[];
+  validation: {
+    status: "ok" | "error";
+    errors: string[];
+  };
+  generated_by: "ctg-schema-migrate-v1";
 }
 
 // === Normalized Repo Graph (for analyze input) ===

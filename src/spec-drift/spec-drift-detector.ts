@@ -42,6 +42,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "release-pack.html": undefined,
   "release-pack.zip": undefined,
   "hosted-static-report.json": "hosted-static-report.schema.json",
+  "schema-migration.json": "schema-migration.schema.json",
   "release-readiness.json": "release-readiness.schema.json",
   "audit.json": "audit.schema.json",
   "database-assets.json": "database-assets.schema.json",
