@@ -179,7 +179,6 @@ Commands:
 
 - QEOS-002 PR Reviewer Bot
 - QEOS-011 Schema Evolution
-- QEOS-012 Importer Expansion
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
 - QEOS-018 AI Code Review Mode
@@ -204,5 +203,25 @@ Requirements:
 Commands:
 
 - `npx vitest run src/config/__tests__/policy-loader.test.ts src/config/__tests__/policy-evaluator.test.ts src/cli/__tests__/readiness.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-07 Importer Expansion
+
+Objective: SARIF / CodeQL / Semgrep / ESLint を normalized finding model に取り込み、code-to-gate を品質判定レイヤーとして使えるようにする。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate import sarif <file>` は SARIF 2.1.0 `runs[].results[]` を `findings@v1` に変換できる。
+- `code-to-gate import codeql <file>` は CodeQL SARIF を同じ parser で取り込み、upstream tool を `codeql` として保持する。
+- SARIF rule/result の severity、category、location、message、tags、fingerprint を deterministic に normalized finding へ写像する。
+- `findings` / `raw-findings` schema の upstream tool enum は `sarif` と `codeql` を受け入れる。
+- 既存 Semgrep / ESLint importer の挙動を壊さない。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/import.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`

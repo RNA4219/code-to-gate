@@ -392,7 +392,7 @@ export interface Finding {
   affectedEntrypoints?: string[];
   tags?: string[];
   upstream?: {
-    tool: "native" | "semgrep" | "eslint" | "sonarqube" | "tsc" | "coverage" | "test";
+    tool: "native" | "semgrep" | "eslint" | "sarif" | "codeql" | "sonarqube" | "tsc" | "coverage" | "test";
     ruleId?: string;
   };
 }

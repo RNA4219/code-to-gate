@@ -106,3 +106,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   Node/Git/Docker/schema/artifact/CI readiness checks。
 - QEOS-008: `code-to-gate test-plan --from <artifact-dir>`、`test-plan@v1`
   schema、diff blast radius 優先の推奨テスト、manual oracle gap。
+- QEOS-012: `code-to-gate import sarif|codeql|semgrep|eslint` による
+  external tool results の normalized `findings@v1` 変換。

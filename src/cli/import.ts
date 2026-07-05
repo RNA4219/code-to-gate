@@ -18,6 +18,7 @@ import {
 import {
   importESLint,
   importSemgrep,
+  importSARIF,
   importTSC,
   importCoverage,
   importTest,
@@ -34,7 +35,7 @@ export async function importCommand(args: string[], options: ImportOptions): Pro
   const inputArg = args[1];
   const outDir = options.getOption(args, "--out") ?? ".qh";
 
-  const supportedTools: UpstreamTool[] = ["eslint", "semgrep", "tsc", "coverage", "test"];
+  const supportedTools: UpstreamTool[] = ["eslint", "semgrep", "sarif", "codeql", "tsc", "coverage", "test"];
 
   if (!toolArg || !inputArg) {
     console.error("usage: code-to-gate import <tool> <input-file> --out <dir>");
@@ -73,6 +74,12 @@ export async function importCommand(args: string[], options: ImportOptions): Pro
         break;
       case "semgrep":
         findings = importSemgrep(inputFile);
+        break;
+      case "sarif":
+        findings = importSARIF(inputFile, "sarif");
+        break;
+      case "codeql":
+        findings = importSARIF(inputFile, "codeql");
         break;
       case "tsc":
         findings = importTSC(inputFile);

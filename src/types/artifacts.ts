@@ -114,6 +114,8 @@ export type UpstreamTool =
   | "native"
   | "semgrep"
   | "eslint"
+  | "sarif"
+  | "codeql"
   | "sonarqube"
   | "tsc"
   | "coverage"

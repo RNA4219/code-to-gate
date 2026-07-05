@@ -38,7 +38,7 @@
             "required": ["tool"],
             "additionalProperties": false,
             "properties": {
-              "tool": { "enum": ["native", "semgrep", "eslint", "sonarqube", "tsc", "coverage", "test"] },
+              "tool": { "enum": ["native", "semgrep", "eslint", "sarif", "codeql", "sonarqube", "tsc", "coverage", "test"] },
               "ruleId": { "type": "string" }
             }
           }

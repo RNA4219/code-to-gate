@@ -263,3 +263,16 @@ P1 Policy DSL の初期 acceptance は次の通り。
   として評価できる。
 - `readiness --manual-evidence <file>` は manual-bb JSON の finding/risk/id
   参照を読み、`manual_evidence` 条件に使える。
+
+P1 Importer Expansion の初期 acceptance は次の通り。
+
+- `code-to-gate import sarif <file>` は SARIF 2.1.0 results を
+  `findings@v1` artifact に変換できる。
+- `code-to-gate import codeql <file>` は CodeQL SARIF を同じ parser で
+  取り込み、`upstream.tool: "codeql"` として保持する。
+- SARIF rule/result の level、security-severity、location、message、tags、
+  fingerprint は deterministic に normalized finding へ写像される。
+- `findings.schema.json` と `raw-findings.schema.json` は `sarif` と `codeql`
+  を upstream tool として許容する。
+- 既存 `semgrep` / `eslint` importer の出力 schema と rule ID prefix は
+  後方互換を維持する。

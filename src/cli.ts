@@ -30,7 +30,7 @@ Usage:
   code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--debug-llm-trace] [--database-analysis]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
   code-to-gate import <tool> <input-file> --out <dir>
-    Tools: eslint, semgrep, tsc, coverage, test
+    Tools: eslint, semgrep, sarif, codeql, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag

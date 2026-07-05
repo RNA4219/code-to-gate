@@ -181,7 +181,7 @@ code-to-gate import <tool> <input-file> [--out <dir>]
 **Arguments**:
 | argument | required | 内容 |
 |---|:---:|---|
-| `<tool>` | Yes | Tool name (`eslint`, `semgrep`, `tsc`, `coverage`, `test`) |
+| `<tool>` | Yes | Tool name (`eslint`, `semgrep`, `sarif`, `codeql`, `tsc`, `coverage`, `test`) |
 | `<input-file>` | Yes | Input file path |
 
 **Outputs**:

@@ -297,7 +297,7 @@ code-to-gate import <tool> <file> --out <output-dir>
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<tool>` | Yes | Tool name: `semgrep`, `eslint`, `tsc`, `coverage`, `test` |
+| `<tool>` | Yes | Tool name: `semgrep`, `eslint`, `sarif`, `codeql`, `tsc`, `coverage`, `test` |
 | `<file>` | Yes | Path to the tool output file |
 
 **Options:**
@@ -310,8 +310,11 @@ code-to-gate import <tool> <file> --out <output-dir>
 |------|-------------|-------|
 | `semgrep` | JSON (`--json` output) | Security and code pattern findings |
 | `eslint` | JSON formatter output | Code quality and style findings |
+| `sarif` | SARIF 2.1.0 | Generic SARIF result import |
+| `codeql` | CodeQL SARIF 2.1.0 | CodeQL result import with SARIF severity metadata |
 | `tsc` | TypeScript diagnostics JSON | Type errors and warnings |
 | `coverage` | Istanbul/nyc coverage-summary.json | Coverage metrics and gaps |
+| `test` | Generic test result JSON | Failed tests as testing findings |
 
 **Output:**
 - `.qh/imports/<tool>-findings.json` - Normalized findings from the external tool
@@ -323,6 +326,10 @@ code-to-gate import semgrep ./semgrep-results.json --out .qh/imports
 
 # Import ESLint results
 code-to-gate import eslint ./eslint-output.json --out .qh/imports
+
+# Import SARIF or CodeQL results
+code-to-gate import sarif ./results.sarif --out .qh/imports
+code-to-gate import codeql ./codeql-results.sarif --out .qh/imports
 
 # Import TypeScript compiler diagnostics
 code-to-gate import tsc ./tsc-errors.json --out .qh/imports
