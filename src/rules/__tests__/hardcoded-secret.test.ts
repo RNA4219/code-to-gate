@@ -56,6 +56,17 @@ describe("HARDCODED_SECRET_RULE", () => {
     expect(findings).toHaveLength(0);
   });
 
+  it("ignores descriptive metadata fields that mention secret handling", () => {
+    const content = [
+      "export const pack = {",
+      '  description: "Baseline security policy for secrets, auth guards, input validation, redirects, rate limits, and SQL usage.",',
+      "};",
+    ].join("\n");
+    const findings = HARDCODED_SECRET_RULE.evaluate(createContext("src/quality-packs/quality-packs.ts", content));
+
+    expect(findings).toHaveLength(0);
+  });
+
   it("ignores the rule implementation itself", () => {
     const content = [
       'const SECRET_VAR_NAMES = ["password", "api_key"];',

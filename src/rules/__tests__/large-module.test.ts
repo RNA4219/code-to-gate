@@ -237,6 +237,17 @@ describe("LARGE_MODULE_RULE", () => {
     }
   });
 
+  it("should skip type-only contract modules", () => {
+    const content = Array.from({ length: 120 }, (_, index) => `export interface Contract${index} { value: string; }`).join("\n");
+    const files = [createMockFile("src/types/artifacts.ts", content, "ts", "source", 1200)];
+    const contents = new Map([["src/types/artifacts.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings).toHaveLength(0);
+  });
+
   it("should work with JavaScript files", () => {
     const content = generateLargeContent(600);
     const files = [createMockFile("src/large.js", content, "js")];

@@ -200,6 +200,26 @@ async function fetchConfig() {
     expect(findings.length).toBe(0);
   });
 
+  it("should not flag explicit optional parse helpers", () => {
+    const content = `
+function readOptionalJson(filePath: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+`;
+
+    const files = [createMockFile("src/evidence/reader.ts", content, "ts")];
+    const contents = new Map([["src/evidence/reader.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = TRY_CATCH_SWALLOW_RULE.evaluate(context);
+
+    expect(findings.length).toBe(0);
+  });
+
   it("should correctly identify evidence location", () => {
     const content = `
 function logEvent(event) {
