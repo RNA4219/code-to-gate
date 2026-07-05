@@ -69,7 +69,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-005 | QEG Viewer | P1 | QEG JSON を standalone HTML として閲覧でき、finding単位に drill-down できる |
 | QEOS-006 | Rule SDK | P2 | `code-to-gate rule new <id>` で rule/test/docs/schema fixture の雛形を生成できる |
 | QEOS-007 | Quality Packs | P2 | `security-basic` などの pack を選択し、rule/policy/export を一括適用できる |
-| QEOS-008 | Auto Test Selection | P1 | diff blast radius から推奨テスト一覧を出力できる |
+| QEOS-008 | Auto Test Selection | P1 | diff blast radius から `test-plan.json` と oracle gap を出力できる |
 | QEOS-009 | Manual BB First-Class | P1 | oracle不足・手動確認が必要な risk を manual-bb seed に明示できる |
 | QEOS-010 | LLM Trust Boundary | P0 | LLM主張は evidence-bound で、unsupported claim は gate外に隔離される |
 | QEOS-011 | Schema Evolution | P2 | artifact schema version migration と検証結果を出力できる |
@@ -104,3 +104,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   fixture-based harness、生成README、生成manifest schema。
 - QEOS-016: `code-to-gate doctor`、`doctor@v1` schema、schema validation、
   Node/Git/Docker/schema/artifact/CI readiness checks。
+- QEOS-008: `code-to-gate test-plan --from <artifact-dir>`、`test-plan@v1`
+  schema、diff blast radius 優先の推奨テスト、manual oracle gap。

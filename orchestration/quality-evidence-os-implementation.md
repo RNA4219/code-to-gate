@@ -102,11 +102,19 @@ Commands:
 
 Objective: diff blast radius と repo graph から推奨テストを出す。
 
+Status: done
+
 Requirements:
 
 - changed file、importer、entrypoint、test file relation を使う。
 - `test-plan.json` と human-readable summary を出す。
 - manual-bb seed へ oracle gap を渡す。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/test-plan.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
 
 ## Task Seed QEOS-P2-01 Rule SDK
 

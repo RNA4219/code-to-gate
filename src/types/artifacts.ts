@@ -502,6 +502,54 @@ export interface DoctorArtifact extends ArtifactHeader {
   };
 }
 
+// === Test Plan ===
+
+export type TestPlanStatus = "ready" | "needs_manual_oracle" | "no_changes";
+export type TestPlanLevel = "unit" | "integration" | "e2e" | "manual" | "smoke";
+export type TestPlanPriority = "high" | "medium" | "low";
+
+export interface TestPlanEvidence {
+  path: string;
+  detail: string;
+}
+
+export interface TestPlanItem {
+  id: string;
+  title: string;
+  target: string;
+  level: TestPlanLevel;
+  priority: TestPlanPriority;
+  reason: string;
+  sourcePaths: string[];
+  evidence: TestPlanEvidence[];
+  command?: string;
+}
+
+export interface TestPlanOracleGap {
+  id: string;
+  sourcePath: string;
+  reason: string;
+  suggestedManualTest: string;
+  evidence: TestPlanEvidence[];
+}
+
+export interface TestPlanArtifact extends ArtifactHeader {
+  artifact: "test-plan";
+  schema: "test-plan@v1";
+  completeness: Completeness;
+  status: TestPlanStatus;
+  changedFiles: string[];
+  affectedFiles: string[];
+  recommendedTests: TestPlanItem[];
+  oracleGaps: TestPlanOracleGap[];
+  summary: {
+    changedFiles: number;
+    affectedFiles: number;
+    recommendedTests: number;
+    oracleGaps: number;
+  };
+}
+
 // === Normalized Repo Graph (for analyze input) ===
 
 export interface RepoFile {

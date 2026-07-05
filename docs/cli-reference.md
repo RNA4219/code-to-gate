@@ -17,6 +17,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [spec-drift](#spec-drift)
    - [rule](#rule)
    - [doctor](#doctor)
+   - [test-plan](#test-plan)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
    - [plugin-sandbox](#plugin-sandbox)
@@ -52,6 +53,7 @@ These options apply to all commands:
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
 | `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
+| `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 
 ### scan
 
@@ -643,6 +645,50 @@ code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-doc
 | 0 | OK | No failed checks |
 | 1 | READINESS_NOT_CLEAR | One or more checks failed |
 | 2 | USAGE_ERROR | Invalid arguments |
+
+---
+
+### test-plan
+
+Generate a deterministic test selection artifact from existing code-to-gate
+artifacts. The command prefers `diff-analysis.json` blast-radius data and uses
+`repo-graph.json` to map changed source files to test files.
+
+**Usage:**
+```bash
+code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing `repo-graph.json` and optional `diff-analysis.json`. |
+| `--out <file-or-dir>` | `<from>/test-plan.json` | Output file. If a directory is provided, writes `test-plan.json` inside it. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `test-plan.json` | Changed files, affected files, recommended tests, and oracle gaps |
+
+**Behavior:**
+- Uses `diff-analysis.json.blast_radius.affectedTests` as first-priority test evidence.
+- Falls back to deterministic path matching such as `src/foo.ts` -> `src/foo.test.ts`.
+- Emits `oracleGaps` for changed source files with no mapped automated test.
+- Uses `status: "needs_manual_oracle"` when manual/oracle gaps remain.
+
+**Example:**
+```bash
+code-to-gate diff . --base main --head HEAD --out .qh/pr
+code-to-gate test-plan --from .qh/pr --out .qh/pr
+code-to-gate schema validate .qh/pr/test-plan.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Test plan was generated |
+| 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
 
 ---
 

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/test-plan.schema.json",
+  "title": "TestPlanArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "status",
+    "changedFiles",
+    "affectedFiles",
+    "recommendedTests",
+    "oracleGaps",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string" },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "test-plan" },
+    "schema": { "const": "test-plan@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["ready", "needs_manual_oracle", "no_changes"] },
+    "changedFiles": { "type": "array", "items": { "type": "string" } },
+    "affectedFiles": { "type": "array", "items": { "type": "string" } },
+    "recommendedTests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "target", "level", "priority", "reason", "sourcePaths", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "target": { "type": "string", "minLength": 1 },
+          "level": { "enum": ["unit", "integration", "e2e", "manual", "smoke"] },
+          "priority": { "enum": ["high", "medium", "low"] },
+          "reason": { "type": "string", "minLength": 1 },
+          "sourcePaths": { "type": "array", "items": { "type": "string" } },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["path", "detail"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string" },
+                "detail": { "type": "string" }
+              }
+            }
+          },
+          "command": { "type": "string" }
+        }
+      }
+    },
+    "oracleGaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "sourcePath", "reason", "suggestedManualTest", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "sourcePath": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "suggestedManualTest": { "type": "string", "minLength": 1 },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["path", "detail"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string" },
+                "detail": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["changedFiles", "affectedFiles", "recommendedTests", "oracleGaps"],
+      "additionalProperties": false,
+      "properties": {
+        "changedFiles": { "type": "integer", "minimum": 0 },
+        "affectedFiles": { "type": "integer", "minimum": 0 },
+        "recommendedTests": { "type": "integer", "minimum": 0 },
+        "oracleGaps": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { assuranceCommand } from "./cli/assurance.js";
 import { specDriftCommand } from "./cli/spec-drift.js";
 import { ruleCommand } from "./cli/rule.js";
 import { doctorCommand } from "./cli/doctor.js";
+import { testPlanCommand } from "./cli/test-plan.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -39,6 +40,7 @@ Usage:
     new: Create a fixture-based custom rule scaffold
          code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
+  code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
     Commands: bundle, validate, list, extract
@@ -166,6 +168,10 @@ async function main(): Promise<number> {
 
     if (command === "doctor") {
       return await doctorCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "test-plan") {
+      return await testPlanCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "evidence") {

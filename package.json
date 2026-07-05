@@ -40,6 +40,7 @@
     "dist/self-analysis/",
     "dist/spec-drift/",
     "dist/doctor/",
+    "dist/test-plan/",
     "dist/qeg/",
     "dist/utils/",
     "!dist/**/__tests__/**",

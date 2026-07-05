@@ -98,6 +98,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates test-plan schema", () => {
+      const schemaFile = schemaPath("test-plan");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -206,6 +214,7 @@ describe("schema coverage integration", () => {
         "shared-defs.schema.json",
         "invariants.schema.json",
         "test-seeds.schema.json",
+        "test-plan.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "spec-drift.schema.json",
@@ -664,6 +673,50 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalDoctorPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal test-plan artifact", () => {
+      const minimalTestPlanPath = path.join(tempDir, "minimal-test-plan.json");
+      writeFileSync(
+        minimalTestPlanPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "test-plan-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "test-plan",
+          schema: "test-plan@v1",
+          completeness: "complete",
+          status: "ready",
+          changedFiles: ["src/order.ts"],
+          affectedFiles: ["src/order.ts", "src/order.test.ts"],
+          recommendedTests: [
+            {
+              id: "test-plan-001",
+              title: "Run src/order.test.ts",
+              target: "src/order.test.ts",
+              level: "unit",
+              priority: "medium",
+              reason: "Test was listed in diff blast radius.",
+              sourcePaths: ["src/order.ts"],
+              evidence: [{ path: "diff-analysis.json", detail: "blast_radius.affectedTests" }],
+              command: "npm test -- src/order.test.ts",
+            },
+          ],
+          oracleGaps: [],
+          summary: {
+            changedFiles: 1,
+            affectedFiles: 2,
+            recommendedTests: 1,
+            oracleGaps: 0,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalTestPlanPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });
