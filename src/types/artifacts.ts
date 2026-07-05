@@ -379,6 +379,55 @@ export interface AuditArtifact extends ArtifactHeader {
   exit: AuditExit;
 }
 
+// === Evidence DAG ===
+
+export type EvidenceDagNodeType =
+  | "requirement"
+  | "rule"
+  | "finding"
+  | "artifact"
+  | "verdict"
+  | "manual-test"
+  | "ci-run";
+
+export type EvidenceDagEdgeType =
+  | "satisfies"
+  | "generated_by"
+  | "evidenced_by"
+  | "gated_by"
+  | "exports_to"
+  | "requires_manual_oracle";
+
+export interface EvidenceDagNode {
+  id: string;
+  type: EvidenceDagNodeType;
+  label: string;
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
+export interface EvidenceDagEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: EvidenceDagEdgeType;
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
+export interface EvidenceDagArtifact extends ArtifactHeader {
+  artifact: "evidence-dag";
+  schema: "evidence-dag@v1";
+  completeness: Completeness;
+  nodes: EvidenceDagNode[];
+  edges: EvidenceDagEdge[];
+  summary: {
+    nodeCount: number;
+    edgeCount: number;
+    findings: number;
+    artifacts: number;
+    verdicts: number;
+  };
+}
+
 // === Normalized Repo Graph (for analyze input) ===
 
 export interface RepoFile {

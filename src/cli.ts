@@ -27,7 +27,7 @@ Usage:
     Tools: eslint, semgrep, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>]
   code-to-gate export <target> --from <dir> [--out <file>]
-    Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate
+    Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate llm-health [--provider <provider>] [--all]

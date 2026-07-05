@@ -98,6 +98,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates evidence-dag schema", () => {
+      const schemaFile = schemaPath("evidence-dag");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates evidence-ref schema", () => {
       const schemaFile = schemaPath("evidence-ref");
       // Note: evidence-ref.schema.json may be empty in some versions
@@ -150,6 +158,7 @@ describe("schema coverage integration", () => {
         "invariants.schema.json",
         "test-seeds.schema.json",
         "release-readiness.schema.json",
+        "evidence-dag.schema.json",
       ];
 
       for (const file of schemaFiles) {
@@ -469,6 +478,55 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", readinessWithBaselinePath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal evidence-dag artifact", () => {
+      const minimalEvidenceDagPath = path.join(tempDir, "minimal-evidence-dag.json");
+      writeFileSync(
+        minimalEvidenceDagPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "test-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "evidence-dag",
+          schema: "evidence-dag@v1",
+          completeness: "complete",
+          nodes: [
+            { id: "requirement:QEOS-001", type: "requirement", label: "QEOS-001" },
+            { id: "rule:TEST_RULE", type: "rule", label: "TEST_RULE" },
+            { id: "finding:finding-001", type: "finding", label: "Finding" },
+            { id: "artifact:findings", type: "artifact", label: "findings.json" },
+            { id: "verdict:passed", type: "verdict", label: "passed" },
+          ],
+          edges: [
+            {
+              id: "requirement:QEOS-001|satisfies|rule:TEST_RULE",
+              source: "requirement:QEOS-001",
+              target: "rule:TEST_RULE",
+              type: "satisfies",
+            },
+            {
+              id: "rule:TEST_RULE|generated_by|finding:finding-001",
+              source: "rule:TEST_RULE",
+              target: "finding:finding-001",
+              type: "generated_by",
+            },
+          ],
+          summary: {
+            nodeCount: 5,
+            edgeCount: 2,
+            findings: 1,
+            artifacts: 1,
+            verdicts: 1,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalEvidenceDagPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

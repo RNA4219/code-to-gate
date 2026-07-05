@@ -88,6 +88,7 @@ function getExpectedOutputFile(target: string): string {
     "manual-bb": "manual-bb.json",
     "workflow-evidence": "workflow.json",
     "sarif": "results.sarif",
+    "evidence-dag": "evidence-dag.json",
   };
   return v1Files[target] || "";
 }
@@ -298,6 +299,95 @@ describe("export CLI", () => {
       // Summary
       expect(output.summary).toBeDefined();
       expect(output.summary.status).toBeDefined();
+    });
+  });
+
+  describe("evidence-dag export", () => {
+    it("generates a cross-artifact DAG from findings, readiness, and manual-bb evidence", async () => {
+      writeFindings(tempOutDir, [
+        createFinding({
+          id: "finding-auth",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          title: "Weak auth guard",
+        }),
+      ]);
+      writeFileSync(
+        path.join(tempOutDir, "release-readiness.json"),
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: new Date().toISOString(),
+          run_id: "export-test-run",
+          repo: { root: "/test/repo" },
+          tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+          artifact: "release-readiness",
+          schema: "release-readiness@v1",
+          status: "blocked_input",
+          completeness: "complete",
+          summary: "Blocked by auth finding",
+          counts: {
+            findings: 1,
+            critical: 0,
+            high: 1,
+            risks: 0,
+            testSeeds: 0,
+            unsupportedClaims: 0,
+          },
+          failedConditions: [],
+          recommendedActions: [],
+          artifactRefs: { findings: "findings.json" },
+        }),
+        "utf8"
+      );
+      writeFileSync(
+        path.join(tempOutDir, "manual-bb.json"),
+        JSON.stringify({
+          version: "ctg.manual-bb/v1",
+          producer: "code-to-gate",
+          run_id: "export-test-run",
+          scope: { repo: "/test/repo", changed_files: [], affected_entrypoints: [] },
+          risk_seeds: [
+            {
+              id: "risk-finding-auth",
+              title: "Manual auth verification",
+              severity: "high",
+              evidence: ["src/test.ts:10"],
+              suggested_test_intents: ["negative", "abuse"],
+            },
+          ],
+          invariant_seeds: [],
+          test_seed_refs: [],
+          known_gaps: [],
+          oracle_gaps: ["Pen-test verification"],
+        }),
+        "utf8"
+      );
+
+      const { exitCode, output } = await runExport("evidence-dag", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(output.artifact).toBe("evidence-dag");
+      expect(output.schema).toBe("evidence-dag@v1");
+      expect(output.summary.findings).toBe(1);
+
+      const nodes = output.nodes as Array<{ id: string; type: string }>;
+      const edges = output.edges as Array<{ source: string; target: string; type: string }>;
+      expect(nodes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "requirement:QEOS-001", type: "requirement" }),
+        expect.objectContaining({ id: "rule:WEAK_AUTH_GUARD", type: "rule" }),
+        expect.objectContaining({ id: "finding:finding-auth", type: "finding" }),
+        expect.objectContaining({ id: "artifact:findings", type: "artifact" }),
+        expect.objectContaining({ id: "verdict:blocked_input", type: "verdict" }),
+        expect.objectContaining({ id: "manual-test:risk-finding-auth", type: "manual-test" }),
+      ]));
+      expect(edges).toEqual(expect.arrayContaining([
+        expect.objectContaining({ source: "requirement:QEOS-001", target: "rule:WEAK_AUTH_GUARD", type: "satisfies" }),
+        expect.objectContaining({ source: "rule:WEAK_AUTH_GUARD", target: "finding:finding-auth", type: "generated_by" }),
+        expect.objectContaining({ source: "finding:finding-auth", target: "artifact:findings", type: "evidenced_by" }),
+        expect.objectContaining({ source: "artifact:release-readiness", target: "verdict:blocked_input", type: "gated_by" }),
+        expect.objectContaining({ source: "finding:finding-auth", target: "manual-test:risk-finding-auth", type: "requires_manual_oracle" }),
+      ]));
     });
   });
 

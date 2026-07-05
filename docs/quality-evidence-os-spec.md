@@ -15,7 +15,7 @@ optional artifact / optional field を追加する。
 
 | Artifact | 役割 | 初期実装 |
 |---|---|:---:|
-| `evidence-dag.json` | requirement/rule/finding/artifact/verdict の node/edge | future |
+| `evidence-dag.json` | requirement/rule/finding/artifact/verdict の node/edge | P1 |
 | `release-readiness.json.baseline` | baseline/ratchet summary | P0 |
 | `qeg-report.html` | QEG JSON viewer | future |
 | `test-plan.json` | Auto test selection | future |
@@ -84,9 +84,15 @@ baseline に存在し severity が同等以下の finding は `release-readiness
 }
 ```
 
-## 3. Evidence DAG 将来仕様
+## 3. Evidence DAG 仕様
 
-Evidence DAG は `ctg.evidence-dag/v1` とし、最小 node type は以下とする。
+Evidence DAG は `evidence-dag@v1` とし、初期実装は export target として提供する。
+
+```bash
+code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
+```
+
+最小 node type は以下とする。
 
 | Node type | 例 |
 |---|---|
@@ -100,6 +106,19 @@ Evidence DAG は `ctg.evidence-dag/v1` とし、最小 node type は以下とす
 
 edge type は `satisfies`、`generated_by`、`evidenced_by`、`gated_by`、
 `exports_to`、`requires_manual_oracle` を使う。
+
+初期実装では次を生成する。
+
+- `requirement:QEOS-001`
+- distinct `rule:<ruleId>`
+- `finding:<findingId>`
+- 既存 artifact node (`findings`, `release-readiness`, `audit`, `manual-bb`, `gatefield`, `state-gate`, `workflow-evidence`, `qeg-code-to-gate`, `sarif`)
+- `verdict:<readiness.status>`
+- manual-bb risk seed 由来の `manual-test:<id>`
+- GitHub Actions 環境変数がある場合の `ci-run:<GITHUB_RUN_ID>`
+
+初期DAGは、QEGの判定エンジンを置き換えない。QEGやPR reviewerが参照できる
+証跡索引として、既存 artifact の hash、path、schema、関係を固定する。
 
 ## 4. PR Reviewer Bot 将来仕様
 
@@ -139,3 +158,9 @@ P0 の acceptance は次の通り。
 - baseline にある finding が medium から high に悪化した場合は `blocked_input` になる。
 - `release-readiness.json` は schema validation を通る。
 
+P1 Evidence DAG の acceptance は次の通り。
+
+- `code-to-gate export evidence-dag --from <dir> --out <file>` が `evidence-dag.json` を生成する。
+- `evidence-dag.json` が `schemas/evidence-dag.schema.json` に合格する。
+- 少なくとも requirement、rule、finding、artifact、verdict node を含む。
+- manual-bb artifact がある場合、manual-test node と `requires_manual_oracle` edge を含む。

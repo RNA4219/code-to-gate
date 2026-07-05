@@ -55,6 +55,7 @@ code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 code-to-gate export sarif --from .qh --out results.sarif
+code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 ```
 
 For database migration analysis (preview surface):
@@ -78,6 +79,7 @@ preview/experimental surface and should not be treated as part of the stable
 | `risk-register.yaml` | Risks that need review |
 | `test-seeds.json` | Suggested test ideas |
 | `release-readiness.json` | Policy gate result |
+| `evidence-dag.json` | Cross-artifact evidence graph |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 

@@ -45,7 +45,7 @@ These options apply to all commands:
 | `scan` | Build a normalized repository graph. It does not evaluate release policy. | `repo-graph.json`, optional `database-assets.json` |
 | `analyze` | Run scan plus rules/report generation. It does not create release-readiness. | `raw-findings.json`, `findings.json`, `risk-register.yaml`, `analysis-report.md`, `test-seeds.json`, `invariants.json`, `repo-graph.json`, `audit.json` |
 | `readiness` | Evaluate existing analysis artifacts against policy. Requires `--from <artifact-dir>`. | `release-readiness.json` |
-| `export` | Transform existing artifacts for downstream tools. | Target-specific JSON/SARIF |
+| `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
 
 ### scan
 
@@ -406,7 +406,7 @@ code-to-gate export <target> --from <dir> --out <file>
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate` |
+| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate`, `evidence-dag` |
 
 **Options:**
 | Option | Default | Description |
@@ -423,6 +423,7 @@ code-to-gate export <target> --from <dir> --out <file>
 | `workflow-evidence` | workflow-cookbook | Evidence references for CI workflow integration |
 | `sarif` | GitHub Code Scanning / SARIF consumers | SARIF 2.1.0 findings export |
 | `qeg-code-to-gate` | quality-evidence-graph | Evidence-only export for QEG processing |
+| `evidence-dag` | code-to-gate / QEG / PR reviewer surfaces | Cross-artifact DAG linking requirements, rules, findings, artifacts, manual evidence, CI runs, and verdicts |
 
 **Example:**
 ```bash
@@ -443,6 +444,9 @@ code-to-gate export sarif --from .qh --out .qh/results.sarif
 
 # Export for quality-evidence-graph
 code-to-gate export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
+
+# Export cross-artifact evidence DAG
+code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 ```
 
 **Exit Codes:**

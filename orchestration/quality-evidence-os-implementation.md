@@ -28,11 +28,14 @@ Commands:
 
 Objective: findings、audit、readiness、QEG、manual-bb、Gatefield、CI artifact を横断する証跡DAGを出す。
 
+Status: in_progress
+
 Requirements:
 
 - `evidence-dag.json` schema を追加する。
 - artifact hash と `run_id` を node metadata に含める。
 - QEG export と重複せず、QEG が消費できる evidence projection にする。
+- `export evidence-dag` で生成できる。
 
 ## Task Seed QEOS-P1-02 Spec Drift Detector
 
@@ -79,4 +82,3 @@ Requirements:
 - QEOS-018 AI Code Review Mode
 - QEOS-019 Historical Quality Trend
 - QEOS-020 Hosted Static Report
-
