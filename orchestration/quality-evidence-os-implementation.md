@@ -473,7 +473,7 @@ Commands:
 
 Objective: gate failure から、通過に必要な変更候補を機械可読に出す。
 
-Status: planned
+Status: done
 
 Requirements:
 

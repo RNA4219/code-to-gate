@@ -100,6 +100,14 @@ const STANDARD_OPTIONAL_INPUTS: InputSpec[] = [
     description: "Markdown PR comment body generated from the PR review artifact.",
   },
   {
+    id: "gate-explainability",
+    role: "artifact",
+    label: "Gate explainability",
+    files: ["gate-explainability.json"],
+    required: false,
+    description: "Deterministic gate failure explanation and required action candidates.",
+  },
+  {
     id: "hosted-static-report",
     role: "artifact",
     label: "Hosted static report",
@@ -368,6 +376,11 @@ function hostedReportUrl(hosted: Record<string, unknown> | null): string | undef
   return typeof hosted?.publicUrl === "string" ? hosted.publicUrl : undefined;
 }
 
+function countGateExplainabilityActions(gateExplainability: Record<string, unknown> | null): number | undefined {
+  const summary = gateExplainability?.summary as Record<string, unknown> | undefined;
+  return typeof summary?.requiredActions === "number" ? summary.requiredActions : undefined;
+}
+
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -438,6 +451,7 @@ function generateHtml(artifact: ReleasePackArtifact): string {
       <div class="metric">Missing Required<b>${artifact.summary.missingRequiredEvidence}</b></div>
       <div class="metric">Changed Files<b>${artifact.summary.changedFiles}</b></div>
       <div class="metric">Manual Candidates<b>${artifact.summary.manualTestCandidates}</b></div>
+      <div class="metric">Gate Actions<b>${artifact.summary.gateExplainabilityActions ?? "n/a"}</b></div>
     </div>
     ${artifact.ci.url ? `<p>CI: <a href="${escapeHtml(artifact.ci.url)}">${escapeHtml(artifact.ci.url)}</a></p>` : "<p class=\"missing\">CI URL missing</p>"}
     ${artifact.summary.hostedReportUrl ? `<p>Hosted report: <a href="${escapeHtml(artifact.summary.hostedReportUrl)}">${escapeHtml(artifact.summary.hostedReportUrl)}</a></p>` : ""}
@@ -522,6 +536,7 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
   const manual = firstParsed(fromDir, ["manual-bb.json", "manual-bb-seed.json"]);
   const findings = firstParsed(fromDir, ["findings.json"]);
   const hosted = firstParsed(fromDir, ["hosted-static-report.json"]);
+  const gateExplainability = firstParsed(fromDir, ["gate-explainability.json"]);
   const header = baseHeader(fromDir);
   const generatedAt = (options.now ?? new Date()).toISOString();
 
@@ -552,6 +567,7 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
       qegSchemaChecks: countQegSchemaChecks(qeg),
       manualTestCandidates: countManualCandidates(manual),
       changedFiles: countChangedFiles(diff),
+      gateExplainabilityActions: countGateExplainabilityActions(gateExplainability),
       ciUrl: ci.url,
       hostedReportUrl: hostedReportUrl(hosted),
     },

@@ -276,6 +276,7 @@ describe("schema coverage integration", () => {
         "hosted-static-report.schema.json",
         "github-app-health.schema.json",
         "evidence-query.schema.json",
+        "gate-explainability.schema.json",
         "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
@@ -1334,6 +1335,70 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalEvidenceQueryPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal gate-explainability artifact", () => {
+      const minimalGateExplainabilityPath = path.join(tempDir, "minimal-gate-explainability.json");
+      writeFileSync(
+        minimalGateExplainabilityPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "gate-explainability-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "gate-explainability",
+          schema: "gate-explainability@v1",
+          completeness: "complete",
+          status: "needs_action",
+          failedConditions: [{ id: "HIGH_FINDING", reason: "High finding blocks release.", matchedFindingIds: ["finding-001"] }],
+          blockingFindings: [
+            {
+              id: "finding-001",
+              ruleId: "AUTH_BYPASS",
+              severity: "high",
+              confidence: 0.9,
+              title: "Auth bypass",
+              summary: "Admin route lacks an auth guard.",
+              sourceConditionIds: ["HIGH_FINDING"],
+              evidence: [{ id: "e1", path: "src/admin.ts", kind: "text", excerptHash: "abc123" }],
+            },
+          ],
+          manualEvidenceCandidates: [
+            {
+              id: "manual-evidence-finding-001",
+              type: "manual_evidence",
+              title: "Attach manual evidence for finding-001",
+              detail: "Provide manual evidence.",
+              priority: "high",
+              sourceIds: ["finding-001"],
+              evidence: [{ path: "src/admin.ts", detail: "finding evidence e1" }],
+            },
+          ],
+          baselineUpdateCandidates: [],
+          severityReEvaluationCandidates: [],
+          summary: {
+            failedConditions: 1,
+            blockingFindings: 1,
+            manualEvidenceCandidates: 1,
+            baselineUpdateCandidates: 0,
+            severityReEvaluationCandidates: 0,
+            requiredActions: 1,
+          },
+          sourceArtifacts: [
+            {
+              file: "release-readiness.json",
+              schema: "release-readiness@v1",
+              hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            },
+          ],
+          generated_by: "ctg-gate-explainability-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalGateExplainabilityPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

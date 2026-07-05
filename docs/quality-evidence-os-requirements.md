@@ -185,6 +185,11 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 - QEOS-031: `code-to-gate query <expression> --from <artifact-dir>` が
   finding/artifact/baseline の軽量queryを評価し、source artifact hash と
   matched locator を持つ `evidence-query@v1` を出力する。
+- QEOS-033: `code-to-gate explain-gate --from <artifact-dir>` が
+  `release-readiness.json` と `findings.json` から failed condition、
+  blocking finding、manual evidence候補、baseline更新候補、severity再評価候補を
+  deterministic に列挙する `gate-explainability@v1` を出力し、PR review と
+  release-pack summary に required action 数を表示する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

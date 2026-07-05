@@ -48,6 +48,7 @@ The v1 schema freeze establishes the following guarantees:
 | pr-review | `pr-review@v1` | `pr-review@v1` | Stable |
 | github-app-health | `github-app-health@v1` | `github-app-health@v1` | Stable |
 | evidence-query | `evidence-query@v1` | `evidence-query@v1` | Stable |
+| gate-explainability | `gate-explainability@v1` | `gate-explainability@v1` | Stable |
 | qeos-acceptance-matrix | `qeos-acceptance-matrix@v1` | `qeos-acceptance-matrix@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |
@@ -164,6 +165,7 @@ schemas/
   ownership-risk.schema.json   # CODEOWNERS and module ownership risk
   plugin-marketplace.schema.json # Plugin registry for distribution review
   pr-review.schema.json        # PR review artifact and comment body contract
+  gate-explainability.schema.json # Gate failure explanation and action candidates
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

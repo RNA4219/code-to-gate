@@ -63,7 +63,8 @@
           "type": "array",
           "items": { "$ref": "#/$defs/artifactLink" }
         },
-        "baselineSummary": { "$ref": "#/$defs/reviewItem" }
+        "baselineSummary": { "$ref": "#/$defs/reviewItem" },
+        "gateExplainabilitySummary": { "$ref": "#/$defs/reviewItem" }
       }
     },
     "summary": {
@@ -90,7 +91,8 @@
         "findings": { "type": "integer", "minimum": 0 },
         "critical": { "type": "integer", "minimum": 0 },
         "high": { "type": "integer", "minimum": 0 },
-        "reviewerCandidates": { "type": "integer", "minimum": 0 }
+        "reviewerCandidates": { "type": "integer", "minimum": 0 },
+        "gateExplainabilityActions": { "type": "integer", "minimum": 0 }
       }
     }
   },

@@ -21,6 +21,7 @@ export const SCHEMA_VERSIONS = {
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
+  gateExplainability: "gate-explainability@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -45,6 +46,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
+  gateExplainability: "gate-explainability@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -355,6 +357,63 @@ export interface ReleaseReadinessArtifact extends ArtifactHeader {
     baseline?: string;
     manualEvidence?: string;
   };
+}
+
+// === Gate Explainability ===
+
+export type GateExplainabilityCandidateType =
+  | "manual_evidence"
+  | "baseline_update"
+  | "severity_re_evaluation";
+
+export interface GateExplainabilityBlockingFinding {
+  id: string;
+  ruleId: string;
+  severity: Severity;
+  confidence: number;
+  title: string;
+  summary: string;
+  sourceConditionIds: string[];
+  evidence: EvidenceRef[];
+}
+
+export interface GateExplainabilityCandidate {
+  id: string;
+  type: GateExplainabilityCandidateType;
+  title: string;
+  detail: string;
+  priority: "low" | "medium" | "high" | "critical";
+  sourceIds: string[];
+  evidence: Array<{
+    path: string;
+    detail: string;
+  }>;
+}
+
+export interface GateExplainabilityArtifact extends ArtifactHeader {
+  artifact: "gate-explainability";
+  schema: "gate-explainability@v1";
+  completeness: Completeness;
+  status: "passed" | "needs_action";
+  failedConditions: ReadinessFailedCondition[];
+  blockingFindings: GateExplainabilityBlockingFinding[];
+  manualEvidenceCandidates: GateExplainabilityCandidate[];
+  baselineUpdateCandidates: GateExplainabilityCandidate[];
+  severityReEvaluationCandidates: GateExplainabilityCandidate[];
+  summary: {
+    failedConditions: number;
+    blockingFindings: number;
+    manualEvidenceCandidates: number;
+    baselineUpdateCandidates: number;
+    severityReEvaluationCandidates: number;
+    requiredActions: number;
+  };
+  sourceArtifacts: Array<{
+    file: string;
+    schema?: string;
+    hashSha256: string;
+  }>;
+  generated_by: "ctg-gate-explainability-v1";
 }
 
 // === Audit ===
@@ -760,6 +819,7 @@ export interface PrReviewArtifact extends ArtifactHeader {
     specDiffs: PrReviewItem[];
     artifactLinks: PrReviewArtifactLink[];
     baselineSummary?: PrReviewItem;
+    gateExplainabilitySummary?: PrReviewItem;
   };
   summary: {
     blockReasons: number;
@@ -772,6 +832,7 @@ export interface PrReviewArtifact extends ArtifactHeader {
     critical: number;
     high: number;
     reviewerCandidates: number;
+    gateExplainabilityActions?: number;
   };
 }
 
@@ -891,6 +952,7 @@ export interface ReleasePackArtifact extends ArtifactHeader {
     qegSchemaChecks: number;
     manualTestCandidates: number;
     changedFiles: number;
+    gateExplainabilityActions?: number;
     ciUrl?: string;
     hostedReportUrl?: string;
   };

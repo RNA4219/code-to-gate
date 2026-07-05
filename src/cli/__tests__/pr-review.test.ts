@@ -69,6 +69,55 @@ function writeReadiness(dir: string, status: "passed" | "blocked_input"): void {
     }],
     unsupported_claims: [],
   });
+  if (status === "blocked_input") {
+    writeJson(path.join(dir, "gate-explainability.json"), {
+      ...header,
+      artifact: "gate-explainability",
+      schema: "gate-explainability@v1",
+      completeness: "complete",
+      status: "needs_action",
+      failedConditions: [{ id: "high", reason: "High finding present.", matchedFindingIds: ["finding-001"] }],
+      blockingFindings: [{
+        id: "finding-001",
+        ruleId: "AUTH_BYPASS",
+        severity: "high",
+        confidence: 0.9,
+        title: "Auth bypass",
+        summary: "Admin route lacks an auth guard.",
+        sourceConditionIds: ["high"],
+        evidence: [{ id: "e1", path: "src/admin.ts", kind: "text", excerptHash: "abc123" }],
+      }],
+      manualEvidenceCandidates: [{
+        id: "manual-evidence-finding-001",
+        type: "manual_evidence",
+        title: "Attach manual evidence for finding-001",
+        detail: "Provide manual evidence.",
+        priority: "high",
+        sourceIds: ["finding-001", "high"],
+        evidence: [{ path: "src/admin.ts", detail: "finding evidence e1" }],
+      }],
+      baselineUpdateCandidates: [],
+      severityReEvaluationCandidates: [{
+        id: "severity-review-finding-001",
+        type: "severity_re_evaluation",
+        title: "Re-evaluate severity for finding-001",
+        detail: "Confirm severity before changing the gate outcome.",
+        priority: "high",
+        sourceIds: ["finding-001", "high"],
+        evidence: [{ path: "src/admin.ts", detail: "finding evidence e1" }],
+      }],
+      summary: {
+        failedConditions: 1,
+        blockingFindings: 1,
+        manualEvidenceCandidates: 1,
+        baselineUpdateCandidates: 0,
+        severityReEvaluationCandidates: 1,
+        requiredActions: 2,
+      },
+      sourceArtifacts: [{ file: "release-readiness.json", schema: "release-readiness@v1", hashSha256: "a".repeat(64) }],
+      generated_by: "ctg-gate-explainability-v1",
+    });
+  }
 }
 
 describe("pr-review CLI", () => {
@@ -103,7 +152,11 @@ describe("pr-review CLI", () => {
     expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
     expect(artifact.status).toBe("block");
     expect(artifact.sections.blockReasons).toHaveLength(1);
+    expect(artifact.sections.gateExplainabilitySummary.detail).toContain("2 required action");
+    expect(artifact.summary.gateExplainabilityActions).toBe(2);
     expect(markdown).toContain("### Blocking Reasons");
+    expect(markdown).toContain("### Gate Explainability");
+    expect(markdown).toContain("Gate explainability summary");
   });
 
   it("supports a separate comment file and returns OK when review passes", async () => {

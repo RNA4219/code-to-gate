@@ -84,6 +84,7 @@
         "qegSchemaChecks": { "type": "integer", "minimum": 0 },
         "manualTestCandidates": { "type": "integer", "minimum": 0 },
         "changedFiles": { "type": "integer", "minimum": 0 },
+        "gateExplainabilityActions": { "type": "integer", "minimum": 0 },
         "ciUrl": { "type": "string", "minLength": 1 },
         "hostedReportUrl": { "type": "string", "minLength": 1 }
       }

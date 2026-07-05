@@ -168,6 +168,36 @@ function writeReleaseEvidence(dir: string): void {
     },
   });
   writeFileSync(path.join(dir, "pr-review.md"), "## code-to-gate PR Review\n", "utf8");
+  writeJson(path.join(dir, "gate-explainability.json"), {
+    ...header,
+    artifact: "gate-explainability",
+    schema: "gate-explainability@v1",
+    completeness: "complete",
+    status: "needs_action",
+    failedConditions: [{ id: "high", reason: "high finding present", matchedFindingIds: ["finding-001"] }],
+    blockingFindings: [],
+    manualEvidenceCandidates: [{
+      id: "manual-evidence-finding-001",
+      type: "manual_evidence",
+      title: "Attach manual evidence for finding-001",
+      detail: "Provide manual evidence.",
+      priority: "high",
+      sourceIds: ["finding-001"],
+      evidence: [{ path: "findings.json", detail: "finding evidence" }],
+    }],
+    baselineUpdateCandidates: [],
+    severityReEvaluationCandidates: [],
+    summary: {
+      failedConditions: 1,
+      blockingFindings: 0,
+      manualEvidenceCandidates: 1,
+      baselineUpdateCandidates: 0,
+      severityReEvaluationCandidates: 0,
+      requiredActions: 1,
+    },
+    sourceArtifacts: [{ file: "release-readiness.json", schema: "release-readiness@v1", hashSha256: "a".repeat(64) }],
+    generated_by: "ctg-gate-explainability-v1",
+  });
   writeJson(path.join(dir, "hosted-static-report.json"), {
     ...header,
     artifact: "hosted-static-report",
@@ -237,6 +267,7 @@ describe("release-pack CLI", () => {
         readinessStatus: "needs_review",
         manualTestCandidates: 2,
         changedFiles: 2,
+        gateExplainabilityActions: 1,
       },
     });
     expect(manifest.entries).toEqual(
@@ -245,16 +276,19 @@ describe("release-pack CLI", () => {
         expect.objectContaining({ id: "ci-url", present: true }),
         expect.objectContaining({ id: "findings", present: true }),
         expect.objectContaining({ id: "pr-review-comment", present: true }),
+        expect.objectContaining({ id: "gate-explainability", present: true }),
         expect.objectContaining({ id: "hosted-static-report", present: true }),
       ])
     );
     expect(html).toContain("https://github.com/example/repo/actions/runs/123");
     expect(html).toContain("https://example.github.io/repo/");
     expect(html).toContain("Release Summary");
+    expect(html).toContain("Gate Actions");
     expect(zipEntries.has("release-pack.json")).toBe(true);
     expect(zipEntries.has("release-pack.html")).toBe(true);
     expect(zipEntries.has("artifacts/qeg-code-to-gate.json")).toBe(true);
     expect(zipEntries.has("artifacts/pr-review.md")).toBe(true);
+    expect(zipEntries.has("artifacts/gate-explainability.json")).toBe(true);
     expect(zipEntries.has("artifacts/hosted-static-report.json")).toBe(true);
   });
 

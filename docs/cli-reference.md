@@ -21,6 +21,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [test-plan](#test-plan)
    - [ownership](#ownership)
    - [query](#query)
+   - [explain-gate](#explain-gate)
    - [qeos](#qeos)
    - [pr-review](#pr-review)
    - [pr-review-publish](#pr-review-publish)
@@ -65,6 +66,7 @@ These options apply to all commands:
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 | `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
 | `query` | Query findings, artifacts, and baseline evidence from an artifact directory. | `evidence-query.json` |
+| `explain-gate` | Generate deterministic gate failure explanation and required action candidates. | `gate-explainability.json` |
 | `qeos` | Generate QEOS acceptance audit artifacts from requirements and Task Seeds. | `qeos-acceptance-matrix.json` |
 | `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
 | `pr-review-publish` | Publish PR review markdown with token or GitHub App auth and emit posting health evidence. | `github-app-health.json` |
@@ -893,6 +895,43 @@ code-to-gate schema validate .qh/evidence-query.json
 |------|------|-------------|
 | 0 | OK | Query was evaluated and artifact was written |
 | 2 | USAGE_ERROR | Unsupported expression, missing artifact directory, or invalid arguments |
+
+---
+
+### explain-gate
+
+Generate deterministic gate explainability from `release-readiness.json` and
+`findings.json`. The command does not use LLM judgment; it maps failed
+conditions to blocking findings and required action candidates.
+
+**Usage:**
+```bash
+code-to-gate explain-gate --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing `release-readiness.json` and `findings.json`. |
+| `--out <file-or-dir>` | `<from>/gate-explainability.json` | Output file or directory. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `gate-explainability.json` | `gate-explainability@v1` artifact with failed conditions, blocking findings, manual evidence candidates, baseline update candidates, severity re-evaluation candidates, source artifact hashes, and required action counts |
+
+**Example:**
+```bash
+code-to-gate explain-gate --from .qh --out .qh
+code-to-gate schema validate .qh/gate-explainability.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Gate explainability artifact was generated |
+| 2 | USAGE_ERROR | Missing input artifact, missing artifact directory, or invalid arguments |
 
 ---
 
