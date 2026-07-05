@@ -24,6 +24,7 @@ import {
   generateReadinessSection,
   generateGraphSection,
   generateHistoricalSection,
+  generateQegSection,
   generateFooter,
 } from "./report-sections.js";
 import { getReportJavaScript } from "./report-scripts.js";
@@ -45,6 +46,7 @@ export interface ReportViewerConfig {
   showTestSeeds?: boolean;
   showReadiness?: boolean;
   showHistorical?: boolean;
+  showQeg?: boolean;
   findingsConfig?: {
     showFilters?: boolean;
     showSearch?: boolean;
@@ -84,6 +86,9 @@ export function generateReportHtml(
   const readinessSection = config.showReadiness
     ? generateReadinessSection(artifacts.readiness)
     : "";
+  const qegSection = config.showQeg
+    ? generateQegSection(artifacts.qegEvidence, artifacts.evidenceDag)
+    : "";
   const historicalSection = config.showHistorical
     ? generateHistoricalSection(artifacts.historicalComparison)
     : "";
@@ -111,6 +116,7 @@ ${graphSection}
 ${riskSection}
 ${testSection}
 ${readinessSection}
+${qegSection}
 ${historicalSection}
 ${footer}
 ${script}

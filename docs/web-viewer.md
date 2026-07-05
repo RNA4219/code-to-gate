@@ -46,6 +46,8 @@ The viewer loads artifacts from the input directory:
 | `test-seeds.json` | Test seeds artifact | Optional |
 | `release-readiness.json` | Release readiness artifact | Optional |
 | `repo-graph.json` | Normalized repo graph | Optional |
+| `qeg-code-to-gate.json` | Evidence-only QEG input export | Optional |
+| `evidence-dag.json` | Cross-artifact evidence graph | Optional |
 
 ## Report Sections
 
@@ -68,6 +70,16 @@ Interactive findings explorer with:
 - **Filter Toolbar**: Buttons to filter by severity and category
 - **Search Input**: Text search across finding titles and summaries
 - **Findings List**: Collapsible cards with evidence details
+
+### QEG Tab
+
+Displayed when `qeg-code-to-gate.json` or `evidence-dag.json` exists.
+
+- Readiness status and finding summary.
+- Schema compliance results from QEG input generation.
+- Artifact hashes for evidence integrity review.
+- Evidence DAG finding drill-down with connected edges.
+- Manual test candidates and CI run nodes when present in the DAG.
 
 #### Finding Cards
 

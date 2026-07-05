@@ -482,6 +482,10 @@ code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
 code-to-gate viewer --from .qh --out .qh/report.html --title "Release Review"
 ```
 
+When `.qh/qeg-code-to-gate.json` or `.qh/evidence-dag.json` exists, the viewer
+adds a QEG tab with readiness status, schema compliance, artifact hashes,
+Evidence DAG finding drill-down, and manual test candidates.
+
 ---
 
 ### historical

@@ -14,9 +14,11 @@ import {
   RiskRegisterArtifact,
   TestSeedsArtifact,
   ReleaseReadinessArtifact,
+  EvidenceDagArtifact,
 } from "../types/artifacts.js";
 import type { HistoricalSummaryReport } from "../historical/types.js";
 import { NormalizedRepoGraph } from "../types/graph.js";
+import type { QEGCodeToGateEvidence } from "../qeg/qeg-types.js";
 import {
   generateReportHtml,
   LoadedArtifacts,
@@ -119,6 +121,26 @@ function loadArtifactsFromDir(artifactDir: string): LoadedArtifacts {
     }
   }
 
+  const qegPath = path.join(artifactDir, "qeg-code-to-gate.json");
+  if (existsSync(qegPath)) {
+    try {
+      const content = readFileSync(qegPath, "utf8");
+      artifacts.qegEvidence = JSON.parse(content) as QEGCodeToGateEvidence;
+    } catch (error) {
+      console.error(`Warning: Failed to load qeg-code-to-gate.json: ${error}`);
+    }
+  }
+
+  const evidenceDagPath = path.join(artifactDir, "evidence-dag.json");
+  if (existsSync(evidenceDagPath)) {
+    try {
+      const content = readFileSync(evidenceDagPath, "utf8");
+      artifacts.evidenceDag = JSON.parse(content) as EvidenceDagArtifact;
+    } catch (error) {
+      console.error(`Warning: Failed to load evidence-dag.json: ${error}`);
+    }
+  }
+
   return artifacts;
 }
 
@@ -179,6 +201,7 @@ export async function viewerCommand(
     showTestSeeds: !!artifacts.testSeeds,
     showReadiness: !!artifacts.readiness,
     showHistorical: !!artifacts.historicalComparison,
+    showQeg: !!artifacts.qegEvidence || !!artifacts.evidenceDag,
     findingsConfig: {
       showFilters: true,
       showSearch: true,
@@ -213,6 +236,8 @@ export async function viewerCommand(
       readiness: artifacts.readiness?.status || "none",
       graph: artifacts.graph?.symbols?.length || 0,
       historical: artifacts.historicalComparison ? "loaded" : "none",
+      qeg: artifacts.qegEvidence ? "loaded" : "none",
+      evidenceDag: artifacts.evidenceDag?.summary.nodeCount || 0,
     },
     config: {
       title: config.title,

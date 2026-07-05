@@ -28,7 +28,7 @@ Commands:
 
 Objective: findings、audit、readiness、QEG、manual-bb、Gatefield、CI artifact を横断する証跡DAGを出す。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
@@ -41,7 +41,7 @@ Requirements:
 
 Objective: docs/schema/CLI/test の不整合を release risk として検出する。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
@@ -62,11 +62,22 @@ Commands:
 
 Objective: QEG JSON を standalone HTML として drill-down 可能にする。
 
+Status: in_progress
+
 Requirements:
 
 - finding、evidence、artifact hash、schema validation、CI run を表示する。
 - 大きい artifact でも初期表示を軽くする。
 - hosted static report と共有可能な renderer にする。
+- 既存 `viewer --from <dir>` が `qeg-code-to-gate.json` / `evidence-dag.json`
+  を読み、QEG tab を表示する。
+
+Commands:
+
+- `npx vitest run src/viewer/__tests__/report-viewer.test.ts src/__tests__/smoke/cli-smoke.test.ts --reporter=dot`
+- `npm run build`
+- `npm run lint`
+- `npm run docs:lint-refs`
 
 ## Task Seed QEOS-P1-04 Auto Test Selection
 

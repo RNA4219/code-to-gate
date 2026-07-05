@@ -260,6 +260,83 @@ describe("report-viewer", () => {
       expect(html).toContain("Historical Diff");
       expect(html).toContain("timeline-chart");
     });
+
+    it("includes QEG evidence and DAG drill-down when artifacts are provided", () => {
+      const findings = createMockFindings();
+      const html = generateReportHtml(
+        {
+          findings,
+          qegEvidence: {
+            version: "ctg.qeg-input/v1",
+            producer: "code-to-gate",
+            run_id: "qeg-run-1",
+            artifact_dir: ".qh",
+            findings_summary: {
+              total: 1,
+              by_severity: { high: 1 },
+              by_category: { auth: 1 },
+              by_rule: { WEAK_AUTH_GUARD: 1 },
+            },
+            readiness_status: "blocked_input",
+            schema_compliance: [
+              { artifact: "findings.json", status: "ok" },
+              { artifact: "release-readiness.json", status: "error", errors: ["missing field"] },
+            ],
+            quality_checks_actual: [
+              { name: "assurance_inspection", status: "skipped", details: "not provided" },
+            ],
+            artifact_hashes: [
+              {
+                artifact: "findings",
+                path: ".qh/findings.json",
+                hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              },
+            ],
+          },
+          evidenceDag: {
+            version: "ctg/v1",
+            generated_at: "2026-07-05T00:00:00Z",
+            run_id: "qeg-run-1",
+            repo: { root: "." },
+            tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+            artifact: "evidence-dag",
+            schema: "evidence-dag@v1",
+            completeness: "complete",
+            nodes: [
+              { id: "finding:finding-auth", type: "finding", label: "Weak auth guard", metadata: { severity: "high" } },
+              { id: "manual-test:risk-finding-auth", type: "manual-test", label: "Manual auth verification" },
+              { id: "artifact:findings", type: "artifact", label: "findings.json" },
+            ],
+            edges: [
+              {
+                id: "finding:finding-auth|requires_manual_oracle|manual-test:risk-finding-auth",
+                source: "finding:finding-auth",
+                target: "manual-test:risk-finding-auth",
+                type: "requires_manual_oracle",
+              },
+            ],
+            summary: {
+              nodeCount: 3,
+              edgeCount: 1,
+              findings: 1,
+              artifacts: 1,
+              verdicts: 0,
+            },
+          },
+        },
+        { showTabs: true, showQeg: true }
+      );
+
+      expect(html).toContain("QEG Evidence");
+      expect(html).toContain("blocked_input");
+      expect(html).toContain("release-readiness.json");
+      expect(html).toContain("sha256:aaaaaaaa");
+      expect(html).toContain("Finding Drill-down");
+      expect(html).toContain("Weak auth guard");
+      expect(html).toContain("Manual Test Candidates");
+      expect(html).toContain("Manual auth verification");
+      expect(html).toContain("requires_manual_oracle");
+    });
   });
 
   describe("Risk Register Section", () => {
