@@ -25,7 +25,11 @@ Get started with code-to-gate in 5 minutes. This guide covers installation, firs
 npm install -g github:RNA4219/code-to-gate
 ```
 
-**Package identity**: `@quality-harness/code-to-gate`
+**Future npm path** after publication:
+
+```bash
+npm install -g @quality-harness/code-to-gate
+```
 
 Distribution status is tracked in [Distribution Status](distribution-status.md).
 
@@ -113,6 +117,19 @@ The readiness status determines release eligibility:
 | `passed_with_risk` | Low-risk issues | Review recommended |
 | `needs_review` | High severity issues | Human review required |
 | `blocked_input` | Critical issues | Fix before release |
+
+### Review Model
+
+Findings are review-required candidates. They can include false positives,
+especially on unfamiliar frameworks, generated code, intentional fixtures, or
+patterns that require domain context. Treat each finding as an evidence-backed
+review prompt:
+
+- confirm whether the code path is reachable and relevant;
+- check whether nearby validation, authorization, tests, or compensating controls
+  already address the risk;
+- record suppressions or accepted exceptions with a short reason and expiry when
+  the finding is intentionally accepted.
 
 ---
 

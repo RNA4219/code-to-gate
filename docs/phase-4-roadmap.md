@@ -85,6 +85,24 @@ interface SymbolNode {
 }
 ```
 
+### 4.3 Type Inference Contract
+
+Current TypeScript type inference is adapter-level metadata, not a whole-program type checker contract.
+
+Included:
+- Function declarations: `returnType` and `parameterTypes`.
+- Class methods: `returnType` and `parameterTypes`.
+- Classes: implemented interfaces in `implements`.
+- Generic and async signatures when `ts-morph` can resolve them from the parsed source file.
+
+Excluded:
+- Cross-package type resolution guarantees.
+- Runtime narrowing, control-flow type refinement, and conditional type expansion guarantees.
+- Type information for arbitrary variable initializers beyond symbol extraction.
+- Hard failure on type extraction errors; extraction errors degrade to missing `typeInfo`.
+
+Consumers must treat `typeInfo` as optional evidence. Rules may use it to improve precision, but must not require it to produce a finding.
+
 ---
 
 ## 5. Python/Ruby/Go/Rust tree-sitter (完了)

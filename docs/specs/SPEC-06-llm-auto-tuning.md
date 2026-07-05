@@ -33,6 +33,8 @@ Implement automatic LLM provider selection based on task complexity, cost optimi
 
 **Status**: Manual provider selection via `--llm-provider` flag
 
+**Safety Boundary (v1 decision)**: Automatic provider selection remains future scope. v1 keeps explicit provider selection and localhost-only local provider enforcement. Any future auto-tuning must be opt-in, must not select a cloud provider when `--llm-mode local-only` is active, and must record the selected provider, prompt version, request hash, response hash, and fallback reason in `audit.json`.
+
 **Current Providers**:
 | Provider | Type | Cost | Quality |
 |---|---|:---:|:---:|

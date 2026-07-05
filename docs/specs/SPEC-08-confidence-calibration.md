@@ -37,6 +37,8 @@ Improve LLM confidence score accuracy through validation set comparison and cali
 
 **Problem**: Confidence values don't reflect actual accuracy for different codebases.
 
+**Real Repo Evaluation Contract**: Calibration is evaluated on generated `findings.json` from real repositories, not synthetic LLM-only samples. Each evaluation records repository id, commit/ref, command, total findings, reviewed findings, true-positive count, false-positive count, unsupported-claim count, and reviewer/date in an acceptance evidence table. Until that evidence exists, calibrated confidence is advisory and must not replace deterministic rule confidence in release gates.
+
 ---
 
 ## 4. Proposed Implementation

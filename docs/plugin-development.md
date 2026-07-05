@@ -2,6 +2,14 @@
 
 This document provides a comprehensive guide for developing plugins for code-to-gate.
 
+## Documentation Responsibility
+
+`docs/plugin-guide.md` is the overview and reading-order entry point.
+This document owns the plugin manifest, runtime contract, SDK behavior, and
+failure handling details. Copyable examples live in `docs/plugin-examples.md`;
+sandbox and provenance boundaries live in `docs/plugin-sandbox.md` and
+`docs/plugin-security-contract.md`.
+
 ## Overview
 
 code-to-gate supports a plugin architecture that allows developers to extend the core functionality with custom rules, language adapters, importers, reporters, and exporters.
@@ -364,18 +372,18 @@ node ./dist/index.js < test-input.json
 cat output.json | jq '.version' # Should be "ctg.plugin-output/v1"
 ```
 
-### Using Plugin Doctor
+### Validating with Plugin Sandbox
 
 ```bash
-code-to-gate plugin doctor ./my-plugin
+code-to-gate plugin-sandbox status
 
-code-to-gate plugin validate ./my-plugin
+code-to-gate plugin-sandbox run ./my-plugin --input ./test-input.json --sandbox docker
 ```
 
 ### Integration Testing
 
 ```bash
-code-to-gate analyze ./test-repo --plugin ./my-plugin
+code-to-gate plugin-sandbox run ./my-plugin --input ./test-input.json --sandbox docker
 ```
 
 ## Plugin Configuration

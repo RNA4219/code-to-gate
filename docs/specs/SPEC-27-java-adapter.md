@@ -39,6 +39,22 @@ Add Java language support via tree-sitter for import, class, method, and test ex
 
 **Need**: Java is widely used in enterprise. Current baseline covers import/class/method extraction, while this spec tracks the higher-fidelity tree-sitter upgrade.
 
+### Re-evaluation 2026-07-04
+
+Decision: keep Java tree-sitter as Phase 6+ future scope and maintain the regex baseline for v1.
+
+Rationale:
+- `src/adapters/regex-language-adapter.ts` already provides Java import/class/method/test baseline extraction.
+- `fixtures/demo-multilang` covers Java in the static-language graph.
+- `src/adapters/__tests__/regex-language-adapter.test.ts` and `tests/integration/demo-multilang-static.test.ts` verify Java parsing and graph inclusion.
+- Adding Java WASM would increase dependency and runtime compatibility surface without changing current v1 release gates.
+
+Acceptance for current release:
+- Java files are detected as `language: "java"`.
+- Java test files are classified as tests.
+- Regex adapter id is `java-regex-v0`.
+- Tree-sitter Java remains non-blocking future work.
+
 ---
 
 ## 4. Proposed Implementation

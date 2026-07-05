@@ -31,17 +31,24 @@ Extend dataflow analysis to track data flow across multiple files for more accur
 
 ## 3. Current State
 
-**Status**: Single-file dataflow-lite exists
+**Status**: Dataflow-lite is implemented; full cross-file taint analysis remains future scope.
 
-**Current Dataflow**: `src/core/dataflow-lite.ts` tracks within file
+**Current Dataflow**:
+- `src/core/dataflow-lite.ts` tracks assignments, parameters, returns, branches, member access, and call-chain hops.
+- `src/core/dataflow-full.ts` extends the in-memory graph traversal model for richer call-chain analysis.
+- `src/adapters/ts-adapter.ts` emits import/export/reference/call relations used as cross-file hints.
+- `src/core/__tests__/dataflow-lite.test.ts` and `src/core/__tests__/dataflow-full.test.ts` cover source-to-sink chains, validation-aware flows, and multi-hop call traversal.
 
-**Limitation**: Cannot track data flow across file boundaries.
+**Current Boundary**:
+- The analyzer may use call/import/export relations as evidence, but it does not claim whole-program taint completeness.
+- Source/sink/sanitizer classification is heuristic and intended for rule precision, not proof of exploitability.
+- Cross-file findings must keep confidence conservative unless the full path is present in graph relations.
 
 ---
 
 ## 4. Proposed Implementation
 
-### Cross-file Dataflow Architecture
+### Target Cross-file Dataflow Architecture
 
 ```
 File A: userInput -> sanitize() -> export sanitizedData
@@ -51,7 +58,7 @@ File B: import { sanitizedData } -> processData()
 File C: import { processData } -> storeInDb()
 ```
 
-### Implementation
+### Future Implementation
 
 ```typescript
 // src/core/cross-file-dataflow.ts
@@ -178,11 +185,12 @@ function calculateEnhancedBlastRadius(
 
 | File | Action | Purpose |
 |---|---|---|
-| `src/core/cross-file-dataflow.ts` | Create | Cross-file logic |
-| `src/core/blast-radius-enhanced.ts` | Create | Enhanced blast radius |
-| `src/rules/client-trusted-price.ts` | Modify | Use cross-file dataflow |
-| `src/__tests__/cross-file-dataflow.test.ts` | Create | Tests |
-| `docs/cross-file-dataflow.md` | Create | Documentation |
+| `src/core/dataflow-lite.ts` | Existing | Heuristic source/sink/sanitizer and call-chain dataflow |
+| `src/core/dataflow-full.ts` | Existing | Expanded in-memory call-chain traversal |
+| `src/adapters/ts-adapter.ts` | Existing | Import/export/reference/call graph hints |
+| `src/core/cross-file-dataflow.ts` | Future | Whole-program cross-file logic |
+| `src/core/blast-radius-enhanced.ts` | Future | Enhanced blast radius |
+| `docs/cross-file-dataflow.md` | Future | Operator documentation |
 
 ---
 
@@ -200,10 +208,10 @@ function calculateEnhancedBlastRadius(
 
 | Criterion | Measurable | Verification |
 |---|---|---|
-| Cross-file flow detected | Flow across files identified | Automated |
-| Blast radius expanded | Affected files includes downstream | Automated |
-| Entrypoints identified | Affected entrypoints listed | Automated |
-| Performance acceptable | < 30s for 1000 files | Automated |
+| Dataflow-lite classifies sources, sinks, and validation/sanitizer hops | Source/sink/sanitizer helpers return expected boolean decisions | Automated |
+| Call-chain hints are available | TS adapter emits `calls`; dataflow-lite can traverse multi-hop chains | Automated |
+| Cross-file claims stay conservative | Specs and finding confidence do not claim whole-program taint completeness | Documentation |
+| Future whole-program flow has depth/cycle limits | Design includes depth limit and cycle detection | Design review |
 
 ---
 

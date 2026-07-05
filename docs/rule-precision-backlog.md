@@ -91,7 +91,34 @@ if (isCompatibilityComment) continue; // Skip compatibility explanation comments
 | accepted-design | Suppression | Architecture decision, intentional pattern |
 | false-positive | **Precision Backlog** | Rule should not detect this; needs detector improvement |
 
-## 4. Implementation Tracking
+Suppression 追加だけで済ませず detector 修正へ回す基準:
+
+- 同じ rule で同種の false positive が 2 件以上出た。
+- self-reference や fixture-intentional ではなく、通常の production source で誤検出した。
+- accepted-design として説明するには根拠が弱く、rule が文脈を読めば除外できる。
+- broad path suppression が必要になるほど検出範囲が広い。
+- 日本語コメント、schema property、generated/report artifact など、入力分類の改善で再発を止められる。
+- suppressions の reason が「一時対応」「temporary」「TODO」など generic reason になっている。
+
+上記に該当する場合は、suppression record に加えてこの backlog の `Backlog Items` へ FP ID、location、root cause、regression fixture 方針を追加する。
+
+## 4. Fixture Separation Policy
+
+Rule ごとの fixture は、次の 2 種類を分けて管理する。
+
+| Fixture class | Purpose | Required contents | Success criterion |
+|---|---|---|---|
+| precision fixture | false positive / true positive の境界評価 | 各 rule につき positive、negative、accepted-design を最低 1 件ずつ | fixture 上の TP/FP/Uncertain を人間が記録できる |
+| regression fixture | 過去に壊れた検出・誤検出の固定 | issue/backlog ID、期待 finding 数、期待非検出ケース | CI の rule test で期待件数が固定される |
+
+運用ルール:
+
+- precision fixture の結果は `docs/assurance-precision-evaluation.md` または rule-specific evaluation record に記録し、real repo precision と混同しない。
+- regression fixture は unit/integration test で自動化し、過去の修正を壊したときに失敗させる。
+- 1 つの fixture を両用途に使う場合でも、テスト名と記録上は `precision` / `regression` のどちらの証跡か明示する。
+- 新規 rule 追加時は、検出 positive だけでなく「誤検出してはいけない accepted-design」を先に 1 件以上登録する。
+
+## 5. Implementation Tracking
 
 | Item | Status | Target Version | Notes |
 |---|---|---|---|
@@ -100,7 +127,7 @@ if (isCompatibilityComment) continue; // Skip compatibility explanation comments
 | FP-MIS-001 | suppressed | N/A | Single location, acceptable noise |
 | FP-RS-001 | suppressed | N/A | Test file, self-reference pattern |
 
-## 5. Next Review
+## 6. Next Review
 
 2026-06-17 に backlog を再評価:
 - False positive 数の推移確認

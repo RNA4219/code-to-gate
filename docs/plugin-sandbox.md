@@ -156,6 +156,12 @@ security:
   network: true
 ```
 
+The command builder contract is tested in `src/plugin/__tests__/docker-sandbox.test.ts`: `networkAccess: false` must emit `--network=none`, and `networkAccess: true` is the only path that omits it.
+
+### Docker Unavailable Fallback Policy
+
+If Docker is unavailable, `--sandbox docker` is a policy failure for sandbox-required execution and should return a plugin failure result rather than silently running the plugin directly. Users may explicitly choose `--sandbox none` for direct process execution, but this is a lower-trust mode and must be documented in the runbook or policy exception. CI/release gates that require private plugin isolation should fail closed when Docker sandbox status is unavailable.
+
 ### Memory Limits
 
 Memory limits prevent plugins from consuming excessive resources:

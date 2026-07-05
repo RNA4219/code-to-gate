@@ -100,6 +100,15 @@ code-to-gate llm-health --provider llamacpp
 code-to-gate llm-health --all
 ```
 
+Acceptance requires health checks to cover:
+
+| Provider | Command | Required result |
+|---|---|---|
+| deterministic | `code-to-gate llm-health --provider deterministic` | Always healthy without network |
+| ollama | `code-to-gate llm-health --provider ollama` | Healthy only when localhost Ollama responds and model list is parseable |
+| llama.cpp | `code-to-gate llm-health --provider llamacpp` | Healthy when `/health` or `/props` on localhost responds |
+| all local providers | `code-to-gate llm-health --all` | Reports every provider without contacting non-localhost URLs |
+
 ### Local-Only Mode
 
 Enforce local-only LLM usage:
@@ -121,7 +130,6 @@ This ensures no external API calls are made.
 | `--llm-model` | Model name | llama3.2 (ollama), local-model (llamacpp) |
 | `--llm-port` | Custom port | 11434 (ollama), 8080 (llamacpp) |
 | `--llm-base-url` | Localhost base URL | provider default |
-| `--llm-timeout` | Request timeout (ms) | 30000 |
 
 ### Environment Variables
 
@@ -222,7 +230,7 @@ curl http://127.0.0.1:8080/props
 | Connection refused | Start the LLM server |
 | macOS localhost connection fails | Try `--llm-base-url http://localhost:<port>` or `http://127.0.0.1:<port>`; code-to-gate will retry equivalent loopback forms for localhost URLs |
 | Model not found | Pull/download the model |
-| Timeout exceeded | Increase --llm-timeout |
+| Timeout exceeded | Check provider health with `code-to-gate llm-health --provider <provider>` and retry after the local server is responsive |
 | Non-localhost URL | Use only localhost addresses |
 
 ## Health Check Script

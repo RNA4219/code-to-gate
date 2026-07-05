@@ -176,6 +176,17 @@
 | Local LLM | ollama / llama.cpp support |
 | Performance optimization | Parallel parse + incremental cache |
 | Web viewer MVP | Static HTML artifact viewer |
+| Community plugin discovery requirements | Marketplace/search metadata, trust labels, and install UX are roadmap items only; OSS core v1 keeps local/private plugin loading as the supported execution path |
+
+### 5.1.1 External Provider Migration Policy
+
+Cloud LLM provider adapters are compatibility-managed integrations. When a provider API changes, code-to-gate should:
+
+- keep local deterministic analysis and local LLM providers working as the fallback path;
+- add or update provider contract tests before changing the adapter;
+- document required environment variables, model names, and response schema deltas in release notes;
+- avoid changing `audit.json` LLM fields without a schema migration note;
+- treat provider deprecation as non-breaking when `--require-llm` is not set, because deterministic fallback remains available.
 
 ### 5.2 Non-goals
 
@@ -601,8 +612,8 @@ Phase 0 v0.1 MVP は GO。Phase 1-3 の前提条件は明確。
 
 ### 12.4 Post-v1.0 P2 Actions (Future)
 
-| id | action | owner | priority |
-|---|---|---|:---:|
+| id | action | owner | priority | status |
+|---|---|---|:---:|---|
 | P2-FUTURE-01 | Viewer risk/readiness/test seed display extension | Dev | P2 | ✓ Done: report-sections.ts implemented |
 | P2-FUTURE-02 | Plugin SDK contract hardening | Dev | P2 | ✓ Done: plugin-security-contract.test.ts 30 tests |
 | P2-FUTURE-03 | Explicit debt marker specification | Dev | P2 | ✓ Done: debt-marker.ts implemented |

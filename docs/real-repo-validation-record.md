@@ -1,11 +1,18 @@
-# Real Repo Validation Record
+# Fixture Validation Record and Real Repo Validation Gap
 
 **作成日**: 2026-05-03
-**対象**: Phase 1 Acceptance - Real repo validation
+**更新日**: 2026-07-04
+**対象**: Phase 1 Acceptance evidence separation
+
+> This document previously used "Real Repo Validation" for fixture-based runs.
+> The records below are controlled fixture validation records, not real public
+> repository precision evidence. Real repo validation requires repository URL,
+> commit hash, file count, policy, generated artifacts, and human TP/FP/Uncertain
+> review records.
 
 ---
 
-## 1. Validation Results
+## 1. Controlled Fixture Validation Results
 
 | Fixture | Language | Files | Findings | Critical | High | Status | Exit Code |
 |---------|----------|-------|----------|----------|------|--------|-----------|
@@ -119,11 +126,11 @@ done
 
 ---
 
-## 6. Acceptance Criteria
+## 6. Fixture Acceptance Criteria
 
 | Criterion | Target | Result | Status |
 |-----------|--------|--------|--------|
-| Real repo動作 | 3+ repos | 4 fixtures | ✅ PASS |
+| Controlled fixture動作 | 3+ fixtures | 4 fixtures | ✅ PASS |
 | scan/analyze/readiness動作 | All commands | All pass | ✅ PASS |
 | Schema validation | All artifacts | 32/32 pass | ✅ PASS |
 | Performance | <= 30s | < 2s each | ✅ PASS |
@@ -131,9 +138,46 @@ done
 
 ---
 
-## 7. Conclusion
+## 7. Real Repo Validation Status
 
-**Phase 1 Real Repo Validation**: ✅ PASS
+**Phase 1 Real Repo Execution**: PASS in the 2026-07-04 evidence pack.
+
+Current evidence:
+
+- `docs/real-repo-validation-evidence-20260704.md`
+- `.qh/acceptance/real-repo/summary.yaml`
+- `.qh/acceptance/real-repo/<repo>/analyze/findings.json`
+- `.qh/acceptance/real-repo/<repo>/readiness/release-readiness.json`
+
+Precision status remains **not reportable** until human TP/FP/Uncertain
+adjudication is completed.
+
+Required evidence for real repo validation:
+
+| Field | Required |
+|---|---|
+| Repository URL | Yes |
+| Commit hash | Yes |
+| Repo type / framework | Yes |
+| File count and language mix | Yes |
+| Policy file and config | Yes |
+| analyze/readiness/schema commands | Yes |
+| Artifact paths | Yes |
+| Findings TP / FP / Uncertain / Accepted design classification | Yes |
+| Human reviewer and review date | Yes |
+| Suppression before/after counts | Yes |
+
+The 2026-07-04 evidence pack now contains URL, commit hash, repo size,
+language/framework, policy path, command output artifact paths, suppression
+before/after counts, reviewer/date, and selection criteria. Human precision
+classification remains a follow-up because all 1721 findings are currently
+classified as `Uncertain / needs human review`.
+
+---
+
+## 8. Conclusion
+
+**Controlled Fixture Validation**: ✅ PASS
 
 - 4 fixtures validated (TypeScript, JavaScript, Python, Ruby)
 - All commands executed successfully
@@ -143,7 +187,7 @@ done
 
 ---
 
-## 8. Cleanup
+## 9. Cleanup
 
 ```bash
 rm -rf .qh-real-demo-shop-ts .qh-real-demo-auth-js .qh-real-demo-python .qh-real-demo-ruby

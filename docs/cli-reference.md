@@ -12,8 +12,13 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [import](#import)
    - [readiness](#readiness)
    - [export](#export)
+   - [viewer](#viewer)
+   - [historical](#historical)
+   - [llm-health](#llm-health)
+   - [evidence](#evidence)
+   - [plugin-sandbox](#plugin-sandbox)
+   - [assurance](#assurance)
    - [schema](#schema)
-   - [fixture](#fixture)
 3. [Exit Codes](#exit-codes)
 4. [Output Formats](#output-formats)
 5. [Policy YAML Reference](#policy-yaml-reference)
@@ -33,6 +38,15 @@ These options apply to all commands:
 
 ## Commands
 
+### Responsibility Boundaries
+
+| Command | Responsibility | Primary Outputs |
+|---------|----------------|-----------------|
+| `scan` | Build a normalized repository graph. It does not evaluate release policy. | `repo-graph.json`, optional `database-assets.json` |
+| `analyze` | Run scan plus rules/report generation. It does not create release-readiness. | `raw-findings.json`, `findings.json`, `risk-register.yaml`, `analysis-report.md`, `test-seeds.json`, `invariants.json`, `repo-graph.json`, `audit.json` |
+| `readiness` | Evaluate existing analysis artifacts against policy. Requires `--from <artifact-dir>`. | `release-readiness.json` |
+| `export` | Transform existing artifacts for downstream tools. | Target-specific JSON/SARIF |
+
 ### scan
 
 Scan a repository and generate a normalized repo graph artifact.
@@ -51,10 +65,13 @@ code-to-gate scan <repo-path> --out <output-dir>
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
-| `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx,py,rb,go,rs,java,php`) |
 | `--tree-sitter` | false | Use tree-sitter WASM parser for Python/Ruby/Go/Rust (more accurate AST parsing) |
-| `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns (comma-separated) |
 | `--verbose` | false | Enable verbose logging |
+| `--cache <mode>` | `enabled` | Cache mode: `enabled`, `disabled`, `force` |
+| `--parallel <n>` | `4` | Max parallel workers for file parsing |
+| `--database-analysis` | false | Enable SQL and migration risk analysis |
+
+Note: current CLI help does not expose `--lang`, `--languages`, `--ignore`, or `--exclude`; language detection and default exclusions are handled by the scanner.
 
 **Default Exclusions:**
 
@@ -76,14 +93,8 @@ The scanner automatically excludes these directories:
 # Basic scan
 code-to-gate scan ./my-repo --out .qh
 
-# Scan TypeScript files only
-code-to-gate scan ./my-repo --out .qh --lang ts,tsx
-
-# Use tree-sitter for Python/Ruby/Go/Rust
-code-to-gate scan ./my-repo --out .qh --lang py,rb,go,rs --tree-sitter
-
-# Exclude additional directories
-code-to-gate scan ./my-repo --out .qh --ignore node_modules,dist,coverage,.env
+# Enable database analysis
+code-to-gate scan ./my-repo --out .qh --database-analysis
 ```
 
 **Exit Codes:**
@@ -115,26 +126,38 @@ code-to-gate analyze <repo-path> --out <output-dir>
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
 | `--emit <formats>` | `all` | Output formats: `all`, `md`, `json`, `yaml`, `mermaid`, `sarif` |
 | `--policy <path>` | none | Path to policy YAML file for release readiness evaluation |
+| `--format <format>` | `json` | Machine stdout summary format. Only `json` is stable for `analyze`. |
+| `--quiet` | false | Suppress successful stdout summary. Human and JSON diagnostics still go to stderr. |
 | `--require-llm` | false | Require LLM processing to succeed (exit 4 if failed) |
 | `--llm-provider <provider>` | none | LLM provider: `openai`, `anthropic`, `alibaba`, `openrouter`, `ollama`, `llama.cpp` |
 | `--llm-model <model>` | provider default | Model name for the selected provider |
 | `--llm-model-path <path>` | none | Model file path for `llama.cpp` provider |
-| `--lang <langs>` | `ts,js` | Target languages (comma-separated: `ts,js,tsx,jsx,py,rb,go,rs,java,php`) |
-| `--ignore <patterns>` | `node_modules,dist,.git` | Exclusion patterns |
+| `--llm-mode <mode>` | `local-only` | LLM policy mode: `local-only` or `allow-cloud`; provider selection stays in `--llm-provider` |
+| `--debug-llm-trace` | false | Write `llm-trace.json` with redacted LLM request/response and hashes. This file is not listed as a public audit artifact. |
 | `--database-analysis` | false | Enable database migration analysis for risky schema changes |
 
 **Output Artifacts:**
 | Artifact | Description |
 |----------|-------------|
+| `raw-findings.json` | Pre-normalization findings emitted by rule evaluation |
 | `repo-graph.json` | Normalized repository structure |
 | `findings.json` | Quality findings with evidence |
-| `risk-register.yaml` | Risk register with severity and recommended actions |
-| `invariants.yaml` | Invariant candidates derived from findings |
+| `risk-register.yaml` | Risk register with severity and recommended actions when YAML/all output is requested |
+| `invariants.json` | Invariant candidates derived from findings |
 | `test-seeds.json` | Test design seeds for QA |
-| `release-readiness.json` | Release readiness assessment |
+| `release-readiness.json` | Generated by `readiness --from <artifact-dir>`, not by `analyze` |
 | `audit.json` | Run metadata for reproducibility |
-| `analysis-report.md` | Human-readable summary report |
-| `results.sarif` | SARIF format for GitHub Code Scanning |
+| `analysis-report.md` | Human-readable summary report when markdown output is requested |
+| `results.sarif` | SARIF format when SARIF output is requested |
+| `database-assets.json` | SQL/migration inventory when `--database-analysis` is enabled |
+
+**CLI Output Contract:**
+
+- Successful `analyze` runs write one JSON summary line to stdout by default.
+- The summary line has `schema: "ctg.cli.summary@v1"` and includes `tool`, `command`, `status`, `exit_code`, `run_id`, `artifacts`, and `summary`.
+- `--format json` is the only stable machine stdout format for `analyze`.
+- `--quiet` suppresses the success summary on stdout but does not suppress stderr diagnostics.
+- Errors write human-readable text to stderr and also emit a JSON diagnostic line with `schema: "ctg.cli.diagnostic@v1"`.
 
 **Example:**
 ```bash
@@ -221,6 +244,7 @@ code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir>
 | `--base <ref>` | `main` | Base branch or commit reference |
 | `--head <ref>` | `HEAD` | Head branch or commit reference |
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
+| `--blast-depth <n>` | `1` | Importer traversal depth for blast radius. `1` includes direct importers; higher values include transitive importers up to 10. |
 | `--database-analysis` | false | Enable database migration analysis for risky schema changes |
 
 **Output:**
@@ -261,7 +285,7 @@ code-to-gate import <tool> <file> --out <output-dir>
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<tool>` | Yes | Tool name: `semgrep`, `eslint`, `tsc`, `coverage` |
+| `<tool>` | Yes | Tool name: `semgrep`, `eslint`, `tsc`, `coverage`, `test` |
 | `<file>` | Yes | Path to the tool output file |
 
 **Options:**
@@ -370,7 +394,7 @@ code-to-gate export <target> --from <dir> --out <file>
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence` |
+| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate` |
 
 **Options:**
 | Option | Default | Description |
@@ -385,6 +409,8 @@ code-to-gate export <target> --from <dir> --out <file>
 | `state-gate` | agent-state-gate | Evidence summary for agent workflow verdicts |
 | `manual-bb` | manual-bb-test-harness | Risk and invariant seeds for black-box test design |
 | `workflow-evidence` | workflow-cookbook | Evidence references for CI workflow integration |
+| `sarif` | GitHub Code Scanning / SARIF consumers | SARIF 2.1.0 findings export |
+| `qeg-code-to-gate` | quality-evidence-graph | Evidence-only export for QEG processing |
 
 **Example:**
 ```bash
@@ -399,6 +425,12 @@ code-to-gate export manual-bb --from .qh --out .qh/manual-bb-seed.json
 
 # Export for workflow-cookbook
 code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.json
+
+# Export SARIF
+code-to-gate export sarif --from .qh --out .qh/results.sarif
+
+# Export for quality-evidence-graph
+code-to-gate export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
 ```
 
 **Exit Codes:**
@@ -407,6 +439,127 @@ code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.jso
 | 0 | OK | Export completed successfully |
 | 2 | USAGE_ERROR | Invalid arguments or unknown target |
 | 9 | INTEGRATION_EXPORT_FAILED | Missing required artifacts or export failure |
+
+---
+
+### viewer
+
+Generate a standalone HTML report from an artifact directory.
+
+**Usage:**
+```bash
+code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <dir>` | Required | Source artifact directory |
+| `--out <file>` | stdout/default path | HTML output path |
+| `--title <title>` | `code-to-gate Report` | Report title |
+| `--dark` | false | Render dark theme |
+
+**Example:**
+```bash
+code-to-gate viewer --from .qh --out .qh/report.html --title "Release Review"
+```
+
+---
+
+### historical
+
+Compare current and previous artifact directories and optionally include trend history.
+
+**Usage:**
+```bash
+code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--current <dir>` | Required | Current run artifact directory |
+| `--previous <dir>` | Required | Previous run artifact directory |
+| `--out <file>` | stdout/default path | Historical comparison output |
+| `--history <dir>` | none | Directory containing multiple historical runs |
+
+---
+
+### llm-health
+
+Check local or configured LLM provider availability.
+
+**Usage:**
+```bash
+code-to-gate llm-health [--provider <provider>] [--all]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--provider <provider>` | auto/default | Provider to check, such as `ollama`, `llamacpp`, or `deterministic` |
+| `--all` | false | Check all known providers |
+
+---
+
+### evidence
+
+Create, inspect, validate, or extract evidence bundles from artifact directories.
+
+**Usage:**
+```bash
+code-to-gate evidence bundle --from <dir> --out <bundle.zip> [--include-optional] [--sign]
+code-to-gate evidence validate <bundle.zip> [--strict] [--validate-schemas]
+code-to-gate evidence list <bundle.zip>
+code-to-gate evidence extract <bundle.zip> --out <dir>
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `bundle` | Create an evidence bundle from artifacts |
+| `validate` | Validate bundle structure and optionally schemas |
+| `list` | List bundle contents |
+| `extract` | Extract a bundle to a directory |
+
+---
+
+### plugin-sandbox
+
+Check and run plugin execution in an isolated sandbox.
+
+**Usage:**
+```bash
+code-to-gate plugin-sandbox status
+code-to-gate plugin-sandbox run <plugin-path> --input <file> [--sandbox docker] [--timeout <s>]
+code-to-gate plugin-sandbox build-image
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `status` | Check Docker availability and sandbox status |
+| `run` | Execute a plugin with an input artifact |
+| `build-image` | Build the Docker image used for plugin execution |
+
+---
+
+### assurance
+
+Inspect artifacts for assurance candidates.
+
+**Usage:**
+```bash
+code-to-gate assurance inspect <repo> --from <artifact-dir> [--out <file>] [--min-confidence <0..1>] [--include-low-confidence]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | Required | Existing artifact directory |
+| `--out <file>` | stdout/default path | Output file |
+| `--min-confidence <0..1>` | implementation default | Minimum candidate confidence |
+| `--include-low-confidence` | false | Include lower-confidence candidates |
 
 ---
 
@@ -475,45 +628,29 @@ code-to-gate schema validate-all .qh --allow-missing
 
 ---
 
-### fixture
+### Fixture Directories
 
-Manage fixture repositories for testing and demonstration.
-
-**Usage:**
-```bash
-code-to-gate fixture <action> [options]
-```
-
-**Actions:**
-| Action | Description |
-|--------|-------------|
-| `list` | List available fixtures |
-| `validate <name>` | Validate a fixture repository |
-| `seed <name>` | Generate seed artifacts for a fixture |
-
-**Options:**
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--fixtures-dir <dir>` | `fixtures` | Directory containing fixtures |
+The current CLI does not provide a `fixture` subcommand. Fixture repositories under `fixtures/<name>` are tested by running the normal `scan`, `analyze`, `readiness`, and `schema` commands against the fixture path.
 
 **Example:**
 ```bash
-# List fixtures
-code-to-gate fixture list
+# Analyze a fixture
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/fixtures/demo-shop-ts --llm-provider deterministic
 
-# Validate fixture
-code-to-gate fixture validate demo-shop-ts
+# Evaluate readiness from generated artifacts
+code-to-gate readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh/fixtures/demo-shop-ts --out .qh/fixtures/demo-shop-ts
 
-# Generate seed artifacts
-code-to-gate fixture seed demo-ci-imports --fixtures-dir fixtures
+# Validate generated artifacts
+code-to-gate schema validate-all .qh/fixtures/demo-shop-ts
 ```
 
 **Exit Codes:**
 | Code | Name | Description |
 |------|------|-------------|
-| 0 | OK | Operation completed |
+| 0 | OK | Underlying command completed |
+| 1 | READINESS_NOT_CLEAR | Readiness requires review or blocked input |
 | 2 | USAGE_ERROR | Invalid arguments |
-| 3 | FIXTURE_FAILED | Fixture operation failed |
+| 7 | SCHEMA_FAILED | Schema validation failed |
 
 ---
 
@@ -527,10 +664,12 @@ code-to-gate fixture seed demo-ci-imports --fixtures-dir fixtures
 | 3 | SCAN_FAILED | Repository scan or parser fatal failure |
 | 4 | LLM_FAILED | LLM processing failed (--require-llm mode) |
 | 5 | POLICY_FAILED | Policy YAML validation failed |
+| 6 | PLUGIN_FAILED | Plugin execution or sandbox failure |
 | 7 | SCHEMA_FAILED | Artifact schema validation failed |
 | 8 | IMPORT_FAILED | External tool import failed |
 | 9 | INTEGRATION_EXPORT_FAILED | Downstream export failed |
 | 10 | INTERNAL_ERROR | Unexpected internal error |
+| 11 | ASSURANCE_FAILED | Assurance inspection failed |
 
 ---
 
@@ -579,6 +718,19 @@ Human-readable summary report with sections:
 - Test Seeds
 - Release Readiness
 
+### Report Profiles
+
+`analysis-report.md` is the human review profile. It separates effective findings, accepted/suppressed exceptions, known debt, suppression debt, explicit debt markers, review hints, evidence kind, and confirmation commands.
+
+Machine-readable consumers should use the structured artifacts directly instead of scraping Markdown:
+
+- `findings.json` / `raw-findings.json` for machine findings.
+- `risk-register.yaml` for risk seeds.
+- `test-seeds.json` and `invariants.json` for QA planning.
+- `audit.json` for run metadata and artifact hashes.
+
+QA-chain consumers should use `export manual-bb`, `export gatefield`, `export state-gate`, or `export qeg` so the downstream schema remains explicit. A future `--report-profile` option may add alternate Markdown layouts, but the current stable contract is: Markdown for humans, structured artifacts for machines and QA-chain integrations.
+
 ### SARIF
 
 Standard SARIF format for GitHub Code Scanning integration:
@@ -593,6 +745,15 @@ Standard SARIF format for GitHub Code Scanning integration:
   }]
 }
 ```
+
+### GitHub PR Display Policy
+
+GitHub integrations intentionally have separate display responsibilities:
+
+- SARIF upload is the Code Scanning and security dashboard surface.
+- GitHub Checks annotations are the PR review surface and should be capped to the highest-priority findings.
+- PR comments are the run summary and artifact index.
+- If SARIF and Checks show the same finding in different GitHub views, reconcile by `findings.json` / `audit.json` identity plus rule ID, evidence path, and line range.
 
 ### Mermaid
 
@@ -655,7 +816,7 @@ suppression:
 
 llm:
   enabled: true
-  mode: local-only     # remote | local-only | none
+  mode: local-only     # local-only | allow-cloud
   min_confidence: 0.6
   require_llm: false
 
@@ -695,7 +856,7 @@ exit:
 | Option | Description |
 |--------|-------------|
 | `enabled` | Enable LLM integration |
-| `mode` | `remote` \| `local-only` \| `none` |
+| `mode` | `local-only` or `allow-cloud` |
 | `min_confidence` | Minimum confidence threshold for LLM content |
 | `require_llm` | Fail if LLM unavailable |
 

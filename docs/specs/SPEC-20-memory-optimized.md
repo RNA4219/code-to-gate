@@ -31,11 +31,19 @@ Provide low-memory mode for CI environments with limited RAM (e.g., GitHub Actio
 
 ## 3. Current State
 
-**Status**: No memory optimization, potential issues on large repos
+**Status**: Large-repo streaming and lazy symbol optimization are implemented for scan; explicit heap-limit CLI remains future scope.
 
 **CI Environment**: GitHub Actions free tier ~7GB RAM
 
-**Problem**: Large repos (5000+ files) may exceed memory limits.
+**Current implementation**:
+- `src/parallel/file-processor.ts` supports streaming mode, chunked processing, lazy symbols, and cache clearing.
+- `src/cache/*` supports streaming validation for large file sets.
+- `src/__tests__/performance/large-repo-performance.test.ts` covers streaming chunks, lazy symbol loading, cache validation, 5000+ file scan, cache clearing, and large-repo memory behavior.
+
+**Re-evaluation 2026-07-04**:
+- Tie SPEC-20 acceptance to the large-repo performance suite for v1.
+- Keep explicit `--memory-limit` / dynamic heap enforcement as future scope because Node heap limits are better controlled by `NODE_OPTIONS` in CI today.
+- Treat memory optimization as scan-path behavior: streaming batches, lazy symbols, and cache clearing must keep large repo processing bounded.
 
 ---
 
@@ -143,11 +151,11 @@ code-to-gate analyze . --memory-limit 1024 --batch-size 50 --out .qh
 
 | File | Action | Purpose |
 |---|---|---|
-| `src/config/memory-config.ts` | Create | Memory configuration |
-| `src/core/streaming-processor.ts` | Create | Streaming logic |
-| `src/core/streaming-reader.ts` | Create | Large file handling |
-| `src/cli/analyze.ts` | Modify | Memory options |
-| `docs/memory-optimization.md` | Create | Documentation |
+| `src/parallel/file-processor.ts` | Existing | Streaming, chunked processing, lazy symbol cache |
+| `src/cache/*` | Existing | Streaming cache validation |
+| `src/__tests__/performance/large-repo-performance.test.ts` | Existing | Large repo and memory behavior acceptance |
+| `src/config/memory-config.ts` | Future | Explicit memory configuration |
+| `docs/memory-optimization.md` | Future | Dedicated operator guide if heap-limit CLI is added |
 
 ---
 
@@ -165,10 +173,10 @@ code-to-gate analyze . --memory-limit 1024 --batch-size 50 --out .qh
 
 | Criterion | Measurable | Verification |
 |---|---|---|
-| Memory limit respected | Peak memory < limit | Automated |
-| Large repo processed | 5000 files in 2GB | Automated |
-| Results unchanged | Same findings as normal mode | Automated |
-| Graceful degradation | Smaller batches on limit | Automated |
+| Streaming mode processes chunks | Multiple chunks are processed without retaining all lazy symbols | Automated |
+| Large repo processed | 5000 files within acceptance time | Automated |
+| Cache validation scales | Large file set uses streaming validation | Automated |
+| Memory behavior bounded | Lazy symbol cache can be cleared during large repo processing | Automated |
 
 ---
 

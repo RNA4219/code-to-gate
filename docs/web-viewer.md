@@ -323,5 +323,8 @@ Phase 3 planned features:
 - Export findings as CSV/JSON
 - Custom theme configuration
 - Sidebar navigation for large reports
+- Finding filters for severity, category, suppression status, and text search
+- Historical comparison tab when `historical-comparison.json` is present
+- Large finding lists are capped in the static viewer; use JSON artifacts for the full set when the cap is reached
 - Keyboard shortcuts for navigation
 - Full Mermaid library integration for advanced diagrams
