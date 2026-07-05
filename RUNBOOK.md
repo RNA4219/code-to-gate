@@ -1299,7 +1299,7 @@ Release gate の必須 jobs:
 | `code-to-gate-pr.yml` | `coverage` | `npm run test:coverage`, coverage threshold |
 | `code-to-gate-pr.yml` | `contract-tests` | downstream export schema validation |
 | `code-to-gate-pr.yml` | `macos-compatibility` | macOS build, smoke, fixture analyze/readiness |
-| `code-to-gate-pr.yml` | `analyze` | diff/readiness/SARIF/QEG evidence/PR comment/Checks |
+| `code-to-gate-pr.yml` | `analyze` | diff/readiness/SARIF/test-plan/Evidence DAG/QEG evidence/PR review artifact/PR comment/Checks |
 | `code-to-gate-release.yml` | `audit` | `npm audit --audit-level=high` artifact |
 | `code-to-gate-release.yml` | `macos-compatibility` | macOS CLI smoke |
 | `code-to-gate-release.yml` | `analyze` | coverage, docs stale summary, full analyze/readiness, SARIF, QEG evidence, release evidence, suppression summary |

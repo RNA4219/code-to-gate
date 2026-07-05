@@ -853,6 +853,12 @@ contract and a Markdown comment body. The command does not post to GitHub by
 itself; GitHub Actions or a GitHub App can publish `pr-review.md` after the
 artifact is generated.
 
+The bundled PR workflow generates `test-plan.json`, `evidence-dag.json`,
+`qeg-code-to-gate.json`, `pr-review.json`, and `pr-review.md`; the local
+`.github/actions/pr-comment` action posts `pr-review.md` when it is present and
+falls back to the legacy summary only when the PR review artifact has not been
+generated.
+
 **Usage:**
 ```bash
 code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]

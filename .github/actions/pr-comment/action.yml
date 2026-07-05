@@ -87,6 +87,17 @@ runs:
       id: body
       shell: bash
       run: |
+        ARTIFACT_DIR="${{ inputs.artifact_dir }}"
+        if [ -f "$ARTIFACT_DIR/pr-review.md" ]; then
+          cp "$ARTIFACT_DIR/pr-review.md" /tmp/comment_body.md
+          {
+            echo ""
+            echo "<!-- code-to-gate Analysis -->"
+          } >> /tmp/comment_body.md
+          echo "file=/tmp/comment_body.md" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
         # Determine status emoji and color
         STATUS="${{ steps.parse.outputs.status }}"
         CRITICAL="${{ steps.parse.outputs.critical }}"

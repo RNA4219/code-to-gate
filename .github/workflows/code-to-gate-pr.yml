@@ -275,6 +275,13 @@ jobs:
             node ./dist/cli.js scan . --out .qh
           fi
 
+      - name: Generate PR review source artifacts
+        run: |
+          node ./dist/cli.js test-plan --from .qh --out .qh
+          node ./dist/cli.js schema validate .qh/test-plan.json
+          node ./dist/cli.js export evidence-dag --from .qh --out .qh/evidence-dag.json
+          node ./dist/cli.js schema validate .qh/evidence-dag.json
+
       - name: Export QEG evidence input
         run: |
           node ./dist/cli.js export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
@@ -285,6 +292,25 @@ jobs:
             echo "- role: evidence-only input; final decision remains owned by QEG"
             echo "- readiness: $(jq -r '.readiness_status' .qh/qeg-code-to-gate.json)"
             echo "- findings: $(jq '.findings_summary.total' .qh/qeg-code-to-gate.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate PR review artifact
+        run: |
+          set +e
+          node ./dist/cli.js pr-review \
+            --from .qh \
+            --out .qh \
+            --artifact-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          PR_REVIEW_EXIT=$?
+          set -e
+          if [ "$PR_REVIEW_EXIT" -ne 0 ] && [ ! -f .qh/pr-review.md ]; then
+            echo "::error::PR review generation failed before producing pr-review.md"
+            exit "$PR_REVIEW_EXIT"
+          fi
+          node ./dist/cli.js schema validate .qh/pr-review.json
+          {
+            echo "## PR Review"
+            jq -r '"- status: \(.status)\n- block reasons: \(.summary.blockReasons)\n- suggested tests: \(.summary.additionalTests)\n- spec drift items: \(.summary.specDiffs)"' .qh/pr-review.json
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload SARIF to code scanning
