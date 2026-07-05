@@ -314,15 +314,43 @@ jobs:
           node ./dist/cli.js schema validate .qh/evidence-dag.json
 
       - name: Export QEG evidence input
+        env:
+          CTG_QEG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           node ./dist/cli.js export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
           node ./dist/cli.js schema validate .qh/qeg-code-to-gate.json
+          node ./dist/cli.js export manual-bb --scope qeos-039-040 --from .qh --out .qh/manual-bb.json
+          node ./dist/cli.js schema validate .qh/manual-bb.json
+          node ./dist/cli.js export hate-qeg-bundle --from .qh --out .qh/hate-qeg-bundle.json
+          node ./dist/cli.js schema validate .qh/hate-qeg-bundle.json
+          node ./dist/cli.js export qeg-gate-input --from .qh --out .qh/qeg-gate
           {
             echo "## QEG Evidence"
             echo "- artifact: .qh/qeg-code-to-gate.json"
-            echo "- role: evidence-only input; final decision remains owned by QEG"
+            echo "- hate bundle: .qh/hate-qeg-bundle.json"
+            echo "- manual-bb: .qh/manual-bb.json"
+            echo "- qeg gate input: .qh/qeg-gate/gate-input.json"
+            echo "- role: QEG owns the final gate verdict"
             echo "- readiness: $(jq -r '.readiness_status' .qh/qeg-code-to-gate.json)"
             echo "- findings: $(jq '.findings_summary.total' .qh/qeg-code-to-gate.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout QEG runtime
+        uses: actions/checkout@v6
+        with:
+          repository: RNA4219/quality-evidence-graph
+          path: .qeg-runtime
+
+      - name: Run QEG gate
+        run: |
+          npm ci --prefix .qeg-runtime
+          npm run build --prefix .qeg-runtime
+          node .qeg-runtime/dist/cli.js validate .qh/qeg-gate
+          node .qeg-runtime/dist/cli.js gate .qh/qeg-gate
+          {
+            echo "## QEG Runtime"
+            echo "- status: ran"
+            echo "- command: node .qeg-runtime/dist/cli.js validate/gate .qh/qeg-gate"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate PR review artifact

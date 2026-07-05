@@ -128,6 +128,10 @@ function schemaForArtifact(data: unknown): string | null {
   if (obj.version === "ctg.qeg-input/v1") {
     return getIntegrationSchemaPath("qeg-code-to-gate");
   }
+  const metadata = obj.metadata;
+  if (typeof metadata === "object" && metadata !== null && (metadata as Record<string, unknown>).qegVersion === "HATE/v1") {
+    return getIntegrationSchemaPath("hate-qeg-bundle");
+  }
 
   return null;
 }
@@ -212,6 +216,7 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "manual-bb-seed.schema.json",
     "workflow-evidence.schema.json",
     "qeg-code-to-gate.schema.json",
+    "hate-qeg-bundle.schema.json",
   ];
 
   for (const file of integrationFiles) {

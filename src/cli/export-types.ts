@@ -228,7 +228,18 @@ export interface SarifResult {
   }>;
 }
 
-export const SUPPORTED_TARGETS = ["gatefield", "state-gate", "manual-bb", "workflow-evidence", "sarif", "qeg-code-to-gate", "evidence-dag", "provenance-index"];
+export const SUPPORTED_TARGETS = [
+  "gatefield",
+  "state-gate",
+  "manual-bb",
+  "workflow-evidence",
+  "sarif",
+  "qeg-code-to-gate",
+  "hate-qeg-bundle",
+  "qeg-gate-input",
+  "evidence-dag",
+  "provenance-index",
+];
 
 /**
  * Map severity to SARIF level

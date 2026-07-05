@@ -21,6 +21,9 @@ const ARTIFACT_NAMES = [
   "test-seeds.json",
   "invariants.json",
   "assurance-findings.json",
+  "qeg-code-to-gate.json",
+  "manual-bb.json",
+  "hate-qeg-bundle.json",
 ] as const;
 
 export function generateArtifactHashes(

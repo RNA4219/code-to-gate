@@ -193,6 +193,85 @@ export function generateManualBbSeedV1(findings: FindingsArtifact): ManualBbSeed
 }
 
 /**
+ * Generate QEOS-039/040 dedicated Manual BB V1 seed.
+ *
+ * This is a source-backed test-design handoff, not executed manual evidence.
+ */
+export function generateQeos039040ManualBbSeedV1(findings: FindingsArtifact): ManualBbSeedV1 {
+  const sourceFindings = findings.findings.slice(0, 10).map((finding) => finding.id);
+  const sourceRefs = sourceFindings.length > 0 ? sourceFindings : [findings.run_id];
+
+  return {
+    version: "ctg.manual-bb/v1",
+    producer: "code-to-gate",
+    run_id: findings.run_id,
+    scope: {
+      repo: findings.repo.root,
+      changed_files: [
+        "baseline-debt-ledger.json",
+        "review-queue.json",
+        "release-pack.json",
+        "hosted-evidence-portal.json",
+      ],
+      affected_entrypoints: [
+        "QEOS-039 baseline debt review surfaces",
+        "QEOS-040 hosted evidence portal search and redaction surfaces",
+      ],
+    },
+    risk_seeds: [
+      {
+        id: "risk-qeos-039-baseline-debt-surface",
+        title: "QEOS-039 baseline debt owner, expiry, approval, and prevention metadata may be hidden from reviewers",
+        severity: "high",
+        evidence: ["docs/quality-evidence-os-requirements.md#QEOS-039", ...sourceRefs],
+        suggested_test_intents: ["regression", "negative"],
+      },
+      {
+        id: "risk-qeos-040-cross-run-search-gap",
+        title: "QEOS-040 portal search may miss PR review, manual-bb, release pack, SLO, or baseline debt artifacts across runs",
+        severity: "high",
+        evidence: ["docs/quality-evidence-os-requirements.md#QEOS-040", ...sourceRefs],
+        suggested_test_intents: ["regression", "boundary", "smoke"],
+      },
+      {
+        id: "risk-qeos-040-redaction-profile-drift",
+        title: "QEOS-040 redaction profile manifests may not differ correctly across public, private, and regulated views",
+        severity: "high",
+        evidence: ["docs/quality-evidence-os-requirements.md#QEOS-040", ...sourceRefs],
+        suggested_test_intents: ["negative", "abuse", "regression"],
+      },
+    ],
+    invariant_seeds: [
+      {
+        id: "invariant-qeos-039-ledger-priority",
+        statement: "Expired baseline debt from baseline-debt-ledger.json is visible in review-queue before release approval.",
+        confidence: 0.85,
+        evidence: ["baseline-debt-ledger.json", "review-queue.json"],
+      },
+      {
+        id: "invariant-qeos-040-search-federation",
+        statement: "Hosted evidence portal search covers PR review, manual-bb, release pack, SLO, and baseline debt entries across at least two runs.",
+        confidence: 0.8,
+        evidence: ["hosted-evidence-portal.json"],
+      },
+    ],
+    test_seed_refs: [
+      "QEOS-039: create an expired baseline-debt-ledger item and verify review-queue prioritizes it.",
+      "QEOS-040: generate a portal from two artifact runs and search for pr-review, manual-bb, release-pack, slo, and baseline-debt.",
+      "QEOS-040: compare public, private, and regulated redaction manifests for expected omissions.",
+    ],
+    known_gaps: [
+      "Generated cases are manual test design seeds; they are not executed manual evidence.",
+      "Oracle refs must be supplied by manual-bb-test-harness or reviewer execution records before final QEG release approval.",
+    ],
+    oracle_gaps: [
+      "Need executed manual evidence proving QEOS-039 ledger-to-review-queue behavior.",
+      "Need executed manual evidence proving QEOS-040 cross-run portal search and redaction profile behavior.",
+    ],
+  };
+}
+
+/**
  * Generate Workflow V1 evidence
  */
 export function generateWorkflowEvidenceV1(findings: FindingsArtifact): WorkflowEvidenceV1 {

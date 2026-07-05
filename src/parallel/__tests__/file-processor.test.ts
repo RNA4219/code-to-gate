@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { extractImportsQuickly } from "../batch-processor.js";
 import { FileProcessor } from "../file-processor.js";
 
 // Generate unique test directory for each test to avoid race conditions
@@ -35,6 +36,20 @@ function createTestFiles(testDir: string, count: number): string[] {
 }
 
 describe("FileProcessor", () => {
+  describe("extractImportsQuickly", () => {
+    it("marks quick import evidence as import evidence", () => {
+      const relations = extractImportsQuickly(
+        "import { readFileSync } from 'node:fs';\nconst path = require('node:path');\n",
+        "src/sample.ts",
+        "file:src/sample.ts"
+      );
+
+      expect(relations).toHaveLength(2);
+      expect(relations.every((relation) => relation.evidence[0]?.kind === "import")).toBe(true);
+      expect(relations.every((relation) => relation.evidence[0]?.excerptHash === undefined)).toBe(true);
+    });
+  });
+
   describe("constructor", () => {
     it("should create processor with default options", () => {
       const testDir = getTestDir("constructor-default");

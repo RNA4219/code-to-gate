@@ -166,7 +166,7 @@ export function extractImportsQuickly(
           path: relPath,
           startLine: lineNumber,
           endLine: lineNumber,
-          kind: "text",
+          kind: "import",
         }],
       });
     }
