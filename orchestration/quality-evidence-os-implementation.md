@@ -635,7 +635,7 @@ Commands:
 
 Objective: QEOS要件、仕様acceptance、schema、CLI、テスト、CI gate の対応表を機械可読に出す。
 
-Status: planned
+Status: done
 
 Requirements:
 

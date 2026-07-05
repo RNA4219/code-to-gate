@@ -276,6 +276,7 @@ describe("schema coverage integration", () => {
         "hosted-static-report.schema.json",
         "github-app-health.schema.json",
         "evidence-query.schema.json",
+        "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
         "plugin-marketplace.schema.json",
@@ -1333,6 +1334,44 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalEvidenceQueryPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal qeos-acceptance-matrix artifact", () => {
+      const minimalQeosMatrixPath = path.join(tempDir, "minimal-qeos-acceptance-matrix.json");
+      writeFileSync(
+        minimalQeosMatrixPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "qeos-matrix-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "qeos-acceptance-matrix",
+          schema: "qeos-acceptance-matrix@v1",
+          completeness: "complete",
+          entries: [
+            {
+              qeosId: "QEOS-042",
+              title: "QEOS Acceptance Matrix Artifact",
+              priority: "P0",
+              requirement: "Matrix evidence",
+              specAcceptance: ["Matrix is generated."],
+              schemas: ["qeos-acceptance-matrix.schema.json"],
+              cli: ["qeos"],
+              testCommands: ["npx vitest run src/cli/__tests__/qeos-matrix.test.ts --reporter=dot"],
+              ciGates: ["npx vitest run src/cli/__tests__/qeos-matrix.test.ts --reporter=dot"],
+              status: "done",
+              evidenceLinks: ["orchestration/quality-evidence-os-implementation.md"],
+            },
+          ],
+          summary: { total: 1, done: 1, planned: 0, inProgress: 0, needsEvidence: 0 },
+          generated_by: "ctg-qeos-acceptance-matrix-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalQeosMatrixPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

@@ -21,6 +21,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [test-plan](#test-plan)
    - [ownership](#ownership)
    - [query](#query)
+   - [qeos](#qeos)
    - [pr-review](#pr-review)
    - [pr-review-publish](#pr-review-publish)
    - [release-pack](#release-pack)
@@ -64,6 +65,7 @@ These options apply to all commands:
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 | `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
 | `query` | Query findings, artifacts, and baseline evidence from an artifact directory. | `evidence-query.json` |
+| `qeos` | Generate QEOS acceptance audit artifacts from requirements and Task Seeds. | `qeos-acceptance-matrix.json` |
 | `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
 | `pr-review-publish` | Publish PR review markdown with token or GitHub App auth and emit posting health evidence. | `github-app-health.json` |
 | `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
@@ -891,6 +893,44 @@ code-to-gate schema validate .qh/evidence-query.json
 |------|------|-------------|
 | 0 | OK | Query was evaluated and artifact was written |
 | 2 | USAGE_ERROR | Unsupported expression, missing artifact directory, or invalid arguments |
+
+---
+
+### qeos
+
+Generate QEOS acceptance audit artifacts from the requirements table and
+Workflow-cookbook Task Seeds. The first subcommand is `matrix`, which produces a
+machine-readable map from QEOS IDs to specs, schemas, CLI surfaces, test
+commands, CI gates, status, and evidence links.
+
+**Usage:**
+```bash
+code-to-gate qeos matrix --from <repo-or-artifact-dir> [--out <file-or-dir>] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <repo-or-artifact-dir>` | `.` | Repository root containing `docs/quality-evidence-os-requirements.md` and `orchestration/quality-evidence-os-implementation.md`. |
+| `--out <file-or-dir>` | `<from>/.qh/qeos-acceptance-matrix.json` | Output file or directory. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `qeos-acceptance-matrix.json` | `qeos-acceptance-matrix@v1` artifact with requirement, acceptance, schema, CLI, test, CI, status, and evidence links |
+
+**Example:**
+```bash
+code-to-gate qeos matrix --from . --out .qh
+code-to-gate schema validate .qh/qeos-acceptance-matrix.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Matrix was generated |
+| 2 | USAGE_ERROR | Missing source documents or invalid arguments |
 
 ---
 

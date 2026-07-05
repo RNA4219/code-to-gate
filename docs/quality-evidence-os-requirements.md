@@ -188,3 +188,6 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。
+- QEOS-042: `code-to-gate qeos matrix --from <repo>` が要件表とTask Seedから
+  `qeos-acceptance-matrix@v1` を生成し、status / schema / CLI / test command /
+  CI gate / evidence link の不足を監査できる。

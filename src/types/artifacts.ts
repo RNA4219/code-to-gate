@@ -21,6 +21,7 @@ export const SCHEMA_VERSIONS = {
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
+  qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
@@ -44,6 +45,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
+  qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
@@ -1014,6 +1016,37 @@ export interface EvidenceQueryArtifact extends ArtifactHeader {
     sourceArtifacts: number;
   };
   generated_by: "ctg-evidence-query-v1";
+}
+
+// === QEOS Acceptance Matrix ===
+
+export interface QeosAcceptanceMatrixEntry {
+  qeosId: string;
+  title: string;
+  priority: string;
+  requirement: string;
+  specAcceptance: string[];
+  schemas: string[];
+  cli: string[];
+  testCommands: string[];
+  ciGates: string[];
+  status: "planned" | "in_progress" | "done" | "needs_evidence";
+  evidenceLinks: string[];
+}
+
+export interface QeosAcceptanceMatrixArtifact extends ArtifactHeader {
+  artifact: "qeos-acceptance-matrix";
+  schema: "qeos-acceptance-matrix@v1";
+  completeness: Completeness;
+  entries: QeosAcceptanceMatrixEntry[];
+  summary: {
+    total: number;
+    done: number;
+    planned: number;
+    inProgress: number;
+    needsEvidence: number;
+  };
+  generated_by: "ctg-qeos-acceptance-matrix-v1";
 }
 
 // === Schema Migration ===
