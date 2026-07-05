@@ -212,6 +212,24 @@ jobs:
             echo "::warning::Spec drift found; PR review evidence will still be generated before the job fails"
           fi
 
+      - name: Generate QEOS acceptance matrix
+        run: |
+          node ./dist/cli.js qeos matrix --from . --out .qh --quiet
+          node ./dist/cli.js schema validate .qh/qeos-acceptance-matrix.json
+          total=$(jq '.summary.total' .qh/qeos-acceptance-matrix.json)
+          done_count=$(jq '.summary.done' .qh/qeos-acceptance-matrix.json)
+          needs_evidence=$(jq '.summary.needsEvidence' .qh/qeos-acceptance-matrix.json)
+          {
+            echo "## QEOS Acceptance Matrix"
+            echo "- artifact: .qh/qeos-acceptance-matrix.json"
+            echo "- complete: ${done_count}/${total}"
+            echo "- needs evidence: ${needs_evidence}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$needs_evidence" -ne 0 ]; then
+            echo "::error::QEOS acceptance matrix has ${needs_evidence} entries needing evidence"
+            exit 1
+          fi
+
       - name: Run diff analysis
         run: |
           set +e

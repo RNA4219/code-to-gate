@@ -79,6 +79,7 @@
     "docs:distribution": "node scripts/check-distribution-status.mjs",
     "docs:lint-refs": "node scripts/lint-doc-references.mjs",
     "quality:spec-drift": "npm run build && npm run ctg -- spec-drift . --out .qh-spec-drift && npm run ctg -- schema validate .qh-spec-drift/spec-drift.json",
+    "quality:qeos-matrix": "npm run build && npm run ctg -- qeos matrix --from . --out .qh && npm run ctg -- schema validate .qh/qeos-acceptance-matrix.json",
     "package:integrity": "node scripts/package-integrity.mjs",
     "acceptance:harness": "node scripts/acceptance-harness.mjs",
     "real-repo-test": "node ./dist/cli.js analyze ./fixtures/demo-ci-imports --out ./fixtures/demo-ci-imports/.qh",
