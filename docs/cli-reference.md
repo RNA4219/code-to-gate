@@ -19,6 +19,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [pack](#pack)
    - [doctor](#doctor)
    - [test-plan](#test-plan)
+   - [ownership](#ownership)
    - [release-pack](#release-pack)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
@@ -57,6 +58,7 @@ These options apply to all commands:
 | `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
+| `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
 | `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 
@@ -796,6 +798,50 @@ code-to-gate schema validate .qh/pr/test-plan.json
 
 ---
 
+### ownership
+
+Generate reviewer and module ownership evidence from `repo-graph.json`,
+optional `diff-analysis.json`, and CODEOWNERS.
+
+**Usage:**
+```bash
+code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing `repo-graph.json` and optional `diff-analysis.json`. |
+| `--out <file-or-dir>` | `<from>/ownership-risk.json` | Output file. If a directory is provided, writes `ownership-risk.json` inside it. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `ownership-risk.json` | CODEOWNERS coverage, reviewer candidates, file risks, and module risks |
+
+**Behavior:**
+- Reads `.github/CODEOWNERS`, root `CODEOWNERS`, or `docs/CODEOWNERS`.
+- Uses GitHub-style last-match-wins ownership resolution for common patterns.
+- If `diff-analysis.json` is present, focuses file risk on changed and blast-radius files.
+- Emits `status: "partial"` when some files or modules have no owner coverage.
+- Emits `status: "unowned"` when no analyzed files have owner coverage.
+
+**Example:**
+```bash
+code-to-gate analyze . --emit all --out .qh
+code-to-gate ownership --from .qh --out .qh
+code-to-gate schema validate .qh/ownership-risk.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Ownership risk artifact was generated |
+| 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
 ### release-pack
 
 Assemble release review evidence into a manifest, a human-readable HTML review,
@@ -813,7 +859,7 @@ code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-ur
 | `--from <artifact-dir>` | `.qh` | Directory containing release evidence artifacts. |
 | `--out <file-or-dir>` | `<from>/release-pack` | Output ZIP path or directory. Directories receive `release-pack.json`, `release-pack.html`, and `release-pack.zip`. |
 | `--ci-url <url>` | GitHub Actions env when present | CI run URL recorded in the manifest and HTML. |
-| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, and test plan when present. |
+| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, test plan, and ownership risk when present. |
 | `--allow-partial` | false | Return OK even when required evidence is missing; the manifest still records `status: "partial"`. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 

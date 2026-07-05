@@ -178,7 +178,6 @@ Commands:
 ## Task Seed QEOS-P2/P3 Backlog
 
 - QEOS-002 PR Reviewer Bot
-- QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
 
 ## Task Seed QEOS-P1-06 Policy DSL
@@ -297,5 +296,25 @@ Requirements:
 Commands:
 
 - `npx vitest run src/cli/__tests__/schema-validate.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-08 Ownership / Module Risk
+
+Objective: CODEOWNERS、workspace package、module graph を取り込み、PR/releaseで誰が見るべきか、どの領域の品質リスクかを artifact として出力する。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate ownership --from <artifact-dir> --out <file-or-dir>` は `repo-graph.json` と optional `diff-analysis.json` を入力にできる。
+- `.github/CODEOWNERS`、root `CODEOWNERS`、`docs/CODEOWNERS` を探索し、last-match-wins で owner を解決する。
+- `diff-analysis.json` がある場合は changed / blast-radius file を中心に file risk と module risk を出す。
+- owner が存在しない changed source/config file は high risk として記録する。
+- `ownership-risk.json` は `ownership-risk@v1` schema に合格する。
+
+Commands:
+
+- `npx vitest run src/ownership/__tests__/ownership-risk.test.ts src/cli/__tests__/ownership.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`

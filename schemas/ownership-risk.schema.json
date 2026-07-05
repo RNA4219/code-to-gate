@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/ownership-risk.schema.json",
+  "title": "OwnershipRiskArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "status",
+    "codeowners",
+    "files",
+    "modules",
+    "reviewerCandidates",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "ownership-risk" },
+    "schema": { "const": "ownership-risk@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["covered", "partial", "unowned"] },
+    "codeowners": {
+      "type": "object",
+      "required": ["present", "entries", "diagnostics"],
+      "additionalProperties": false,
+      "properties": {
+        "present": { "type": "boolean" },
+        "path": { "type": "string", "minLength": 1 },
+        "entries": { "type": "integer", "minimum": 0 },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["severity", "code", "message"],
+            "additionalProperties": false,
+            "properties": {
+              "severity": { "enum": ["info", "warning"] },
+              "code": {
+                "enum": [
+                  "CODEOWNERS_NOT_FOUND",
+                  "CODEOWNERS_EMPTY_OWNERS",
+                  "CODEOWNERS_UNSUPPORTED_PATTERN"
+                ]
+              },
+              "message": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 },
+              "line": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fileRisk" }
+    },
+    "modules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/moduleRisk" }
+    },
+    "reviewerCandidates": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "files",
+        "ownedFiles",
+        "unownedFiles",
+        "modules",
+        "modulesWithoutOwner",
+        "changedFiles",
+        "highRiskModules",
+        "reviewerCandidates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "ownedFiles": { "type": "integer", "minimum": 0 },
+        "unownedFiles": { "type": "integer", "minimum": 0 },
+        "modules": { "type": "integer", "minimum": 0 },
+        "modulesWithoutOwner": { "type": "integer", "minimum": 0 },
+        "changedFiles": { "type": "integer", "minimum": 0 },
+        "highRiskModules": { "type": "integer", "minimum": 0 },
+        "reviewerCandidates": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "riskLevel": { "enum": ["low", "medium", "high"] },
+    "fileRisk": {
+      "type": "object",
+      "required": ["path", "role", "owners", "changed", "risk", "reasons"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "moduleId": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["source", "test", "config", "fixture", "docs", "generated", "unknown"] },
+        "owners": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "matchedPattern": { "type": "string", "minLength": 1 },
+        "changed": { "type": "boolean" },
+        "risk": { "$ref": "#/$defs/riskLevel" },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "moduleRisk": {
+      "type": "object",
+      "required": ["id", "path", "owners", "files", "changedFiles", "unownedFiles", "risk", "reasons"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "owners": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "files": { "type": "integer", "minimum": 0 },
+        "changedFiles": { "type": "integer", "minimum": 0 },
+        "unownedFiles": { "type": "integer", "minimum": 0 },
+        "risk": { "$ref": "#/$defs/riskLevel" },
+        "reasons": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

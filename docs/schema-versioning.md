@@ -157,6 +157,7 @@ schemas/
   normalized-repo-graph.schema.json # Repository graph
   evidence-ref.schema.json     # Evidence reference
   schema-migration.schema.json # Migration report artifact
+  ownership-risk.schema.json   # CODEOWNERS and module ownership risk
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

@@ -53,6 +53,7 @@ registry publication has not been completed yet.
 ```bash
 code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
+code-to-gate ownership --from .qh --out .qh
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 code-to-gate spec-drift ./my-repo --out .qh
 code-to-gate export sarif --from .qh --out results.sarif
@@ -85,6 +86,7 @@ preview/experimental surface and should not be treated as part of the stable
 | `spec-drift.json` | Docs, schema, CLI, and test drift checks |
 | `hosted-static-report.json` | Static hosting manifest for a single-file HTML report |
 | `schema-migration.json` | Schema migration report and validation result |
+| `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 

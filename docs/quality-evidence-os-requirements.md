@@ -116,3 +116,6 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   `hosted-static-report@v1` manifest の GitHub Pages / artifact preview 対応。
 - QEOS-011: `code-to-gate schema migrate` による v1alpha1 -> v1 artifact migration、
   変換後validation、`schema-migration@v1` report。
+- QEOS-015: `code-to-gate ownership --from <artifact-dir>` による
+  CODEOWNERS reviewer candidates、file risk、module risk、`ownership-risk@v1`
+  artifact。

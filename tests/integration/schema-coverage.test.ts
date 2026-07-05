@@ -138,6 +138,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates ownership-risk schema", () => {
+      const schemaFile = schemaPath("ownership-risk");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -259,6 +267,7 @@ describe("schema coverage integration", () => {
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
         "schema-migration.schema.json",
+        "ownership-risk.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "historical-comparison.schema.json",
@@ -826,6 +835,79 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalTestPlanPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal ownership-risk artifact", () => {
+      const minimalOwnershipPath = path.join(tempDir, "minimal-ownership-risk.json");
+      writeFileSync(
+        minimalOwnershipPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "ownership-risk-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "ownership-risk",
+          schema: "ownership-risk@v1",
+          completeness: "complete",
+          status: "partial",
+          codeowners: {
+            present: true,
+            path: ".github/CODEOWNERS",
+            entries: 1,
+            diagnostics: [],
+          },
+          files: [
+            {
+              path: "src/order.ts",
+              moduleId: "module:src",
+              role: "source",
+              owners: ["@core-team"],
+              matchedPattern: "/src/",
+              changed: true,
+              risk: "medium",
+              reasons: ["File is in the changed/blast-radius set."],
+            },
+            {
+              path: "src/legacy.ts",
+              moduleId: "module:src",
+              role: "source",
+              owners: [],
+              changed: true,
+              risk: "high",
+              reasons: ["No CODEOWNERS match was found for this file."],
+            },
+          ],
+          modules: [
+            {
+              id: "module:src",
+              path: "src",
+              name: "app",
+              owners: ["@core-team"],
+              files: 2,
+              changedFiles: 2,
+              unownedFiles: 1,
+              risk: "high",
+              reasons: ["1 analyzed files have no CODEOWNERS match."],
+            },
+          ],
+          reviewerCandidates: ["@core-team"],
+          summary: {
+            files: 2,
+            ownedFiles: 1,
+            unownedFiles: 1,
+            modules: 1,
+            modulesWithoutOwner: 0,
+            changedFiles: 2,
+            highRiskModules: 1,
+            reviewerCandidates: 1,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalOwnershipPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

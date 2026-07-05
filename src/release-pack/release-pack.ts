@@ -108,6 +108,14 @@ const OPTIONAL_INPUTS: InputSpec[] = [
     description: "Recommended automated and manual tests from diff blast radius.",
   },
   {
+    id: "ownership-risk",
+    role: "artifact",
+    label: "Ownership risk",
+    files: ["ownership-risk.json"],
+    required: false,
+    description: "CODEOWNERS reviewer candidates and module ownership risk.",
+  },
+  {
     id: "test-seeds",
     role: "artifact",
     label: "Test seeds",

@@ -20,6 +20,7 @@ export const SCHEMA_VERSIONS = {
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
   schemaMigration: "schema-migration@v1",
+  ownershipRisk: "ownership-risk@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1",
@@ -38,6 +39,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
   schemaMigration: "schema-migration@v1",
+  ownershipRisk: "ownership-risk@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1alpha1",
@@ -556,6 +558,68 @@ export interface TestPlanArtifact extends ArtifactHeader {
     affectedFiles: number;
     recommendedTests: number;
     oracleGaps: number;
+  };
+}
+
+// === Ownership / Module Risk ===
+
+export type OwnershipRiskStatus = "covered" | "partial" | "unowned";
+export type OwnershipRiskLevel = "low" | "medium" | "high";
+
+export interface OwnershipCodeownersDiagnostic {
+  severity: "info" | "warning";
+  code: "CODEOWNERS_NOT_FOUND" | "CODEOWNERS_EMPTY_OWNERS" | "CODEOWNERS_UNSUPPORTED_PATTERN";
+  message: string;
+  path?: string;
+  line?: number;
+}
+
+export interface OwnershipFileRisk {
+  path: string;
+  moduleId?: string;
+  role: RepoFile["role"];
+  owners: string[];
+  matchedPattern?: string;
+  changed: boolean;
+  risk: OwnershipRiskLevel;
+  reasons: string[];
+}
+
+export interface OwnershipModuleRisk {
+  id: string;
+  path: string;
+  name?: string;
+  owners: string[];
+  files: number;
+  changedFiles: number;
+  unownedFiles: number;
+  risk: OwnershipRiskLevel;
+  reasons: string[];
+}
+
+export interface OwnershipRiskArtifact extends ArtifactHeader {
+  artifact: "ownership-risk";
+  schema: "ownership-risk@v1";
+  completeness: Completeness;
+  status: OwnershipRiskStatus;
+  codeowners: {
+    present: boolean;
+    path?: string;
+    entries: number;
+    diagnostics: OwnershipCodeownersDiagnostic[];
+  };
+  files: OwnershipFileRisk[];
+  modules: OwnershipModuleRisk[];
+  reviewerCandidates: string[];
+  summary: {
+    files: number;
+    ownedFiles: number;
+    unownedFiles: number;
+    modules: number;
+    modulesWithoutOwner: number;
+    changedFiles: number;
+    highRiskModules: number;
+    reviewerCandidates: number;
   };
 }
 

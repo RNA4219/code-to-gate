@@ -18,6 +18,7 @@ import { packCommand } from "./cli/pack.js";
 import { doctorCommand } from "./cli/doctor.js";
 import { testPlanCommand } from "./cli/test-plan.js";
 import { releasePackCommand } from "./cli/release-pack.js";
+import { ownershipCommand } from "./cli/ownership.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -48,6 +49,7 @@ Usage:
     export-policy: code-to-gate pack export-policy <id> --out <file> [--quiet]
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
@@ -193,6 +195,10 @@ async function main(): Promise<number> {
 
     if (command === "test-plan") {
       return await testPlanCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "ownership") {
+      return await ownershipCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "release-pack") {

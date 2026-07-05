@@ -25,6 +25,7 @@ optional artifact / optional field を追加する。
 | `release-pack.zip` | release evidence pack archive | P1 |
 | `hosted-static-report.json` | static hosting manifest for single-file viewer HTML | P2 |
 | `schema-migration.json` | artifact schema migration evidence and validation result | P2 |
+| `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk | P1 |
 | `doctor.json` | local/CI readiness diagnosis | P0 |
 
 ## 2. Baseline/Ratchet Gate
@@ -319,3 +320,14 @@ P2 Schema Evolution / Migration の初期 acceptance は次の通り。
   validation result を記録する。
 - `schema-migration.json` は `schema-migration@v1` schema に合格する。
 - 未対応versionや不正な target version は usage/schema error として失敗する。
+
+P1 Ownership / Module Risk の初期 acceptance は次の通り。
+
+- `code-to-gate ownership --from <artifact-dir> --out <file-or-dir>` は
+  `repo-graph.json` と optional `diff-analysis.json` を入力にできる。
+- `.github/CODEOWNERS`、root `CODEOWNERS`、`docs/CODEOWNERS` を探索し、
+  last-match-wins で reviewer candidates を解決できる。
+- `diff-analysis.json` がある場合は changed / blast-radius file を中心に
+  file risk と module risk を出力する。
+- owner が存在しない changed source/config file は high risk として記録する。
+- `ownership-risk.json` は `ownership-risk@v1` schema に合格する。
