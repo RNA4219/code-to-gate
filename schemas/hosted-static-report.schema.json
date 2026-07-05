@@ -26,6 +26,8 @@
     "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
     "target": { "$ref": "#/$defs/target" },
     "publicUrl": { "type": "string", "minLength": 1 },
+    "redactionProfile": { "$ref": "./shared-defs.schema.json#/$defs/redactionProfile" },
+    "redactionSummary": { "$ref": "./shared-defs.schema.json#/$defs/redactionSummary" },
     "html": {
       "type": "object",
       "required": ["path", "hashSha256", "sizeBytes", "singleFile", "externalAssets"],

@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import path from "node:path";
 
 import { createZipEntry, createZipFile } from "../evidence/zip-utils.js";
-import type { ReleasePackArtifact, ReleasePackEntry } from "../types/artifacts.js";
+import type { RedactionProfile, ReleasePackArtifact, ReleasePackEntry } from "../types/artifacts.js";
+import { createRedactionProfile, createRedactionSummary } from "../redaction/redaction-profile.js";
 
 export interface ReleasePackOptions {
   version: string;
@@ -12,6 +13,7 @@ export interface ReleasePackOptions {
   ciUrl?: string;
   includeOptional?: boolean;
   allowPartial?: boolean;
+  redactionProfile?: RedactionProfile;
   now?: Date;
   env?: NodeJS.ProcessEnv;
 }
@@ -452,7 +454,9 @@ function generateHtml(artifact: ReleasePackArtifact): string {
       <div class="metric">Changed Files<b>${artifact.summary.changedFiles}</b></div>
       <div class="metric">Manual Candidates<b>${artifact.summary.manualTestCandidates}</b></div>
       <div class="metric">Gate Actions<b>${artifact.summary.gateExplainabilityActions ?? "n/a"}</b></div>
+      <div class="metric">Redaction<b>${escapeHtml(artifact.redactionProfile?.name ?? "private")}</b></div>
     </div>
+    ${artifact.redactionSummary?.warnings.length ? `<p class="missing">Redaction warnings: ${escapeHtml(artifact.redactionSummary.warnings.join("; "))}</p>` : ""}
     ${artifact.ci.url ? `<p>CI: <a href="${escapeHtml(artifact.ci.url)}">${escapeHtml(artifact.ci.url)}</a></p>` : "<p class=\"missing\">CI URL missing</p>"}
     ${artifact.summary.hostedReportUrl ? `<p>Hosted report: <a href="${escapeHtml(artifact.summary.hostedReportUrl)}">${escapeHtml(artifact.summary.hostedReportUrl)}</a></p>` : ""}
   </section>
@@ -539,6 +543,8 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
   const gateExplainability = firstParsed(fromDir, ["gate-explainability.json"]);
   const header = baseHeader(fromDir);
   const generatedAt = (options.now ?? new Date()).toISOString();
+  const redactionProfile = options.redactionProfile ?? createRedactionProfile("private");
+  const redactionSummary = createRedactionSummary(redactionProfile);
 
   const artifact: ReleasePackArtifact = {
     version: "ctg/v1",
@@ -551,6 +557,8 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
     completeness: missingRequired.length === 0 ? "complete" : "partial",
     status: missingRequired.length === 0 ? "ready" : "partial",
     ci,
+    redactionProfile,
+    redactionSummary,
     entries,
     outputs: {
       manifest: relativeToCwd(outputs.manifestPath),

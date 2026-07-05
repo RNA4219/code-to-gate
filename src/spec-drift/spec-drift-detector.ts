@@ -44,6 +44,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "hosted-static-report.json": "hosted-static-report.schema.json",
   "github-app-health.json": "github-app-health.schema.json",
   "evidence-query.json": "evidence-query.schema.json",
+  "redaction-profile.json": "redaction-profile.schema.json",
   "gate-explainability.json": "gate-explainability.schema.json",
   "qeos-acceptance-matrix.json": "qeos-acceptance-matrix.schema.json",
   "schema-migration.json": "schema-migration.schema.json",

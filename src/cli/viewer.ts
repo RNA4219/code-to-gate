@@ -19,6 +19,11 @@ import {
   HostedStaticReportArtifact,
   HostedStaticReportTarget,
 } from "../types/artifacts.js";
+import type { RedactionProfile, RedactionSummary } from "../types/artifacts.js";
+import {
+  createRedactionSummary,
+  parseRedactionProfileOption,
+} from "../redaction/redaction-profile.js";
 import type { HistoricalSummaryReport } from "../historical/types.js";
 import { NormalizedRepoGraph } from "../types/graph.js";
 import type { QEGCodeToGateEvidence } from "../qeg/qeg-types.js";
@@ -248,6 +253,8 @@ function createHostedStaticReportManifest(input: {
   version: string;
   target: HostedStaticReportTarget;
   publicUrl?: string;
+  redactionProfile: RedactionProfile;
+  redactionSummary: RedactionSummary;
 }): HostedStaticReportArtifact {
   const htmlBytes = Buffer.from(input.html, "utf8");
 
@@ -262,6 +269,8 @@ function createHostedStaticReportManifest(input: {
     completeness: "complete",
     target: input.target,
     publicUrl: input.publicUrl,
+    redactionProfile: input.redactionProfile,
+    redactionSummary: input.redactionSummary,
     html: {
       path: relativeToCwd(input.cwd, input.outputPath),
       hashSha256: sha256(htmlBytes),
@@ -294,6 +303,14 @@ export async function viewerCommand(
   const hosted = args.includes("--hosted");
   const publicUrl = options.getOption(args, "--public-url");
   const hostedTarget = parseHostedTarget(options.getOption(args, "--hosted-target"));
+  let redactionProfile: RedactionProfile;
+  try {
+    redactionProfile = parseRedactionProfileOption(options.getOption(args, "--redaction-profile"));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return options.EXIT.USAGE_ERROR;
+  }
+  const redactionSummary = createRedactionSummary(redactionProfile);
 
   if (!hostedTarget) {
     console.error("invalid --hosted-target; expected github-pages, artifact-preview, or generic-static");
@@ -301,7 +318,7 @@ export async function viewerCommand(
   }
 
   if (!fromDir) {
-    console.error("usage: code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>]");
+    console.error("usage: code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <public|private|regulated>]");
     console.error("");
     console.error("Options:");
     console.error("  --from <dir>    Input artifact directory (required)");
@@ -311,6 +328,7 @@ export async function viewerCommand(
     console.error("  --hosted        Write hosted-static-report.json next to the HTML output");
     console.error("  --public-url    Expected URL after publishing the HTML");
     console.error("  --hosted-target Static host target: github-pages, artifact-preview, generic-static");
+    console.error("  --redaction-profile Output redaction profile: public, private, regulated");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -349,6 +367,8 @@ export async function viewerCommand(
     showReadiness: !!artifacts.readiness,
     showHistorical: !!artifacts.historicalComparison,
     showQeg: !!artifacts.qegEvidence || !!artifacts.evidenceDag,
+    redactionProfile,
+    redactionSummary,
     findingsConfig: {
       showFilters: true,
       showSearch: true,
@@ -383,6 +403,8 @@ export async function viewerCommand(
       version: options.VERSION,
       target: hostedTarget,
       publicUrl,
+      redactionProfile,
+      redactionSummary,
     });
     writeFileSync(hostedManifestPath, JSON.stringify(hostedManifest, null, 2) + "\n", "utf8");
   }
@@ -415,6 +437,8 @@ export async function viewerCommand(
       publicUrl: hostedManifest.publicUrl,
       htmlHashSha256: hostedManifest.html.hashSha256,
       sourceArtifacts: hostedManifest.sourceArtifacts.length,
+      redactionProfile: hostedManifest.redactionProfile?.name,
+      redactionWarnings: hostedManifest.redactionSummary?.warnings.length,
     } : undefined,
   };
 

@@ -23,6 +23,8 @@
     "artifact": { "const": "evidence-query" },
     "schema": { "const": "evidence-query@v1" },
     "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "redactionProfile": { "$ref": "./shared-defs.schema.json#/$defs/redactionProfile" },
+    "redactionSummary": { "$ref": "./shared-defs.schema.json#/$defs/redactionSummary" },
     "query": {
       "type": "object",
       "required": ["expression", "domain", "field", "operator", "value"],

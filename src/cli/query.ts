@@ -3,6 +3,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import path from "node:path";
 
 import type { EvidenceQueryArtifact, EvidenceQueryMatch } from "../types/artifacts.js";
+import {
+  createRedactionSummary,
+  parseRedactionProfileOption,
+  redactDetailValue,
+} from "../redaction/redaction-profile.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
 
@@ -12,7 +17,7 @@ export interface QueryCliOptions {
   getOption: typeof getOption;
 }
 
-const VALUE_OPTIONS = new Set(["--from", "--out"]);
+const VALUE_OPTIONS = new Set(["--from", "--out", "--redaction-profile"]);
 const FLAG_OPTIONS = new Set(["--quiet"]);
 const SEVERITY_RANK: Record<string, number> = {
   info: 0,
@@ -23,7 +28,7 @@ const SEVERITY_RANK: Record<string, number> = {
 };
 
 function printQueryHelp(): void {
-  console.log(`code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  console.log(`code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--redaction-profile <public|private|regulated>] [--quiet]
 
 Examples:
   code-to-gate query "finding where severity >= high" --from .qh --out .qh
@@ -228,9 +233,14 @@ export async function queryCommand(args: string[], options: QueryCliOptions): Pr
       throw new Error("usage: code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>]");
     }
     const fromDir = path.resolve(process.cwd(), options.getOption(args, "--from") ?? ".qh");
+    const redactionProfile = parseRedactionProfileOption(options.getOption(args, "--redaction-profile"));
+    const redactionSummary = createRedactionSummary(redactionProfile);
     const parsedQuery = parseExpression(expression);
     const artifacts = listJsonArtifacts(fromDir);
-    const matches = createMatches(artifacts, parsedQuery);
+    const matches = createMatches(artifacts, parsedQuery).map((match) => ({
+      ...match,
+      value: redactDetailValue(match.value, redactionProfile),
+    }));
     const generatedAt = new Date().toISOString();
     const artifact: EvidenceQueryArtifact = {
       version: "ctg/v1",
@@ -241,6 +251,8 @@ export async function queryCommand(args: string[], options: QueryCliOptions): Pr
       artifact: "evidence-query",
       schema: "evidence-query@v1",
       completeness: "complete",
+      redactionProfile,
+      redactionSummary,
       query: {
         expression,
         domain: parsedQuery.domain as EvidenceQueryArtifact["query"]["domain"],

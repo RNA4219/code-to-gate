@@ -143,6 +143,8 @@ describe("pr-review CLI", () => {
       artifactDir,
       "--out",
       outDir,
+      "--redaction-profile",
+      "regulated",
       "--quiet",
     ], { VERSION, EXIT, getOption });
 
@@ -151,6 +153,8 @@ describe("pr-review CLI", () => {
 
     expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
     expect(artifact.status).toBe("block");
+    expect(artifact.redactionProfile.name).toBe("regulated");
+    expect(artifact.redactionSummary.warnings).toContain("regulated profile requires signer");
     expect(artifact.sections.blockReasons).toHaveLength(1);
     expect(artifact.sections.gateExplainabilitySummary.detail).toContain("2 required action");
     expect(artifact.summary.gateExplainabilityActions).toBe(2);

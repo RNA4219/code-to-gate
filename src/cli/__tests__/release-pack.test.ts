@@ -249,6 +249,8 @@ describe("release-pack CLI", () => {
       "--ci-url",
       "https://github.com/example/repo/actions/runs/123",
       "--include-optional",
+      "--redaction-profile",
+      "regulated",
       "--quiet",
     ], { VERSION, EXIT, getOption });
     const manifest = JSON.parse(readFileSync(path.join(outDir, "release-pack.json"), "utf8"));
@@ -261,6 +263,7 @@ describe("release-pack CLI", () => {
       schema: "release-pack@v1",
       status: "ready",
       completeness: "complete",
+      redactionProfile: { name: "regulated" },
       summary: {
         missingRequiredEvidence: 0,
         findings: 2,
@@ -270,6 +273,7 @@ describe("release-pack CLI", () => {
         gateExplainabilityActions: 1,
       },
     });
+    expect(manifest.redactionSummary.warnings).toContain("regulated profile requires signer");
     expect(manifest.entries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "qeg", present: true, hashSha256: expect.stringMatching(/^[a-f0-9]{64}$/) }),
@@ -284,6 +288,8 @@ describe("release-pack CLI", () => {
     expect(html).toContain("https://example.github.io/repo/");
     expect(html).toContain("Release Summary");
     expect(html).toContain("Gate Actions");
+    expect(html).toContain("Redaction");
+    expect(html).toContain("regulated profile requires signer");
     expect(zipEntries.has("release-pack.json")).toBe(true);
     expect(zipEntries.has("release-pack.html")).toBe(true);
     expect(zipEntries.has("artifacts/qeg-code-to-gate.json")).toBe(true);

@@ -21,6 +21,7 @@ export const SCHEMA_VERSIONS = {
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
+  redactionProfile: "redaction-profile@v1",
   gateExplainability: "gate-explainability@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
@@ -46,6 +47,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
+  redactionProfile: "redaction-profile@v1",
   gateExplainability: "gate-explainability@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
@@ -189,6 +191,45 @@ export interface RiskSeed {
   evidence: EvidenceRef[];
   narrative?: string;
   recommendedActions: string[];
+}
+
+// === Redaction Profile ===
+
+export type RedactionProfileName = "public" | "private" | "regulated";
+
+export interface RedactionProfileBinding {
+  signer?: string;
+  retention?: string;
+  approvalBinding?: string;
+}
+
+export interface RedactionProfile {
+  name: RedactionProfileName;
+  allowsPath: boolean;
+  allowsHash: boolean;
+  allowsCount: boolean;
+  allowsExcerpt: boolean;
+  allowsDetail: boolean;
+  requiresSigner: boolean;
+  requiresRetention: boolean;
+  requiresApprovalBinding: boolean;
+  binding?: RedactionProfileBinding;
+}
+
+export interface RedactionSummary {
+  profile: RedactionProfileName;
+  visibleFields: string[];
+  redactedFields: string[];
+  warnings: string[];
+}
+
+export interface RedactionProfileArtifact extends ArtifactHeader {
+  artifact: "redaction-profile";
+  schema: "redaction-profile@v1";
+  completeness: Completeness;
+  profile: RedactionProfile;
+  summary: RedactionSummary;
+  generated_by: "ctg-redaction-profile-v1";
 }
 
 export interface PackageRiskSummary {
@@ -812,6 +853,8 @@ export interface PrReviewArtifact extends ArtifactHeader {
     path: string;
     generated: boolean;
   };
+  redactionProfile?: RedactionProfile;
+  redactionSummary?: RedactionSummary;
   sections: {
     blockReasons: PrReviewItem[];
     acceptableReasons: PrReviewItem[];
@@ -936,6 +979,8 @@ export interface ReleasePackArtifact extends ArtifactHeader {
     provider?: "github-actions" | "manual";
     runId?: string;
   };
+  redactionProfile?: RedactionProfile;
+  redactionSummary?: RedactionSummary;
   entries: ReleasePackEntry[];
   outputs: {
     manifest: string;
@@ -977,6 +1022,8 @@ export interface HostedStaticReportArtifact extends ArtifactHeader {
   completeness: Completeness;
   target: HostedStaticReportTarget;
   publicUrl?: string;
+  redactionProfile?: RedactionProfile;
+  redactionSummary?: RedactionSummary;
   html: {
     path: string;
     hashSha256: string;
@@ -1060,6 +1107,8 @@ export interface EvidenceQueryArtifact extends ArtifactHeader {
   artifact: "evidence-query";
   schema: "evidence-query@v1";
   completeness: Completeness;
+  redactionProfile?: RedactionProfile;
+  redactionSummary?: RedactionSummary;
   query: {
     expression: string;
     domain: "finding" | "artifact" | "baseline";

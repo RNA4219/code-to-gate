@@ -37,6 +37,7 @@ import {
   createMockTestSeedsArtifact,
   createMockReleaseReadinessArtifact,
 } from "../../test-utils/index.js";
+import { createRedactionProfile, createRedactionSummary } from "../../redaction/redaction-profile.js";
 
 // Local alias for convenience (matches existing test usage)
 const createMockFindings = createMockFindingsArtifact;
@@ -116,6 +117,19 @@ describe("report-viewer", () => {
       expect(html).toContain("test-run-abc");
       expect(html).toContain("2025-01-15T10:30:00Z");
       expect(html).toContain("/test/repo");
+    });
+
+    it("renders redaction summary when a profile is provided", () => {
+      const profile = createRedactionProfile("regulated");
+      const summary = createRedactionSummary(profile);
+      const html = generateReportHtml(
+        { findings: createMockFindings() },
+        { redactionProfile: profile, redactionSummary: summary }
+      );
+
+      expect(html).toContain("Redaction");
+      expect(html).toContain("regulated");
+      expect(html).toContain("regulated profile requires signer");
     });
 
     it("supports dark mode default option", () => {

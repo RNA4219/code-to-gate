@@ -144,6 +144,7 @@ function inferSurfaces(entries: QeosAcceptanceMatrixEntry[], repoRoot: string): 
 function cliCandidatesFor(qeosId: string): string[] {
   const explicit: Record<string, string[]> = {
     "QEOS-031": ["query"],
+    "QEOS-032": ["query", "viewer", "pr-review", "release-pack"],
     "QEOS-033": ["explain-gate"],
     "QEOS-041": ["pr-review-publish"],
     "QEOS-042": ["qeos"],
@@ -154,6 +155,7 @@ function cliCandidatesFor(qeosId: string): string[] {
 function schemaCandidatesFor(qeosId: string, title: string): string[] {
   const explicit: Record<string, string[]> = {
     "QEOS-031": ["evidence-query.schema.json"],
+    "QEOS-032": ["redaction-profile.schema.json"],
     "QEOS-033": ["gate-explainability.schema.json"],
     "QEOS-041": ["github-app-health.schema.json"],
     "QEOS-042": ["qeos-acceptance-matrix.schema.json"],

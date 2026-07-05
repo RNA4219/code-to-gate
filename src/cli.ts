@@ -42,7 +42,7 @@ Usage:
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag
-  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>]
+  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <profile>]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate spec-drift <repo> --out <dir>
   code-to-gate rule <command>
@@ -56,12 +56,12 @@ Usage:
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
-  code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--redaction-profile <profile>] [--quiet]
   code-to-gate explain-gate --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate qeos matrix --from <repo-or-artifact-dir> [--out <file-or-dir>] [--quiet]
-  code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
+  code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--redaction-profile <profile>] [--quiet]
   code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--commit-sha <sha>] [--artifact-url <url>] [--dry-run] [--quiet]
-  code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
+  code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--redaction-profile <profile>] [--quiet]
   code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
@@ -116,6 +116,8 @@ Options:
   --public-url <url> Expected hosted URL for viewer report
   --hosted-target <target>
                      Static host target: github-pages, artifact-preview, generic-static
+  --redaction-profile <profile>
+                     Output profile: public, private, regulated
   --current <dir>    Current run artifact directory (historical)
   --previous <dir>   Previous run artifact directory (historical)
   --history <dir>    Directory with historical runs for trend analysis

@@ -89,6 +89,8 @@ describe("viewer CLI", () => {
       "github-pages",
       "--public-url",
       "https://example.github.io/repo/",
+      "--redaction-profile",
+      "regulated",
     ], { VERSION, EXIT, getOption });
 
     expect(exitCode).toBe(EXIT.OK);
@@ -104,6 +106,7 @@ describe("viewer CLI", () => {
       run_id: "hosted-viewer-run",
       target: "github-pages",
       publicUrl: "https://example.github.io/repo/",
+      redactionProfile: { name: "regulated" },
       html: {
         path: path.relative(process.cwd(), htmlPath),
         hashSha256: sha256(html),
@@ -117,6 +120,9 @@ describe("viewer CLI", () => {
       },
       generated_by: "ctg-viewer-hosted-v1",
     });
+    expect(manifest.redactionSummary.warnings).toContain("regulated profile requires signer");
+    expect(html).toContain("Redaction");
+    expect(html).toContain("regulated profile requires signer");
     expect(manifest.html.sizeBytes).toBe(Buffer.byteLength(html, "utf8"));
     expect(manifest.sourceArtifacts).toEqual(
       expect.arrayContaining([

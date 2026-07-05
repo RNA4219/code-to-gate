@@ -17,6 +17,8 @@ import type {
   SpecDriftArtifact,
   TestPlanArtifact,
 } from "../types/artifacts.js";
+import type { RedactionProfile } from "../types/artifacts.js";
+import { createRedactionProfile, createRedactionSummary } from "../redaction/redaction-profile.js";
 
 interface ArtifactSpec {
   id: string;
@@ -32,6 +34,7 @@ export interface PrReviewOptions {
   out?: string;
   commentFile?: string;
   artifactUrl?: string;
+  redactionProfile?: RedactionProfile;
   now?: Date;
 }
 
@@ -619,6 +622,8 @@ export function createPrReview(options: PrReviewOptions): PrReviewResult {
   const status = reviewStatus(readiness, specDrift, blockReasons, findings, testPlan);
 
   const generatedAt = (options.now ?? new Date()).toISOString();
+  const redactionProfile = options.redactionProfile ?? createRedactionProfile("private");
+  const redactionSummary = createRedactionSummary(redactionProfile);
   const artifact: PrReviewArtifact = {
     version: "ctg/v1",
     generated_at: generatedAt,
@@ -633,6 +638,8 @@ export function createPrReview(options: PrReviewOptions): PrReviewResult {
       path: relativeToCwd(outputs.markdownPath),
       generated: true,
     },
+    redactionProfile,
+    redactionSummary,
     sections: {
       blockReasons,
       acceptableReasons,

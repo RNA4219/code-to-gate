@@ -1,4 +1,5 @@
 import { createReleasePack } from "../release-pack/release-pack.js";
+import { parseRedactionProfileOption } from "../redaction/redaction-profile.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
 
@@ -8,11 +9,11 @@ export interface ReleasePackCliOptions {
   getOption: typeof getOption;
 }
 
-const VALUE_OPTIONS = new Set(["--from", "--out", "--ci-url"]);
+const VALUE_OPTIONS = new Set(["--from", "--out", "--ci-url", "--redaction-profile"]);
 const FLAG_OPTIONS = new Set(["--include-optional", "--allow-partial", "--quiet"]);
 
 function printReleasePackHelp(): void {
-  console.log(`code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
+  console.log(`code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--redaction-profile <public|private|regulated>] [--quiet]
 
 Assembles release-pack.json, release-pack.html, and release-pack.zip from release evidence artifacts.`);
 }
@@ -60,6 +61,7 @@ export async function releasePackCommand(args: string[], options: ReleasePackCli
       ciUrl: options.getOption(args, "--ci-url"),
       includeOptional: args.includes("--include-optional"),
       allowPartial: args.includes("--allow-partial"),
+      redactionProfile: parseRedactionProfileOption(options.getOption(args, "--redaction-profile")),
     });
     const exitCode = result.missingRequired.length > 0 && !args.includes("--allow-partial")
       ? options.EXIT.READINESS_NOT_CLEAR

@@ -12,6 +12,7 @@
 
 import { writeFileSync } from "node:fs";
 import { FindingsArtifact } from "../types/artifacts.js";
+import type { RedactionProfile, RedactionSummary } from "../types/artifacts.js";
 import { getAllStyles } from "./styles.js";
 import { generateFindingsExplorer } from "./finding-viewer.js";
 import {
@@ -53,6 +54,35 @@ export interface ReportViewerConfig {
     collapsibleEvidence?: boolean;
     maxRenderedFindings?: number;
   };
+  redactionProfile?: RedactionProfile;
+  redactionSummary?: RedactionSummary;
+}
+
+function generateRedactionSection(config: ReportViewerConfig): string {
+  if (!config.redactionProfile || !config.redactionSummary) {
+    return "";
+  }
+
+  return `
+<div class="section">
+  <div class="section-title">
+    <h2>Redaction</h2>
+    <span class="section-count">${escapeHtml(config.redactionProfile.name)}</span>
+  </div>
+  <div class="dashboard">
+    <div class="card"><div class="card-title">Profile</div><div class="card-value">${escapeHtml(config.redactionProfile.name)}</div></div>
+    <div class="card"><div class="card-title">Visible Fields</div><div class="card-value">${config.redactionSummary.visibleFields.length}</div></div>
+    <div class="card"><div class="card-title">Redacted Fields</div><div class="card-value">${config.redactionSummary.redactedFields.length}</div></div>
+    <div class="card"><div class="card-title">Warnings</div><div class="card-value">${config.redactionSummary.warnings.length}</div></div>
+  </div>
+  ${config.redactionSummary.warnings.length > 0 ? `
+  <div class="risk-actions">
+    <strong>Warnings:</strong>
+    <ul>${config.redactionSummary.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("\n")}</ul>
+  </div>
+  ` : ""}
+</div>
+`;
 }
 
 /**
@@ -94,6 +124,7 @@ export function generateReportHtml(
     : "";
   const footer = generateFooter();
   const script = getReportJavaScript({ darkModeDefault: config.darkModeDefault });
+  const redactionSection = generateRedactionSection(config);
 
   const runId = artifacts.findings?.run_id || "unknown";
 
@@ -118,6 +149,7 @@ ${testSection}
 ${readinessSection}
 ${qegSection}
 ${historicalSection}
+${redactionSection}
 ${footer}
 ${script}
 </body>

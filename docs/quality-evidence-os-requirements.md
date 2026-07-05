@@ -185,6 +185,10 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 - QEOS-031: `code-to-gate query <expression> --from <artifact-dir>` が
   finding/artifact/baseline の軽量queryを評価し、source artifact hash と
   matched locator を持つ `evidence-query@v1` を出力する。
+- QEOS-032: `redaction-profile@v1` が `public`、`private`、`regulated` の
+  profile contract を定義し、`query`、`viewer`、`pr-review`、`release-pack` が
+  `--redaction-profile` を受けて `redactionProfile` と `redactionSummary` を出力する。
+  `regulated` は signer、retention、approval binding の不足を warning として記録する。
 - QEOS-033: `code-to-gate explain-gate --from <artifact-dir>` が
   `release-readiness.json` と `findings.json` から failed condition、
   blocking finding、manual evidence候補、baseline更新候補、severity再評価候補を

@@ -503,7 +503,7 @@ Generate a standalone HTML report from an artifact directory.
 
 **Usage:**
 ```bash
-code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>]
+code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <public|private|regulated>]
 ```
 
 **Options:**
@@ -516,12 +516,13 @@ code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--ho
 | `--hosted` | false | Generate `hosted-static-report.json` next to the HTML output |
 | `--public-url <url>` | none | Expected URL after publishing the HTML report |
 | `--hosted-target <target>` | `generic-static` | Static host target: `github-pages`, `artifact-preview`, or `generic-static` |
+| `--redaction-profile <profile>` | `private` | Output redaction profile: `public`, `private`, or `regulated` |
 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
 | `viewer-report.html` | Single-file HTML report with embedded CSS and JavaScript |
-| `hosted-static-report.json` | Hosted report manifest with HTML hash, size, source artifact hashes, target, and optional public URL |
+| `hosted-static-report.json` | Hosted report manifest with HTML hash, size, source artifact hashes, target, optional public URL, redaction profile, and redaction summary |
 
 **Example:**
 ```bash
@@ -862,7 +863,7 @@ domain, one `where` predicate, and scalar comparisons.
 
 **Usage:**
 ```bash
-code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--redaction-profile <public|private|regulated>] [--quiet]
 ```
 
 **Supported Expressions:**
@@ -877,12 +878,13 @@ code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--q
 |--------|---------|-------------|
 | `--from <artifact-dir>` | `.qh` | Directory containing JSON artifacts. |
 | `--out <file-or-dir>` | `<from>/evidence-query.json` | Output file or directory. |
+| `--redaction-profile <profile>` | `private` | Output redaction profile. `public` redacts matched scalar values; `regulated` records signer/retention/approval warnings when no binding is supplied. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
-| `evidence-query.json` | `evidence-query@v1` artifact with the query, matched locators, source artifact hashes, and result counts |
+| `evidence-query.json` | `evidence-query@v1` artifact with the query, matched locators, source artifact hashes, result counts, redaction profile, and redaction summary |
 
 **Example:**
 ```bash
@@ -994,7 +996,7 @@ uses the same PR comment / Checks API paths as PAT or `GITHUB_TOKEN` mode.
 
 **Usage:**
 ```bash
-code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
+code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--redaction-profile <public|private|regulated>] [--quiet]
 ```
 
 **Options:**
@@ -1004,12 +1006,13 @@ code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-fi
 | `--out <file-or-dir>` | `<from>` | Output file or directory. Directories receive `pr-review.json` and `pr-review.md`. |
 | `--comment-file <file>` | `<out>/pr-review.md` | Markdown PR comment body output path. |
 | `--artifact-url <url>` | none | Published viewer, artifact preview, or release evidence URL to include in Evidence Links. |
+| `--redaction-profile <profile>` | `private` | Output redaction profile recorded in `pr-review.json`. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
-| `pr-review.json` | `pr-review@v1` artifact with fixed PR review sections |
+| `pr-review.json` | `pr-review@v1` artifact with fixed PR review sections, redaction profile, and redaction summary |
 | `pr-review.md` | Markdown PR comment body generated from `pr-review.json` |
 
 **Fixed Sections:**
@@ -1101,7 +1104,7 @@ manual-bb, CI URL, and artifact hashes.
 
 **Usage:**
 ```bash
-code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
+code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--redaction-profile <public|private|regulated>] [--quiet]
 ```
 
 **Options:**
@@ -1112,6 +1115,7 @@ code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-ur
 | `--ci-url <url>` | GitHub Actions env when present | CI run URL recorded in the manifest and HTML. |
 | `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, test plan, ownership risk, PR review, and plugin marketplace when present. |
 | `--allow-partial` | false | Return OK even when required evidence is missing; the manifest still records `status: "partial"`. |
+| `--redaction-profile <profile>` | `private` | Output redaction profile recorded in the manifest and HTML summary. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 
 **Required Evidence:**
@@ -1127,7 +1131,7 @@ code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-ur
 **Output:**
 | Artifact | Description |
 |----------|-------------|
-| `release-pack.json` | Manifest with required/missing entries, hashes, summary, and output paths |
+| `release-pack.json` | Manifest with required/missing entries, hashes, summary, output paths, redaction profile, and redaction summary |
 | `release-pack.html` | Human-readable release evidence review |
 | `release-pack.zip` | Archive containing manifest, HTML, and included artifacts |
 

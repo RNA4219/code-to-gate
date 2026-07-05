@@ -86,14 +86,16 @@ describe("query CLI", () => {
   });
 
   it("queries findings by severity rank", async () => {
-    const exitCode = await queryCommand(["finding where severity >= high", "--from", tempRoot, "--quiet"], { VERSION, EXIT, getOption });
+    const exitCode = await queryCommand(["finding where severity >= high", "--from", tempRoot, "--redaction-profile", "public", "--quiet"], { VERSION, EXIT, getOption });
     const artifact = JSON.parse(readFileSync(path.join(tempRoot, "evidence-query.json"), "utf8"));
 
     expect(exitCode).toBe(EXIT.OK);
     expect(artifact.artifact).toBe("evidence-query");
     expect(artifact.query.domain).toBe("finding");
+    expect(artifact.redactionProfile.name).toBe("public");
+    expect(artifact.redactionSummary.redactedFields).toEqual(["excerpt", "detail"]);
     expect(artifact.summary.resultCount).toBe(1);
-    expect(artifact.matches[0]).toMatchObject({ id: "finding-high", type: "finding" });
+    expect(artifact.matches[0]).toMatchObject({ id: "finding-high", type: "finding", value: "[redacted]" });
   });
 
   it("queries artifacts by schema", async () => {

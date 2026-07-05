@@ -455,7 +455,7 @@ Commands:
 
 Objective: public/private/regulated profile により artifact と human surface の情報量を切り替える。
 
-Status: planned
+Status: done
 
 Requirements:
 

@@ -1,4 +1,5 @@
 import { createPrReview, writePrReview } from "../pr-review/pr-review.js";
+import { parseRedactionProfileOption } from "../redaction/redaction-profile.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
 
@@ -8,11 +9,11 @@ export interface PrReviewCliOptions {
   getOption: typeof getOption;
 }
 
-const VALUE_OPTIONS = new Set(["--from", "--out", "--comment-file", "--artifact-url"]);
+const VALUE_OPTIONS = new Set(["--from", "--out", "--comment-file", "--artifact-url", "--redaction-profile"]);
 const FLAG_OPTIONS = new Set(["--quiet"]);
 
 function printPrReviewHelp(): void {
-  console.log(`code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
+  console.log(`code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--redaction-profile <public|private|regulated>] [--quiet]
 
 Generates pr-review.json and pr-review.md from readiness, findings, test-plan, spec-drift, ownership, QEG, and release evidence artifacts.`);
 }
@@ -59,6 +60,7 @@ export async function prReviewCommand(args: string[], options: PrReviewCliOption
       out: options.getOption(args, "--out"),
       commentFile: options.getOption(args, "--comment-file"),
       artifactUrl: options.getOption(args, "--artifact-url"),
+      redactionProfile: parseRedactionProfileOption(options.getOption(args, "--redaction-profile")),
     });
     writePrReview(result);
     const exitCode = result.artifact.status === "block"

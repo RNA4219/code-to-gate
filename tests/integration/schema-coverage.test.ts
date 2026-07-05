@@ -276,6 +276,7 @@ describe("schema coverage integration", () => {
         "hosted-static-report.schema.json",
         "github-app-health.schema.json",
         "evidence-query.schema.json",
+        "redaction-profile.schema.json",
         "gate-explainability.schema.json",
         "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
@@ -1335,6 +1336,45 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalEvidenceQueryPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal redaction-profile artifact", () => {
+      const minimalRedactionProfilePath = path.join(tempDir, "minimal-redaction-profile.json");
+      writeFileSync(
+        minimalRedactionProfilePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "redaction-profile-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "redaction-profile",
+          schema: "redaction-profile@v1",
+          completeness: "complete",
+          profile: {
+            name: "public",
+            allowsPath: true,
+            allowsHash: true,
+            allowsCount: true,
+            allowsExcerpt: false,
+            allowsDetail: false,
+            requiresSigner: false,
+            requiresRetention: false,
+            requiresApprovalBinding: false,
+          },
+          summary: {
+            profile: "public",
+            visibleFields: ["path", "hash", "count"],
+            redactedFields: ["excerpt", "detail"],
+            warnings: [],
+          },
+          generated_by: "ctg-redaction-profile-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalRedactionProfilePath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });
