@@ -1,0 +1,141 @@
+---
+intent_id: QEOS-SPEC-001
+owner: code-to-gate
+status: active
+last_reviewed_at: 2026-07-05
+next_review_due: 2026-08-05
+---
+
+# Quality Evidence OS 仕様
+
+## 1. Artifact 方針
+
+Quality Evidence OS では、既存 artifact を破壊せず、証跡を横断参照できる
+optional artifact / optional field を追加する。
+
+| Artifact | 役割 | 初期実装 |
+|---|---|:---:|
+| `evidence-dag.json` | requirement/rule/finding/artifact/verdict の node/edge | future |
+| `release-readiness.json.baseline` | baseline/ratchet summary | P0 |
+| `qeg-report.html` | QEG JSON viewer | future |
+| `test-plan.json` | Auto test selection | future |
+| `release-pack.zip` | release evidence pack | future |
+| `doctor.json` | local/CI readiness diagnosis | future |
+
+## 2. Baseline/Ratchet Gate
+
+### 2.1 CLI
+
+```bash
+code-to-gate readiness <repo> --policy <file> --from <dir> --out <dir> \
+  --baseline <findings-json-or-artifact-dir-or-release-readiness-json>
+```
+
+`--baseline` がない場合でも、policy の `baseline.enabled: true` と
+`baseline.file` が指定されていれば baseline gate を有効にする。
+
+### 2.2 Baseline 入力
+
+baseline path は次の形式を受け付ける。
+
+| 入力 | 解決 |
+|---|---|
+| `findings.json` | そのまま baseline findings として読む |
+| artifact dir | `findings.json`、`baseline-findings.json`、`release-readiness.json` の順に探す |
+| `release-readiness.json` | sibling `findings.json` または `artifactRefs.findings` を読む |
+
+### 2.3 比較キー
+
+比較キーは次の優先順で決定する。
+
+1. `finding.fingerprint`
+2. `ruleId + first evidence path + affectedSymbols`
+3. `ruleId + first evidence path + title`
+
+### 2.4 Gate 対象
+
+baseline mode では、policy evaluation の対象を次の finding に限定する。
+
+- baseline に存在しない current finding。
+- baseline に存在し、current severity が baseline severity より高い finding。
+
+baseline に存在し severity が同等以下の finding は `release-readiness.json` の
+`counts` には残すが、gate failed condition の対象外にする。
+
+### 2.5 Readiness 出力
+
+`release-readiness.json` に optional `baseline` を追加する。
+
+```json
+{
+  "baseline": {
+    "mode": "ratchet",
+    "source": ".qh/previous/findings.json",
+    "baselineRunId": "ctg-previous",
+    "baselineFindings": 10,
+    "currentFindings": 11,
+    "newFindings": 1,
+    "worsenedFindings": 0,
+    "unchangedFindings": 10,
+    "resolvedFindings": 0,
+    "gatedFindingIds": ["finding-new"],
+    "resolvedFindingIds": []
+  }
+}
+```
+
+## 3. Evidence DAG 将来仕様
+
+Evidence DAG は `ctg.evidence-dag/v1` とし、最小 node type は以下とする。
+
+| Node type | 例 |
+|---|---|
+| `requirement` | `QEOS-003` |
+| `rule` | `CLIENT_TRUSTED_PRICE` |
+| `finding` | `finding-001` |
+| `artifact` | `.qh/findings.json` |
+| `verdict` | `blocked_input` |
+| `manual-test` | manual-bb seed id |
+| `ci-run` | GitHub Actions run URL |
+
+edge type は `satisfies`、`generated_by`、`evidenced_by`、`gated_by`、
+`exports_to`、`requires_manual_oracle` を使う。
+
+## 4. PR Reviewer Bot 将来仕様
+
+PR comment は次の固定セクションを持つ。
+
+- Gate verdict
+- Blocking reasons
+- Acceptable risks
+- Suggested tests
+- Spec drift
+- Evidence links
+- Suppression / baseline summary
+
+LLM は文章化だけを担い、finding identity、gate status、artifact hash は
+deterministic artifact から取得する。
+
+## 5. Spec Drift Detector 将来仕様
+
+drift detector は docs と実装を比較し、次の種別を出す。
+
+| Drift | 例 |
+|---|---|
+| command drift | CLI reference にある option が help にない |
+| schema drift | docs の artifact field が schema にない |
+| test drift | spec の受入条件を覆う test がない |
+| status drift | roadmap が implemented と言うが実装証跡がない |
+
+初期実装は `docs/product-*`、`docs/cli-reference.md`、`schemas/*.json`、
+`src/cli.ts` の静的比較から始める。
+
+## 6. Acceptance
+
+P0 の acceptance は次の通り。
+
+- baseline 既知の high finding は strict policy でも `passed` になる。
+- baseline にない high finding は strict policy で `blocked_input` になる。
+- baseline にある finding が medium から high に悪化した場合は `blocked_input` になる。
+- `release-readiness.json` は schema validation を通る。
+

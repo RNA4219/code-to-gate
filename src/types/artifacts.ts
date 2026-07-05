@@ -296,6 +296,20 @@ export interface ReleaseReadinessSelfAnalysis {
   >;
 }
 
+export interface ReleaseReadinessBaselineSummary {
+  mode: "ratchet";
+  source: string;
+  baselineRunId?: string;
+  baselineFindings: number;
+  currentFindings: number;
+  newFindings: number;
+  worsenedFindings: number;
+  unchangedFindings: number;
+  resolvedFindings: number;
+  gatedFindingIds: string[];
+  resolvedFindingIds: string[];
+}
+
 export interface ReleaseReadinessArtifact extends ArtifactHeader {
   artifact: "release-readiness";
   schema: "release-readiness@v1";
@@ -304,6 +318,7 @@ export interface ReleaseReadinessArtifact extends ArtifactHeader {
   summary: string;
   counts: ReleaseReadinessCounts;
   selfAnalysis?: ReleaseReadinessSelfAnalysis;
+  baseline?: ReleaseReadinessBaselineSummary;
   failedConditions: ReadinessFailedCondition[];
   recommendedActions: string[];
   artifactRefs: {
@@ -314,6 +329,7 @@ export interface ReleaseReadinessArtifact extends ArtifactHeader {
     testSeeds?: string;
     audit?: string;
     intake?: string;
+    baseline?: string;
   };
 }
 

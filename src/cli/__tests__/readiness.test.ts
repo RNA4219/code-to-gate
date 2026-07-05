@@ -358,6 +358,201 @@ suppression:
     });
   });
 
+  describe("baseline ratchet gate", () => {
+    it("does not block unchanged high findings that already exist in baseline", async () => {
+      const fingerprint = "baselinehigh0001";
+      const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-unchanged"), [
+        createFinding({
+          id: "baseline-high",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          fingerprint,
+        }),
+      ]);
+      const currentDir = writeFindingsToDir(path.join(tempOutDir, "current-unchanged"), [
+        createFinding({
+          id: "current-high",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          fingerprint,
+        }),
+      ]);
+
+      const args = [
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        currentDir,
+        "--out",
+        tempOutDir,
+        "--baseline",
+        path.join(baselineDir, "findings.json"),
+      ];
+      const { exitCode, readiness } = await runReadiness(args);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(readiness.status).toBe("passed");
+      expect(readiness.counts.findings).toBe(1);
+      expect(readiness.baseline).toMatchObject({
+        mode: "ratchet",
+        baselineFindings: 1,
+        currentFindings: 1,
+        newFindings: 0,
+        worsenedFindings: 0,
+        unchangedFindings: 1,
+        resolvedFindings: 0,
+        gatedFindingIds: [],
+      });
+    });
+
+    it("blocks new high findings that are not in baseline", async () => {
+      const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-new"), [
+        createFinding({
+          id: "baseline-low",
+          ruleId: "LARGE_MODULE",
+          category: "maintainability",
+          severity: "low",
+          fingerprint: "baselinelow00001",
+        }),
+      ]);
+      const currentDir = writeFindingsToDir(path.join(tempOutDir, "current-new"), [
+        createFinding({
+          id: "new-high",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          fingerprint: "newhighfinding01",
+        }),
+      ]);
+
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        currentDir,
+        "--out",
+        tempOutDir,
+        "--baseline",
+        baselineDir,
+      ]);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.baseline.newFindings).toBe(1);
+      expect(readiness.baseline.gatedFindingIds).toEqual(["new-high"]);
+      expect(readiness.failedConditions.some(c => c.matchedFindingIds?.includes("new-high"))).toBe(true);
+    });
+
+    it("blocks findings whose severity worsened compared with baseline", async () => {
+      const fingerprint = "worsenedfinding1";
+      const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-worsened"), [
+        createFinding({
+          id: "baseline-medium",
+          ruleId: "RAW_SQL",
+          category: "data",
+          severity: "medium",
+          fingerprint,
+        }),
+      ]);
+      const currentDir = writeFindingsToDir(path.join(tempOutDir, "current-worsened"), [
+        createFinding({
+          id: "current-high",
+          ruleId: "RAW_SQL",
+          category: "data",
+          severity: "high",
+          fingerprint,
+        }),
+      ]);
+
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        currentDir,
+        "--out",
+        tempOutDir,
+        "--baseline",
+        path.join(baselineDir, "findings.json"),
+      ]);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.baseline.worsenedFindings).toBe(1);
+      expect(readiness.baseline.gatedFindingIds).toEqual(["current-high"]);
+    });
+
+    it("resolves baseline findings from a linked release-readiness artifact", async () => {
+      const fingerprint = "linkedbaseline01";
+      const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-linked"), [
+        createFinding({
+          id: "baseline-high",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          fingerprint,
+        }),
+      ]);
+      const baselineReadinessPath = path.join(baselineDir, "release-readiness.json");
+      writeFileSync(
+        baselineReadinessPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: new Date().toISOString(),
+          run_id: "baseline-readiness",
+          repo: { root: "/test/repo" },
+          tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+          artifact: "release-readiness",
+          schema: "release-readiness@v1",
+          status: "blocked_input",
+          completeness: "complete",
+          summary: "Previous run",
+          counts: {
+            findings: 1,
+            critical: 0,
+            high: 1,
+            risks: 0,
+            testSeeds: 0,
+            unsupportedClaims: 0,
+          },
+          failedConditions: [],
+          recommendedActions: [],
+          artifactRefs: { findings: "findings.json" },
+        }),
+        "utf8"
+      );
+      const currentDir = writeFindingsToDir(path.join(tempOutDir, "current-linked"), [
+        createFinding({
+          id: "current-high",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          fingerprint,
+        }),
+      ]);
+
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        currentDir,
+        "--out",
+        tempOutDir,
+        "--baseline",
+        baselineReadinessPath,
+      ]);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(readiness.baseline.unchangedFindings).toBe(1);
+      expect(readiness.baseline.gatedFindingIds).toEqual([]);
+    });
+  });
+
   describe("intake artifact evidence", () => {
     it("blocks readiness when phase contract has critical unresolved questions", async () => {
       const findingsDir = writeFindingsToDir(path.join(tempOutDir, "intake-block-findings"), []);

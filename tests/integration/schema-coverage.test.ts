@@ -423,6 +423,56 @@ describe("schema coverage integration", () => {
       expect(result.exitCode).toBe(0);
     });
 
+    it("validates release-readiness artifact with baseline ratchet summary", () => {
+      const readinessWithBaselinePath = path.join(tempDir, "readiness-with-baseline.json");
+      writeFileSync(
+        readinessWithBaselinePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "readiness-test-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", policy_id: "strict", plugin_versions: [] },
+          artifact: "release-readiness",
+          schema: "release-readiness@v1",
+          status: "passed",
+          completeness: "complete",
+          summary: "Baseline ratchet passed",
+          counts: {
+            findings: 1,
+            critical: 0,
+            high: 1,
+            risks: 0,
+            testSeeds: 0,
+            unsupportedClaims: 0,
+          },
+          baseline: {
+            mode: "ratchet",
+            source: ".qh/previous/findings.json",
+            baselineRunId: "previous-run",
+            baselineFindings: 1,
+            currentFindings: 1,
+            newFindings: 0,
+            worsenedFindings: 0,
+            unchangedFindings: 1,
+            resolvedFindings: 0,
+            gatedFindingIds: [],
+            resolvedFindingIds: [],
+          },
+          failedConditions: [],
+          recommendedActions: ["Baseline ratchet: no new or worsened findings."],
+          artifactRefs: {
+            findings: ".qh/current/findings.json",
+            baseline: ".qh/previous/findings.json",
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", readinessWithBaselinePath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
     it("validates minimal repo-graph artifact", () => {
       const minimalGraphPath = path.join(tempDir, "minimal-graph.json");
       writeFileSync(

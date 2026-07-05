@@ -26,6 +26,11 @@ import {
   writeSelfAnalysisDebtJson,
 } from "../reporters/index.js";
 import { countSuppressedByClass } from "../self-analysis/suppression-summary.js";
+import {
+  evaluateBaselineRatchet,
+  loadBaselineFindingsArtifact,
+  type BaselineRatchetResult,
+} from "../historical/ratchet-gate.js";
 
 interface ReadinessOptions {
   VERSION: string;
@@ -185,9 +190,10 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
   const fromDir = options.getOption(args, "--from");
   const outDir = options.getOption(args, "--out") ?? ".qh";
   const intakePath = options.getOption(args, "--intake");
+  const baselinePath = options.getOption(args, "--baseline");
 
   if (!repoArg || !policyPath || !fromDir) {
-    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>] [--intake <file>]");
+    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>] [--intake <file>] [--baseline <file-or-dir>]");
     console.error("Note: --from is required. Run 'code-to-gate analyze' first to generate findings.json");
     return options.EXIT.USAGE_ERROR;
   }
@@ -259,6 +265,19 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     const findingsContent = readFileSync(findingsPath, "utf8");
     const findings: FindingsArtifact = JSON.parse(findingsContent);
 
+    const configuredBaselinePath = baselinePath ?? (policy.baseline?.enabled ? policy.baseline.file : undefined);
+    const baselineBaseDir = baselinePath ? cwd : repoRoot;
+    let baselineResult: BaselineRatchetResult | undefined;
+    let findingsForPolicy: Finding[] = findings.findings;
+    if (configuredBaselinePath) {
+      const baseline = loadBaselineFindingsArtifact(configuredBaselinePath, baselineBaseDir);
+      baselineResult = evaluateBaselineRatchet(findings.findings, baseline);
+      baselineResult.summary.source = path.relative(cwd, baseline.source) || baseline.source;
+      if (policy.baseline?.newFindingsBlock !== false) {
+        findingsForPolicy = baselineResult.gatedFindings;
+      }
+    }
+
     // Load raw-findings.json for true raw counts (before suppression)
     // Falls back to findings.json if raw-findings.json doesn't exist
     const rawFindingsPath = path.resolve(cwd, fromDir, "raw-findings.json");
@@ -277,7 +296,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
 
     // Evaluate findings against policy using policy-evaluator
-    const evalResult = evaluatePolicy(findings.findings, policy, suppressions);
+    const evalResult = evaluatePolicy(findingsForPolicy, policy, suppressions);
     const intakeAssessment = absoluteIntakePath ? assessIntakeArtifact(absoluteIntakePath) : undefined;
     const readinessStatus = mergeReadinessStatus(evalResult.status, intakeAssessment);
 
@@ -322,6 +341,15 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
     if (intakeAssessment) {
       recommendedActions.push(...intakeAssessment.recommendedActions);
+    }
+    if (baselineResult) {
+      if (baselineResult.summary.gatedFindingIds.length === 0) {
+        recommendedActions.push("Baseline ratchet: no new or worsened findings; existing findings are carried as known debt.");
+      } else {
+        recommendedActions.push(
+          `Baseline ratchet: review ${baselineResult.summary.newFindings} new and ${baselineResult.summary.worsenedFindings} worsened finding(s).`
+        );
+      }
     }
 
     // Calculate self-analysis summary for transparency (using true raw counts)
@@ -381,12 +409,14 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
         broadSuppressions: broadSuppressions.length,
         acceptedExceptionsByClass,
       },
+      baseline: baselineResult?.summary,
       failedConditions,
       recommendedActions,
       artifactRefs: {
         findings: fromDir ? path.join(fromDir, "findings.json") : undefined,
         riskRegister: fromDir ? path.join(fromDir, "risk-register.yaml") : undefined,
         intake: intakePath,
+        baseline: configuredBaselinePath,
       },
     };
 
@@ -422,6 +452,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
           critical: readiness.counts.critical,
           high: readiness.counts.high,
           failed_conditions: failedConditions.length,
+          baseline_gated_findings: baselineResult?.summary.gatedFindingIds.length,
         },
       })
     );

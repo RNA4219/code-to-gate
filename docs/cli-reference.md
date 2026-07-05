@@ -334,7 +334,7 @@ Evaluate release readiness using findings and a policy file.
 
 **Usage:**
 ```bash
-code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir>
+code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir> [--baseline <file-or-dir>]
 ```
 
 **Arguments:**
@@ -349,6 +349,7 @@ code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <
 | `--from <dir>` | none | Source directory containing `findings.json` from `analyze` |
 | `--out <dir>` | `.qh` | Output directory |
 | `--intake <file>` | none | Optional planning artifact such as `project-intake.json` or `phase-contract.yaml`; unresolved critical input issues force `blocked_input` |
+| `--baseline <file-or-dir>` | none | Baseline `findings.json`, artifact directory, or `release-readiness.json` for ratchet gating. When present, policy evaluation only gates new or severity-worsened findings. |
 
 **Output:**
 | Artifact | Description |
@@ -371,7 +372,18 @@ code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --ou
 # Include planning/phase-contract evidence
 code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --out .qh \
   --intake ./phase-contract.yaml
+
+# Ratchet gate against a previous run
+code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh/current --out .qh/current \
+  --baseline .qh/previous/findings.json
 ```
+
+**Baseline / Ratchet Behavior:**
+
+- Existing baseline findings remain visible in `counts` and `baseline` summary.
+- Only new findings and findings whose severity worsened are passed into policy evaluation.
+- A baseline path may point to `findings.json`, a directory containing `findings.json` or `baseline-findings.json`, or a `release-readiness.json` whose sibling or `artifactRefs.findings` can resolve the previous findings artifact.
+- `release-readiness.json.baseline.gatedFindingIds` lists the finding IDs that were actually evaluated by the ratchet gate.
 
 **Exit Codes:**
 | Code | Name | Description |
