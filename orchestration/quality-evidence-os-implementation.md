@@ -599,7 +599,7 @@ Commands:
 
 Objective: hosted viewer を複数run横断の静的evidence portalへ拡張する。
 
-Status: planned
+Status: done
 
 Requirements:
 

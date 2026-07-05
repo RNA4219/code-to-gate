@@ -152,6 +152,7 @@ function cliCandidatesFor(qeosId: string): string[] {
     "QEOS-037": ["review-queue"],
     "QEOS-038": ["pack"],
     "QEOS-039": ["baseline-ledger", "readiness", "review-queue"],
+    "QEOS-040": ["viewer"],
     "QEOS-041": ["pr-review-publish"],
     "QEOS-042": ["qeos"],
   };
@@ -169,6 +170,7 @@ function schemaCandidatesFor(qeosId: string, title: string): string[] {
     "QEOS-037": ["review-queue.schema.json"],
     "QEOS-038": ["quality-pack-golden-suite.schema.json", "quality-pack.schema.json"],
     "QEOS-039": ["baseline-debt-ledger.schema.json", "release-readiness.schema.json", "review-queue.schema.json"],
+    "QEOS-040": ["hosted-evidence-portal.schema.json", "hosted-static-report.schema.json"],
     "QEOS-041": ["github-app-health.schema.json"],
     "QEOS-042": ["qeos-acceptance-matrix.schema.json"],
   };

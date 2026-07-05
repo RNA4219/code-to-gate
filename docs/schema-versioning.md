@@ -47,6 +47,7 @@ The v1 schema freeze establishes the following guarantees:
 | quality-pack-golden-suite | `quality-pack-golden-suite@v1` | `quality-pack-golden-suite@v1` | Stable |
 | rule-quality-score | `rule-quality-score@v1` | `rule-quality-score@v1` | Stable |
 | release-readiness | `release-readiness@v1` | `release-readiness@v1` | Stable |
+| hosted-evidence-portal | `hosted-evidence-portal@v1` | `hosted-evidence-portal@v1` | Stable |
 | pr-review | `pr-review@v1` | `pr-review@v1` | Stable |
 | github-app-health | `github-app-health@v1` | `github-app-health@v1` | Stable |
 | evidence-query | `evidence-query@v1` | `evidence-query@v1` | Stable |
@@ -179,6 +180,8 @@ schemas/
   drift-budget.schema.json     # Spec drift budget and branch policy evidence
   evidence-provenance-index.schema.json # Human surface to artifact/source reverse index
   review-queue.schema.json    # App/Bot-native review queue artifact
+  baseline-debt-ledger.schema.json # Baseline debt owner/expiry ledger artifact
+  hosted-evidence-portal.schema.json # Multi-run hosted evidence portal manifest
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

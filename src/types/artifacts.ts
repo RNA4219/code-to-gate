@@ -19,6 +19,7 @@ export const SCHEMA_VERSIONS = {
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
+  hostedEvidencePortal: "hosted-evidence-portal@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
   redactionProfile: "redaction-profile@v1",
@@ -51,6 +52,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
+  hostedEvidencePortal: "hosted-evidence-portal@v1",
   githubAppHealth: "github-app-health@v1",
   evidenceQuery: "evidence-query@v1",
   redactionProfile: "redaction-profile@v1",
@@ -1323,6 +1325,73 @@ export interface HostedStaticReportArtifact extends ArtifactHeader {
   };
   compatibleHosts: HostedStaticReportTarget[];
   generated_by: "ctg-viewer-hosted-v1";
+}
+
+// === Hosted Evidence Portal ===
+
+export interface HostedEvidencePortalRunArtifact {
+  file: string;
+  schema?: string;
+  hashSha256: string;
+  sizeBytes: number;
+  generatedAt?: string;
+}
+
+export interface HostedEvidencePortalRun {
+  id: string;
+  path: string;
+  generatedAt?: string;
+  readinessStatus?: string;
+  historicalSloStatus?: string;
+  releasePack?: string;
+  manualBb?: string;
+  prReview?: string;
+  baselineDebtExpired?: number;
+  artifacts: HostedEvidencePortalRunArtifact[];
+}
+
+export interface HostedEvidencePortalSearchEntry {
+  id: string;
+  runId: string;
+  type: "run" | "artifact" | "readiness" | "slo" | "release-pack" | "manual-bb" | "pr-review" | "baseline-debt";
+  title: string;
+  text: string;
+  artifact?: string;
+  url?: string;
+}
+
+export interface HostedEvidencePortalArtifact extends ArtifactHeader {
+  artifact: "hosted-evidence-portal";
+  schema: "hosted-evidence-portal@v1";
+  completeness: Completeness;
+  publicUrl?: string;
+  redactionProfile?: RedactionProfile;
+  redactionSummary?: RedactionSummary;
+  html: {
+    path: string;
+    hashSha256: string;
+    sizeBytes: number;
+    singleFile: true;
+    externalAssets: string[];
+  };
+  runs: HostedEvidencePortalRun[];
+  searchIndex: HostedEvidencePortalSearchEntry[];
+  sourceArtifacts: HostedEvidencePortalRunArtifact[];
+  security: {
+    selfContained: true;
+    externalNetworkRequired: false;
+    inlineAssets: true;
+  };
+  summary: {
+    runs: number;
+    artifacts: number;
+    searchEntries: number;
+    manualBb: number;
+    releasePacks: number;
+    prReviews: number;
+    baselineDebtExpired: number;
+  };
+  generated_by: "ctg-viewer-portal-v1";
 }
 
 // === GitHub App Health ===

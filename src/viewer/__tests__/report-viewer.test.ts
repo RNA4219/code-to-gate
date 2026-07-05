@@ -26,6 +26,7 @@ import {
   getSeverityOrder,
 } from "../finding-viewer.js";
 import { getAllStyles, getBaseStyles } from "../styles.js";
+import { createEvidencePortal } from "../evidence-portal.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -353,6 +354,60 @@ describe("report-viewer", () => {
       expect(html).toContain("Manual Test Candidates");
       expect(html).toContain("Manual auth verification");
       expect(html).toContain("requires_manual_oracle");
+    });
+
+    it("generates hosted evidence portal HTML with searchable run evidence", () => {
+      const runsDir = path.join(tempOutDir, "portal-runs");
+      const runDir = path.join(runsDir, "run-a");
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(path.join(runDir, "release-readiness.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "portal-report-run",
+        repo: { root: "." },
+        tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+        artifact: "release-readiness",
+        schema: "release-readiness@v1",
+        completeness: "complete",
+        status: "passed",
+        summary: "Ready",
+        counts: { findings: 0, critical: 0, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 },
+        failedConditions: [],
+        recommendedActions: [],
+        artifactRefs: {},
+      }, null, 2));
+      writeFileSync(path.join(runDir, "pr-review.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "portal-report-run",
+        repo: { root: "." },
+        tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+        artifact: "pr-review",
+        schema: "pr-review@v1",
+        completeness: "complete",
+        status: "pass",
+        markdown: { path: "pr-review.md", generated: true },
+        sections: { blockReasons: [], acceptableReasons: [], additionalTests: [], specDiffs: [], artifactLinks: [] },
+        summary: { blockReasons: 0, acceptableReasons: 0, additionalTests: 0, specDiffs: 0, artifactLinks: 0, findings: 0, critical: 0, high: 0, reviewerCandidates: 0 },
+      }, null, 2));
+
+      const portal = createEvidencePortal({
+        runsDir,
+        cwd: process.cwd(),
+        outputPath: path.join(tempOutDir, "portal.html"),
+        version: "1.5.0",
+        redactionProfile: createRedactionProfile("public"),
+        redactionSummary: createRedactionSummary(createRedactionProfile("public")),
+        now: new Date("2026-07-05T00:00:00Z"),
+      });
+
+      expect(portal.html).toContain("code-to-gate Evidence Portal");
+      expect(portal.html).toContain("portal-report-run");
+      expect(portal.manifest.schema).toBe("hosted-evidence-portal@v1");
+      expect(portal.manifest.summary.runs).toBe(1);
+      expect(portal.manifest.summary.prReviews).toBe(1);
+      expect(portal.manifest.searchIndex.some((entry) => entry.type === "pr-review")).toBe(true);
+      expect(portal.manifest.security.externalNetworkRequired).toBe(false);
     });
   });
 

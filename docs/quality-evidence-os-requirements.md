@@ -220,6 +220,12 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   refresh reason、estimated effort、prevention note を持つ
   `baseline-debt-ledger@v1` を出力する。期限切れ item は `review-queue@v1` の
   `baseline_expiry` item と `release-pack --include-optional` に接続される。
+- QEOS-040: `code-to-gate viewer --portal --from <runs-dir>` が複数runを横断し、
+  `release-readiness.json`、`historical-comparison.json`、`release-pack.json`、
+  `manual-bb.json`、`pr-review.json`、`baseline-debt-ledger.json` を検索可能な
+  静的HTML portal と `hosted-evidence-portal@v1` manifest にまとめる。
+  manifest は run index、artifact hashes、search index、public URL、redaction
+  profile、外部network不要の security flags を保持する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

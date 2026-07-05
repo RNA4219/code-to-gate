@@ -276,6 +276,7 @@ describe("schema coverage integration", () => {
         "rule-quality-score.schema.json",
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
+        "hosted-evidence-portal.schema.json",
         "github-app-health.schema.json",
         "evidence-query.schema.json",
         "redaction-profile.schema.json",
@@ -1769,6 +1770,91 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalLedgerPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal hosted-evidence-portal artifact", () => {
+      const minimalPortalPath = path.join(tempDir, "minimal-hosted-evidence-portal.json");
+      writeFileSync(
+        minimalPortalPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "hosted-evidence-portal-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "hosted-evidence-portal",
+          schema: "hosted-evidence-portal@v1",
+          completeness: "complete",
+          publicUrl: "https://example.com/evidence/",
+          html: {
+            path: "portal/index.html",
+            hashSha256: "a".repeat(64),
+            sizeBytes: 1024,
+            singleFile: true,
+            externalAssets: [],
+          },
+          runs: [
+            {
+              id: "run-1",
+              path: ".qh/run-1",
+              generatedAt: "2024-01-01T00:00:00Z",
+              readinessStatus: "passed",
+              historicalSloStatus: "met",
+              releasePack: "release-pack.json",
+              manualBb: "manual-bb.json",
+              prReview: "pr-review.json",
+              baselineDebtExpired: 0,
+              artifacts: [
+                {
+                  file: ".qh/run-1/release-readiness.json",
+                  schema: "release-readiness@v1",
+                  hashSha256: "b".repeat(64),
+                  sizeBytes: 100,
+                  generatedAt: "2024-01-01T00:00:00Z",
+                },
+              ],
+            },
+          ],
+          searchIndex: [
+            {
+              id: "portal-search-001",
+              runId: "run-1",
+              type: "readiness",
+              title: "release-readiness.json",
+              text: "passed",
+              artifact: "release-readiness.json",
+            },
+          ],
+          sourceArtifacts: [
+            {
+              file: ".qh/run-1/release-readiness.json",
+              schema: "release-readiness@v1",
+              hashSha256: "b".repeat(64),
+              sizeBytes: 100,
+              generatedAt: "2024-01-01T00:00:00Z",
+            },
+          ],
+          security: {
+            selfContained: true,
+            externalNetworkRequired: false,
+            inlineAssets: true,
+          },
+          summary: {
+            runs: 1,
+            artifacts: 1,
+            searchEntries: 1,
+            manualBb: 1,
+            releasePacks: 1,
+            prReviews: 1,
+            baselineDebtExpired: 0,
+          },
+          generated_by: "ctg-viewer-portal-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalPortalPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

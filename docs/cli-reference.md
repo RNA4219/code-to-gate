@@ -76,7 +76,7 @@ These options apply to all commands:
 | `qeos` | Generate QEOS acceptance audit artifacts from requirements and Task Seeds. | `qeos-acceptance-matrix.json` |
 | `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
 | `pr-review-publish` | Publish PR review markdown with token or GitHub App auth and emit posting health evidence. | `github-app-health.json` |
-| `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
+| `viewer` | Generate a standalone HTML report or multi-run evidence portal from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json`, `hosted-evidence-portal.json` |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 | `plugin-marketplace` | Build a validated local plugin registry for distribution review. | `plugin-marketplace.json` |
 
@@ -513,7 +513,7 @@ Generate a standalone HTML report from an artifact directory.
 
 **Usage:**
 ```bash
-code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <public|private|regulated>]
+code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--portal] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <public|private|regulated>]
 ```
 
 **Options:**
@@ -524,6 +524,7 @@ code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--ho
 | `--title <title>` | `code-to-gate Report` | Report title |
 | `--dark` | false | Render dark theme |
 | `--hosted` | false | Generate `hosted-static-report.json` next to the HTML output |
+| `--portal` | false | Treat `--from` as a directory of run artifact directories and generate `hosted-evidence-portal.json` next to the HTML output |
 | `--public-url <url>` | none | Expected URL after publishing the HTML report |
 | `--hosted-target <target>` | `generic-static` | Static host target: `github-pages`, `artifact-preview`, or `generic-static` |
 | `--redaction-profile <profile>` | `private` | Output redaction profile: `public`, `private`, or `regulated` |
@@ -533,6 +534,7 @@ code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--ho
 |----------|-------------|
 | `viewer-report.html` | Single-file HTML report with embedded CSS and JavaScript |
 | `hosted-static-report.json` | Hosted report manifest with HTML hash, size, source artifact hashes, target, optional public URL, redaction profile, and redaction summary |
+| `hosted-evidence-portal.json` | Multi-run static portal manifest with run index, artifact hashes, search index, public URL, redaction profile, and no-network security flags |
 
 **Example:**
 ```bash
@@ -540,6 +542,9 @@ code-to-gate viewer --from .qh --out .qh/report.html --title "Release Review"
 code-to-gate viewer --from .qh --out public/index.html --hosted \
   --hosted-target github-pages --public-url https://example.github.io/repo/
 code-to-gate schema validate public/hosted-static-report.json
+code-to-gate viewer --portal --from .qh/runs --out public/evidence/index.html \
+  --public-url https://example.github.io/repo/evidence/ --redaction-profile public
+code-to-gate schema validate public/evidence/hosted-evidence-portal.json
 ```
 
 When `.qh/qeg-code-to-gate.json` or `.qh/evidence-dag.json` exists, the viewer
@@ -550,6 +555,14 @@ Hosted mode keeps the report as a single HTML file for GitHub Pages, artifact
 preview, or a generic static file server. The adjacent manifest records
 `hosted-static-report@v1`, the HTML SHA-256 hash, source artifact hashes, and
 the declared static hosting target.
+
+Portal mode scans child run directories for `release-readiness.json`,
+`historical-comparison.json`, `release-pack.json`, `manual-bb.json`,
+`manual-bb-seed.json`, `pr-review.json`, `baseline-debt-ledger.json`,
+`qeg-code-to-gate.json`, and `evidence-dag.json`. It writes a single-file HTML
+portal plus `hosted-evidence-portal@v1`, including run index, artifact hashes,
+search index, public URL, redaction summary, and `externalNetworkRequired:
+false`.
 
 ---
 

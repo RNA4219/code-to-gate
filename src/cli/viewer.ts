@@ -32,6 +32,7 @@ import {
   LoadedArtifacts,
   ReportViewerConfig,
 } from "../viewer/index.js";
+import { createEvidencePortal } from "../viewer/evidence-portal.js";
 
 const HOSTED_SOURCE_FILES = [
   { id: "findings", file: "findings.json" },
@@ -301,6 +302,7 @@ export async function viewerCommand(
   const titleOpt = options.getOption(args, "--title");
   const darkModeOpt = options.getOption(args, "--dark");
   const hosted = args.includes("--hosted");
+  const portal = args.includes("--portal");
   const publicUrl = options.getOption(args, "--public-url");
   const hostedTarget = parseHostedTarget(options.getOption(args, "--hosted-target"));
   let redactionProfile: RedactionProfile;
@@ -318,7 +320,7 @@ export async function viewerCommand(
   }
 
   if (!fromDir) {
-    console.error("usage: code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <public|private|regulated>]");
+    console.error("usage: code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--portal] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <public|private|regulated>]");
     console.error("");
     console.error("Options:");
     console.error("  --from <dir>    Input artifact directory (required)");
@@ -326,6 +328,7 @@ export async function viewerCommand(
     console.error("  --title <title> Report title (default: code-to-gate Analysis Report)");
     console.error("  --dark          Enable dark mode by default");
     console.error("  --hosted        Write hosted-static-report.json next to the HTML output");
+    console.error("  --portal        Treat --from as a runs directory and write hosted-evidence-portal.json");
     console.error("  --public-url    Expected URL after publishing the HTML");
     console.error("  --hosted-target Static host target: github-pages, artifact-preview, generic-static");
     console.error("  --redaction-profile Output redaction profile: public, private, regulated");
@@ -344,6 +347,56 @@ export async function viewerCommand(
   if (!statSync(artifactDir).isDirectory()) {
     console.error(`artifact path is not a directory: ${fromDir}`);
     return options.EXIT.USAGE_ERROR;
+  }
+
+  if (portal) {
+    const outputPath = outFile
+      ? path.resolve(cwd, outFile)
+      : path.join(artifactDir, "hosted-evidence-portal.html");
+    const portalResult = createEvidencePortal({
+      runsDir: artifactDir,
+      cwd,
+      outputPath,
+      version: options.VERSION,
+      publicUrl,
+      redactionProfile,
+      redactionSummary,
+    });
+    mkdirSync(path.dirname(outputPath), { recursive: true });
+    writeFileSync(outputPath, portalResult.html, "utf8");
+    const manifestPath = path.join(path.dirname(outputPath), "hosted-evidence-portal.json");
+    writeFileSync(manifestPath, JSON.stringify(portalResult.manifest, null, 2) + "\n", "utf8");
+    const summary: {
+      tool: string;
+      command: string;
+      version: string;
+      input: string;
+      output: string;
+      portal: {
+        manifest: string;
+        publicUrl?: string;
+        runs: number;
+        sourceArtifacts: number;
+        searchEntries: number;
+        redactionProfile?: string;
+      };
+    } = {
+      tool: "code-to-gate",
+      command: "viewer",
+      version: VERSION,
+      input: path.relative(cwd, artifactDir),
+      output: path.relative(cwd, outputPath),
+      portal: {
+        manifest: path.relative(cwd, manifestPath),
+        publicUrl,
+        runs: portalResult.manifest.summary.runs,
+        sourceArtifacts: portalResult.manifest.summary.artifacts,
+        searchEntries: portalResult.manifest.summary.searchEntries,
+        redactionProfile: portalResult.manifest.redactionProfile?.name,
+      },
+    };
+    console.log(JSON.stringify(summary, null, 2));
+    return options.EXIT.OK;
   }
 
   // Load artifacts

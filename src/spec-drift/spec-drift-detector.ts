@@ -44,6 +44,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "release-pack.html": undefined,
   "release-pack.zip": undefined,
   "hosted-static-report.json": "hosted-static-report.schema.json",
+  "hosted-evidence-portal.json": "hosted-evidence-portal.schema.json",
   "github-app-health.json": "github-app-health.schema.json",
   "evidence-query.json": "evidence-query.schema.json",
   "redaction-profile.json": "redaction-profile.schema.json",

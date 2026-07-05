@@ -512,6 +512,7 @@ P2 Hosted Evidence Portal の初期 acceptance は次の通り。
 
 - `code-to-gate viewer --portal` は複数run、historical SLO、release pack、manual-bb、PR review backlink を横断できる静的HTMLを生成する。
 - portal manifest は `hosted-evidence-portal@v1` として run index、artifact hashes、search index、public URL を持つ。
+- portal search index は readiness、historical SLO、release pack、manual-bb、PR review、baseline debt を対象にする。
 - portal は外部network不要で閲覧でき、redaction profile を尊重する。
 
 P1 GitHub App Health Evidence の初期 acceptance は次の通り。
