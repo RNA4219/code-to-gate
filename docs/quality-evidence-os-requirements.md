@@ -100,28 +100,50 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 
 ## 7. 実装済み証跡
 
+- QEOS-001: `code-to-gate export evidence-dag --from <artifact-dir>` による
+  `evidence-dag@v1` artifact。requirement/rule/finding/artifact/verdict、
+  manual-test、CI run node/edge を横断索引化。
 - QEOS-002: `code-to-gate pr-review --from <artifact-dir>` による
   `pr-review@v1` artifact と `pr-review.md` 生成。PR comment の固定セクションとして
   block理由、許容理由、追加テスト、仕様差分、artifact link、baseline summary を出力。
+- QEOS-003: `readiness --baseline <path>` と policy `baseline.enabled/file`
+  による ratchet gate。新規・severity悪化 finding のみを policy 対象化し、
+  `release-readiness.json.baseline` に summary を出力。
+- QEOS-004: `code-to-gate spec-drift <repo>` による docs/schema/CLI/test drift 検出、
+  `spec-drift@v1` artifact、release-risk finding、自己検査 `quality:spec-drift`。
+- QEOS-005: `code-to-gate viewer --from <dir>` による standalone HTML viewer。
+  `qeg-code-to-gate.json` と `evidence-dag.json` を読み、QEG tab と
+  finding drill-down を表示。
 - QEOS-006: `code-to-gate rule new <id>`、`@quality-harness/code-to-gate/rule-sdk`、
   fixture-based harness、生成README、生成manifest schema。
-- QEOS-016: `code-to-gate doctor`、`doctor@v1` schema、schema validation、
-  Node/Git/Docker/schema/artifact/CI readiness checks。
+- QEOS-007: `code-to-gate pack list/show/export-policy`、`quality-pack@v1`
+  schema、`security-basic` / `release-evidence` / `frontend-risk` /
+  `api-contract` / `ai-generated-code` / `compliance-lite` bundled packs。
 - QEOS-008: `code-to-gate test-plan --from <artifact-dir>`、`test-plan@v1`
   schema、diff blast radius 優先の推奨テスト、manual oracle gap。
+- QEOS-009: `code-to-gate export manual-bb` と `test-plan.json.oracleGaps`
+  による manual-bb seed / oracle gap handoff。
+- QEOS-010: rule evaluator と LLM trust tests による evidence-bound finding、
+  missing/invalid evidence の `unsupported_claims` 隔離、audit hash / redaction trace。
+- QEOS-011: `code-to-gate schema migrate` による v1alpha1 -> v1 artifact migration、
+  変換後validation、`schema-migration@v1` report。
 - QEOS-012: `code-to-gate import sarif|codeql|semgrep|eslint` による
   external tool results の normalized `findings@v1` 変換。
+- QEOS-013: `code-to-gate release-pack` による QEG、audit、diff、readiness、
+  manual-bb、CI URL、artifact hash の `release-pack@v1` / HTML / ZIP 集約。
+- QEOS-014: policy YAML `dsl.rules`、`when.baseline: new_or_worsened`、
+  `when.manual_evidence: present|absent`、`action: block|hold|allow` の readiness 評価。
+- QEOS-015: `code-to-gate ownership --from <artifact-dir>` による
+  CODEOWNERS reviewer candidates、file risk、module risk、`ownership-risk@v1`
+  artifact。
+- QEOS-016: `code-to-gate doctor`、`doctor@v1` schema、schema validation、
+  Node/Git/Docker/schema/artifact/CI readiness checks。
+- QEOS-017: `code-to-gate plugin-marketplace --plugins <dir>` による
+  rule/reporter/exporter/importer/language plugin registry、manifest validation、
+  `plugin-marketplace@v1` artifact。
 - QEOS-018: `ai-generated-code` Quality Pack による AI生成コード向け
   validation/testing/maintainability/compatibility risk review mode。
 - QEOS-019: `code-to-gate historical` と viewer Historical tab による
   readiness/finding trend と regression の時系列表示。
 - QEOS-020: `code-to-gate viewer --hosted` による単一HTML品質レポートと
   `hosted-static-report@v1` manifest の GitHub Pages / artifact preview 対応。
-- QEOS-011: `code-to-gate schema migrate` による v1alpha1 -> v1 artifact migration、
-  変換後validation、`schema-migration@v1` report。
-- QEOS-015: `code-to-gate ownership --from <artifact-dir>` による
-  CODEOWNERS reviewer candidates、file risk、module risk、`ownership-risk@v1`
-  artifact。
-- QEOS-017: `code-to-gate plugin-marketplace --plugins <dir>` による
-  rule/reporter/exporter/importer/language plugin registry、manifest validation、
-  `plugin-marketplace@v1` artifact。

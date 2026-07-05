@@ -12,6 +12,8 @@ next_review_due: 2026-08-05
 
 Objective: 既存負債を baseline に固定し、新規・severity悪化 finding だけを readiness gate 対象にする。
 
+Status: done
+
 Requirements:
 
 - `readiness --baseline <path>` を追加する。
