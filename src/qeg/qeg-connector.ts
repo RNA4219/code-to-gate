@@ -4,6 +4,7 @@ import type {
   QEGAssuranceFindingsSummary,
   QEGCodeToGateEvidence,
   QEGSchemaComplianceResult,
+  ProducerCheckActual,
 } from "./qeg-types.js";
 
 const CTG_QEG_VERSION = "ctg.qeg-input/v1";
@@ -27,6 +28,44 @@ export function summarizeFindings(findings: FindingsArtifact): {
   return { total: findings.findings.length, by_severity, by_category, by_rule };
 }
 
+export function readinessStatusToProducerConclusion(
+  status: ReleaseReadinessArtifact["status"]
+): ProducerCheckActual["conclusion"] {
+  switch (status) {
+    case "passed":
+    case "passed_with_risk":
+      return "success";
+    case "needs_review":
+      return "neutral";
+    case "blocked_input":
+    case "failed":
+      return "failure";
+    default:
+      return "unknown";
+  }
+}
+
+export function buildReadinessProducerCheck(
+  readiness: ReleaseReadinessArtifact,
+  runId: string,
+  commitSha?: string
+): ProducerCheckActual {
+  return {
+    id: "ctg:producer-check-release-readiness",
+    producer: "code-to-gate",
+    name: "release-readiness",
+    conclusion: readinessStatusToProducerConclusion(readiness.status),
+    readiness_status: readiness.status,
+    ...(commitSha ? { head_sha: commitSha } : {}),
+    run_id: `ctg:${runId}`,
+    source_refs: [{
+      id: "ctg:sr-release-readiness",
+      path: "release-readiness.json",
+      label: "code-to-gate release readiness verdict",
+    }],
+  };
+}
+
 export function generateQEGCodeToGateEvidence(
   findings: FindingsArtifact,
   readiness: ReleaseReadinessArtifact,
@@ -35,7 +74,8 @@ export function generateQEGCodeToGateEvidence(
   runId: string,
   commitSha?: string,
   artifactHashes: ArtifactHash[] = [],
-  assuranceSummary?: QEGAssuranceFindingsSummary
+  assuranceSummary?: QEGAssuranceFindingsSummary,
+  producerChecks: ProducerCheckActual[] = [buildReadinessProducerCheck(readiness, runId, commitSha)]
 ): QEGCodeToGateEvidence {
   return {
     version: CTG_QEG_VERSION,
@@ -54,6 +94,7 @@ export function generateQEGCodeToGateEvidence(
         ? `${assuranceSummary.total} review-required candidates recorded`
         : "assurance-findings.json was not provided",
     }],
+    producer_checks: producerChecks,
     artifact_hashes: artifactHashes,
     ...(assuranceSummary ? { assurance_findings_summary: assuranceSummary } : {}),
   };

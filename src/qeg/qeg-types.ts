@@ -86,6 +86,31 @@ export interface ArtifactHash {
   hash: string;
 }
 
+export type ProducerCheckConclusion =
+  | "success"
+  | "failure"
+  | "neutral"
+  | "cancelled"
+  | "timed_out"
+  | "action_required"
+  | "skipped"
+  | "unknown";
+
+export interface ProducerCheckActual {
+  id: string;
+  producer: "code-to-gate";
+  name: string;
+  conclusion: ProducerCheckConclusion;
+  readiness_status?: "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
+  head_sha?: string;
+  run_id?: string;
+  source_refs?: Array<{
+    id: string;
+    path: string;
+    label?: string;
+  }>;
+}
+
 export interface QEGAssuranceFindingsSummary {
   total: number;
   unsupported_claims: number;
@@ -115,6 +140,8 @@ export interface QEGCodeToGateEvidence {
   schema_compliance: QEGSchemaComplianceResult[];
 
   quality_checks_actual: QualityCheckActual[];
+
+  producer_checks?: ProducerCheckActual[];
 
   artifact_hashes: ArtifactHash[];
 

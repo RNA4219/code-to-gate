@@ -75,6 +75,49 @@
         }
       }
     },
+    "producer_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "producer", "name", "conclusion"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "producer": { "const": "code-to-gate" },
+          "name": { "type": "string" },
+          "conclusion": {
+            "enum": [
+              "success",
+              "failure",
+              "neutral",
+              "cancelled",
+              "timed_out",
+              "action_required",
+              "skipped",
+              "unknown"
+            ]
+          },
+          "readiness_status": {
+            "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"]
+          },
+          "head_sha": { "type": "string" },
+          "run_id": { "type": "string" },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "path"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "path": { "type": "string" },
+                "label": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
     "assurance_findings_summary": {
       "type": "object",
       "required": ["total", "unsupported_claims", "by_rule"],

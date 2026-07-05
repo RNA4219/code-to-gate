@@ -44,7 +44,7 @@ Usage:
     Tools: eslint, semgrep, sarif, codeql, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
-    Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag, provenance-index
+    Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, hate-qeg-bundle, qeg-gate-input, evidence-dag, provenance-index
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--portal] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <profile>]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate spec-drift <repo> --out <dir>

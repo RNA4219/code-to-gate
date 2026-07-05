@@ -451,7 +451,7 @@ code-to-gate export <target> --from <dir> --out <file>
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate`, `evidence-dag`, `provenance-index` |
+| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate`, `hate-qeg-bundle`, `qeg-gate-input`, `evidence-dag`, `provenance-index` |
 
 **Options:**
 | Option | Default | Description |
@@ -468,6 +468,8 @@ code-to-gate export <target> --from <dir> --out <file>
 | `workflow-evidence` | workflow-cookbook | Evidence references for CI workflow integration |
 | `sarif` | GitHub Code Scanning / SARIF consumers | SARIF 2.1.0 findings export |
 | `qeg-code-to-gate` | quality-evidence-graph | Evidence-only export for QEG processing |
+| `hate-qeg-bundle` | HATE / quality-evidence-graph | HATE-compatible optional evidence bundle in QEG bundle shape |
+| `qeg-gate-input` | quality-evidence-graph | QEG fixture directory containing `gate-input.json` for QEG `validate` / `gate` |
 | `evidence-dag` | code-to-gate / QEG / PR reviewer surfaces | Cross-artifact DAG linking requirements, rules, findings, artifacts, manual evidence, CI runs, and verdicts |
 | `provenance-index` | PR review, hosted viewer, release evidence, SARIF consumers | Reverse index from human surfaces to source artifact/hash/source ID locators |
 
@@ -482,6 +484,9 @@ code-to-gate export state-gate --from .qh --out .qh/state-gate-evidence.json
 # Export for manual-bb-test-harness
 code-to-gate export manual-bb --from .qh --out .qh/manual-bb-seed.json
 
+# Export QEOS-039/040 dedicated manual-bb seeds
+code-to-gate export manual-bb --scope qeos-039-040 --from .qh --out .qh/manual-bb.json
+
 # Export for workflow-cookbook
 code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.json
 
@@ -490,6 +495,10 @@ code-to-gate export sarif --from .qh --out .qh/results.sarif
 
 # Export for quality-evidence-graph
 code-to-gate export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
+
+# Export HATE optional evidence and QEG gate fixture
+code-to-gate export hate-qeg-bundle --from .qh --out .qh/hate-qeg-bundle.json
+code-to-gate export qeg-gate-input --from .qh --out .qh/qeg-gate
 
 # Export cross-artifact evidence DAG
 code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json

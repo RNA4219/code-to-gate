@@ -55,6 +55,19 @@ describe("QEG evidence separation", () => {
     );
 
     expect(evidence.artifact_hashes).toEqual([]);
+    expect(evidence.producer_checks).toEqual([{
+      id: "ctg:producer-check-release-readiness",
+      producer: "code-to-gate",
+      name: "release-readiness",
+      conclusion: "unknown",
+      readiness_status: "review",
+      run_id: "ctg:run-1",
+      source_refs: [{
+        id: "ctg:sr-release-readiness",
+        path: "release-readiness.json",
+        label: "code-to-gate release readiness verdict",
+      }],
+    }]);
     expect(evidence).not.toHaveProperty("decision");
   });
 

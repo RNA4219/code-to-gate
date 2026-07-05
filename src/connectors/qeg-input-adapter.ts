@@ -44,6 +44,17 @@ export interface QEGCodeToGateEvidence {
     details: string;
   }>;
 
+  producer_checks?: Array<{
+    id: string;
+    producer: "code-to-gate";
+    name: string;
+    conclusion: "success" | "failure" | "neutral" | "cancelled" | "timed_out" | "action_required" | "skipped" | "unknown";
+    readiness_status?: "passed" | "passed_with_risk" | "needs_review" | "blocked_input" | "failed";
+    head_sha?: string;
+    run_id?: string;
+    source_refs?: Array<{ id: string; path: string; label?: string }>;
+  }>;
+
   artifact_hashes: Array<{
     artifact: string;
     path: string;

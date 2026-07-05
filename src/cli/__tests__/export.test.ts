@@ -69,6 +69,25 @@ function writeFindings(dir: string, findings: object[]): void {
   writeFileSync(path.join(dir, "findings.json"), JSON.stringify(createFindingsArtifact(findings)), "utf8");
 }
 
+function writeReadiness(dir: string, status = "passed"): void {
+  writeFileSync(path.join(dir, "release-readiness.json"), JSON.stringify({
+    version: "ctg/v1",
+    generated_at: new Date().toISOString(),
+    run_id: "export-test-run",
+    repo: { root: "/test/repo" },
+    tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+    artifact: "release-readiness",
+    schema: "release-readiness@v1",
+    completeness: "complete",
+    status,
+    summary: "All policy conditions met, release ready",
+    counts: { findings: 1, critical: 1, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 },
+    failedConditions: [],
+    recommendedActions: [],
+    artifactRefs: {},
+  }), "utf8");
+}
+
 // Helper: Run export and get result
 async function runExport(target: string, fromDir: string, outFile?: string): Promise<{ exitCode: number; output: object }> {
   const args = outFile
@@ -88,6 +107,7 @@ function getExpectedOutputFile(target: string): string {
     "manual-bb": "manual-bb.json",
     "workflow-evidence": "workflow.json",
     "sarif": "results.sarif",
+    "hate-qeg-bundle": "hate-qeg-bundle.json",
     "evidence-dag": "evidence-dag.json",
     "provenance-index": "evidence-provenance-index.json",
   };
@@ -136,6 +156,55 @@ describe("export CLI", () => {
           expect(output.producer).toBe("code-to-gate");
         }
       }
+    });
+  });
+
+  describe("five-tool export targets", () => {
+    it("generates QEOS-039/040 dedicated manual-bb seeds", async () => {
+      writeFindings(tempOutDir, [createFinding({ severity: "critical" })]);
+
+      const exitCode = await exportCommand(
+        ["manual-bb", "--scope", "qeos-039-040", "--from", tempOutDir, "--out", path.join(tempOutDir, "manual-bb.json")],
+        { VERSION, EXIT, getOption }
+      );
+      const output = JSON.parse(readFileSync(path.join(tempOutDir, "manual-bb.json"), "utf8"));
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(output.version).toBe("ctg.manual-bb/v1");
+      expect(output.risk_seeds.map((risk: { id: string }) => risk.id)).toEqual(expect.arrayContaining([
+        "risk-qeos-039-baseline-debt-surface",
+        "risk-qeos-040-cross-run-search-gap",
+        "risk-qeos-040-redaction-profile-drift",
+      ]));
+      expect(output.oracle_gaps.join("\n")).toContain("QEOS-040");
+    });
+
+    it("generates HATE QEG bundle evidence with raw finding debt visibility", async () => {
+      writeFindings(tempOutDir, [createFinding({ severity: "critical" })]);
+      writeReadiness(tempOutDir, "passed");
+
+      const { exitCode, output } = await runExport("hate-qeg-bundle", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(output.metadata.qegVersion).toBe("0.1");
+      expect(output.summary.producer).toBe("hate");
+      expect(output.summary.raw_findings.critical).toBe(1);
+      expect(output.completeness.partial).toBe(true);
+    });
+
+    it("generates QEG gate fixture with expected verdict", async () => {
+      writeFindings(tempOutDir, [createFinding({ severity: "critical" })]);
+      writeReadiness(tempOutDir, "passed");
+
+      const outDir = path.join(tempOutDir, "qeg-gate");
+      const exitCode = await exportCommand(["qeg-gate-input", "--from", tempOutDir, "--out", outDir], { VERSION, EXIT, getOption });
+      const gateInput = JSON.parse(readFileSync(path.join(outDir, "gate-input.json"), "utf8"));
+      const expectedVerdict = JSON.parse(readFileSync(path.join(outDir, "expected-gate-verdict.json"), "utf8"));
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(gateInput.metadata.producerChecks[0].readinessStatus).toBe("passed");
+      expect(gateInput.graph.nodes.some((node: { id: string }) => node.id === "ctg:finding-debt-summary")).toBe(true);
+      expect(expectedVerdict.expectedVerdict).toBe("go");
     });
   });
 
