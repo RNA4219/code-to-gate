@@ -4,6 +4,7 @@
  */
 
 import type { Severity } from "../types/artifacts.js";
+import yaml from "js-yaml";
 import {
   POLICY_VERSION,
   DEFAULT_BLOCKING_SEVERITY,
@@ -16,6 +17,11 @@ import {
   type SuppressionEntry,
   type SuppressionClass,
   type BlockingCategoryConfig,
+  type PolicyDslConfig,
+  type PolicyDslRule,
+  type PolicyDslAction,
+  type PolicyDslBaseline,
+  type PolicyDslManualEvidence,
 } from "./policy-types.js";
 
 function splitYamlKeyValue(line: string): [string, string] | undefined {
@@ -34,11 +40,68 @@ function unquoteYamlScalar(value: string | undefined): string {
   return (value ?? "").replace(/^["']|["']$/g, "");
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function scalarString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function parsePolicyDsl(content: string): PolicyDslConfig | undefined {
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(content, { schema: yaml.JSON_SCHEMA });
+  } catch {
+    return undefined;
+  }
+
+  const root = asRecord(parsed);
+  const dsl = asRecord(root?.dsl);
+  const rules = dsl?.rules;
+  if (!Array.isArray(rules)) {
+    return undefined;
+  }
+
+  const parsedRules: PolicyDslRule[] = [];
+  for (const rawRule of rules) {
+    const rule = asRecord(rawRule);
+    const when = asRecord(rule?.when);
+    const id = scalarString(rule?.id);
+    const action = scalarString(rule?.action) as PolicyDslAction | undefined;
+    if (!rule || !when || !id || !action) {
+      continue;
+    }
+
+    parsedRules.push({
+      id,
+      description: scalarString(rule.description),
+      action,
+      reason: scalarString(rule.reason),
+      when: {
+        severity: scalarString(when.severity) as PolicyDslRule["when"]["severity"],
+        category: scalarString(when.category) as PolicyDslRule["when"]["category"],
+        ruleId: scalarString(when.rule_id ?? when.ruleId),
+        baseline: scalarString(when.baseline) as PolicyDslBaseline | undefined,
+        manualEvidence: scalarString(when.manual_evidence ?? when.manualEvidence) as PolicyDslManualEvidence | undefined,
+      },
+    });
+  }
+
+  return { rules: parsedRules };
+}
+
 /**
  * Parse YAML policy file
  */
 export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   const result: Partial<CtgPolicy> = {};
+  const dsl = parsePolicyDsl(content);
+  if (dsl) {
+    result.dsl = dsl;
+  }
   const lines = content.split("\n");
 
   let currentSection: string | null = null;
@@ -199,6 +262,9 @@ export function mergeWithDefaults(parsed: Partial<CtgPolicy>): CtgPolicy {
     partial: { ...defaults.partial, ...parsed.partial },
     baseline: { ...defaults.baseline, ...parsed.baseline },
     exit: { ...defaults.exit, ...parsed.exit },
+    dsl: {
+      rules: parsed.dsl?.rules ?? defaults.dsl?.rules ?? [],
+    },
   };
 }
 

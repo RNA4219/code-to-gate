@@ -332,6 +332,7 @@ export interface ReleaseReadinessArtifact extends ArtifactHeader {
     audit?: string;
     intake?: string;
     baseline?: string;
+    manualEvidence?: string;
   };
 }
 

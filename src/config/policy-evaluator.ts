@@ -16,14 +16,28 @@ export type ReadinessStatus = PolicyReadinessStatus;
  * Failed condition details
  */
 export interface FailedCondition {
-  type: "severity_block" | "category_block" | "rule_block" | "count_threshold" | "low_confidence" | "suppressed_expired";
+  type:
+    | "severity_block"
+    | "category_block"
+    | "rule_block"
+    | "count_threshold"
+    | "low_confidence"
+    | "suppressed_expired"
+    | "dsl_block"
+    | "dsl_hold";
   severity?: Severity;
   category?: FindingCategory;
   ruleId?: string;
   findingId?: string;
+  dslRuleId?: string;
   count?: number;
   threshold?: number;
   message: string;
+}
+
+export interface PolicyEvaluationContext {
+  baselineNewOrWorsenedFindingIds?: string[];
+  manualEvidenceFindingIds?: string[];
 }
 
 /**
@@ -33,6 +47,7 @@ export interface PolicyEvaluationResult {
   status: ReadinessStatus;
   passedFindings: Finding[];
   blockedFindings: Finding[];
+  heldFindings: Finding[];
   suppressedFindings: Finding[];
   lowConfidenceFindings: Finding[];
   failedConditions: FailedCondition[];
@@ -40,6 +55,7 @@ export interface PolicyEvaluationResult {
     totalFindings: number;
     passedCount: number;
     blockedCount: number;
+    heldCount: number;
     suppressedCount: number;
     lowConfidenceCount: number;
     severityCounts: Record<Severity, number>;
@@ -168,6 +184,7 @@ function checkCountThreshold(
  */
 function determineReadinessStatus(
   blockedFindings: Finding[],
+  heldFindings: Finding[],
   lowConfidenceFindings: Finding[],
   failedConditions: FailedCondition[],
   partialAllowed: boolean
@@ -181,6 +198,14 @@ function determineReadinessStatus(
   const countThresholdFailed = failedConditions.some(c => c.type === "count_threshold");
   if (countThresholdFailed) {
     return "blocked_input";
+  }
+
+  if (failedConditions.some(c => c.type === "dsl_block")) {
+    return "blocked_input";
+  }
+
+  if (heldFindings.length > 0 || failedConditions.some(c => c.type === "dsl_hold")) {
+    return "needs_review";
   }
 
   // If low confidence findings and filterLow is enabled
@@ -198,6 +223,81 @@ function determineReadinessStatus(
   return "passed";
 }
 
+function dslRuleMatches(
+  finding: Finding,
+  rule: NonNullable<CtgPolicy["dsl"]>["rules"][number],
+  context: PolicyEvaluationContext
+): boolean {
+  const when = rule.when;
+  if (when.severity && finding.severity !== when.severity) {
+    return false;
+  }
+  if (when.category && finding.category !== when.category) {
+    return false;
+  }
+  if (when.ruleId && finding.ruleId !== when.ruleId) {
+    return false;
+  }
+  if (when.baseline === "new_or_worsened") {
+    const ids = new Set(context.baselineNewOrWorsenedFindingIds ?? []);
+    if (!ids.has(finding.id)) {
+      return false;
+    }
+  }
+  if (when.manualEvidence) {
+    const ids = new Set(context.manualEvidenceFindingIds ?? []);
+    const hasManualEvidence = ids.has(finding.id) || ids.has(`risk-${finding.id}`);
+    if (when.manualEvidence === "present" && !hasManualEvidence) {
+      return false;
+    }
+    if (when.manualEvidence === "absent" && hasManualEvidence) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function evaluateDslForFinding(
+  finding: Finding,
+  policy: CtgPolicy,
+  context: PolicyEvaluationContext
+): { action?: "block" | "hold"; conditions: FailedCondition[] } {
+  const conditions: FailedCondition[] = [];
+  let strongestAction: "block" | "hold" | undefined;
+
+  for (const rule of policy.dsl?.rules ?? []) {
+    if (!dslRuleMatches(finding, rule, context)) {
+      continue;
+    }
+    if (rule.action === "allow") {
+      break;
+    }
+    if (rule.action === "block") {
+      strongestAction = "block";
+      conditions.push({
+        type: "dsl_block",
+        findingId: finding.id,
+        ruleId: finding.ruleId,
+        dslRuleId: rule.id,
+        message: rule.reason ?? `Finding ${finding.id} blocked by policy DSL rule ${rule.id}`,
+      });
+      continue;
+    }
+    if (rule.action === "hold" && strongestAction !== "block") {
+      strongestAction = "hold";
+      conditions.push({
+        type: "dsl_hold",
+        findingId: finding.id,
+        ruleId: finding.ruleId,
+        dslRuleId: rule.id,
+        message: rule.reason ?? `Finding ${finding.id} held for review by policy DSL rule ${rule.id}`,
+      });
+    }
+  }
+
+  return { action: strongestAction, conditions };
+}
+
 /**
  * Evaluate findings against policy
  *
@@ -209,10 +309,12 @@ function determineReadinessStatus(
 export function evaluatePolicy(
   findings: Finding[],
   policy: CtgPolicy,
-  suppressions: SuppressionEntry[] = []
+  suppressions: SuppressionEntry[] = [],
+  context: PolicyEvaluationContext = {}
 ): PolicyEvaluationResult {
   const passedFindings: Finding[] = [];
   const blockedFindings: Finding[] = [];
+  const heldFindings: Finding[] = [];
   const suppressedFindings: Finding[] = [];
   const lowConfidenceFindings: Finding[] = [];
   const failedConditions: FailedCondition[] = [];
@@ -295,10 +397,22 @@ export function evaluatePolicy(
       });
     }
 
+    const dslResult = evaluateDslForFinding(finding, policy, context);
+    if (dslResult.action === "block") {
+      isBlocked = true;
+      blockingReasons.push(...dslResult.conditions);
+    }
+
     // If any blocking condition matched, add to blocked findings and record all reasons
     if (isBlocked) {
       blockedFindings.push(finding);
       failedConditions.push(...blockingReasons);
+      continue;
+    }
+
+    if (dslResult.action === "hold") {
+      heldFindings.push(finding);
+      failedConditions.push(...dslResult.conditions);
       continue;
     }
 
@@ -315,6 +429,7 @@ export function evaluatePolicy(
   const partialAllowed = policy.partial?.allowPartial ?? false;
   const status = determineReadinessStatus(
     blockedFindings,
+    heldFindings,
     lowConfidenceFindings,
     failedConditions,
     partialAllowed
@@ -325,6 +440,7 @@ export function evaluatePolicy(
     totalFindings: findings.length,
     passedCount: passedFindings.length,
     blockedCount: blockedFindings.length,
+    heldCount: heldFindings.length,
     suppressedCount: suppressedFindings.length,
     lowConfidenceCount: lowConfidenceFindings.length,
     severityCounts,
@@ -335,6 +451,7 @@ export function evaluatePolicy(
     status,
     passedFindings,
     blockedFindings,
+    heldFindings,
     suppressedFindings,
     lowConfidenceFindings,
     failedConditions,
@@ -401,6 +518,8 @@ export function generateBlockingSummary(
   const categoryBlocks: Partial<Record<FindingCategory, number>> = {};
   const ruleBlocks: Record<string, number> = {};
   let countThresholdBlocks = 0;
+  let dslBlocks = 0;
+  let dslHolds = 0;
 
   for (const condition of failedConditions) {
     if (condition.type === "severity_block" && condition.severity) {
@@ -411,6 +530,10 @@ export function generateBlockingSummary(
       ruleBlocks[condition.ruleId] = (ruleBlocks[condition.ruleId] || 0) + 1;
     } else if (condition.type === "count_threshold") {
       countThresholdBlocks++;
+    } else if (condition.type === "dsl_block") {
+      dslBlocks++;
+    } else if (condition.type === "dsl_hold") {
+      dslHolds++;
     }
   }
 
@@ -451,6 +574,12 @@ export function generateBlockingSummary(
   if (countThresholdBlocks > 0) {
     parts.push(`${countThresholdBlocks} count threshold(s) exceeded`);
   }
+  if (dslBlocks > 0) {
+    parts.push(`${dslBlocks} Policy DSL block(s)`);
+  }
+  if (dslHolds > 0) {
+    parts.push(`${dslHolds} Policy DSL hold(s)`);
+  }
 
   if (parts.length === 0) {
     return `Blocked by ${blockedFindings.length} findings`;
@@ -468,6 +597,7 @@ export function generateEvaluationSummary(result: PolicyEvaluationResult): strin
   lines.push(`Status: ${result.status}`);
   lines.push(`Total findings: ${result.summary.totalFindings}`);
   lines.push(`Blocked: ${result.summary.blockedCount}`);
+  lines.push(`Held: ${result.summary.heldCount}`);
   lines.push(`Suppressed: ${result.summary.suppressedCount}`);
   lines.push(`Low confidence: ${result.summary.lowConfidenceCount}`);
   lines.push(`Passed: ${result.summary.passedCount}`);

@@ -31,7 +31,7 @@ Usage:
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
   code-to-gate import <tool> <input-file> --out <dir>
     Tools: eslint, semgrep, tsc, coverage, test
-  code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>]
+  code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
@@ -75,6 +75,8 @@ Options:
   --from <dir>       Input artifact directory
   --baseline <file-or-dir>
                      Baseline findings/readiness artifact or artifact directory for ratchet gating
+  --manual-evidence <file>
+                     Manual BB evidence artifact used by Policy DSL
   --emit <formats>   Output formats (all, json, yaml, md, mermaid)
   --require-llm      Require LLM analysis
   --llm-provider     LLM provider (ollama, llamacpp, deterministic)

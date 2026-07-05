@@ -43,6 +43,48 @@ Supported severities are `critical`, `high`, `medium`, `low`, and `info`.
 Common categories include `auth`, `payment`, `data`, `security`,
 `validation`, `testing`, and `maintainability`.
 
+## Policy DSL
+
+Use `dsl.rules` when a release rule depends on context rather than a plain
+severity/category threshold. Initial DSL conditions support severity, category,
+rule ID, baseline ratchet state, and manual evidence.
+
+```yaml
+version: ctg/v1
+policy_id: dsl-release
+
+dsl:
+  rules:
+    - id: critical-always-block
+      when:
+        severity: critical
+      action: block
+      reason: Critical findings always block release.
+    - id: new-security-block
+      when:
+        baseline: new_or_worsened
+        category: security
+      action: block
+      reason: New or worsened security findings must be fixed.
+    - id: manual-evidence-hold
+      when:
+        manual_evidence: present
+      action: hold
+      reason: Manual BB evidence exists; hold for human review.
+```
+
+Actions:
+
+| Action | Readiness effect |
+|--------|------------------|
+| `block` | Adds a DSL failed condition and forces `blocked_input`. |
+| `hold` | Adds a DSL failed condition and forces at least `needs_review`. |
+| `allow` | Suppresses later DSL `block`/`hold` matches for the same finding. |
+
+`baseline: new_or_worsened` matches findings evaluated by the baseline ratchet
+gate. `manual_evidence` is populated by `readiness --manual-evidence <file>`
+and accepts `manual-bb.json` or `manual-bb-seed.json`.
+
 ## Readiness Status
 
 `readiness.criticalFindingStatus` controls the readiness status used when
@@ -76,6 +118,8 @@ readiness:
 ```bash
 code-to-gate analyze ./my-repo --policy ./policy.yaml --emit all --out .qh
 code-to-gate readiness ./my-repo --policy ./policy.yaml --from .qh --out .qh
+code-to-gate readiness ./my-repo --policy ./policy.yaml --from .qh --out .qh \
+  --baseline .qh/baseline-findings.json --manual-evidence .qh/manual-bb.json
 ```
 
 ## Related Docs

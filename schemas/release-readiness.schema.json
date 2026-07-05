@@ -130,7 +130,8 @@
         "testSeeds": { "type": "string" },
         "audit": { "type": "string" },
         "intake": { "type": "string" },
-        "baseline": { "type": "string" }
+        "baseline": { "type": "string" },
+        "manualEvidence": { "type": "string" }
       }
     }
   }

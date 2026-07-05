@@ -346,7 +346,7 @@ Evaluate release readiness using findings and a policy file.
 
 **Usage:**
 ```bash
-code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir> [--baseline <file-or-dir>]
+code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
 ```
 
 **Arguments:**
@@ -362,6 +362,7 @@ code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <
 | `--out <dir>` | `.qh` | Output directory |
 | `--intake <file>` | none | Optional planning artifact such as `project-intake.json` or `phase-contract.yaml`; unresolved critical input issues force `blocked_input` |
 | `--baseline <file-or-dir>` | none | Baseline `findings.json`, artifact directory, or `release-readiness.json` for ratchet gating. When present, policy evaluation only gates new or severity-worsened findings. |
+| `--manual-evidence <file>` | none | Manual BB evidence artifact used by Policy DSL `manual_evidence` conditions. |
 
 **Output:**
 | Artifact | Description |
@@ -388,6 +389,10 @@ code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --ou
 # Ratchet gate against a previous run
 code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh/current --out .qh/current \
   --baseline .qh/previous/findings.json
+
+# Include manual BB evidence for Policy DSL
+code-to-gate readiness ./my-repo --policy ./policies/dsl.yaml --from .qh --out .qh \
+  --manual-evidence .qh/manual-bb.json
 ```
 
 **Baseline / Ratchet Behavior:**
@@ -1151,6 +1156,25 @@ exit:
   fail_on_critical: true
   fail_on_high: true
   warn_only: false
+
+dsl:
+  rules:
+    - id: critical-always-block
+      when:
+        severity: critical
+      action: block
+      reason: Critical findings always block release.
+    - id: new-security-block
+      when:
+        baseline: new_or_worsened
+        category: security
+      action: block
+      reason: New or worsened security findings must be fixed.
+    - id: manual-evidence-hold
+      when:
+        manual_evidence: present
+      action: hold
+      reason: Manual BB evidence exists; hold for human review.
 ```
 
 ### Blocking Configuration
@@ -1212,3 +1236,19 @@ suppressions:
 | `fail_on_critical` | Exit with error on critical findings |
 | `fail_on_high` | Exit with error on high findings |
 | `warn_only` | Never fail, only warn |
+
+### Policy DSL
+
+`dsl.rules` adds context-aware gate rules on top of the existing fixed
+thresholds.
+
+| Field | Description |
+|-------|-------------|
+| `id` | Stable rule ID used in readiness failed conditions |
+| `when.severity` | Match one severity: `critical`, `high`, `medium`, or `low` |
+| `when.category` | Match one finding category |
+| `when.rule_id` | Match one finding rule ID |
+| `when.baseline` | `new_or_worsened` matches findings selected by baseline ratchet |
+| `when.manual_evidence` | `present` or `absent` based on `--manual-evidence` |
+| `action` | `block`, `hold`, or `allow` |
+| `reason` | Human-readable failed condition reason |

@@ -180,9 +180,29 @@ Commands:
 - QEOS-002 PR Reviewer Bot
 - QEOS-011 Schema Evolution
 - QEOS-012 Importer Expansion
-- QEOS-014 Policy DSL
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
 - QEOS-018 AI Code Review Mode
 - QEOS-019 Historical Quality Trend
 - QEOS-020 Hosted Static Report
+
+## Task Seed QEOS-P1-06 Policy DSL
+
+Objective: gate policy を固定thresholdだけでなく、YAML rules で new/worsened、manual evidence、critical always block などを表現できるようにする。
+
+Status: done
+
+Requirements:
+
+- policy YAML の `dsl.rules` を読み込める。
+- DSL rule は `id`、`when`、`action`、optional `reason` を持つ。
+- `when.severity`、`when.category`、`when.rule_id`、`when.baseline: new_or_worsened`、`when.manual_evidence: present|absent` を評価できる。
+- `action: block` は `blocked_input`、`action: hold` は `needs_review` の failed condition に反映する。
+- `action: allow` は DSL 内の block/hold を抑止する。
+- `readiness --manual-evidence <file>` で manual-bb artifact を policy context に入れられる。
+
+Commands:
+
+- `npx vitest run src/config/__tests__/policy-loader.test.ts src/config/__tests__/policy-evaluator.test.ts src/cli/__tests__/readiness.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`

@@ -277,6 +277,119 @@ describe("policy-evaluator", () => {
       expect(result.status).toBe("passed");
       expect(result.passedFindings).toHaveLength(1);
     });
+
+    it("blocks findings with Policy DSL block action", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.critical = false;
+      policy.blocking.severity.high = false;
+      policy.blocking.category.auth = false;
+      policy.blocking.category.security = false;
+      policy.blocking.countThreshold = { criticalMax: 10, highMax: 10, mediumMax: 10 };
+      policy.dsl = {
+        rules: [
+          {
+            id: "critical-always-block",
+            when: { severity: "critical" },
+            action: "block",
+            reason: "Critical findings always block.",
+          },
+        ],
+      };
+
+      const result = evaluatePolicy([
+        createMockFinding("f1", "RULE_001", "critical", "auth", 0.9),
+      ], policy);
+
+      expect(result.status).toBe("blocked_input");
+      expect(result.blockedFindings).toHaveLength(1);
+      expect(result.failedConditions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "dsl_block", dslRuleId: "critical-always-block" }),
+        ])
+      );
+    });
+
+    it("holds findings with manual evidence via Policy DSL", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.critical = false;
+      policy.blocking.severity.high = false;
+      policy.blocking.category.maintainability = false;
+      policy.dsl = {
+        rules: [
+          {
+            id: "manual-evidence-hold",
+            when: { manualEvidence: "present" },
+            action: "hold",
+          },
+        ],
+      };
+
+      const result = evaluatePolicy([
+        createMockFinding("f1", "RULE_001", "medium", "maintainability", 0.9),
+      ], policy, [], { manualEvidenceFindingIds: ["f1"] });
+
+      expect(result.status).toBe("needs_review");
+      expect(result.heldFindings).toHaveLength(1);
+      expect(result.failedConditions[0]).toMatchObject({
+        type: "dsl_hold",
+        dslRuleId: "manual-evidence-hold",
+      });
+    });
+
+    it("matches baseline new_or_worsened findings with Policy DSL", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.critical = false;
+      policy.blocking.severity.high = false;
+      policy.blocking.category.security = false;
+      policy.dsl = {
+        rules: [
+          {
+            id: "new-or-worsened-security",
+            when: { baseline: "new_or_worsened", category: "security" },
+            action: "block",
+          },
+        ],
+      };
+
+      const result = evaluatePolicy([
+        createMockFinding("f1", "RULE_001", "medium", "security", 0.9),
+      ], policy, [], { baselineNewOrWorsenedFindingIds: ["f1"] });
+
+      expect(result.status).toBe("blocked_input");
+      expect(result.failedConditions[0]).toMatchObject({
+        type: "dsl_block",
+        dslRuleId: "new-or-worsened-security",
+      });
+    });
+
+    it("allows findings before later Policy DSL block rules", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.critical = false;
+      policy.blocking.severity.high = false;
+      policy.blocking.category.maintainability = false;
+      policy.dsl = {
+        rules: [
+          {
+            id: "allow-large-module",
+            when: { ruleId: "LARGE_MODULE" },
+            action: "allow",
+          },
+          {
+            id: "medium-hold",
+            when: { severity: "medium" },
+            action: "hold",
+          },
+        ],
+      };
+
+      const result = evaluatePolicy([
+        createMockFinding("f1", "LARGE_MODULE", "medium", "maintainability", 0.9),
+      ], policy);
+
+      expect(result.status).toBe("passed");
+      expect(result.failedConditions).toHaveLength(0);
+      expect(result.passedFindings).toHaveLength(1);
+    });
   });
 
   describe("getExitCode", () => {

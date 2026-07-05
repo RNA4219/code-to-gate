@@ -75,6 +75,48 @@ function writeFindingsToDir(dir: string, findings: object[]): string {
   return dir;
 }
 
+function writePolicyDslPolicy(filePath: string, dslYaml: string): string {
+  writeFileSync(
+    filePath,
+    `
+version: ctg/v1
+policy_id: policy-dsl-test
+
+blocking:
+  severity:
+    critical: false
+    high: false
+    medium: false
+    low: false
+  category:
+    auth: false
+    payment: false
+    validation: false
+    data: false
+    config: false
+    maintainability: false
+    testing: false
+    compatibility: false
+    release-risk: false
+    security: false
+  count_threshold:
+    critical_max: 10
+    high_max: 10
+    medium_max: 10
+
+confidence:
+  min_confidence: 0.1
+  low_confidence_threshold: 0.1
+  filter_low: false
+
+dsl:
+${dslYaml}
+`,
+    "utf8"
+  );
+  return filePath;
+}
+
 // Helper: Run readiness and get result
 async function runReadiness(args: string[]): Promise<{ exitCode: number; readiness: object }> {
   const result = await readinessCommand(args, { VERSION, EXIT, getOption });
@@ -356,6 +398,76 @@ suppression:
         expect(["passed", "passed_with_risk"]).toContain(readiness.status);
       }
     });
+
+    it("holds matching findings when Policy DSL sees manual evidence", async () => {
+      const policyPath = writePolicyDslPolicy(
+        path.join(tempOutDir, "manual-evidence-dsl.yaml"),
+        [
+          "  rules:",
+          "    - id: manual-evidence-hold",
+          "      when:",
+          "        manual_evidence: present",
+          "      action: hold",
+          "      reason: Manual BB evidence requires release review.",
+        ].join("\n")
+      );
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "manual-evidence-findings"), [
+        createFinding({
+          id: "finding-001",
+          ruleId: "MANUAL_REVIEW_TARGET",
+          category: "maintainability",
+          severity: "medium",
+        }),
+      ]);
+      const manualEvidencePath = path.join(tempOutDir, "manual-bb.json");
+      writeFileSync(
+        manualEvidencePath,
+        JSON.stringify({
+          version: "ctg.manual-bb/v1",
+          producer: "code-to-gate",
+          run_id: "readiness-dsl",
+          scope: { repo: ".", changed_files: [], affected_entrypoints: [] },
+          risk_seeds: [
+            {
+              id: "risk-finding-001",
+              title: "Manual check",
+              severity: "medium",
+              evidence: [],
+              suggested_test_intents: [],
+            },
+          ],
+          invariant_seeds: [],
+          test_seed_refs: [],
+          known_gaps: [],
+          oracle_gaps: [],
+        }),
+        "utf8"
+      );
+
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyPath,
+        "--from",
+        findingsDir,
+        "--out",
+        tempOutDir,
+        "--manual-evidence",
+        manualEvidencePath,
+      ]);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("needs_review");
+      expect(readiness.artifactRefs.manualEvidence).toBe(manualEvidencePath);
+      expect(readiness.failedConditions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "POLICY_DSL_HOLD_manual-evidence-hold",
+            matchedFindingIds: ["finding-001"],
+          }),
+        ])
+      );
+    });
   });
 
   describe("baseline ratchet gate", () => {
@@ -550,6 +662,55 @@ suppression:
       expect(exitCode).toBe(EXIT.OK);
       expect(readiness.baseline.unchangedFindings).toBe(1);
       expect(readiness.baseline.gatedFindingIds).toEqual([]);
+    });
+
+    it("blocks new security findings through Policy DSL baseline context", async () => {
+      const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-dsl"), []);
+      const currentDir = writeFindingsToDir(path.join(tempOutDir, "current-dsl"), [
+        createFinding({
+          id: "new-security",
+          ruleId: "SECURITY_REVIEW",
+          category: "security",
+          severity: "medium",
+          fingerprint: "newsecuritydsl01",
+        }),
+      ]);
+      const policyPath = writePolicyDslPolicy(
+        path.join(tempOutDir, "baseline-dsl-policy.yaml"),
+        [
+          "  rules:",
+          "    - id: new-security-block",
+          "      when:",
+          "        baseline: new_or_worsened",
+          "        category: security",
+          "      action: block",
+          "      reason: New security findings block release.",
+        ].join("\n")
+      );
+
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyPath,
+        "--from",
+        currentDir,
+        "--out",
+        tempOutDir,
+        "--baseline",
+        baselineDir,
+      ]);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.baseline.gatedFindingIds).toEqual(["new-security"]);
+      expect(readiness.failedConditions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "POLICY_DSL_BLOCK_new-security-block",
+            matchedFindingIds: ["new-security"],
+          }),
+        ])
+      );
     });
   });
 

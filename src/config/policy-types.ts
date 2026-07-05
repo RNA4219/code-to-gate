@@ -3,6 +3,8 @@
  * Types and interfaces for policy configuration
  */
 
+import type { FindingCategory, Severity } from "../types/artifacts.js";
+
 export const POLICY_VERSION = "ctg/v1";
 
 /**
@@ -149,6 +151,30 @@ export interface ExitConfig {
   warnOnly?: boolean;
 }
 
+export type PolicyDslAction = "block" | "hold" | "allow";
+export type PolicyDslBaseline = "new_or_worsened";
+export type PolicyDslManualEvidence = "present" | "absent";
+
+export interface PolicyDslWhen {
+  severity?: Severity;
+  category?: FindingCategory;
+  ruleId?: string;
+  baseline?: PolicyDslBaseline;
+  manualEvidence?: PolicyDslManualEvidence;
+}
+
+export interface PolicyDslRule {
+  id: string;
+  description?: string;
+  when: PolicyDslWhen;
+  action: PolicyDslAction;
+  reason?: string;
+}
+
+export interface PolicyDslConfig {
+  rules: PolicyDslRule[];
+}
+
 /**
  * Full policy schema
  */
@@ -162,6 +188,7 @@ export interface CtgPolicy {
   partial?: PartialConfig;
   baseline?: BaselineConfig;
   exit?: ExitConfig;
+  dsl?: PolicyDslConfig;
 }
 
 /**
@@ -241,6 +268,9 @@ export function createDefaultPolicy(): CtgPolicy {
       failOnCritical: true,
       failOnHigh: true,
       warnOnly: false,
+    },
+    dsl: {
+      rules: [],
     },
   };
 }

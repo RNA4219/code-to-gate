@@ -248,3 +248,18 @@ P1 Release Evidence Pack の初期 acceptance は次の通り。
   artifact hash、CI URL を人間が確認できる形で表示する。
 - required evidence が欠ける場合は `status: "partial"` と missing entry を出し、
   `--allow-partial` なしでは `READINESS_NOT_CLEAR` を返す。
+
+P1 Policy DSL の初期 acceptance は次の通り。
+
+- policy YAML は optional `dsl.rules` を持てる。
+- DSL rule は `id`、`when`、`action`、optional `reason` を持つ。
+- `when` は `severity`、`category`、`rule_id`、`baseline: new_or_worsened`、
+  `manual_evidence: present|absent` を表現できる。
+- `action: block` は `blocked_input` の failed condition になる。
+- `action: hold` は `needs_review` の failed condition になる。
+- `action: allow` は同じ finding に対する DSL block/hold を抑止し、
+  既存 severity/category/rule gate の互換挙動は壊さない。
+- `readiness --baseline` の ratchet 対象 finding は `baseline: new_or_worsened`
+  として評価できる。
+- `readiness --manual-evidence <file>` は manual-bb JSON の finding/risk/id
+  参照を読み、`manual_evidence` 条件に使える。
