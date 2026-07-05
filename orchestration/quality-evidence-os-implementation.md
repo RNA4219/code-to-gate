@@ -136,10 +136,28 @@ Commands:
 - `npm run lint`
 - `npm run docs:lint-refs`
 
+## Task Seed QEOS-P2-02 Quality Packs
+
+Objective: OSS利用者が最初の policy/rule/export 構成を迷わず適用できるよう、用途別 preset を提供する。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate pack list` で bundled pack を一覧できる。
+- `code-to-gate pack show <id>` で `quality-pack.json` を生成できる。
+- `code-to-gate pack export-policy <id> --out <file>` で readiness-compatible policy YAML を生成できる。
+- 初期 pack は `security-basic`、`release-evidence`、`frontend-risk`、`api-contract`、`ai-generated-code`、`compliance-lite` とする。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/pack.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
 ## Task Seed QEOS-P2/P3 Backlog
 
 - QEOS-002 PR Reviewer Bot
-- QEOS-007 Quality Packs
 - QEOS-011 Schema Evolution
 - QEOS-012 Importer Expansion
 - QEOS-013 Release Evidence Pack

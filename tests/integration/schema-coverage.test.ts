@@ -106,6 +106,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates quality-pack schema", () => {
+      const schemaFile = schemaPath("quality-pack");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -215,6 +223,7 @@ describe("schema coverage integration", () => {
         "invariants.schema.json",
         "test-seeds.schema.json",
         "test-plan.schema.json",
+        "quality-pack.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "spec-drift.schema.json",
@@ -717,6 +726,62 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalTestPlanPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal quality-pack artifact", () => {
+      const minimalQualityPackPath = path.join(tempDir, "minimal-quality-pack.json");
+      writeFileSync(
+        minimalQualityPackPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "quality-pack-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "quality-pack",
+          schema: "quality-pack@v1",
+          completeness: "complete",
+          pack: {
+            id: "security-basic",
+            name: "Security Basic",
+            description: "Baseline security pack.",
+            useCase: "CI security gate.",
+            maturity: "stable",
+            tags: ["security"],
+            rules: {
+              include: ["HARDCODED_SECRET"],
+              block: ["HARDCODED_SECRET"],
+              warn: [],
+            },
+            policy: {
+              blocking: {
+                severity: { critical: true, high: true, medium: false, low: false },
+                category: { security: true },
+                rules: { HARDCODED_SECRET: true },
+              },
+              confidence: {
+                minConfidence: 0.6,
+                lowConfidenceThreshold: 0.4,
+                filterLow: true,
+              },
+              baseline: {
+                enabled: true,
+                newFindingsBlock: true,
+              },
+              llm: {
+                mode: "local-only",
+                requireLlm: false,
+              },
+            },
+            exports: ["qeg-code-to-gate"],
+            recommendedCommands: ["code-to-gate analyze . --out .qh"],
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalQualityPackPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

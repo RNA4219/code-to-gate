@@ -14,6 +14,7 @@ import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { assuranceCommand } from "./cli/assurance.js";
 import { specDriftCommand } from "./cli/spec-drift.js";
 import { ruleCommand } from "./cli/rule.js";
+import { packCommand } from "./cli/pack.js";
 import { doctorCommand } from "./cli/doctor.js";
 import { testPlanCommand } from "./cli/test-plan.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
@@ -39,6 +40,10 @@ Usage:
     Commands: new
     new: Create a fixture-based custom rule scaffold
          code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
+  code-to-gate pack <command>
+    Commands: list, show, export-policy
+    show:          code-to-gate pack show <id> [--out <file-or-dir>] [--quiet]
+    export-policy: code-to-gate pack export-policy <id> --out <file> [--quiet]
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
@@ -164,6 +169,10 @@ async function main(): Promise<number> {
 
     if (command === "rule") {
       return await ruleCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "pack") {
+      return await packCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "doctor") {

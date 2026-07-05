@@ -550,6 +550,63 @@ export interface TestPlanArtifact extends ArtifactHeader {
   };
 }
 
+// === Quality Pack ===
+
+export type QualityPackId =
+  | "security-basic"
+  | "release-evidence"
+  | "frontend-risk"
+  | "api-contract"
+  | "ai-generated-code"
+  | "compliance-lite";
+
+export interface QualityPackRules {
+  include: string[];
+  block: string[];
+  warn: string[];
+}
+
+export interface QualityPackPolicyProfile {
+  blocking: {
+    severity: Partial<Record<Severity, boolean>>;
+    category: Partial<Record<FindingCategory, boolean>>;
+    rules: Record<string, boolean>;
+  };
+  confidence: {
+    minConfidence: number;
+    lowConfidenceThreshold: number;
+    filterLow: boolean;
+  };
+  baseline?: {
+    enabled: boolean;
+    newFindingsBlock: boolean;
+  };
+  llm?: {
+    mode: "local-only" | "none";
+    requireLlm: boolean;
+  };
+}
+
+export interface QualityPackDefinition {
+  id: QualityPackId;
+  name: string;
+  description: string;
+  useCase: string;
+  maturity: "stable" | "preview";
+  tags: string[];
+  rules: QualityPackRules;
+  policy: QualityPackPolicyProfile;
+  exports: string[];
+  recommendedCommands: string[];
+}
+
+export interface QualityPackArtifact extends ArtifactHeader {
+  artifact: "quality-pack";
+  schema: "quality-pack@v1";
+  completeness: Completeness;
+  pack: QualityPackDefinition;
+}
+
 // === Normalized Repo Graph (for analyze input) ===
 
 export interface RepoFile {

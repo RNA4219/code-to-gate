@@ -68,7 +68,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-004 | Spec Drift Detector | P1 | README/RUNBOOK/schema/実装/テストの不整合を `spec-drift.json` と `release-risk` finding にできる |
 | QEOS-005 | QEG Viewer | P1 | QEG JSON を standalone HTML として閲覧でき、finding単位に drill-down できる |
 | QEOS-006 | Rule SDK | P2 | `code-to-gate rule new <id>` で rule/test/docs/schema fixture の雛形を生成できる |
-| QEOS-007 | Quality Packs | P2 | `security-basic` などの pack を選択し、rule/policy/export を一括適用できる |
+| QEOS-007 | Quality Packs | P2 | `code-to-gate pack list/show/export-policy` で pack contract と readiness policy YAML を生成できる |
 | QEOS-008 | Auto Test Selection | P1 | diff blast radius から `test-plan.json` と oracle gap を出力できる |
 | QEOS-009 | Manual BB First-Class | P1 | oracle不足・手動確認が必要な risk を manual-bb seed に明示できる |
 | QEOS-010 | LLM Trust Boundary | P0 | LLM主張は evidence-bound で、unsupported claim は gate外に隔離される |

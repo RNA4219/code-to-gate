@@ -37,6 +37,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "invariants.yaml": "invariants.schema.json",
   "test-seeds.json": "test-seeds.schema.json",
   "test-plan.json": "test-plan.schema.json",
+  "quality-pack.json": "quality-pack.schema.json",
   "release-readiness.json": "release-readiness.schema.json",
   "audit.json": "audit.schema.json",
   "database-assets.json": "database-assets.schema.json",

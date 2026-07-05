@@ -37,6 +37,7 @@
     "dist/historical/",
     "dist/plugin/",
     "dist/rule-sdk/",
+    "dist/quality-packs/",
     "dist/self-analysis/",
     "dist/spec-drift/",
     "dist/doctor/",

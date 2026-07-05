@@ -16,6 +16,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [historical](#historical)
    - [spec-drift](#spec-drift)
    - [rule](#rule)
+   - [pack](#pack)
    - [doctor](#doctor)
    - [test-plan](#test-plan)
    - [llm-health](#llm-health)
@@ -52,6 +53,7 @@ These options apply to all commands:
 | `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
 | `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
+| `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 
@@ -603,6 +605,63 @@ code-to-gate rule new payment-total --category payment --severity critical --out
 |------|------|-------------|
 | 0 | OK | Rule scaffold was created |
 | 2 | USAGE_ERROR | Invalid rule id, category, severity, or existing target without `--force` |
+
+---
+
+### pack
+
+Use bundled Quality Packs to bootstrap policy and evidence workflows without
+hand-authoring the first `.ctg/policy.yaml`.
+
+**Usage:**
+```bash
+code-to-gate pack list [--quiet]
+code-to-gate pack show <id> [--out <file-or-dir>] [--quiet]
+code-to-gate pack export-policy <id> --out <file> [--quiet]
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `list` | List bundled pack IDs, names, maturity, and tags. |
+| `show <id>` | Emit the full `quality-pack@v1` contract to stdout or `quality-pack.json`. |
+| `export-policy <id>` | Write a readiness-compatible policy YAML for the selected pack. |
+
+**Initial Packs:**
+| Pack | Focus |
+|------|-------|
+| `security-basic` | Secrets, auth, validation, redirects, rate limits, and SQL risks |
+| `release-evidence` | Suppression debt, untested critical paths, debt markers, and evidence exports |
+| `frontend-risk` | Client-trusted values, server validation, redirects, env access, and deprecated APIs |
+| `api-contract` | Backend auth, request validation, rate limits, SQL, and database changes |
+| `ai-generated-code` | Generated-code review risks such as swallowed errors, validation gaps, and test gaps |
+| `compliance-lite` | Lightweight audit posture for secrets, env usage, debt, and data changes |
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--out <file-or-dir>` | stdout for `show`, required file for `export-policy` | Output destination. `show` writes `quality-pack.json` when given a directory. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `quality-pack.json` | Pack contract, recommended commands, rule profile, policy profile, and expected exports |
+| `.ctg/policy.yaml` | Policy YAML usable by `analyze` and `readiness` |
+
+**Example:**
+```bash
+code-to-gate pack list
+code-to-gate pack show security-basic --out .qh
+code-to-gate pack export-policy security-basic --out .ctg/policy.yaml
+code-to-gate analyze . --policy .ctg/policy.yaml --emit all --out .qh
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Pack command completed |
+| 2 | USAGE_ERROR | Unknown pack, unknown subcommand, or invalid arguments |
 
 ---
 
