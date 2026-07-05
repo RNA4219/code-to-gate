@@ -181,7 +181,6 @@ Commands:
 - QEOS-011 Schema Evolution
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
-- QEOS-020 Hosted Static Report
 
 ## Task Seed QEOS-P1-06 Policy DSL
 
@@ -260,5 +259,24 @@ Requirements:
 Commands:
 
 - `npx vitest run src/historical/__tests__/comparison.test.ts tests/integration/schema-coverage.test.ts src/viewer/__tests__/report-viewer.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-05 Hosted Static Report
+
+Objective: GitHub Pages / artifact preview にそのまま出せる単一HTML品質レポートと、公開用manifestを生成する。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate viewer --from <dir> --out <file> --hosted` は HTML と `hosted-static-report.json` を生成できる。
+- `hosted-static-report.json` は `hosted-static-report@v1` schema に合格する。
+- manifest は HTML hash、size、single-file guarantee、source artifact hash、host target、optional public URL を含む。
+- `--hosted-target` は `github-pages`、`artifact-preview`、`generic-static` を受け付け、不正値を usage error にする。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/viewer.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`

@@ -23,6 +23,7 @@ optional artifact / optional field を追加する。
 | `release-pack.json` | release evidence pack manifest | P1 |
 | `release-pack.html` | human-readable release evidence review | P1 |
 | `release-pack.zip` | release evidence pack archive | P1 |
+| `hosted-static-report.json` | static hosting manifest for single-file viewer HTML | P2 |
 | `doctor.json` | local/CI readiness diagnosis | P0 |
 
 ## 2. Baseline/Ratchet Gate
@@ -297,3 +298,13 @@ P2 Historical Quality Trend の初期 acceptance は次の通り。
   risk trend、timeline history points を含む。
 - `viewer --from <dir>` は `historical-comparison.json` がある場合に Historical tab
   と timeline bars を表示できる。
+
+P2 Hosted Static Report の初期 acceptance は次の通り。
+
+- `code-to-gate viewer --from <dir> --out <file> --hosted` は単一HTMLと
+  隣接する `hosted-static-report.json` を生成できる。
+- `hosted-static-report.json` は `hosted-static-report@v1` schema に合格する。
+- manifest は HTML の SHA-256、size、single-file guarantee、source artifact hash、
+  static host target、optional public URL を含む。
+- `--hosted-target` は `github-pages`、`artifact-preview`、`generic-static`
+  を受け付け、未知の target は usage error にする。

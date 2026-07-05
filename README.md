@@ -57,6 +57,7 @@ code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 code-to-gate spec-drift ./my-repo --out .qh
 code-to-gate export sarif --from .qh --out results.sarif
 code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
+code-to-gate viewer --from .qh --out public/index.html --hosted
 ```
 
 For database migration analysis (preview surface):
@@ -82,6 +83,7 @@ preview/experimental surface and should not be treated as part of the stable
 | `release-readiness.json` | Policy gate result |
 | `evidence-dag.json` | Cross-artifact evidence graph |
 | `spec-drift.json` | Docs, schema, CLI, and test drift checks |
+| `hosted-static-report.json` | Static hosting manifest for a single-file HTML report |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 

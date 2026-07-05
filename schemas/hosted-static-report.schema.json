@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/hosted-static-report.schema.json",
+  "title": "HostedStaticReportArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "target",
+    "html",
+    "sourceArtifacts",
+    "security",
+    "compatibleHosts",
+    "generated_by"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "hosted-static-report" },
+    "schema": { "const": "hosted-static-report@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "target": { "$ref": "#/$defs/target" },
+    "publicUrl": { "type": "string", "minLength": 1 },
+    "html": {
+      "type": "object",
+      "required": ["path", "hashSha256", "sizeBytes", "singleFile", "externalAssets"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "hashSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "singleFile": { "const": true },
+        "externalAssets": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sourceArtifact" }
+    },
+    "security": {
+      "type": "object",
+      "required": ["selfContained", "externalNetworkRequired", "inlineAssets"],
+      "additionalProperties": false,
+      "properties": {
+        "selfContained": { "const": true },
+        "externalNetworkRequired": { "const": false },
+        "inlineAssets": { "const": true }
+      }
+    },
+    "compatibleHosts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/target" }
+    },
+    "generated_by": { "const": "ctg-viewer-hosted-v1" }
+  },
+  "$defs": {
+    "target": {
+      "enum": ["github-pages", "artifact-preview", "generic-static"]
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["id", "file", "hashSha256", "sizeBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "file": { "type": "string", "minLength": 1 },
+        "schema": { "type": "string", "minLength": 1 },
+        "hashSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "generatedAt": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" }
+      }
+    }
+  }
+}

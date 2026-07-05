@@ -18,6 +18,7 @@ export const SCHEMA_VERSIONS = {
   testSeeds: "test-seeds@v1",
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
+  hostedStaticReport: "hosted-static-report@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1",
@@ -34,6 +35,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   testSeeds: "test-seeds@v1",
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
+  hostedStaticReport: "hosted-static-report@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1alpha1",
@@ -669,6 +671,42 @@ export interface ReleasePackArtifact extends ArtifactHeader {
     changedFiles: number;
     ciUrl?: string;
   };
+}
+
+// === Hosted Static Report ===
+
+export type HostedStaticReportTarget = "github-pages" | "artifact-preview" | "generic-static";
+
+export interface HostedStaticReportSourceArtifact {
+  id: string;
+  file: string;
+  schema?: string;
+  hashSha256: string;
+  sizeBytes: number;
+  generatedAt?: string;
+}
+
+export interface HostedStaticReportArtifact extends ArtifactHeader {
+  artifact: "hosted-static-report";
+  schema: "hosted-static-report@v1";
+  completeness: Completeness;
+  target: HostedStaticReportTarget;
+  publicUrl?: string;
+  html: {
+    path: string;
+    hashSha256: string;
+    sizeBytes: number;
+    singleFile: boolean;
+    externalAssets: string[];
+  };
+  sourceArtifacts: HostedStaticReportSourceArtifact[];
+  security: {
+    selfContained: boolean;
+    externalNetworkRequired: boolean;
+    inlineAssets: boolean;
+  };
+  compatibleHosts: HostedStaticReportTarget[];
+  generated_by: "ctg-viewer-hosted-v1";
 }
 
 // === Normalized Repo Graph (for analyze input) ===

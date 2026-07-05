@@ -122,6 +122,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates hosted-static-report schema", () => {
+      const schemaFile = schemaPath("hosted-static-report");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -241,6 +249,7 @@ describe("schema coverage integration", () => {
         "test-plan.schema.json",
         "quality-pack.schema.json",
         "release-pack.schema.json",
+        "hosted-static-report.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "historical-comparison.schema.json",
@@ -932,6 +941,53 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalReleasePackPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal hosted-static-report artifact", () => {
+      const minimalHostedReportPath = path.join(tempDir, "minimal-hosted-static-report.json");
+      writeFileSync(
+        minimalHostedReportPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "hosted-report-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "hosted-static-report",
+          schema: "hosted-static-report@v1",
+          completeness: "complete",
+          target: "github-pages",
+          publicUrl: "https://example.github.io/repo/",
+          html: {
+            path: "public/index.html",
+            hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            sizeBytes: 1200,
+            singleFile: true,
+            externalAssets: [],
+          },
+          sourceArtifacts: [
+            {
+              id: "findings",
+              file: ".qh/findings.json",
+              schema: "findings@v1",
+              hashSha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              sizeBytes: 512,
+              generatedAt: "2024-01-01T00:00:00Z",
+            },
+          ],
+          security: {
+            selfContained: true,
+            externalNetworkRequired: false,
+            inlineAssets: true,
+          },
+          compatibleHosts: ["github-pages", "artifact-preview", "generic-static"],
+          generated_by: "ctg-viewer-hosted-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalHostedReportPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

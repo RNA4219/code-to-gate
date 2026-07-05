@@ -57,6 +57,7 @@ These options apply to all commands:
 | `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
+| `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 
 ### scan
@@ -488,7 +489,7 @@ Generate a standalone HTML report from an artifact directory.
 
 **Usage:**
 ```bash
-code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
+code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>]
 ```
 
 **Options:**
@@ -498,15 +499,32 @@ code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
 | `--out <file>` | stdout/default path | HTML output path |
 | `--title <title>` | `code-to-gate Report` | Report title |
 | `--dark` | false | Render dark theme |
+| `--hosted` | false | Generate `hosted-static-report.json` next to the HTML output |
+| `--public-url <url>` | none | Expected URL after publishing the HTML report |
+| `--hosted-target <target>` | `generic-static` | Static host target: `github-pages`, `artifact-preview`, or `generic-static` |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `viewer-report.html` | Single-file HTML report with embedded CSS and JavaScript |
+| `hosted-static-report.json` | Hosted report manifest with HTML hash, size, source artifact hashes, target, and optional public URL |
 
 **Example:**
 ```bash
 code-to-gate viewer --from .qh --out .qh/report.html --title "Release Review"
+code-to-gate viewer --from .qh --out public/index.html --hosted \
+  --hosted-target github-pages --public-url https://example.github.io/repo/
+code-to-gate schema validate public/hosted-static-report.json
 ```
 
 When `.qh/qeg-code-to-gate.json` or `.qh/evidence-dag.json` exists, the viewer
 adds a QEG tab with readiness status, schema compliance, artifact hashes,
 Evidence DAG finding drill-down, and manual test candidates.
+
+Hosted mode keeps the report as a single HTML file for GitHub Pages, artifact
+preview, or a generic static file server. The adjacent manifest records
+`hosted-static-report@v1`, the HTML SHA-256 hash, source artifact hashes, and
+the declared static hosting target.
 
 ---
 

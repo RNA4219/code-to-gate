@@ -34,7 +34,7 @@ Usage:
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag
-  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
+  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate spec-drift <repo> --out <dir>
   code-to-gate rule <command>
@@ -97,6 +97,10 @@ Options:
   --verbose          Show detailed progress and timing information
   --title <title>    Report title for viewer
   --dark             Enable dark mode for viewer
+  --hosted           Write hosted-static-report.json next to viewer HTML
+  --public-url <url> Expected hosted URL for viewer report
+  --hosted-target <target>
+                     Static host target: github-pages, artifact-preview, generic-static
   --current <dir>    Current run artifact directory (historical)
   --previous <dir>   Previous run artifact directory (historical)
   --history <dir>    Directory with historical runs for trend analysis

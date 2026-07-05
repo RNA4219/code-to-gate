@@ -112,3 +112,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   validation/testing/maintainability/compatibility risk review mode。
 - QEOS-019: `code-to-gate historical` と viewer Historical tab による
   readiness/finding trend と regression の時系列表示。
+- QEOS-020: `code-to-gate viewer --hosted` による単一HTML品質レポートと
+  `hosted-static-report@v1` manifest の GitHub Pages / artifact preview 対応。

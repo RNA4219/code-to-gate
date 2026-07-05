@@ -5,7 +5,8 @@
  * No external dependencies - all CSS and JavaScript are embedded.
  */
 
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 
 import { VERSION } from "./exit-codes.js";
@@ -15,6 +16,8 @@ import {
   TestSeedsArtifact,
   ReleaseReadinessArtifact,
   EvidenceDagArtifact,
+  HostedStaticReportArtifact,
+  HostedStaticReportTarget,
 } from "../types/artifacts.js";
 import type { HistoricalSummaryReport } from "../historical/types.js";
 import { NormalizedRepoGraph } from "../types/graph.js";
@@ -24,6 +27,18 @@ import {
   LoadedArtifacts,
   ReportViewerConfig,
 } from "../viewer/index.js";
+
+const HOSTED_SOURCE_FILES = [
+  { id: "findings", file: "findings.json" },
+  { id: "risk-register", file: "risk-register.json" },
+  { id: "risk-register", file: "risk-register.yaml" },
+  { id: "test-seeds", file: "test-seeds.json" },
+  { id: "release-readiness", file: "release-readiness.json" },
+  { id: "repo-graph", file: "repo-graph.json" },
+  { id: "historical-comparison", file: "historical-comparison.json" },
+  { id: "qeg-code-to-gate", file: "qeg-code-to-gate.json" },
+  { id: "evidence-dag", file: "evidence-dag.json" },
+] as const;
 
 export interface ExitCodes {
   OK: number;
@@ -144,6 +159,127 @@ function loadArtifactsFromDir(artifactDir: string): LoadedArtifacts {
   return artifacts;
 }
 
+function sha256(content: Buffer | string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function relativeToCwd(cwd: string, filePath: string): string {
+  return path.relative(cwd, filePath) || ".";
+}
+
+function readJsonObject(filePath: string): Record<string, unknown> | null {
+  if (!filePath.endsWith(".json")) {
+    return null;
+  }
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function parseHostedTarget(value: string | undefined): HostedStaticReportTarget | null {
+  if (!value) {
+    return "generic-static";
+  }
+  if (value === "github-pages" || value === "artifact-preview" || value === "generic-static") {
+    return value;
+  }
+  return null;
+}
+
+function chooseRunId(artifacts: LoadedArtifacts): string {
+  return (
+    artifacts.findings?.run_id ||
+    artifacts.readiness?.run_id ||
+    artifacts.graph?.run_id ||
+    artifacts.historicalComparison?.run_id ||
+    artifacts.evidenceDag?.run_id ||
+    artifacts.qegEvidence?.run_id ||
+    `viewer-report-${Date.now()}`
+  );
+}
+
+function chooseRepoRoot(artifacts: LoadedArtifacts, artifactDir: string): string {
+  return (
+    artifacts.findings?.repo?.root ||
+    artifacts.readiness?.repo?.root ||
+    artifacts.graph?.repo?.root ||
+    artifacts.historicalComparison?.repo?.root ||
+    artifacts.evidenceDag?.repo?.root ||
+    artifactDir
+  );
+}
+
+function collectHostedSourceArtifacts(artifactDir: string, cwd: string): HostedStaticReportArtifact["sourceArtifacts"] {
+  const entries: HostedStaticReportArtifact["sourceArtifacts"] = [];
+
+  for (const source of HOSTED_SOURCE_FILES) {
+    const filePath = path.join(artifactDir, source.file);
+    if (!existsSync(filePath)) {
+      continue;
+    }
+
+    const content = readFileSync(filePath);
+    const stats = statSync(filePath);
+    const parsed = readJsonObject(filePath);
+    const schemaValue = parsed?.schema ?? parsed?.version;
+    const generatedAt = typeof parsed?.generated_at === "string" ? parsed.generated_at : undefined;
+
+    entries.push({
+      id: source.id,
+      file: relativeToCwd(cwd, filePath),
+      schema: typeof schemaValue === "string" ? schemaValue : undefined,
+      hashSha256: sha256(content),
+      sizeBytes: stats.size,
+      generatedAt,
+    });
+  }
+
+  return entries;
+}
+
+function createHostedStaticReportManifest(input: {
+  artifacts: LoadedArtifacts;
+  artifactDir: string;
+  outputPath: string;
+  html: string;
+  cwd: string;
+  version: string;
+  target: HostedStaticReportTarget;
+  publicUrl?: string;
+}): HostedStaticReportArtifact {
+  const htmlBytes = Buffer.from(input.html, "utf8");
+
+  return {
+    version: "ctg/v1",
+    generated_at: new Date().toISOString(),
+    run_id: chooseRunId(input.artifacts),
+    repo: { root: chooseRepoRoot(input.artifacts, input.artifactDir) },
+    tool: { name: "code-to-gate", version: input.version, plugin_versions: [] },
+    artifact: "hosted-static-report",
+    schema: "hosted-static-report@v1",
+    completeness: "complete",
+    target: input.target,
+    publicUrl: input.publicUrl,
+    html: {
+      path: relativeToCwd(input.cwd, input.outputPath),
+      hashSha256: sha256(htmlBytes),
+      sizeBytes: htmlBytes.byteLength,
+      singleFile: true,
+      externalAssets: [],
+    },
+    sourceArtifacts: collectHostedSourceArtifacts(input.artifactDir, input.cwd),
+    security: {
+      selfContained: true,
+      externalNetworkRequired: false,
+      inlineAssets: true,
+    },
+    compatibleHosts: ["github-pages", "artifact-preview", "generic-static"],
+    generated_by: "ctg-viewer-hosted-v1",
+  };
+}
+
 /**
  * Viewer command implementation
  */
@@ -155,15 +291,26 @@ export async function viewerCommand(
   const outFile = options.getOption(args, "--out");
   const titleOpt = options.getOption(args, "--title");
   const darkModeOpt = options.getOption(args, "--dark");
+  const hosted = args.includes("--hosted");
+  const publicUrl = options.getOption(args, "--public-url");
+  const hostedTarget = parseHostedTarget(options.getOption(args, "--hosted-target"));
+
+  if (!hostedTarget) {
+    console.error("invalid --hosted-target; expected github-pages, artifact-preview, or generic-static");
+    return options.EXIT.USAGE_ERROR;
+  }
 
   if (!fromDir) {
-    console.error("usage: code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]");
+    console.error("usage: code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--public-url <url>] [--hosted-target <target>]");
     console.error("");
     console.error("Options:");
     console.error("  --from <dir>    Input artifact directory (required)");
     console.error("  --out <file>    Output HTML file (default: viewer-report.html)");
     console.error("  --title <title> Report title (default: code-to-gate Analysis Report)");
     console.error("  --dark          Enable dark mode by default");
+    console.error("  --hosted        Write hosted-static-report.json next to the HTML output");
+    console.error("  --public-url    Expected URL after publishing the HTML");
+    console.error("  --hosted-target Static host target: github-pages, artifact-preview, generic-static");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -196,7 +343,7 @@ export async function viewerCommand(
     title: titleOpt || "code-to-gate Analysis Report",
     showGraph: !!artifacts.graph,
     showTabs: true,
-    darkModeDefault: darkModeOpt === "true" || darkModeOpt === "1",
+    darkModeDefault: args.includes("--dark") || darkModeOpt === "true" || darkModeOpt === "1",
     showRiskRegister: !!artifacts.riskRegister,
     showTestSeeds: !!artifacts.testSeeds,
     showReadiness: !!artifacts.readiness,
@@ -220,7 +367,25 @@ export async function viewerCommand(
     : path.join(artifactDir, "viewer-report.html");
 
   // Write output
+  mkdirSync(path.dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, html, "utf8");
+
+  let hostedManifestPath: string | undefined;
+  let hostedManifest: HostedStaticReportArtifact | undefined;
+  if (hosted) {
+    hostedManifestPath = path.join(path.dirname(outputPath), "hosted-static-report.json");
+    hostedManifest = createHostedStaticReportManifest({
+      artifacts,
+      artifactDir,
+      outputPath,
+      html,
+      cwd,
+      version: options.VERSION,
+      target: hostedTarget,
+      publicUrl,
+    });
+    writeFileSync(hostedManifestPath, JSON.stringify(hostedManifest, null, 2) + "\n", "utf8");
+  }
 
   // Output summary
   const summary = {
@@ -244,6 +409,13 @@ export async function viewerCommand(
       darkMode: config.darkModeDefault,
       tabs: config.showTabs,
     },
+    hosted: hostedManifest && hostedManifestPath ? {
+      manifest: path.relative(cwd, hostedManifestPath),
+      target: hostedManifest.target,
+      publicUrl: hostedManifest.publicUrl,
+      htmlHashSha256: hostedManifest.html.hashSha256,
+      sourceArtifacts: hostedManifest.sourceArtifacts.length,
+    } : undefined,
   };
 
   console.log(JSON.stringify(summary, null, 2));
