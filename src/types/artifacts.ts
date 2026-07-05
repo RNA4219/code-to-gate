@@ -946,12 +946,14 @@ export interface GitHubAppHealthArtifact extends ArtifactHeader {
   };
   pullRequest: {
     number: number;
+    commitSha?: string;
   };
   source: {
     artifactDir: string;
     markdownPath: string;
     markdownHashSha256: string;
     prReviewPath?: string;
+    artifactUrl?: string;
   };
   publish: {
     action: GitHubAppHealthPublishAction;

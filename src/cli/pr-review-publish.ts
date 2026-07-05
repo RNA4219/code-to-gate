@@ -13,11 +13,11 @@ export interface PrReviewPublishCliOptions {
   getOption: typeof getOption;
 }
 
-const VALUE_OPTIONS = new Set(["--from", "--out", "--repo", "--pull"]);
+const VALUE_OPTIONS = new Set(["--from", "--out", "--repo", "--pull", "--commit-sha", "--artifact-url"]);
 const FLAG_OPTIONS = new Set(["--dry-run", "--quiet"]);
 
 function printPrReviewPublishHelp(): void {
-  console.log(`code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--dry-run] [--quiet]
+  console.log(`code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--commit-sha <sha>] [--artifact-url <url>] [--dry-run] [--quiet]
 
 Publishes pr-review.md as a GitHub PR comment using GITHUB_TOKEN or GitHub App credentials, then writes github-app-health.json.`);
 }
@@ -68,6 +68,17 @@ function authMode(): GitHubAppHealthArtifact["authMode"] {
   return "none";
 }
 
+function envArtifactUrl(): string | undefined {
+  if (process.env.CTG_ARTIFACT_URL) return process.env.CTG_ARTIFACT_URL;
+  const serverUrl = process.env.GITHUB_SERVER_URL;
+  const repository = process.env.GITHUB_REPOSITORY;
+  const runId = process.env.GITHUB_RUN_ID;
+  if (serverUrl && repository && runId) {
+    return `${serverUrl}/${repository}/actions/runs/${runId}`;
+  }
+  return undefined;
+}
+
 function readOptionalReviewJson(fromDir: string): { path?: string; runId?: string } {
   const reviewPath = path.join(fromDir, "pr-review.json");
   if (!existsSync(reviewPath)) {
@@ -95,6 +106,8 @@ function createHealthArtifact(params: {
   markdownHash: string;
   prReviewPath?: string;
   runId?: string;
+  commitSha?: string;
+  artifactUrl?: string;
   status: GitHubAppHealthArtifact["status"];
   action: GitHubAppHealthArtifact["publish"]["action"];
   commentId?: number;
@@ -117,12 +130,14 @@ function createHealthArtifact(params: {
     },
     pullRequest: {
       number: params.pullNumber,
+      ...(params.commitSha ? { commitSha: params.commitSha } : {}),
     },
     source: {
       artifactDir: params.fromDir,
       markdownPath: params.markdownPath,
       markdownHashSha256: params.markdownHash,
       prReviewPath: params.prReviewPath,
+      artifactUrl: params.artifactUrl,
     },
     publish: {
       action: params.action,
@@ -187,6 +202,8 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
   const reviewJson = readOptionalReviewJson(fromDir);
   const generatedAt = new Date().toISOString();
   const dryRun = args.includes("--dry-run");
+  const commitSha = options.getOption(args, "--commit-sha") ?? process.env.GITHUB_SHA;
+  const artifactUrl = options.getOption(args, "--artifact-url") ?? envArtifactUrl();
 
   if (dryRun) {
     const artifact = createHealthArtifact({
@@ -200,6 +217,8 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
       markdownHash,
       prReviewPath: reviewJson.path,
       runId: reviewJson.runId,
+      commitSha,
+      artifactUrl,
       status: "dry_run",
       action: "skipped",
     });
@@ -245,6 +264,8 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
       markdownHash,
       prReviewPath: reviewJson.path,
       runId: reviewJson.runId,
+      commitSha,
+      artifactUrl,
       status: "posted",
       action,
       commentId,
@@ -273,6 +294,8 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
       markdownHash,
       prReviewPath: reviewJson.path,
       runId: reviewJson.runId,
+      commitSha,
+      artifactUrl,
       status: "failed",
       action: "failed",
       error: message,

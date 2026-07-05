@@ -42,7 +42,8 @@
       "required": ["number"],
       "additionalProperties": false,
       "properties": {
-        "number": { "type": "integer", "minimum": 1 }
+        "number": { "type": "integer", "minimum": 1 },
+        "commitSha": { "type": "string", "minLength": 7 }
       }
     },
     "source": {
@@ -53,7 +54,8 @@
         "artifactDir": { "type": "string", "minLength": 1 },
         "markdownPath": { "type": "string", "minLength": 1 },
         "markdownHashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "prReviewPath": { "type": "string", "minLength": 1 }
+        "prReviewPath": { "type": "string", "minLength": 1 },
+        "artifactUrl": { "type": "string", "minLength": 1 }
       }
     },
     "publish": {

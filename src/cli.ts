@@ -54,7 +54,7 @@ Usage:
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
-  code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--dry-run] [--quiet]
+  code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--commit-sha <sha>] [--artifact-url <url>] [--dry-run] [--quiet]
   code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
   code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
@@ -121,6 +121,7 @@ Options:
   --repo <owner/repo>
                      GitHub repository for pr-review-publish
   --pull <number>    Pull request number for pr-review-publish
+  --commit-sha <sha> Commit SHA recorded in pr-review-publish health evidence
   --dry-run          Write publish health evidence without posting to GitHub
   --target-version <version>
                      Target version for schema migrate; inferred from source version by default

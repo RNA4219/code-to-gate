@@ -370,7 +370,7 @@ Requirements:
 - Actions実装とApp実装が同じ `pr-review.json` / `pr-review.md` を入力にできる。
 - `code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number>` は
   `GITHUB_TOKEN` または GitHub App 認証で既存PRコメントを更新/新規作成し、
-  `github-app-health.json` を残す。
+  commit sha、artifact URL、comment action を含む `github-app-health.json` を残す。
 
 Commands:
 

@@ -1263,12 +1263,13 @@ describe("schema coverage integration", () => {
           status: "posted",
           authMode: "github-app",
           repository: { owner: "example", repo: "repo" },
-          pullRequest: { number: 42 },
+          pullRequest: { number: 42, commitSha: "abcdef1234567890" },
           source: {
             artifactDir: ".qh",
             markdownPath: ".qh/pr-review.md",
             markdownHashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             prReviewPath: ".qh/pr-review.json",
+            artifactUrl: "https://example.com/artifacts/run",
           },
           publish: {
             action: "updated",

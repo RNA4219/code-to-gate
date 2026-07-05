@@ -932,7 +932,7 @@ calling GitHub.
 
 **Usage:**
 ```bash
-code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--dry-run] [--quiet]
+code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--commit-sha <sha>] [--artifact-url <url>] [--dry-run] [--quiet]
 ```
 
 **Options:**
@@ -942,13 +942,15 @@ code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull 
 | `--repo <owner/repo>` | required | GitHub repository that owns the pull request. |
 | `--pull <number>` | required | Pull request number. |
 | `--out <file-or-dir>` | `<from>` | Output file or directory for `github-app-health.json`. |
+| `--commit-sha <sha>` | `GITHUB_SHA` | Commit SHA recorded in publish health evidence. |
+| `--artifact-url <url>` | `CTG_ARTIFACT_URL` or GitHub Actions run URL | CI artifact, viewer, or run URL recorded in publish health evidence. |
 | `--dry-run` | false | Skip GitHub posting and emit health evidence only. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
-| `github-app-health.json` | `github-app-health@v1` artifact with auth mode, source markdown hash, target PR, comment action, and publish status |
+| `github-app-health.json` | `github-app-health@v1` artifact with auth mode, source markdown hash, target PR, commit SHA, artifact URL, comment action, and publish status |
 
 **Example:**
 ```bash

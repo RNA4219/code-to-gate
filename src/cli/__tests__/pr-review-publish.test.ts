@@ -86,6 +86,10 @@ describe("pr-review-publish CLI", () => {
       "owner/repo",
       "--pull",
       "42",
+      "--commit-sha",
+      "abcdef1234567890",
+      "--artifact-url",
+      "https://example.com/artifacts/run",
       "--dry-run",
       "--quiet",
     ], { VERSION, EXIT, getOption });
@@ -99,14 +103,16 @@ describe("pr-review-publish CLI", () => {
       status: "dry_run",
       authMode: "none",
       repository: { owner: "owner", repo: "repo" },
-      pullRequest: { number: 42 },
+      pullRequest: { number: 42, commitSha: "abcdef1234567890" },
       publish: { action: "skipped", marker: "code-to-gate PR Review" },
     });
+    expect(health.source.artifactUrl).toBe("https://example.com/artifacts/run");
     expect(health.source.markdownHashSha256).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("updates an existing PR review comment using GITHUB_TOKEN", async () => {
     vi.stubEnv("GITHUB_TOKEN", "token-123");
+    vi.stubEnv("GITHUB_SHA", "1234567890abcdef");
     const artifactDir = path.join(tempRoot, "artifacts");
     writeReviewArtifacts(artifactDir);
     mockFetch
@@ -142,6 +148,7 @@ describe("pr-review-publish CLI", () => {
     expect(mockFetch.mock.calls[1][1].method).toBe("PATCH");
     expect(health.status).toBe("posted");
     expect(health.authMode).toBe("github-token");
+    expect(health.pullRequest.commitSha).toBe("1234567890abcdef");
     expect(health.publish).toMatchObject({ action: "updated", commentId: 123 });
   });
 
