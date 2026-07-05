@@ -344,12 +344,6 @@ jobs:
             jq -r '"- status: \(.status)\n- block reasons: \(.summary.blockReasons)\n- suggested tests: \(.summary.additionalTests)\n- spec drift items: \(.summary.specDiffs)"' .qh/pr-review.json
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: .qh/results.sarif
-          category: code-to-gate-pr
-
       - name: Create PR comment
         uses: ./.github/actions/pr-comment
         with:
