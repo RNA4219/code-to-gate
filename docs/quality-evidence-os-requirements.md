@@ -108,3 +108,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   schema、diff blast radius 優先の推奨テスト、manual oracle gap。
 - QEOS-012: `code-to-gate import sarif|codeql|semgrep|eslint` による
   external tool results の normalized `findings@v1` 変換。
+- QEOS-018: `ai-generated-code` Quality Pack による AI生成コード向け
+  validation/testing/maintainability/compatibility risk review mode。

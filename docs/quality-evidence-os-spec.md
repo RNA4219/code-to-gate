@@ -219,6 +219,17 @@ P2 Quality Packs の初期 acceptance は次の通り。
 - 初期 pack は `security-basic`、`release-evidence`、`frontend-risk`、
   `api-contract`、`ai-generated-code`、`compliance-lite` とする。
 
+P2 AI Code Review Mode の初期 acceptance は次の通り。
+
+- `code-to-gate pack list` に `ai-generated-code` が含まれる。
+- `code-to-gate pack show ai-generated-code` は `quality-pack@v1` を生成できる。
+- `code-to-gate pack export-policy ai-generated-code --out <file>` は
+  readiness-compatible policy YAML を生成できる。
+- pack は validation gap、swallowed error、test gap、large module、
+  compatibility risk を対象 rule として含む。
+- AI reviewer は LLM claim ではなく、deterministic finding と policy gate の
+  証跡を根拠にする。
+
 P0 Doctor の初期 acceptance は次の通り。
 
 - `code-to-gate doctor --out <file-or-dir>` は `doctor.json` を生成する。

@@ -181,7 +181,6 @@ Commands:
 - QEOS-011 Schema Evolution
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
-- QEOS-018 AI Code Review Mode
 - QEOS-019 Historical Quality Trend
 - QEOS-020 Hosted Static Report
 
@@ -223,5 +222,25 @@ Requirements:
 Commands:
 
 - `npx vitest run src/cli/__tests__/import.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-03 AI Code Review Mode
+
+Objective: AI生成コードにありがちな validation gap、swallowed error、test gap、large module、compatibility risk を deterministic Quality Pack として選択できるようにする。
+
+Status: done
+
+Requirements:
+
+- bundled Quality Pack に `ai-generated-code` を含める。
+- `code-to-gate pack list` で `ai-generated-code` が表示される。
+- `code-to-gate pack show ai-generated-code` は `quality-pack@v1` artifact を出せる。
+- `code-to-gate pack export-policy ai-generated-code --out <file>` は readiness-compatible policy YAML を生成できる。
+- 対象 rule は AI生成コードで起きやすい validation、testing、maintainability、compatibility risk を含む。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/pack.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`
