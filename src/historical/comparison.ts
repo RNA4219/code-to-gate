@@ -387,15 +387,29 @@ export function compareReadiness(
 
 function buildQualitySloSummary(
   findingsComparison: FindingsComparisonResult,
-  readinessComparison?: ReadinessComparisonResult
+  readinessComparison?: ReadinessComparisonResult,
+  trendHistory?: RiskTrendPoint[]
 ): QualitySloSummary {
   const criticalIncrease = findingsComparison.summary.bySeverity.critical.new - findingsComparison.summary.bySeverity.critical.resolved;
   const highIncrease = findingsComparison.summary.bySeverity.high.new - findingsComparison.summary.bySeverity.high.resolved;
   const criticalOrHighIncrease = Math.max(0, criticalIncrease + highIncrease);
+  const currentHigh = readinessComparison?.metricsComparison.highFindings.current
+    ?? findingsComparison.summary.bySeverity.high.new + findingsComparison.summary.bySeverity.high.unchanged;
+  const previousHigh = readinessComparison?.metricsComparison.highFindings.previous
+    ?? findingsComparison.summary.bySeverity.high.resolved + findingsComparison.summary.bySeverity.high.unchanged;
+  const highFindingsIncreaseRate = previousHigh === 0 ? (currentHigh > 0 ? 1 : 0) : (currentHigh - previousHigh) / previousHigh;
   const blockerRegressions = findingsComparison.regressions.filter((finding) =>
     finding.severity === "critical" || finding.severity === "high"
   ).length;
   const readinessDegraded = readinessComparison?.statusDegraded ?? false;
+  const specDriftPoints = trendHistory?.filter((point) => point.specDriftFailed !== undefined) ?? [];
+  const specDriftRecurrenceRate = specDriftPoints.length > 0
+    ? specDriftPoints.filter((point) => point.specDriftFailed).length / specDriftPoints.length
+    : undefined;
+  const unresolvedBaselineAgeDays = Math.max(
+    0,
+    ...(trendHistory ?? []).map((point) => point.baselineOldestAgeDays ?? 0)
+  );
   const indicators: QualitySloSummary["indicators"] = [
     {
       id: "blocker-regressions",
@@ -408,10 +422,25 @@ function buildQualitySloSummary(
       summary: `${criticalOrHighIncrease} net new critical/high finding(s).`,
     },
     {
+      id: "high-findings-increase-rate",
+      status: highFindingsIncreaseRate > 0.25 ? "warn" : "pass",
+      summary: `High finding increase rate is ${highFindingsIncreaseRate.toFixed(2)}.`,
+    },
+    {
       id: "readiness-degraded",
       status: readinessDegraded ? "fail" : "pass",
       summary: readinessDegraded ? "Readiness status degraded from previous run." : "Readiness status did not degrade.",
     },
+    ...(specDriftRecurrenceRate === undefined ? [] : [{
+      id: "spec-drift-recurrence-rate",
+      status: specDriftRecurrenceRate > 0 ? "warn" as const : "pass" as const,
+      summary: `Spec drift recurrence rate is ${specDriftRecurrenceRate.toFixed(2)}.`,
+    }]),
+    ...(unresolvedBaselineAgeDays > 0 ? [{
+      id: "unresolved-baseline-age",
+      status: unresolvedBaselineAgeDays > 30 ? "fail" as const : "warn" as const,
+      summary: `Oldest expired baseline debt is ${unresolvedBaselineAgeDays} day(s) past expiry.`,
+    }] : []),
   ];
 
   return {
@@ -422,6 +451,9 @@ function buildQualitySloSummary(
         : "met",
     blockerRegressions,
     criticalOrHighIncrease,
+    highFindingsIncreaseRate,
+    specDriftRecurrenceRate,
+    unresolvedBaselineAgeDays: unresolvedBaselineAgeDays > 0 ? unresolvedBaselineAgeDays : undefined,
     readinessDegraded,
     indicators,
   };
@@ -442,7 +474,7 @@ export function generateHistoricalReport(
   const runId = `historical-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
 
   const riskTrends = analyzeRiskTrends(findingsComparison, readinessComparison, trendHistory);
-  const qualitySlo = buildQualitySloSummary(findingsComparison, readinessComparison);
+  const qualitySlo = buildQualitySloSummary(findingsComparison, readinessComparison, trendHistory);
 
   // Generate recommendations
   const recommendations = generateRecommendations(

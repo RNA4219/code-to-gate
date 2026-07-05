@@ -4,6 +4,7 @@
  * Supports GitHub App and PAT authentication for PR comments and Checks API.
  * Uses native fetch for minimal dependencies.
  */
+import { createSign } from "node:crypto";
 
 /**
  * Authentication configuration for GitHub API
@@ -57,19 +58,68 @@ export class GitHubApiClient {
   static async create(config: GitHubClientConfig): Promise<GitHubApiClient> {
     const client = new GitHubApiClient(config);
 
-    // If using GitHub App, would need JWT handling
-    // For now, we support PAT only for simplicity
     if (config.app && !config.token) {
-      // Note: GitHub App authentication requires JWT generation
-      // which needs additional crypto libraries. For simplicity,
-      // we recommend using PAT for most cases.
-      throw new GitHubApiError(
-        "GitHub App authentication requires JWT handling. Use PAT or implement JWT generation.",
-        null
-      );
+      await client.authenticateGitHubApp(config.app);
     }
 
     return client;
+  }
+
+  private async authenticateGitHubApp(app: NonNullable<GitHubAuthConfig["app"]>): Promise<void> {
+    const jwt = createGitHubAppJwt(app.appId, app.privateKey);
+    const installationId = app.installationId ?? await this.resolveInstallationId(jwt);
+    const token = await this.createInstallationToken(jwt, installationId);
+    this.authToken = token;
+  }
+
+  private async resolveInstallationId(jwt: string): Promise<number> {
+    const response = await fetch(`${this.baseUrl}/repos/${this.owner}/${this.repo}/installation`, {
+      method: "GET",
+      headers: {
+        "user-agent": "code-to-gate",
+        accept: "application/vnd.github.v3+json",
+        authorization: `Bearer ${jwt}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new GitHubApiError(
+        `GitHub App installation lookup failed: ${response.status} ${response.statusText}`,
+        { status: response.status, body: errorBody }
+      );
+    }
+
+    const parsed = await response.json() as { id?: number };
+    if (typeof parsed.id !== "number") {
+      throw new GitHubApiError("GitHub App installation lookup returned no installation id.", parsed);
+    }
+    return parsed.id;
+  }
+
+  private async createInstallationToken(jwt: string, installationId: number): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/app/installations/${installationId}/access_tokens`, {
+      method: "POST",
+      headers: {
+        "user-agent": "code-to-gate",
+        accept: "application/vnd.github.v3+json",
+        authorization: `Bearer ${jwt}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new GitHubApiError(
+        `GitHub App installation token request failed: ${response.status} ${response.statusText}`,
+        { status: response.status, body: errorBody }
+      );
+    }
+
+    const parsed = await response.json() as { token?: string };
+    if (typeof parsed.token !== "string" || parsed.token.length === 0) {
+      throw new GitHubApiError("GitHub App installation token response did not include a token.", parsed);
+    }
+    return parsed.token;
   }
 
   /**
@@ -444,6 +494,35 @@ export class GitHubApiError extends Error {
   }
 }
 
+function base64Url(input: Buffer | string): string {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function normalizePrivateKey(privateKey: string): string {
+  const decoded = Buffer.from(privateKey, "base64").toString("utf8");
+  const candidate = decoded.includes("BEGIN") ? decoded : privateKey;
+  return candidate.replace(/\\n/g, "\n");
+}
+
+export function createGitHubAppJwt(appId: number | string, privateKey: string, nowSeconds = Math.floor(Date.now() / 1000)): string {
+  const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = base64Url(JSON.stringify({
+    iat: nowSeconds - 60,
+    exp: nowSeconds + 540,
+    iss: String(appId),
+  }));
+  const signingInput = `${header}.${payload}`;
+  const signer = createSign("RSA-SHA256");
+  signer.update(signingInput);
+  signer.end();
+  const signature = signer.sign(normalizePrivateKey(privateKey));
+  return `${signingInput}.${base64Url(signature)}`;
+}
+
 /**
  * Create GitHub client from environment variables
  */
@@ -467,21 +546,15 @@ export async function createGitHubClientFromEnv(
   const installationId = process.env.GITHUB_APP_INSTALLATION_ID;
 
   if (appId && appKey) {
-    try {
-      return GitHubApiClient.create({
-        owner,
-        repo,
-        app: {
-          appId,
-          privateKey: appKey,
-          installationId: installationId ? parseInt(installationId, 10) : undefined,
-        },
-      });
-    } catch (_error) {
-      // GitHub App auth requires JWT - return null and log warning
-      console.warn("GitHub App authentication requires JWT implementation. Use GITHUB_TOKEN instead.");
-      return null;
-    }
+    return GitHubApiClient.create({
+      owner,
+      repo,
+      app: {
+        appId,
+        privateKey: appKey,
+        installationId: installationId ? parseInt(installationId, 10) : undefined,
+      },
+    });
   }
 
   // No authentication available

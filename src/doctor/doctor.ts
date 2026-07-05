@@ -167,17 +167,22 @@ function checkGitHubActionsPermissions(repoRoot: string): DoctorCheck {
     "security-events: write",
   ];
   const missing = requiredPermissions.filter((permission) => !content.includes(permission));
+  const hasArtifactUpload = content.includes("actions/upload-artifact");
+  const problems = [
+    ...missing,
+    ...(hasArtifactUpload ? [] : ["actions/upload-artifact step"]),
+  ];
 
   return {
     id: "ci.github-actions.permissions",
     category: "ci",
-    status: missing.length > 0 ? "warn" : "pass",
-    summary: missing.length > 0
-      ? `GitHub Actions workflow is missing permissions: ${missing.join(", ")}`
-      : "GitHub Actions workflow declares permissions for PR comments, checks, and code scanning.",
-    observed: missing.length > 0 ? `missing=${missing.join(",")}` : "contents:read,pull-requests:write,checks:write,security-events:write",
-    remediation: missing.length > 0
-      ? "Add the missing permissions to .github/workflows/code-to-gate-pr.yml."
+    status: problems.length > 0 ? "warn" : "pass",
+    summary: problems.length > 0
+      ? `GitHub Actions workflow is missing permissions or artifact upload path: ${problems.join(", ")}`
+      : "GitHub Actions workflow declares permissions for PR comments, checks, code scanning, and artifact upload.",
+    observed: problems.length > 0 ? `missing=${problems.join(",")}` : "contents:read,pull-requests:write,checks:write,security-events:write,upload-artifact",
+    remediation: problems.length > 0
+      ? "Add the missing permissions and actions/upload-artifact step to .github/workflows/code-to-gate-pr.yml."
       : undefined,
   };
 }

@@ -3,9 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { generateKeyPairSync } from "node:crypto";
 import {
   GitHubApiClient,
   GitHubApiError,
+  createGitHubAppJwt,
   createGitHubClientFromEnv,
   type GitHubClientConfig,
   type CheckRunOptions,
@@ -15,6 +17,11 @@ import {
 // Mock global fetch
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
+
+function createTestPrivateKey(): string {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  return privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+}
 
 describe("api-client", () => {
   beforeEach(() => {
@@ -72,17 +79,26 @@ describe("api-client", () => {
         expect(client).toBeDefined();
       });
 
-      it("throws error for GitHub App authentication without JWT handling", async () => {
+      it("creates client with GitHub App authentication and installation id", async () => {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ token: "installation-token" }),
+        });
         const config: GitHubClientConfig = {
           owner: "test-owner",
           repo: "test-repo",
           app: {
             appId: 12345,
-            privateKey: "mock-private-key",
+            privateKey: createTestPrivateKey(),
+            installationId: 98765,
           },
         };
 
-        await expect(GitHubApiClient.create(config)).rejects.toThrow(GitHubApiError);
+        const client = await GitHubApiClient.create(config);
+        expect(client).toBeDefined();
+        const [url, options] = mockFetch.mock.calls[0];
+        expect(url).toContain("/app/installations/98765/access_tokens");
+        expect(options.headers.authorization).toMatch(/^Bearer .+\..+\..+$/);
       });
 
       it("uses token when both app and token are provided", async () => {
@@ -572,13 +588,23 @@ describe("api-client", () => {
       expect(client).toBeNull();
     });
 
-    it("handles GitHub App config by throwing error (JWT not implemented)", async () => {
+    it("creates client from GitHub App config", async () => {
       vi.stubEnv("GITHUB_APP_ID", "12345");
-      vi.stubEnv("GITHUB_APP_KEY", "mock-key");
+      vi.stubEnv("GITHUB_APP_KEY", createTestPrivateKey());
       vi.stubEnv("GITHUB_TOKEN", undefined);
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ id: 98765 }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ token: "installation-token" }),
+        });
 
-      // GitHub App auth requires JWT - throws error since not implemented
-      await expect(createGitHubClientFromEnv("owner", "repo")).rejects.toThrow(GitHubApiError);
+      const client = await createGitHubClientFromEnv("owner", "repo");
+      expect(client).toBeDefined();
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it("uses GITHUB_TOKEN over GitHub App config", async () => {
@@ -592,14 +618,36 @@ describe("api-client", () => {
 
     it("parses GITHUB_APP_INSTALLATION_ID as number in config", async () => {
       vi.stubEnv("GITHUB_APP_ID", "12345");
-      vi.stubEnv("GITHUB_APP_KEY", "mock-key");
+      vi.stubEnv("GITHUB_APP_KEY", createTestPrivateKey());
       vi.stubEnv("GITHUB_APP_INSTALLATION_ID", "98765");
       vi.stubEnv("GITHUB_TOKEN", undefined);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ token: "installation-token" }),
+      });
 
-      // GitHub App auth requires JWT - throws error since not implemented
-      await expect(createGitHubClientFromEnv("owner", "repo")).rejects.toThrow(
-        "GitHub App authentication requires JWT handling"
-      );
+      const client = await createGitHubClientFromEnv("owner", "repo");
+      expect(client).toBeDefined();
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain("/app/installations/98765/access_tokens");
+    });
+  });
+
+  describe("createGitHubAppJwt", () => {
+    it("creates an RS256 JWT for GitHub App authentication", () => {
+      const jwt = createGitHubAppJwt(12345, createTestPrivateKey(), 1_700_000_000);
+      const [header, payload, signature] = jwt.split(".");
+
+      expect(header).toBeTruthy();
+      expect(payload).toBeTruthy();
+      expect(signature).toBeTruthy();
+      expect(JSON.parse(Buffer.from(header, "base64url").toString("utf8"))).toMatchObject({
+        alg: "RS256",
+        typ: "JWT",
+      });
+      expect(JSON.parse(Buffer.from(payload, "base64url").toString("utf8"))).toMatchObject({
+        iss: "12345",
+      });
     });
   });
 

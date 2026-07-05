@@ -633,6 +633,20 @@ suppression:
           },
           failedConditions: [],
           recommendedActions: [],
+          baseline: {
+            mode: "ratchet",
+            source: "previous",
+            baselineFindings: 1,
+            currentFindings: 1,
+            newFindings: 0,
+            worsenedFindings: 0,
+            unchangedFindings: 1,
+            resolvedFindings: 0,
+            gatedFindingIds: [],
+            resolvedFindingIds: [],
+            owner: "@quality-owner",
+            expiresAt: "2099-01-01T00:00:00Z",
+          },
           artifactRefs: { findings: "findings.json" },
         }),
         "utf8"
@@ -662,6 +676,9 @@ suppression:
       expect(exitCode).toBe(EXIT.OK);
       expect(readiness.baseline.unchangedFindings).toBe(1);
       expect(readiness.baseline.gatedFindingIds).toEqual([]);
+      expect(readiness.baseline.owner).toBe("@quality-owner");
+      expect(readiness.baseline.expiresAt).toBe("2099-01-01T00:00:00Z");
+      expect(readiness.baseline.expired).toBe(false);
     });
 
     it("blocks new security findings through Policy DSL baseline context", async () => {

@@ -716,6 +716,7 @@ describe("Historical Comparison", () => {
         status: "met",
         blockerRegressions: 0,
         criticalOrHighIncrease: 0,
+        highFindingsIncreaseRate: 0,
       });
       expect(report.recommendations).toBeDefined();
       expect(Array.isArray(report.recommendations)).toBe(true);
@@ -802,6 +803,79 @@ describe("Historical Comparison", () => {
 
       expect(report.recommendations.length).toBeGreaterThan(0);
       expect(report.recommendations.some(r => r.includes("regression"))).toBe(true);
+    });
+
+    it("includes spec drift recurrence and expired baseline age in quality SLO", () => {
+      const currentRun = createMockRunReference(tempDir, "run-current");
+      const previousRun = createMockRunReference(tempDir, "run-previous");
+
+      const findingsComparison: FindingsComparisonResult = {
+        new: [
+          { findingId: "f1", ruleId: "RULE_A", status: "new", path: "src/a.ts", severity: "high", category: "security", matchedOn: "fuzzy_match" },
+        ],
+        resolved: [],
+        unchanged: [],
+        modified: [],
+        regressions: [],
+        summary: {
+          totalCurrent: 1,
+          totalPrevious: 0,
+          newCount: 1,
+          resolvedCount: 0,
+          unchangedCount: 0,
+          modifiedCount: 0,
+          regressionCount: 0,
+          bySeverity: { critical: { new: 0, resolved: 0, unchanged: 0 }, high: { new: 1, resolved: 0, unchanged: 0 }, medium: { new: 0, resolved: 0, unchanged: 0 }, low: { new: 0, resolved: 0, unchanged: 0 } },
+          byCategory: { security: { new: 1, resolved: 0, unchanged: 0 } } as Record<string, { new: number; resolved: number; unchanged: number }>,
+        },
+      };
+
+      const report = generateHistoricalReport(
+        currentRun,
+        previousRun,
+        findingsComparison,
+        undefined,
+        undefined,
+        [
+          {
+            run_id: "hist-1",
+            generated_at: "2026-07-01T00:00:00Z",
+            criticalFindings: 0,
+            highFindings: 1,
+            mediumFindings: 0,
+            lowFindings: 0,
+            totalFindings: 1,
+            riskCount: 0,
+            readinessStatus: "needs_review",
+            specDriftFailed: true,
+            baselineOldestAgeDays: 45,
+          },
+          {
+            run_id: "hist-2",
+            generated_at: "2026-07-02T00:00:00Z",
+            criticalFindings: 0,
+            highFindings: 1,
+            mediumFindings: 0,
+            lowFindings: 0,
+            totalFindings: 1,
+            riskCount: 0,
+            readinessStatus: "needs_review",
+            specDriftFailed: false,
+          },
+        ]
+      );
+
+      expect(report.qualitySlo).toMatchObject({
+        status: "breached",
+        specDriftRecurrenceRate: 0.5,
+        unresolvedBaselineAgeDays: 45,
+      });
+      expect(report.qualitySlo?.indicators).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "spec-drift-recurrence-rate", status: "warn" }),
+          expect.objectContaining({ id: "unresolved-baseline-age", status: "fail" }),
+        ])
+      );
     });
   });
 });

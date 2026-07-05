@@ -859,6 +859,12 @@ The bundled PR workflow generates `test-plan.json`, `evidence-dag.json`,
 falls back to the legacy summary only when the PR review artifact has not been
 generated.
 
+For Action-independent publishing, the GitHub integration client supports
+GitHub App authentication. Set `GITHUB_APP_ID`, `GITHUB_APP_KEY`, and optionally
+`GITHUB_APP_INSTALLATION_ID`; the client signs an App JWT, resolves the
+repository installation when needed, exchanges it for an installation token, and
+uses the same PR comment / Checks API paths as PAT or `GITHUB_TOKEN` mode.
+
 **Usage:**
 ```bash
 code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]

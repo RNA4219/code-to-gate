@@ -1,8 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { createDoctorArtifact } from "../../doctor/doctor.js";
 import { doctorCommand } from "../doctor.js";
 
 const EXIT = {
@@ -82,5 +83,24 @@ describe("doctor CLI", () => {
     const exitCode = await doctorCommand(["--unknown"], { VERSION, EXIT, getOption });
 
     expect(exitCode).toBe(EXIT.USAGE_ERROR);
+  });
+
+  it("warns when PR workflow misses permissions or artifact upload path", () => {
+    const repoRoot = path.join(tempRoot, "repo");
+    const workflowPath = path.join(repoRoot, ".github", "workflows", "code-to-gate-pr.yml");
+    mkdirSync(path.dirname(workflowPath), { recursive: true });
+    writeFileSync(workflowPath, ["permissions:", "  contents: read", "steps:", "  - run: npm test"].join("\n"), "utf8");
+
+    const result = createDoctorArtifact({ version: VERSION, repoRoot, out: path.join(tempRoot, "doctor.json") });
+
+    expect(result.artifact.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "ci.github-actions.permissions",
+          status: "warn",
+          observed: expect.stringContaining("actions/upload-artifact step"),
+        }),
+      ])
+    );
   });
 });

@@ -109,6 +109,9 @@ export interface QualitySloSummary {
   status: "met" | "at_risk" | "breached";
   blockerRegressions: number;
   criticalOrHighIncrease: number;
+  highFindingsIncreaseRate: number;
+  specDriftRecurrenceRate?: number;
+  unresolvedBaselineAgeDays?: number;
   readinessDegraded: boolean;
   indicators: Array<{
     id: string;
@@ -147,6 +150,8 @@ export interface RiskTrendPoint {
   totalFindings: number;
   riskCount: number;
   readinessStatus: ReadinessStatus;
+  specDriftFailed?: boolean;
+  baselineOldestAgeDays?: number;
 }
 
 export interface RiskTrendAnalysis {

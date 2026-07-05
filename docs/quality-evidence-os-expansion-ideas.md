@@ -82,3 +82,9 @@ review queue の両方に表示する。
 
 `viewer --hosted` を単一HTMLから evidence portal へ拡張し、複数run、historical SLO、
 release pack、manual-bb結果、PR review backlink を横断検索できる静的サイトとして生成する。
+
+## 11. GitHub App Health Evidence
+
+常設Bot化した GitHub App の installation token 取得、repository permission、
+rate-limit、comment marker 更新結果を `github-app-health.json` として保存する。
+`doctor` は静的 workflow 診断、health artifact は実App稼働診断を担う。

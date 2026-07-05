@@ -390,6 +390,7 @@ P2 PR Review App Mode の初期 acceptance は次の通り。
 - `pr-review@v1` は GitHub Actions step と常設GitHub App/Bot の両方が使える安定入力である。
 - App/Bot は `pr-review.md` の content hash と run id を保持し、同一PRの既存コメントを更新できる。
 - App/Bot contract は repository、pull request、commit sha、artifact URL、comment marker、permission要求を記録する。
+- GitHub App 認証は App JWT を生成し、repository installation から installation token を取得して PR comment / Checks API に使える。
 
 P1 Spec Drift Surface Expansion の初期 acceptance は次の通り。
 
@@ -420,6 +421,7 @@ P0 Doctor GitHub Actions Permissions の初期 acceptance は次の通り。
 
 - `code-to-gate doctor` は `.github/workflows/code-to-gate-pr.yml` を読み、PR comment / code scanning / checks に必要な `permissions` を検査する。
 - `pull-requests: write`、`contents: read`、`security-events: write`、`checks: write` の不足は warning 以上で記録する。
+- `actions/upload-artifact` step がない場合、release evidence artifact upload path の欠落として warning にする。
 - workflow が存在しない場合は skip とし、CI実行時だけを根拠に権限を推測しない。
 
 P1 Baseline Ownership and Expiry の初期 acceptance は次の通り。
@@ -443,5 +445,5 @@ P2 Evidence DAG Search and Filter の初期 acceptance は次の通り。
 P2 Historical Quality SLO の初期 acceptance は次の通り。
 
 - `historical-comparison@v1` は optional `qualitySlo` summary を持てる。
-- SLO indicator は blocker regression、high/critical増加、readiness低下、manual oracle gap増加を追跡する。
+- SLO indicator は blocker regression、high/critical増加、high findings増加率、readiness低下、spec drift再発率、未解消baseline期限超過年齢を追跡する。
 - viewer は SLO status を Historical tab に表示する。

@@ -6,6 +6,8 @@ import type { Finding, FindingsArtifact, ReleaseReadinessArtifact, Severity } fr
 export interface LoadedBaselineFindings {
   artifact: FindingsArtifact;
   source: string;
+  owner?: string;
+  expiresAt?: string;
 }
 
 export interface BaselineRatchetSummary {
@@ -102,7 +104,11 @@ function loadReadinessLinkedFindings(filePath: string, cwd: string): LoadedBasel
   for (const candidate of candidateFindingsFromReadiness(filePath, parsed, cwd)) {
     const loaded = loadFindingsFile(candidate);
     if (loaded) {
-      return loaded;
+      return {
+        ...loaded,
+        owner: parsed.baseline?.owner,
+        expiresAt: parsed.baseline?.expiresAt,
+      };
     }
   }
 
@@ -202,8 +208,8 @@ export function evaluateBaselineRatchet(
   const resolvedFindingIds = baseline.artifact.findings
     .filter((finding) => !seenBaselineKeys.has(findingIdentity(finding)))
     .map((finding) => finding.id);
-  const owner = process.env.CTG_BASELINE_OWNER;
-  const expiresAt = process.env.CTG_BASELINE_EXPIRES_AT;
+  const owner = process.env.CTG_BASELINE_OWNER ?? baseline.owner;
+  const expiresAt = process.env.CTG_BASELINE_EXPIRES_AT ?? baseline.expiresAt;
   const expired = expiresAt ? Date.parse(expiresAt) < Date.now() : undefined;
 
   return {

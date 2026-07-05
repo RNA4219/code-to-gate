@@ -225,7 +225,9 @@
         "lowFindings": { "type": "integer", "minimum": 0 },
         "totalFindings": { "type": "integer", "minimum": 0 },
         "riskCount": { "type": "integer", "minimum": 0 },
-        "readinessStatus": { "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"] }
+        "readinessStatus": { "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"] },
+        "specDriftFailed": { "type": "boolean" },
+        "baselineOldestAgeDays": { "type": "integer", "minimum": 0 }
       }
     },
     "riskTrends": {
@@ -247,12 +249,15 @@
     },
     "qualitySlo": {
       "type": "object",
-      "required": ["status", "blockerRegressions", "criticalOrHighIncrease", "readinessDegraded", "indicators"],
+      "required": ["status", "blockerRegressions", "criticalOrHighIncrease", "highFindingsIncreaseRate", "readinessDegraded", "indicators"],
       "additionalProperties": false,
       "properties": {
         "status": { "enum": ["met", "at_risk", "breached"] },
         "blockerRegressions": { "type": "integer", "minimum": 0 },
         "criticalOrHighIncrease": { "type": "integer", "minimum": 0 },
+        "highFindingsIncreaseRate": { "type": "number" },
+        "specDriftRecurrenceRate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "unresolvedBaselineAgeDays": { "type": "integer", "minimum": 0 },
         "readinessDegraded": { "type": "boolean" },
         "indicators": {
           "type": "array",

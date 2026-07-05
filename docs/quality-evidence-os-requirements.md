@@ -161,3 +161,9 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   backlink、standard release review pack、quality pack distribution、Actions
   permission doctor、baseline owner/expiry、manual-bb draft、DAG search、quality SLO
   を追加拡張対象として定義。
+- QEOS-021: `src/github/api-client.ts` が GitHub App JWT 生成、installation lookup、
+  installation token 取得を実装し、PR comment / Checks API の常設Bot利用に接続。
+- QEOS-026: `doctor` が workflow permissions に加えて artifact upload path
+  (`actions/upload-artifact`) を診断。
+- QEOS-030: `historical-comparison.qualitySlo` が high findings増加率、
+  spec drift再発率、未解消baseline期限超過年齢を optional indicator として保持。
