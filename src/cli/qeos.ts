@@ -146,6 +146,7 @@ function cliCandidatesFor(qeosId: string): string[] {
     "QEOS-031": ["query"],
     "QEOS-032": ["query", "viewer", "pr-review", "release-pack"],
     "QEOS-033": ["explain-gate"],
+    "QEOS-034": ["rule", "plugin-marketplace"],
     "QEOS-041": ["pr-review-publish"],
     "QEOS-042": ["qeos"],
   };
@@ -157,6 +158,7 @@ function schemaCandidatesFor(qeosId: string, title: string): string[] {
     "QEOS-031": ["evidence-query.schema.json"],
     "QEOS-032": ["redaction-profile.schema.json"],
     "QEOS-033": ["gate-explainability.schema.json"],
+    "QEOS-034": ["rule-quality-score.schema.json", "plugin-marketplace.schema.json"],
     "QEOS-041": ["github-app-health.schema.json"],
     "QEOS-042": ["qeos-acceptance-matrix.schema.json"],
   };

@@ -491,7 +491,7 @@ Commands:
 
 Objective: rule/plugin のfixture coverage、FP review、evidence completeness、schema compatibility、runtime cost を採点する。
 
-Status: planned
+Status: done
 
 Requirements:
 

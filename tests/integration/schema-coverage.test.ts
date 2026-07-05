@@ -272,6 +272,7 @@ describe("schema coverage integration", () => {
         "test-seeds.schema.json",
         "test-plan.schema.json",
         "quality-pack.schema.json",
+        "rule-quality-score.schema.json",
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
         "github-app-health.schema.json",
@@ -1375,6 +1376,57 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalRedactionProfilePath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal rule-quality-score artifact", () => {
+      const minimalRuleQualityScorePath = path.join(tempDir, "minimal-rule-quality-score.json");
+      const metric = { score: 100, weight: 0.2, evidenceIds: ["rule.manifest.json"], notes: [] };
+      writeFileSync(
+        minimalRuleQualityScorePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "rule-quality-score-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "rule-quality-score",
+          schema: "rule-quality-score@v1",
+          completeness: "complete",
+          subject: { type: "rule", id: "TEST_RULE", name: "Test Rule", version: "0.1.0", path: ".ctg/rules/test-rule" },
+          scores: {
+            fixtureCoverage: { ...metric, weight: 0.3 },
+            falsePositiveReview: { ...metric, weight: 0.2 },
+            evidenceCompleteness: { ...metric, weight: 0.2 },
+            schemaCompatibility: { ...metric, weight: 0.2 },
+            runtimeCost: { ...metric, weight: 0.1 },
+          },
+          formula: {
+            version: "ctg-rule-quality-score-v1",
+            weights: {
+              fixtureCoverage: 0.3,
+              falsePositiveReview: 0.2,
+              evidenceCompleteness: 0.2,
+              schemaCompatibility: 0.2,
+              runtimeCost: 0.1,
+            },
+          },
+          inputEvidence: [
+            {
+              id: "rule.manifest.json",
+              path: ".ctg/rules/test-rule/rule.manifest.json",
+              hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              kind: "manifest",
+              sizeBytes: 123,
+            },
+          ],
+          summary: { totalScore: 100, grade: "A", warnings: [] },
+          generated_by: "ctg-rule-quality-score-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalRuleQualityScorePath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

@@ -194,6 +194,11 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   blocking finding、manual evidence候補、baseline更新候補、severity再評価候補を
   deterministic に列挙する `gate-explainability@v1` を出力し、PR review と
   release-pack summary に required action 数を表示する。
+- QEOS-034: `code-to-gate rule score <rule-or-plugin>` が fixture coverage、
+  false-positive review、evidence completeness、schema compatibility、runtime cost を
+  重み付きで採点し、算出式と入力evidence hash を持つ `rule-quality-score@v1` を出力する。
+  plugin marketplace は plugin directory に score artifact がある場合に entry の
+  `qualityScore` へ接続する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

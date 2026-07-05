@@ -1,10 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type {
   PluginMarketplaceArtifact,
   PluginMarketplaceEntry,
   PluginMarketplaceKind,
+  RuleQualityScoreArtifact,
 } from "../types/artifacts.js";
 import { createPluginLoader } from "./plugin-loader.js";
 import type { PluginLoadResult, PluginManifest } from "./types.js";
@@ -92,6 +93,31 @@ function stringMetadata(manifest: PluginManifest, key: string): string | undefin
   return typeof value === "string" ? value : undefined;
 }
 
+function readQualityScore(pluginDir: string): PluginMarketplaceEntry["qualityScore"] | undefined {
+  const scorePath = path.join(pluginDir, "rule-quality-score.json");
+  if (!existsSync(scorePath)) {
+    return undefined;
+  }
+  try {
+    const artifact = JSON.parse(readFileSync(scorePath, "utf8")) as RuleQualityScoreArtifact;
+    if (artifact.artifact !== "rule-quality-score" || artifact.schema !== "rule-quality-score@v1") {
+      return undefined;
+    }
+    return {
+      artifactPath: relativePath(scorePath),
+      totalScore: artifact.summary.totalScore,
+      grade: artifact.summary.grade,
+      fixtureCoverage: artifact.scores.fixtureCoverage.score,
+      falsePositiveReview: artifact.scores.falsePositiveReview.score,
+      evidenceCompleteness: artifact.scores.evidenceCompleteness.score,
+      schemaCompatibility: artifact.scores.schemaCompatibility.score,
+      runtimeCost: artifact.scores.runtimeCost.score,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 function entryFromLoadResult(result: PluginLoadResult): PluginMarketplaceEntry {
   const manifest = result.manifest;
   const manifestId = manifest ? `${manifest.name}@${manifest.version}` : `invalid:${relativePath(result.path)}`;
@@ -124,6 +150,7 @@ function entryFromLoadResult(result: PluginLoadResult): PluginMarketplaceEntry {
       status: result.status === "loaded" ? "valid" : "invalid",
       errors: result.errors ?? [],
     },
+    qualityScore: readQualityScore(result.path),
   };
 }
 

@@ -138,6 +138,30 @@
               }
             }
           }
+        },
+        "qualityScore": {
+          "type": "object",
+          "required": [
+            "artifactPath",
+            "totalScore",
+            "grade",
+            "fixtureCoverage",
+            "falsePositiveReview",
+            "evidenceCompleteness",
+            "schemaCompatibility",
+            "runtimeCost"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "artifactPath": { "type": "string", "minLength": 1 },
+            "totalScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "grade": { "enum": ["A", "B", "C", "D", "F"] },
+            "fixtureCoverage": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "falsePositiveReview": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "evidenceCompleteness": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "schemaCompatibility": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "runtimeCost": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
         }
       }
     }

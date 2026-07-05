@@ -46,9 +46,11 @@ Usage:
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate spec-drift <repo> --out <dir>
   code-to-gate rule <command>
-    Commands: new
+    Commands: new, score
     new: Create a fixture-based custom rule scaffold
          code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
+    score: Score a rule/plugin quality contract
+         code-to-gate rule score <rule-or-plugin> [--out <file-or-dir>] [--quiet]
   code-to-gate pack <command>
     Commands: list, show, export-policy
     show:          code-to-gate pack show <id> [--out <file-or-dir>] [--quiet]

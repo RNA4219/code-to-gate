@@ -44,6 +44,7 @@ The v1 schema freeze establishes the following guarantees:
 | risk-register | `risk-register@v1` | `risk-register@v1` | Stable |
 | invariants | `invariants@v1` | `invariants@v1` | Stable |
 | test-seeds | `test-seeds@v1` | `test-seeds@v1` | Stable |
+| rule-quality-score | `rule-quality-score@v1` | `rule-quality-score@v1` | Stable |
 | release-readiness | `release-readiness@v1` | `release-readiness@v1` | Stable |
 | pr-review | `pr-review@v1` | `pr-review@v1` | Stable |
 | github-app-health | `github-app-health@v1` | `github-app-health@v1` | Stable |
@@ -159,6 +160,7 @@ schemas/
   invariants.schema.json       # Invariants artifact
   test-seeds.schema.json       # Test seeds artifact
   release-readiness.schema.json # Release readiness artifact
+  rule-quality-score.schema.json # Rule/plugin quality scoring artifact
   audit.schema.json            # Audit artifact
   normalized-repo-graph.schema.json # Repository graph
   evidence-ref.schema.json     # Evidence reference

@@ -38,6 +38,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "test-seeds.json": "test-seeds.schema.json",
   "test-plan.json": "test-plan.schema.json",
   "quality-pack.json": "quality-pack.schema.json",
+  "rule-quality-score.json": "rule-quality-score.schema.json",
   "release-pack.json": "release-pack.schema.json",
   "release-pack.html": undefined,
   "release-pack.zip": undefined,

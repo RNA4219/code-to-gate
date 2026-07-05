@@ -620,18 +620,20 @@ code-to-gate spec-drift <repo> --out <dir>
 
 ### rule
 
-Create custom rule scaffolds for teams that want to extend code-to-gate without
-editing the OSS core rule directory.
+Create custom rule scaffolds and score rule/plugin quality for teams that want
+to extend code-to-gate without editing the OSS core rule directory.
 
 **Usage:**
 ```bash
 code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
+code-to-gate rule score <rule-or-plugin> [--out <file-or-dir>] [--quiet]
 ```
 
 **Commands:**
 | Command | Description |
 |---------|-------------|
 | `new <id>` | Create a TypeScript rule scaffold under `<out>/<id>` |
+| `score <rule-or-plugin>` | Emit `rule-quality-score@v1` with fixture coverage, false-positive review, evidence completeness, schema compatibility, runtime cost, formula, and input evidence |
 
 **Options:**
 | Option | Default | Description |
@@ -641,6 +643,8 @@ code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <se
 | `--severity <severity>` | `high` | Default finding severity: `low`, `medium`, `high`, or `critical`. |
 | `--description <text>` | generated | Rule description written to `rule.ts`, `README.md`, and `rule.manifest.json`. |
 | `--force` | false | Overwrite an existing scaffold directory. |
+| `--out <file-or-dir>` | `<rule-or-plugin>/rule-quality-score.json` | Score output file or directory for `rule score`. |
+| `--quiet` | false | Suppress stdout JSON summary for `rule score`. |
 
 **Generated Files:**
 | Path | Purpose |
@@ -658,13 +662,15 @@ code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <se
 ```bash
 code-to-gate rule new unsafe-redirect --category security --severity high
 code-to-gate rule new payment-total --category payment --severity critical --out .ctg/rules
+code-to-gate rule score .ctg/rules/unsafe-redirect --out .qh
+code-to-gate schema validate .qh/rule-quality-score.json
 ```
 
 **Exit Codes:**
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | OK | Rule scaffold was created |
-| 2 | USAGE_ERROR | Invalid rule id, category, severity, or existing target without `--force` |
+| 2 | USAGE_ERROR | Invalid rule id, category, severity, existing target without `--force`, or missing score target |
 
 ---
 

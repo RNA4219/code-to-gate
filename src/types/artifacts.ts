@@ -23,6 +23,7 @@ export const SCHEMA_VERSIONS = {
   evidenceQuery: "evidence-query@v1",
   redactionProfile: "redaction-profile@v1",
   gateExplainability: "gate-explainability@v1",
+  ruleQualityScore: "rule-quality-score@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -49,6 +50,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   evidenceQuery: "evidence-query@v1",
   redactionProfile: "redaction-profile@v1",
   gateExplainability: "gate-explainability@v1",
+  ruleQualityScore: "rule-quality-score@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -230,6 +232,62 @@ export interface RedactionProfileArtifact extends ArtifactHeader {
   profile: RedactionProfile;
   summary: RedactionSummary;
   generated_by: "ctg-redaction-profile-v1";
+}
+
+// === Rule Quality Score ===
+
+export type RuleQualityScoreGrade = "A" | "B" | "C" | "D" | "F";
+
+export interface RuleQualityScoreMetric {
+  score: number;
+  weight: number;
+  evidenceIds: string[];
+  notes: string[];
+}
+
+export interface RuleQualityScoreInputEvidence {
+  id: string;
+  path: string;
+  hashSha256: string;
+  kind: "manifest" | "fixture" | "test" | "schema" | "readme" | "source" | "score";
+  sizeBytes: number;
+}
+
+export interface RuleQualityScoreArtifact extends ArtifactHeader {
+  artifact: "rule-quality-score";
+  schema: "rule-quality-score@v1";
+  completeness: Completeness;
+  subject: {
+    type: "rule" | "plugin";
+    id: string;
+    name?: string;
+    version?: string;
+    path: string;
+  };
+  scores: {
+    fixtureCoverage: RuleQualityScoreMetric;
+    falsePositiveReview: RuleQualityScoreMetric;
+    evidenceCompleteness: RuleQualityScoreMetric;
+    schemaCompatibility: RuleQualityScoreMetric;
+    runtimeCost: RuleQualityScoreMetric;
+  };
+  formula: {
+    version: "ctg-rule-quality-score-v1";
+    weights: {
+      fixtureCoverage: number;
+      falsePositiveReview: number;
+      evidenceCompleteness: number;
+      schemaCompatibility: number;
+      runtimeCost: number;
+    };
+  };
+  inputEvidence: RuleQualityScoreInputEvidence[];
+  summary: {
+    totalScore: number;
+    grade: RuleQualityScoreGrade;
+    warnings: string[];
+  };
+  generated_by: "ctg-rule-quality-score-v1";
 }
 
 export interface PackageRiskSummary {
@@ -789,6 +847,16 @@ export interface PluginMarketplaceEntry {
       message: string;
       path?: string;
     }>;
+  };
+  qualityScore?: {
+    artifactPath: string;
+    totalScore: number;
+    grade: RuleQualityScoreGrade;
+    fixtureCoverage: number;
+    falsePositiveReview: number;
+    evidenceCompleteness: number;
+    schemaCompatibility: number;
+    runtimeCost: number;
   };
 }
 
