@@ -355,6 +355,7 @@ jobs:
         with:
           artifact_dir: .qh
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          head_sha: ${{ github.event.pull_request.head.sha }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
