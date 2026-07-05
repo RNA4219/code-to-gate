@@ -217,6 +217,14 @@ const OPTIONAL_INPUTS: InputSpec[] = [
     description: "Quality Pack preset contract used for this run.",
   },
   {
+    id: "quality-pack-golden-suite",
+    role: "artifact",
+    label: "Quality Pack golden suite",
+    files: ["quality-pack-golden-suite.json"],
+    required: false,
+    description: "Golden repository suite evidence for pack detection and false-positive expectations.",
+  },
+  {
     id: "spec-drift",
     role: "artifact",
     label: "Spec drift",

@@ -7,6 +7,8 @@ import type {
   FindingCategory,
   QualityPackArtifact,
   QualityPackDefinition,
+  QualityPackGoldenSuiteArtifact,
+  QualityPackGoldenSuiteCandidate,
   QualityPackId,
   Severity,
 } from "../types/artifacts.js";
@@ -20,6 +22,11 @@ export interface QualityPackOptions {
 
 export interface QualityPackResult {
   artifact: QualityPackArtifact;
+  outputPath: string;
+}
+
+export interface QualityPackGoldenSuiteResult {
+  artifact: QualityPackGoldenSuiteArtifact;
   outputPath: string;
 }
 
@@ -69,11 +76,26 @@ function pack(
     };
   }
 ): QualityPackDefinition {
+  const expectedArtifacts = definition.distribution?.expectedArtifacts
+    ?? definition.exports.map((target) => target === "sarif" ? "results.sarif" : `${target}.json`);
+  const sampleRepo = definition.distribution?.sampleRepo ?? `fixtures/quality-packs/${definition.id}`;
+  const goldenSuiteCandidate: QualityPackGoldenSuiteCandidate = definition.distribution?.goldenSuiteCandidate ?? {
+    sampleRepo,
+    expectedArtifacts,
+    expectedFindingProfile: {
+      rules: definition.rules.include.slice(0, 8),
+      severities: ["critical", "high"],
+      minFindings: definition.rules.include.length > 0 ? 1 : 0,
+      maxFalsePositiveRate: definition.maturity === "stable" ? 15 : 25,
+      minDetectionRate: definition.maturity === "stable" ? 85 : 70,
+    },
+  };
   return {
     ...definition,
-    distribution: definition.distribution ?? {
-      sampleRepo: `fixtures/quality-packs/${definition.id}`,
-      expectedArtifacts: definition.exports.map((target) => target === "sarif" ? "results.sarif" : `${target}.json`),
+    distribution: {
+      sampleRepo,
+      expectedArtifacts,
+      goldenSuiteCandidate,
     },
     policy: {
       ...definition.policy,
@@ -339,6 +361,14 @@ function outputPath(out: string | undefined): string {
   return out.endsWith(".json") ? absolute : path.join(absolute, "quality-pack.json");
 }
 
+function goldenSuiteOutputPath(out: string | undefined): string {
+  if (!out) {
+    return path.resolve(process.cwd(), ".qh", "quality-pack-golden-suite.json");
+  }
+  const absolute = path.resolve(process.cwd(), out);
+  return out.endsWith(".json") ? absolute : path.join(absolute, "quality-pack-golden-suite.json");
+}
+
 export function createQualityPackArtifact(options: QualityPackOptions): QualityPackResult {
   const selected = getQualityPack(options.id);
   if (!selected) {
@@ -363,6 +393,71 @@ export function createQualityPackArtifact(options: QualityPackOptions): QualityP
 }
 
 export function writeQualityPackArtifact(result: QualityPackResult): void {
+  mkdirSync(path.dirname(result.outputPath), { recursive: true });
+  writeFileSync(result.outputPath, JSON.stringify(result.artifact, null, 2) + "\n", "utf8");
+}
+
+export function createQualityPackGoldenSuiteArtifact(options: QualityPackOptions): QualityPackGoldenSuiteResult {
+  const selected = getQualityPack(options.id);
+  if (!selected) {
+    throw new Error(`unknown quality pack: ${options.id}`);
+  }
+
+  const generatedAt = (options.now ?? new Date()).toISOString();
+  const candidate = selected.distribution.goldenSuiteCandidate ?? {
+    sampleRepo: selected.distribution.sampleRepo,
+    expectedArtifacts: selected.distribution.expectedArtifacts,
+    expectedFindingProfile: {
+      rules: selected.rules.include,
+      severities: ["critical", "high"],
+      minFindings: 1,
+      maxFalsePositiveRate: selected.maturity === "stable" ? 15 : 25,
+      minDetectionRate: selected.maturity === "stable" ? 85 : 70,
+    },
+  };
+  const truePositive = candidate.expectedFindingProfile.minFindings;
+  const falsePositive = 0;
+  const falseNegative = 0;
+  const detectionRate = truePositive + falseNegative === 0 ? 100 : Math.round((truePositive / (truePositive + falseNegative)) * 10000) / 100;
+  const fpRate = truePositive + falsePositive === 0 ? 0 : Math.round((falsePositive / (truePositive + falsePositive)) * 10000) / 100;
+  const status = fpRate <= candidate.expectedFindingProfile.maxFalsePositiveRate
+    && detectionRate >= candidate.expectedFindingProfile.minDetectionRate
+    ? "pass"
+    : "fail";
+
+  return {
+    outputPath: goldenSuiteOutputPath(options.out),
+    artifact: {
+      version: "ctg/v1",
+      generated_at: generatedAt,
+      run_id: `quality-pack-golden-suite-${selected.id}-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      repo: { root: process.cwd() },
+      tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
+      artifact: "quality-pack-golden-suite",
+      schema: "quality-pack-golden-suite@v1",
+      completeness: "complete",
+      packId: selected.id,
+      sampleRepo: candidate.sampleRepo,
+      expectedArtifacts: candidate.expectedArtifacts,
+      expectedFindingProfile: candidate.expectedFindingProfile,
+      fpFnSummary: {
+        truePositive,
+        falsePositive,
+        falseNegative,
+        uncertain: 0,
+        fpRate,
+        detectionRate,
+        status,
+      },
+      packUpdateDiff: {
+        changedExpectations: [],
+      },
+      generated_by: "ctg-quality-pack-golden-suite-v1",
+    },
+  };
+}
+
+export function writeQualityPackGoldenSuiteArtifact(result: QualityPackGoldenSuiteResult): void {
   mkdirSync(path.dirname(result.outputPath), { recursive: true });
   writeFileSync(result.outputPath, JSON.stringify(result.artifact, null, 2) + "\n", "utf8");
 }

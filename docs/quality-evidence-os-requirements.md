@@ -211,6 +211,10 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   baseline expiry、manual oracle gap、spec drift recurrence を
   owner/due date/status/dismissal reason/source artifact 付きの `review-queue@v1`
   item として出力する。
+- QEOS-038: `code-to-gate pack golden-suite <id>` が pack id、sample/golden repo、
+  expected artifacts、expected finding profile、FP/FN summary、pack update diff を持つ
+  `quality-pack-golden-suite@v1` を出力する。`quality-pack@v1` の distribution は
+  bundled golden suite candidate を宣言し、release pack は同artifactを任意証跡として同梱できる。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

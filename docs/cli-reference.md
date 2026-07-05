@@ -691,6 +691,7 @@ hand-authoring the first `.ctg/policy.yaml`.
 ```bash
 code-to-gate pack list [--quiet]
 code-to-gate pack show <id> [--out <file-or-dir>] [--quiet]
+code-to-gate pack golden-suite <id> [--out <file-or-dir>] [--quiet]
 code-to-gate pack export-policy <id> --out <file> [--quiet]
 ```
 
@@ -698,7 +699,8 @@ code-to-gate pack export-policy <id> --out <file> [--quiet]
 | Command | Description |
 |---------|-------------|
 | `list` | List bundled pack IDs, names, maturity, and tags. |
-| `show <id>` | Emit the full `quality-pack@v1` contract to stdout or `quality-pack.json`. |
+| `show <id>` | Emit the full `quality-pack@v1` contract to stdout or `quality-pack.json`, including a bundled golden suite candidate. |
+| `golden-suite <id>` | Emit `quality-pack-golden-suite@v1` evidence for a pack sample/golden repo, expected artifacts, finding profile, and FP/FN summary. |
 | `export-policy <id>` | Write a readiness-compatible policy YAML for the selected pack. |
 
 **Initial Packs:**
@@ -714,19 +716,21 @@ code-to-gate pack export-policy <id> --out <file> [--quiet]
 **Options:**
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--out <file-or-dir>` | stdout for `show`, required file for `export-policy` | Output destination. `show` writes `quality-pack.json` when given a directory. |
+| `--out <file-or-dir>` | stdout for `show`/`golden-suite`, required file for `export-policy` | Output destination. `show` writes `quality-pack.json` and `golden-suite` writes `quality-pack-golden-suite.json` when given a directory. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
 | `quality-pack.json` | Pack contract, recommended commands, rule profile, policy profile, and expected exports |
+| `quality-pack-golden-suite.json` | Golden repository suite evidence with pack id, sample repo, expected artifacts, expected finding profile, FP/FN summary, and pack update diff |
 | `.ctg/policy.yaml` | Policy YAML usable by `analyze` and `readiness` |
 
 **Example:**
 ```bash
 code-to-gate pack list
 code-to-gate pack show security-basic --out .qh
+code-to-gate pack golden-suite security-basic --out .qh
 code-to-gate pack export-policy security-basic --out .ctg/policy.yaml
 code-to-gate analyze . --policy .ctg/policy.yaml --emit all --out .qh
 ```

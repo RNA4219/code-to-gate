@@ -70,6 +70,43 @@ describe("pack CLI", () => {
     });
     expect(artifact.pack.rules.block).toContain("HARDCODED_SECRET");
     expect(artifact.pack.distribution.expectedArtifacts).toContain("findings.json");
+    expect(artifact.pack.distribution.goldenSuiteCandidate).toMatchObject({
+      sampleRepo: "fixtures/quality-packs/security-basic",
+      expectedFindingProfile: {
+        minFindings: 1,
+        maxFalsePositiveRate: 15,
+        minDetectionRate: 85,
+      },
+    });
+  });
+
+  it("writes a quality-pack golden suite artifact", async () => {
+    const outDir = path.join(tempRoot, "artifacts");
+    const exitCode = await packCommand(["golden-suite", "security-basic", "--out", outDir, "--quiet"], {
+      VERSION,
+      EXIT,
+      getOption,
+    });
+    const artifact = JSON.parse(readFileSync(path.join(outDir, "quality-pack-golden-suite.json"), "utf8"));
+
+    expect(exitCode).toBe(EXIT.OK);
+    expect(artifact).toMatchObject({
+      artifact: "quality-pack-golden-suite",
+      schema: "quality-pack-golden-suite@v1",
+      completeness: "complete",
+      packId: "security-basic",
+      sampleRepo: "fixtures/quality-packs/security-basic",
+      fpFnSummary: {
+        falsePositive: 0,
+        falseNegative: 0,
+        status: "pass",
+      },
+      packUpdateDiff: {
+        changedExpectations: [],
+      },
+    });
+    expect(artifact.expectedArtifacts).toContain("findings.json");
+    expect(artifact.expectedFindingProfile.rules).toContain("HARDCODED_SECRET");
   });
 
   it("exports a policy YAML for readiness", async () => {

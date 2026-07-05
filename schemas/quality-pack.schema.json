@@ -140,6 +140,34 @@
               "type": "array",
               "minItems": 1,
               "items": { "type": "string", "minLength": 1 }
+            },
+            "goldenSuiteCandidate": {
+              "type": "object",
+              "required": ["sampleRepo", "expectedArtifacts", "expectedFindingProfile"],
+              "additionalProperties": false,
+              "properties": {
+                "sampleRepo": { "type": "string", "minLength": 1 },
+                "expectedArtifacts": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "expectedFindingProfile": {
+                  "type": "object",
+                  "required": ["rules", "severities", "minFindings", "maxFalsePositiveRate", "minDetectionRate"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rules": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                    "severities": {
+                      "type": "array",
+                      "items": { "enum": ["low", "medium", "high", "critical"] }
+                    },
+                    "minFindings": { "type": "integer", "minimum": 0 },
+                    "maxFalsePositiveRate": { "type": "number", "minimum": 0, "maximum": 100 },
+                    "minDetectionRate": { "type": "number", "minimum": 0, "maximum": 100 }
+                  }
+                }
+              }
             }
           }
         }

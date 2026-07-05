@@ -27,6 +27,7 @@ export const SCHEMA_VERSIONS = {
   driftBudget: "drift-budget@v1",
   evidenceProvenanceIndex: "evidence-provenance-index@v1",
   reviewQueue: "review-queue@v1",
+  qualityPackGoldenSuite: "quality-pack-golden-suite@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -57,6 +58,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   driftBudget: "drift-budget@v1",
   evidenceProvenanceIndex: "evidence-provenance-index@v1",
   reviewQueue: "review-queue@v1",
+  qualityPackGoldenSuite: "quality-pack-golden-suite@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -1139,6 +1141,7 @@ export interface QualityPackDefinition {
   distribution: {
     sampleRepo: string;
     expectedArtifacts: string[];
+    goldenSuiteCandidate?: QualityPackGoldenSuiteCandidate;
   };
 }
 
@@ -1147,6 +1150,42 @@ export interface QualityPackArtifact extends ArtifactHeader {
   schema: "quality-pack@v1";
   completeness: Completeness;
   pack: QualityPackDefinition;
+}
+
+export interface QualityPackGoldenSuiteCandidate {
+  sampleRepo: string;
+  expectedArtifacts: string[];
+  expectedFindingProfile: {
+    rules: string[];
+    severities: Severity[];
+    minFindings: number;
+    maxFalsePositiveRate: number;
+    minDetectionRate: number;
+  };
+}
+
+export interface QualityPackGoldenSuiteArtifact extends ArtifactHeader {
+  artifact: "quality-pack-golden-suite";
+  schema: "quality-pack-golden-suite@v1";
+  completeness: Completeness;
+  packId: QualityPackId;
+  sampleRepo: string;
+  expectedArtifacts: string[];
+  expectedFindingProfile: QualityPackGoldenSuiteCandidate["expectedFindingProfile"];
+  fpFnSummary: {
+    truePositive: number;
+    falsePositive: number;
+    falseNegative: number;
+    uncertain: number;
+    fpRate: number;
+    detectionRate: number;
+    status: "pass" | "warn" | "fail";
+  };
+  packUpdateDiff: {
+    changedExpectations: string[];
+    previousSuiteHash?: string;
+  };
+  generated_by: "ctg-quality-pack-golden-suite-v1";
 }
 
 // === Release Pack ===

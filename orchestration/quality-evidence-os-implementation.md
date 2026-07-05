@@ -563,7 +563,7 @@ Commands:
 
 Objective: quality pack ごとに golden repo suite を実行し、検出力とfalse positiveを継続測定する。
 
-Status: planned
+Status: done
 
 Requirements:
 

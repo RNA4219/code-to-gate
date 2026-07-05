@@ -272,6 +272,7 @@ describe("schema coverage integration", () => {
         "test-seeds.schema.json",
         "test-plan.schema.json",
         "quality-pack.schema.json",
+        "quality-pack-golden-suite.schema.json",
         "rule-quality-score.schema.json",
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
@@ -1136,6 +1137,50 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalQualityPackPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal quality-pack-golden-suite artifact", () => {
+      const minimalGoldenSuitePath = path.join(tempDir, "minimal-quality-pack-golden-suite.json");
+      writeFileSync(
+        minimalGoldenSuitePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "quality-pack-golden-suite-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "quality-pack-golden-suite",
+          schema: "quality-pack-golden-suite@v1",
+          completeness: "complete",
+          packId: "security-basic",
+          sampleRepo: "fixtures/quality-packs/security-basic",
+          expectedArtifacts: ["findings.json", "results.sarif"],
+          expectedFindingProfile: {
+            rules: ["HARDCODED_SECRET"],
+            severities: ["critical", "high"],
+            minFindings: 1,
+            maxFalsePositiveRate: 15,
+            minDetectionRate: 85,
+          },
+          fpFnSummary: {
+            truePositive: 1,
+            falsePositive: 0,
+            falseNegative: 0,
+            uncertain: 0,
+            fpRate: 0,
+            detectionRate: 100,
+            status: "pass",
+          },
+          packUpdateDiff: {
+            changedExpectations: [],
+          },
+          generated_by: "ctg-quality-pack-golden-suite-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalGoldenSuitePath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

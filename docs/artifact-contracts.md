@@ -668,6 +668,7 @@ v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を�
 - `schemas/invariants.schema.json`
 - `schemas/test-seeds.schema.json`
 - `schemas/release-readiness.schema.json`
+- `schemas/quality-pack-golden-suite.schema.json`
 - `schemas/rule-quality-score.schema.json`
 - `schemas/self-analysis-debt.schema.json`
 - `schemas/audit.schema.json`

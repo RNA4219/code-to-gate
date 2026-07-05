@@ -2,7 +2,9 @@ import {
   QUALITY_PACKS,
   getQualityPack,
   createQualityPackArtifact,
+  createQualityPackGoldenSuiteArtifact,
   writeQualityPackArtifact,
+  writeQualityPackGoldenSuiteArtifact,
   writeQualityPackPolicy,
 } from "../quality-packs/quality-packs.js";
 import type { EXIT, getOption } from "./exit-codes.js";
@@ -23,11 +25,13 @@ function printPackHelp(): void {
 Commands:
   list [--quiet]
   show <id> [--out <file-or-dir>] [--quiet]
+  golden-suite <id> [--out <file-or-dir>] [--quiet]
   export-policy <id> --out <file> [--quiet]
 
 Examples:
   code-to-gate pack list
   code-to-gate pack show security-basic --out .qh
+  code-to-gate pack golden-suite security-basic --out .qh
   code-to-gate pack export-policy security-basic --out .ctg/policy.yaml`);
 }
 
@@ -194,6 +198,52 @@ export async function packCommand(args: string[], options: PackCliOptions): Prom
       emitCliError(error instanceof Error ? error.message : String(error), {
         code: "PACK_FAILED",
         command: "pack export-policy",
+        exitCode: options.EXIT.USAGE_ERROR,
+      });
+      return options.EXIT.USAGE_ERROR;
+    }
+  }
+
+  if (command === "golden-suite") {
+    const argError = validateOptions(rest, 1);
+    const id = positionalArgs(rest)[0];
+    if (argError || !id) {
+      emitCliError(argError ?? "usage: code-to-gate pack golden-suite <id> [--out <file-or-dir>] [--quiet]", {
+        code: "USAGE_ERROR",
+        command: "pack golden-suite",
+        exitCode: options.EXIT.USAGE_ERROR,
+      });
+      return options.EXIT.USAGE_ERROR;
+    }
+
+    try {
+      const result = createQualityPackGoldenSuiteArtifact({
+        id,
+        version: options.VERSION,
+        out: options.getOption(rest, "--out"),
+      });
+      const out = options.getOption(rest, "--out");
+      if (out) {
+        writeQualityPackGoldenSuiteArtifact(result);
+      }
+      if (out) {
+        emitCliSummary(rest, {
+          schema: "ctg.cli.summary@v1",
+          tool: { name: "code-to-gate", version: options.VERSION },
+          command: "pack golden-suite",
+          status: result.artifact.fpFnSummary.status,
+          exit_code: options.EXIT.OK,
+          pack_id: result.artifact.packId,
+          output: result.outputPath,
+        });
+      } else {
+        emitCliSummary(rest, result.artifact as unknown as Record<string, unknown>);
+      }
+      return options.EXIT.OK;
+    } catch (error) {
+      emitCliError(error instanceof Error ? error.message : String(error), {
+        code: "PACK_FAILED",
+        command: "pack golden-suite",
         exitCode: options.EXIT.USAGE_ERROR,
       });
       return options.EXIT.USAGE_ERROR;

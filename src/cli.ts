@@ -54,8 +54,9 @@ Usage:
     score: Score a rule/plugin quality contract
          code-to-gate rule score <rule-or-plugin> [--out <file-or-dir>] [--quiet]
   code-to-gate pack <command>
-    Commands: list, show, export-policy
+    Commands: list, show, golden-suite, export-policy
     show:          code-to-gate pack show <id> [--out <file-or-dir>] [--quiet]
+    golden-suite:  code-to-gate pack golden-suite <id> [--out <file-or-dir>] [--quiet]
     export-policy: code-to-gate pack export-policy <id> --out <file> [--quiet]
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
