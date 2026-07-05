@@ -155,12 +155,31 @@ Commands:
 - `npm run build`
 - `npm run quality:spec-drift`
 
+## Task Seed QEOS-P1-05 Release Evidence Pack
+
+Objective: release review に必要な QEG、audit、diff、readiness、manual-bb、CI URL、artifact hash を HTML/ZIP と manifest にまとめる。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate release-pack --from <artifact-dir> --out <file-or-dir>` で `release-pack.json`、`release-pack.html`、`release-pack.zip` を生成する。
+- `release-pack.json` は `release-pack@v1` schema に合格する。
+- QEG、audit、diff、readiness、manual-bb、CI URL は required evidence として manifest entry に出す。
+- required evidence が欠ける場合は `status: partial` と missing entry を記録し、`--allow-partial` なしでは `READINESS_NOT_CLEAR` を返す。
+- HTML は readiness verdict、QEG summary、manual-bb候補数、changed files、artifact hash、CI URL を確認できる。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/release-pack.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
 ## Task Seed QEOS-P2/P3 Backlog
 
 - QEOS-002 PR Reviewer Bot
 - QEOS-011 Schema Evolution
 - QEOS-012 Importer Expansion
-- QEOS-013 Release Evidence Pack
 - QEOS-014 Policy DSL
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace

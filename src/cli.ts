@@ -17,6 +17,7 @@ import { ruleCommand } from "./cli/rule.js";
 import { packCommand } from "./cli/pack.js";
 import { doctorCommand } from "./cli/doctor.js";
 import { testPlanCommand } from "./cli/test-plan.js";
+import { releasePackCommand } from "./cli/release-pack.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -46,6 +47,7 @@ Usage:
     export-policy: code-to-gate pack export-policy <id> --out <file> [--quiet]
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
     Commands: bundle, validate, list, extract
@@ -96,6 +98,7 @@ Options:
   --current <dir>    Current run artifact directory (historical)
   --previous <dir>   Previous run artifact directory (historical)
   --history <dir>    Directory with historical runs for trend analysis
+  --ci-url <url>     CI run URL for release-pack
   --help, -h         Show this help
   --version          Show version
 
@@ -181,6 +184,10 @@ async function main(): Promise<number> {
 
     if (command === "test-plan") {
       return await testPlanCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "release-pack") {
+      return await releasePackCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "evidence") {

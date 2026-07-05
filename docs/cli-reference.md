@@ -19,6 +19,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [pack](#pack)
    - [doctor](#doctor)
    - [test-plan](#test-plan)
+   - [release-pack](#release-pack)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
    - [plugin-sandbox](#plugin-sandbox)
@@ -56,6 +57,7 @@ These options apply to all commands:
 | `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
+| `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 
 ### scan
 
@@ -747,6 +749,61 @@ code-to-gate schema validate .qh/pr/test-plan.json
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | OK | Test plan was generated |
+| 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
+### release-pack
+
+Assemble release review evidence into a manifest, a human-readable HTML review,
+and a ZIP archive. Required evidence covers QEG, audit, diff, readiness,
+manual-bb, CI URL, and artifact hashes.
+
+**Usage:**
+```bash
+code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing release evidence artifacts. |
+| `--out <file-or-dir>` | `<from>/release-pack` | Output ZIP path or directory. Directories receive `release-pack.json`, `release-pack.html`, and `release-pack.zip`. |
+| `--ci-url <url>` | GitHub Actions env when present | CI run URL recorded in the manifest and HTML. |
+| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, and test plan when present. |
+| `--allow-partial` | false | Return OK even when required evidence is missing; the manifest still records `status: "partial"`. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Required Evidence:**
+| Evidence | Accepted File |
+|----------|---------------|
+| QEG | `qeg-code-to-gate.json` |
+| Audit | `audit.json` |
+| Diff | `diff-analysis.json` |
+| Readiness | `release-readiness.json` |
+| Manual BB | `manual-bb.json` or `manual-bb-seed.json` |
+| CI URL | `--ci-url` or GitHub Actions environment variables |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `release-pack.json` | Manifest with required/missing entries, hashes, summary, and output paths |
+| `release-pack.html` | Human-readable release evidence review |
+| `release-pack.zip` | Archive containing manifest, HTML, and included artifacts |
+
+**Example:**
+```bash
+code-to-gate export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
+code-to-gate export manual-bb --from .qh --out .qh/manual-bb.json
+code-to-gate release-pack --from .qh --out .qh/release-pack --ci-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+code-to-gate schema validate .qh/release-pack/release-pack.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Release pack was generated and required evidence is present, or `--allow-partial` was used |
+| 1 | READINESS_NOT_CLEAR | Release pack was generated but required evidence is missing |
 | 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
 
 ---

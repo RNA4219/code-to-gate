@@ -17,6 +17,7 @@ export const SCHEMA_VERSIONS = {
   invariants: "invariants@v1",
   testSeeds: "test-seeds@v1",
   releaseReadiness: "release-readiness@v1",
+  releasePack: "release-pack@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1",
@@ -32,6 +33,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   invariants: "invariants@v1",
   testSeeds: "test-seeds@v1",
   releaseReadiness: "release-readiness@v1",
+  releasePack: "release-pack@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1alpha1",
@@ -605,6 +607,65 @@ export interface QualityPackArtifact extends ArtifactHeader {
   schema: "quality-pack@v1";
   completeness: Completeness;
   pack: QualityPackDefinition;
+}
+
+// === Release Pack ===
+
+export type ReleasePackStatus = "ready" | "partial";
+
+export type ReleasePackEntryRole =
+  | "qeg"
+  | "audit"
+  | "diff"
+  | "readiness"
+  | "manual-bb"
+  | "ci"
+  | "artifact"
+  | "generated";
+
+export interface ReleasePackEntry {
+  id: string;
+  role: ReleasePackEntryRole;
+  label: string;
+  kind: "required" | "optional" | "generated";
+  present: boolean;
+  sourcePath?: string;
+  packPath?: string;
+  hashSha256?: string;
+  schema?: string;
+  sizeBytes?: number;
+  generatedAt?: string;
+  description?: string;
+}
+
+export interface ReleasePackArtifact extends ArtifactHeader {
+  artifact: "release-pack";
+  schema: "release-pack@v1";
+  completeness: Completeness;
+  status: ReleasePackStatus;
+  ci: {
+    url?: string;
+    provider?: "github-actions" | "manual";
+    runId?: string;
+  };
+  entries: ReleasePackEntry[];
+  outputs: {
+    manifest: string;
+    html: string;
+    zip: string;
+  };
+  summary: {
+    requiredEvidence: number;
+    presentRequiredEvidence: number;
+    missingRequiredEvidence: number;
+    includedArtifacts: number;
+    findings: number;
+    readinessStatus?: string;
+    qegSchemaChecks: number;
+    manualTestCandidates: number;
+    changedFiles: number;
+    ciUrl?: string;
+  };
 }
 
 // === Normalized Repo Graph (for analyze input) ===

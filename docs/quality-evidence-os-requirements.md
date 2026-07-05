@@ -74,7 +74,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-010 | LLM Trust Boundary | P0 | LLM主張は evidence-bound で、unsupported claim は gate外に隔離される |
 | QEOS-011 | Schema Evolution | P2 | artifact schema version migration と検証結果を出力できる |
 | QEOS-012 | Importer Expansion | P1 | SARIF/CodeQL/Semgrep/ESLint を normalized finding に変換できる |
-| QEOS-013 | Release Evidence Pack | P1 | QEG、audit、diff、readiness、manual-bb、CI URL、hash をHTML/ZIP化できる |
+| QEOS-013 | Release Evidence Pack | P1 | `code-to-gate release-pack` で QEG、audit、diff、readiness、manual-bb、CI URL、artifact hash を `release-pack.json` / HTML / ZIP に集約できる |
 | QEOS-014 | Policy DSL | P1 | new/worsened、manual evidence、criticalなどをYAMLで表現できる |
 | QEOS-015 | Ownership / Module Risk | P1 | CODEOWNERS/workspace/module graph から reviewer と影響領域を出せる |
 | QEOS-016 | `ctg doctor` | P0 | Node/Git/Docker/schema/CI/plugin sandbox の導入診断を `doctor.json` として出せる |

@@ -114,6 +114,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates release-pack schema", () => {
+      const schemaFile = schemaPath("release-pack");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -224,6 +232,7 @@ describe("schema coverage integration", () => {
         "test-seeds.schema.json",
         "test-plan.schema.json",
         "quality-pack.schema.json",
+        "release-pack.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "spec-drift.schema.json",
@@ -782,6 +791,74 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalQualityPackPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal release-pack artifact", () => {
+      const minimalReleasePackPath = path.join(tempDir, "minimal-release-pack.json");
+      writeFileSync(
+        minimalReleasePackPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "release-pack-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "release-pack",
+          schema: "release-pack@v1",
+          completeness: "complete",
+          status: "ready",
+          ci: {
+            url: "https://github.com/example/repo/actions/runs/123",
+            provider: "manual",
+            runId: "123",
+          },
+          entries: [
+            {
+              id: "qeg",
+              role: "qeg",
+              label: "QEG evidence input",
+              kind: "required",
+              present: true,
+              sourcePath: ".qh/qeg-code-to-gate.json",
+              packPath: "artifacts/qeg-code-to-gate.json",
+              hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              schema: "ctg.qeg-input/v1",
+              sizeBytes: 10,
+              description: "Evidence-only QEG input.",
+            },
+            {
+              id: "ci-url",
+              role: "ci",
+              label: "CI run URL",
+              kind: "required",
+              present: true,
+              sourcePath: "https://github.com/example/repo/actions/runs/123",
+              description: "CI workflow run URL.",
+            },
+          ],
+          outputs: {
+            manifest: ".qh/release-pack/release-pack.json",
+            html: ".qh/release-pack/release-pack.html",
+            zip: ".qh/release-pack/release-pack.zip",
+          },
+          summary: {
+            requiredEvidence: 2,
+            presentRequiredEvidence: 2,
+            missingRequiredEvidence: 0,
+            includedArtifacts: 1,
+            findings: 1,
+            readinessStatus: "passed",
+            qegSchemaChecks: 1,
+            manualTestCandidates: 0,
+            changedFiles: 0,
+            ciUrl: "https://github.com/example/repo/actions/runs/123",
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalReleasePackPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });
