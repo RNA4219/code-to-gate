@@ -20,6 +20,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [doctor](#doctor)
    - [test-plan](#test-plan)
    - [ownership](#ownership)
+   - [query](#query)
    - [pr-review](#pr-review)
    - [pr-review-publish](#pr-review-publish)
    - [release-pack](#release-pack)
@@ -62,6 +63,7 @@ These options apply to all commands:
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 | `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
+| `query` | Query findings, artifacts, and baseline evidence from an artifact directory. | `evidence-query.json` |
 | `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
 | `pr-review-publish` | Publish PR review markdown with token or GitHub App auth and emit posting health evidence. | `github-app-health.json` |
 | `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
@@ -845,6 +847,50 @@ code-to-gate schema validate .qh/ownership-risk.json
 |------|------|-------------|
 | 0 | OK | Ownership risk artifact was generated |
 | 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
+### query
+
+Query existing evidence artifacts and write the deterministic result as
+`evidence-query.json`. The initial language intentionally stays small: one
+domain, one `where` predicate, and scalar comparisons.
+
+**Usage:**
+```bash
+code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+```
+
+**Supported Expressions:**
+| Expression | Description |
+|------------|-------------|
+| `finding where severity >= high` | Match findings by severity rank |
+| `artifact where schema = findings@v1` | Match artifact metadata |
+| `baseline where expired = true` | Match baseline summary fields |
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing JSON artifacts. |
+| `--out <file-or-dir>` | `<from>/evidence-query.json` | Output file or directory. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `evidence-query.json` | `evidence-query@v1` artifact with the query, matched locators, source artifact hashes, and result counts |
+
+**Example:**
+```bash
+code-to-gate query "finding where severity >= high" --from .qh --out .qh
+code-to-gate schema validate .qh/evidence-query.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Query was evaluated and artifact was written |
+| 2 | USAGE_ERROR | Unsupported expression, missing artifact directory, or invalid arguments |
 
 ---
 

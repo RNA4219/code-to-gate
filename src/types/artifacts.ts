@@ -20,6 +20,7 @@ export const SCHEMA_VERSIONS = {
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
+  evidenceQuery: "evidence-query@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
@@ -42,6 +43,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
   githubAppHealth: "github-app-health@v1",
+  evidenceQuery: "evidence-query@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
@@ -977,6 +979,41 @@ export interface GitHubAppHealthArtifact extends ArtifactHeader {
   };
   error?: string;
   generated_by: "ctg-pr-review-publish-v1";
+}
+
+// === Evidence Query ===
+
+export interface EvidenceQueryMatch {
+  id: string;
+  type: "finding" | "artifact" | "baseline";
+  sourceArtifact: string;
+  sourceHashSha256: string;
+  locator: string;
+  value?: unknown;
+}
+
+export interface EvidenceQueryArtifact extends ArtifactHeader {
+  artifact: "evidence-query";
+  schema: "evidence-query@v1";
+  completeness: Completeness;
+  query: {
+    expression: string;
+    domain: "finding" | "artifact" | "baseline";
+    field: string;
+    operator: "=" | "!=" | ">=" | "<=" | ">" | "<";
+    value: string;
+  };
+  matches: EvidenceQueryMatch[];
+  sourceArtifacts: Array<{
+    file: string;
+    hashSha256: string;
+    schema?: string;
+  }>;
+  summary: {
+    resultCount: number;
+    sourceArtifacts: number;
+  };
+  generated_by: "ctg-evidence-query-v1";
 }
 
 // === Schema Migration ===

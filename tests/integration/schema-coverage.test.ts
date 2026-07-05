@@ -275,6 +275,7 @@ describe("schema coverage integration", () => {
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
         "github-app-health.schema.json",
+        "evidence-query.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
         "plugin-marketplace.schema.json",
@@ -1285,6 +1286,53 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalGitHubAppHealthPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal evidence-query artifact", () => {
+      const minimalEvidenceQueryPath = path.join(tempDir, "minimal-evidence-query.json");
+      writeFileSync(
+        minimalEvidenceQueryPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "evidence-query-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "evidence-query",
+          schema: "evidence-query@v1",
+          completeness: "complete",
+          query: {
+            expression: "finding where severity >= high",
+            domain: "finding",
+            field: "severity",
+            operator: ">=",
+            value: "high",
+          },
+          matches: [
+            {
+              id: "finding-001",
+              type: "finding",
+              sourceArtifact: "findings.json",
+              sourceHashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              locator: "findings.json#findings/0",
+              value: "high",
+            },
+          ],
+          sourceArtifacts: [
+            {
+              file: "findings.json",
+              hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              schema: "findings@v1",
+            },
+          ],
+          summary: { resultCount: 1, sourceArtifacts: 1 },
+          generated_by: "ctg-evidence-query-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalEvidenceQueryPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/evidence-query.schema.json",
+  "title": "EvidenceQueryArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "query",
+    "matches",
+    "sourceArtifacts",
+    "summary",
+    "generated_by"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "evidence-query" },
+    "schema": { "const": "evidence-query@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "query": {
+      "type": "object",
+      "required": ["expression", "domain", "field", "operator", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "expression": { "type": "string", "minLength": 1 },
+        "domain": { "enum": ["finding", "artifact", "baseline"] },
+        "field": { "type": "string", "minLength": 1 },
+        "operator": { "enum": ["=", "!=", ">=", "<=", ">", "<"] },
+        "value": { "type": "string" }
+      }
+    },
+    "matches": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/match" }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sourceArtifact" }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["resultCount", "sourceArtifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "resultCount": { "type": "integer", "minimum": 0 },
+        "sourceArtifacts": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "generated_by": { "const": "ctg-evidence-query-v1" }
+  },
+  "$defs": {
+    "match": {
+      "type": "object",
+      "required": ["id", "type", "sourceArtifact", "sourceHashSha256", "locator"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["finding", "artifact", "baseline"] },
+        "sourceArtifact": { "type": "string", "minLength": 1 },
+        "sourceHashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "locator": { "type": "string", "minLength": 1 },
+        "value": {}
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["file", "hashSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "hashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "schema": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

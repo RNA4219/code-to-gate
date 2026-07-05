@@ -182,6 +182,9 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   (`actions/upload-artifact`) を診断。
 - QEOS-030: `historical-comparison.qualitySlo` が high findings増加率、
   spec drift再発率、未解消baseline期限超過年齢を optional indicator として保持。
+- QEOS-031: `code-to-gate query <expression> --from <artifact-dir>` が
+  finding/artifact/baseline の軽量queryを評価し、source artifact hash と
+  matched locator を持つ `evidence-query@v1` を出力する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

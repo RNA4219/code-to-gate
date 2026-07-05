@@ -542,6 +542,7 @@ v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を�
 - `schemas/plugin-marketplace.schema.json`
 - `schemas/pr-review.schema.json`
 - `schemas/github-app-health.schema.json`
+- `schemas/evidence-query.schema.json`
 
 受入条件:
 

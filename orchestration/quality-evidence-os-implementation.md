@@ -437,7 +437,7 @@ Commands:
 
 Objective: artifact directory を横断して finding / artifact / baseline / SLO を軽量queryで抽出できる `evidence-query@v1` を実装する。
 
-Status: planned
+Status: done
 
 Requirements:
 
