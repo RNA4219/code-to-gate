@@ -9,6 +9,7 @@ import { exportCommand } from "../export.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import Ajv from "ajv";
 
 const EXIT = {
   OK: 0,
@@ -184,12 +185,18 @@ describe("export CLI", () => {
       writeReadiness(tempOutDir, "passed");
 
       const { exitCode, output } = await runExport("hate-qeg-bundle", tempOutDir);
+      const schema = JSON.parse(readFileSync(path.resolve("schemas/integrations/hate-qeg-bundle.schema.json"), "utf8"));
+      const ajv = new Ajv({ strict: false, validateSchema: false });
+      const validate = ajv.compile(schema);
 
       expect(exitCode).toBe(EXIT.OK);
-      expect(output.metadata.qegVersion).toBe("0.1");
+      expect(validate(output)).toBe(true);
+      expect(output.metadata.qegVersion).toBe("HATE/v1");
+      expect(output.metadata.debugOnly).toBe(false);
       expect(output.summary.producer).toBe("hate");
       expect(output.summary.raw_findings.critical).toBe(1);
       expect(output.completeness.partial).toBe(true);
+      expect(output.completeness.excludedArtifacts).toEqual(expect.arrayContaining(["junit", "lcov"]));
     });
 
     it("generates QEG gate fixture with expected verdict", async () => {

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quality-harness.dev/schemas/hate/v1/qeg-bundle.schema.json",
+  "title": "HATE v1 QEG Compatibility Bundle",
+  "type": "object",
+  "required": ["metadata", "nodes", "edges", "completeness"],
+  "additionalProperties": true,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["qegVersion", "runId", "runAttempt", "createdAt", "profile", "inputArtifacts", "debugOnly"],
+      "additionalProperties": true,
+      "properties": {
+        "qegVersion": { "const": "HATE/v1" },
+        "runId": { "type": "string", "minLength": 1 },
+        "runAttempt": { "type": "integer", "minimum": 1 },
+        "createdAt": { "type": "string", "minLength": 1 },
+        "profile": { "type": "string", "minLength": 1 },
+        "inputArtifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "path"],
+            "additionalProperties": true,
+            "properties": {
+              "kind": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "debugOnly": { "type": "boolean" }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "label", "data", "sourceRefs"],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "label": { "type": "string" },
+          "data": { "type": "object" },
+          "sourceRefs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "from", "to", "traceability"],
+        "additionalProperties": true,
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "traceability": {
+            "type": "object",
+            "required": ["sourceRefs", "confidence", "assumptions"],
+            "additionalProperties": true,
+            "properties": {
+              "sourceRefs": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "confidence": { "enum": ["low", "medium", "high"] },
+              "assumptions": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "completeness": {
+      "type": "object",
+      "required": ["score", "partial", "parserFailures", "unsupportedClaims", "excludedArtifacts"],
+      "additionalProperties": true,
+      "properties": {
+        "score": { "type": "number", "minimum": 0 },
+        "partial": { "type": "boolean" },
+        "parserFailures": { "type": "array" },
+        "unsupportedClaims": { "type": "array" },
+        "excludedArtifacts": { "type": "array" }
+      }
+    }
+  }
+}

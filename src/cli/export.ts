@@ -129,48 +129,57 @@ function generateHateQegBundle(
 ): Record<string, unknown> {
   const now = new Date().toISOString();
   const counts = severityCounts(findings);
-  const sourceRef = qegSourceRef("hate:sr-auto-test-evidence", "docs/specs/SPEC-30-five-tool-qeg-gate.md", "HATE evidence bridge");
+  const sourceRefs = ["docs/specs/SPEC-30-five-tool-qeg-gate.md"];
   const inputArtifacts = artifactHashes
     .filter((hash) => ["findings.json", "release-readiness.json", "results.sarif"].includes(hash.artifact))
-    .map((hash) => artifactRefFromHash(hash, commitSha, "hate"));
+    .map((hash) => ({
+      kind: hash.artifact.replace(/\.json$/, ""),
+      path: hash.path,
+      contentHash: hash.hash,
+      producer: "code-to-gate",
+      ...(commitSha ? { revision: commitSha } : {}),
+    }));
 
   return {
     metadata: {
-      qegVersion: "0.1",
+      qegVersion: "HATE/v1",
       runId: `hate:run-${findings.run_id}`,
+      runAttempt: 1,
       createdAt: now,
       profile: "standard",
       repoRoot: findings.repo.root,
       headRef: commitSha,
       inputArtifacts,
+      debugOnly: false,
     },
     nodes: [
       {
         id: "hate:test-code-to-gate-ci",
         kind: "test",
-        title: "code-to-gate CI quality commands",
-        layer: "system",
-        command: "npm run build; npm run quality:spec-drift; npm run quality:qeos-matrix",
-        existing: true,
-        evidenceStrength: readinessStatus === "passed" ? 0.8 : 0.5,
-        recentGreenRuns: readinessStatus === "passed" ? 1 : 0,
-        traceability: qegTrace(sourceRef),
-        sourceArtifactIds: inputArtifacts.map((artifact) => String(artifact.id)),
+        label: "code-to-gate CI quality commands",
+        data: {
+          layer: "system",
+          command: "npm run build; npm run quality:spec-drift; npm run quality:qeos-matrix",
+          existing: true,
+          evidenceStrength: readinessStatus === "passed" ? 0.8 : 0.5,
+          recentGreenRuns: readinessStatus === "passed" ? 1 : 0,
+          sourceArtifactPaths: inputArtifacts.map((artifact) => artifact.path),
+        },
+        sourceRefs,
       },
       {
         id: "hate:evidence-auto-test-gap",
         kind: "execution_evidence",
-        title: "Automated evidence availability and gap record",
-        evidenceRefs: [{
-          id: "hate:ev-spec-30",
-          path: "docs/specs/SPEC-30-five-tool-qeg-gate.md",
-          evidenceKind: "audit",
-          capturedAt: now,
-          label: "HATE bridge",
-        }],
-        passed: readinessStatus === "passed",
-        traceability: qegTrace(sourceRef, "medium"),
-        sourceArtifactIds: inputArtifacts.map((artifact) => String(artifact.id)),
+        label: "Automated evidence availability and gap record",
+        data: {
+          passed: readinessStatus === "passed",
+          readinessStatus,
+          missingInputs: inputArtifacts.some((artifact) => artifact.kind === "results.sarif")
+            ? []
+            : ["junit", "lcov"],
+          note: "HATE-compatible optional evidence; QEG remains final gate owner.",
+        },
+        sourceRefs,
       },
     ],
     edges: [{
@@ -178,7 +187,11 @@ function generateHateQegBundle(
       kind: "evidenced_by",
       from: "hate:test-code-to-gate-ci",
       to: "hate:evidence-auto-test-gap",
-      traceability: qegTrace(sourceRef, "medium"),
+      traceability: {
+        sourceRefs,
+        confidence: "medium",
+        assumptions: [],
+      },
     }],
     completeness: {
       score: readinessStatus === "passed" ? 0.85 : 0.65,
@@ -190,6 +203,9 @@ function generateHateQegBundle(
         nodeIds: ["hate:evidence-auto-test-gap"],
         gateRelevant: false,
       }],
+      excludedArtifacts: inputArtifacts.some((artifact) => artifact.kind === "results.sarif")
+        ? []
+        : ["junit", "lcov"],
     },
     summary: {
       producer: "hate",

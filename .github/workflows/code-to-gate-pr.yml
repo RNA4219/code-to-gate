@@ -322,6 +322,7 @@ jobs:
           node ./dist/cli.js export manual-bb --scope qeos-039-040 --from .qh --out .qh/manual-bb.json
           node ./dist/cli.js schema validate .qh/manual-bb.json
           node ./dist/cli.js export hate-qeg-bundle --from .qh --out .qh/hate-qeg-bundle.json
+          node ./dist/cli.js schema validate .qh/hate-qeg-bundle.json
           node ./dist/cli.js export qeg-gate-input --from .qh --out .qh/qeg-gate
           {
             echo "## QEG Evidence"

@@ -58,7 +58,10 @@ write a HATE-compatible QEG bundle-shaped optional evidence artifact.
 
 The bundle MUST:
 
+- validate against `schemas/integrations/hate-qeg-bundle.schema.json`,
+  mirroring HATE's `schemas/HATE/v1/qeg-bundle.schema.json` contract.
 - use QEG bundle fields: `metadata`, `nodes`, `edges`, `completeness`.
+- set `metadata.qegVersion` to `HATE/v1`.
 - identify `producer` through artifact refs as `hate`.
 - represent auto-test evidence availability and gaps without claiming a final
   release verdict.
@@ -108,7 +111,7 @@ CI MUST keep uploading these artifacts even when readiness blocks.
 
 | ID | Proof |
 | --- | --- |
-| AC-30-01 | `node ./dist/cli.js export hate-qeg-bundle --from .qh --out .qh/hate-qeg-bundle.json` exits 0 |
+| AC-30-01 | `node ./dist/cli.js export hate-qeg-bundle --from .qh --out .qh/hate-qeg-bundle.json` exits 0 and `node ./dist/cli.js schema validate .qh/hate-qeg-bundle.json` passes |
 | AC-30-02 | `node ./dist/cli.js export manual-bb --scope qeos-039-040 --from .qh --out .qh/manual-bb.json` exits 0 and contains QEOS-039/040 cases |
 | AC-30-03 | `node ./dist/cli.js export qeg-gate-input --from .qh --out .qh/qeg-gate` exits 0 and writes `gate-input.json` |
 | AC-30-04 | QEG `validate` accepts generated `.qh/qeg-gate` when QEG runtime is available |
