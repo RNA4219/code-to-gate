@@ -195,9 +195,22 @@ jobs:
         run: npm run build
 
       - name: Detect spec drift
+        id: spec_drift
         run: |
+          set +e
           node ./dist/cli.js spec-drift . --out .qh
+          SPEC_DRIFT_EXIT=$?
+          set -e
+          if [ "$SPEC_DRIFT_EXIT" -ne 0 ] && [ ! -f .qh/spec-drift.json ]; then
+            echo "::error::Spec drift detection failed before producing spec-drift.json"
+            exit "$SPEC_DRIFT_EXIT"
+          fi
           node ./dist/cli.js schema validate .qh/spec-drift.json
+          status=$(jq -r '.status' .qh/spec-drift.json)
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ "$status" = "failed" ]; then
+            echo "::warning::Spec drift found; PR review evidence will still be generated before the job fails"
+          fi
 
       - name: Run diff analysis
         run: |
@@ -340,10 +353,15 @@ jobs:
           retention-days: 30
 
       - name: Block PR if not ready
-        if: steps.readiness-status.outputs.status == 'blocked_input'
+        if: steps.readiness-status.outputs.status == 'blocked_input' || steps.spec_drift.outputs.status == 'failed'
         run: |
-          echo "::error::Release blocked by critical findings"
-          echo "QEG evidence was generated at .qh/qeg-code-to-gate.json and uploaded with the PR artifacts."
+          if [ "${{ steps.readiness-status.outputs.status }}" = "blocked_input" ]; then
+            echo "::error::Release blocked by critical findings"
+          fi
+          if [ "${{ steps.spec_drift.outputs.status }}" = "failed" ]; then
+            echo "::error::Spec drift blocks merge"
+          fi
+          echo "QEG evidence and PR review artifacts were generated under .qh and uploaded with the PR artifacts."
           exit 1
 
   status-check:
