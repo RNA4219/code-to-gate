@@ -19,6 +19,7 @@ export const SCHEMA_VERSIONS = {
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
+  githubAppHealth: "github-app-health@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
@@ -40,6 +41,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   releaseReadiness: "release-readiness@v1",
   releasePack: "release-pack@v1",
   hostedStaticReport: "hosted-static-report@v1",
+  githubAppHealth: "github-app-health@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
@@ -924,6 +926,44 @@ export interface HostedStaticReportArtifact extends ArtifactHeader {
   };
   compatibleHosts: HostedStaticReportTarget[];
   generated_by: "ctg-viewer-hosted-v1";
+}
+
+// === GitHub App Health ===
+
+export type GitHubAppHealthStatus = "posted" | "dry_run" | "failed";
+export type GitHubAppHealthAuthMode = "github-token" | "github-app" | "none";
+export type GitHubAppHealthPublishAction = "created" | "updated" | "skipped" | "failed";
+
+export interface GitHubAppHealthArtifact extends ArtifactHeader {
+  artifact: "github-app-health";
+  schema: "github-app-health@v1";
+  completeness: Completeness;
+  status: GitHubAppHealthStatus;
+  authMode: GitHubAppHealthAuthMode;
+  repository: {
+    owner: string;
+    repo: string;
+  };
+  pullRequest: {
+    number: number;
+  };
+  source: {
+    artifactDir: string;
+    markdownPath: string;
+    markdownHashSha256: string;
+    prReviewPath?: string;
+  };
+  publish: {
+    action: GitHubAppHealthPublishAction;
+    commentId?: number;
+    marker: "code-to-gate PR Review";
+  };
+  permissions: {
+    required: string[];
+    checked: boolean;
+  };
+  error?: string;
+  generated_by: "ctg-pr-review-publish-v1";
 }
 
 // === Schema Migration ===

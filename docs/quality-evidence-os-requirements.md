@@ -163,6 +163,9 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   を追加拡張対象として定義。
 - QEOS-021: `src/github/api-client.ts` が GitHub App JWT 生成、installation lookup、
   installation token 取得を実装し、PR comment / Checks API の常設Bot利用に接続。
+  `code-to-gate pr-review-publish` は `pr-review.md` を投稿/更新し、
+  `github-app-health@v1` で認証方式、markdown hash、対象PR、comment action、
+  失敗理由を証跡化する。
 - QEOS-026: `doctor` が workflow permissions に加えて artifact upload path
   (`actions/upload-artifact`) を診断。
 - QEOS-030: `historical-comparison.qualitySlo` が high findings増加率、

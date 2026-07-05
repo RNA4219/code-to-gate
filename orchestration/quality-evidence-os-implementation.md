@@ -361,17 +361,21 @@ Commands:
 
 Objective: `pr-review@v1` を GitHub Actions comment step だけでなく常設GitHub App/Botからも利用できる安定contractにする。
 
-Status: planned
+Status: in_progress
 
 Requirements:
 
 - App/Bot contract は repository、pull request、commit sha、artifact URL、comment marker、permission要求を記録する。
 - `pr-review.md` の content hash と run id で既存コメント更新を識別できる。
 - Actions実装とApp実装が同じ `pr-review.json` / `pr-review.md` を入力にできる。
+- `code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number>` は
+  `GITHUB_TOKEN` または GitHub App 認証で既存PRコメントを更新/新規作成し、
+  `github-app-health.json` を残す。
 
 Commands:
 
 - `npx vitest run src/cli/__tests__/pr-review.test.ts --reporter=dot`
+- `npx vitest run src/cli/__tests__/pr-review-publish.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`
 

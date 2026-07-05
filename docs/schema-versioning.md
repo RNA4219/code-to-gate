@@ -46,6 +46,7 @@ The v1 schema freeze establishes the following guarantees:
 | test-seeds | `test-seeds@v1` | `test-seeds@v1` | Stable |
 | release-readiness | `release-readiness@v1` | `release-readiness@v1` | Stable |
 | pr-review | `pr-review@v1` | `pr-review@v1` | Stable |
+| github-app-health | `github-app-health@v1` | `github-app-health@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |
 | database-assets | - | `database-assets@v1alpha1` | Experimental |

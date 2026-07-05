@@ -274,6 +274,7 @@ describe("schema coverage integration", () => {
         "quality-pack.schema.json",
         "release-pack.schema.json",
         "hosted-static-report.schema.json",
+        "github-app-health.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
         "plugin-marketplace.schema.json",
@@ -1242,6 +1243,47 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalHostedReportPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal github-app-health artifact", () => {
+      const minimalGitHubAppHealthPath = path.join(tempDir, "minimal-github-app-health.json");
+      writeFileSync(
+        minimalGitHubAppHealthPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "github-app-health-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "github-app-health",
+          schema: "github-app-health@v1",
+          completeness: "complete",
+          status: "posted",
+          authMode: "github-app",
+          repository: { owner: "example", repo: "repo" },
+          pullRequest: { number: 42 },
+          source: {
+            artifactDir: ".qh",
+            markdownPath: ".qh/pr-review.md",
+            markdownHashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            prReviewPath: ".qh/pr-review.json",
+          },
+          publish: {
+            action: "updated",
+            commentId: 123,
+            marker: "code-to-gate PR Review",
+          },
+          permissions: {
+            required: ["pull-requests: write"],
+            checked: false,
+          },
+          generated_by: "ctg-pr-review-publish-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalGitHubAppHealthPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

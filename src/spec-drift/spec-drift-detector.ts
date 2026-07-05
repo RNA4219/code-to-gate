@@ -42,6 +42,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "release-pack.html": undefined,
   "release-pack.zip": undefined,
   "hosted-static-report.json": "hosted-static-report.schema.json",
+  "github-app-health.json": "github-app-health.schema.json",
   "schema-migration.json": "schema-migration.schema.json",
   "ownership-risk.json": "ownership-risk.schema.json",
   "plugin-marketplace.json": "plugin-marketplace.schema.json",

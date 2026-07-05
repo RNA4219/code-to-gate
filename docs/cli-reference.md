@@ -21,6 +21,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [test-plan](#test-plan)
    - [ownership](#ownership)
    - [pr-review](#pr-review)
+   - [pr-review-publish](#pr-review-publish)
    - [release-pack](#release-pack)
    - [plugin-marketplace](#plugin-marketplace)
    - [llm-health](#llm-health)
@@ -62,6 +63,7 @@ These options apply to all commands:
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 | `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
 | `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
+| `pr-review-publish` | Publish PR review markdown with token or GitHub App auth and emit posting health evidence. | `github-app-health.json` |
 | `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 | `plugin-marketplace` | Build a validated local plugin registry for distribution review. | `plugin-marketplace.json` |
@@ -917,6 +919,50 @@ code-to-gate schema validate .qh/pr-review.json
 | 0 | OK | PR review was generated with status `pass` or `needs_review` |
 | 1 | READINESS_NOT_CLEAR | PR review was generated with status `block` |
 | 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
+### pr-review-publish
+
+Publish an existing `pr-review.md` to a GitHub pull request and write
+`github-app-health.json`. The command accepts either `GITHUB_TOKEN`/PAT or
+GitHub App credentials (`GITHUB_APP_ID`, `GITHUB_APP_KEY`, optional
+`GITHUB_APP_INSTALLATION_ID`). `--dry-run` writes the evidence artifact without
+calling GitHub.
+
+**Usage:**
+```bash
+code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--dry-run] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing `pr-review.md` and optional `pr-review.json`. |
+| `--repo <owner/repo>` | required | GitHub repository that owns the pull request. |
+| `--pull <number>` | required | Pull request number. |
+| `--out <file-or-dir>` | `<from>` | Output file or directory for `github-app-health.json`. |
+| `--dry-run` | false | Skip GitHub posting and emit health evidence only. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `github-app-health.json` | `github-app-health@v1` artifact with auth mode, source markdown hash, target PR, comment action, and publish status |
+
+**Example:**
+```bash
+code-to-gate pr-review --from .qh --out .qh
+code-to-gate pr-review-publish --from .qh --repo "$GITHUB_REPOSITORY" --pull "$PR_NUMBER"
+code-to-gate schema validate .qh/github-app-health.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | PR review comment was posted/updated, or dry-run evidence was generated |
+| 2 | USAGE_ERROR | Missing markdown, repo, pull number, or invalid arguments |
+| 9 | INTEGRATION_EXPORT_FAILED | GitHub auth or comment API failed; failed health evidence is still written |
 
 ---
 

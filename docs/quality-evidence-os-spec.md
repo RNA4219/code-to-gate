@@ -389,7 +389,8 @@ P2 PR Review App Mode の初期 acceptance は次の通り。
 
 - `pr-review@v1` は GitHub Actions step と常設GitHub App/Bot の両方が使える安定入力である。
 - App/Bot は `pr-review.md` の content hash と run id を保持し、同一PRの既存コメントを更新できる。
-- App/Bot contract は repository、pull request、commit sha、artifact URL、comment marker、permission要求を記録する。
+- App/Bot contract は `code-to-gate pr-review-publish` と `github-app-health.json` で
+  repository、pull request、comment marker、permission要求、投稿結果を記録する。
 - GitHub App 認証は App JWT を生成し、repository installation から installation token を取得して PR comment / Checks API に使える。
 
 P1 Spec Drift Surface Expansion の初期 acceptance は次の通り。

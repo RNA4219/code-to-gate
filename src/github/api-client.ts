@@ -244,7 +244,9 @@ export class GitHubApiClient {
     for (const comment of comments) {
       if (
         comment.body.includes("## code-to-gate Analysis") ||
-        comment.body.includes("code-to-gate Analysis")
+        comment.body.includes("code-to-gate Analysis") ||
+        comment.body.includes("## code-to-gate PR Review") ||
+        comment.body.includes("code-to-gate PR Review")
       ) {
         return comment.id;
       }

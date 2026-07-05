@@ -21,6 +21,7 @@ import { releasePackCommand } from "./cli/release-pack.js";
 import { ownershipCommand } from "./cli/ownership.js";
 import { pluginMarketplaceCommand } from "./cli/plugin-marketplace.js";
 import { prReviewCommand } from "./cli/pr-review.js";
+import { prReviewPublishCommand } from "./cli/pr-review-publish.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -53,6 +54,7 @@ Usage:
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
+  code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--dry-run] [--quiet]
   code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
   code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
@@ -116,6 +118,10 @@ Options:
                      Markdown PR comment output path for pr-review
   --artifact-url <url>
                      Published report URL included in pr-review evidence links
+  --repo <owner/repo>
+                     GitHub repository for pr-review-publish
+  --pull <number>    Pull request number for pr-review-publish
+  --dry-run          Write publish health evidence without posting to GitHub
   --target-version <version>
                      Target version for schema migrate; inferred from source version by default
   --help, -h         Show this help
@@ -215,6 +221,10 @@ async function main(): Promise<number> {
 
     if (command === "pr-review") {
       return await prReviewCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "pr-review-publish") {
+      return await prReviewPublishCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "plugin-marketplace") {
