@@ -8,7 +8,11 @@
   },
   "main": "./dist/cli.js",
   "exports": {
-    ".": "./dist/cli.js"
+    ".": "./dist/cli.js",
+    "./rule-sdk": {
+      "types": "./dist/rule-sdk/index.d.ts",
+      "import": "./dist/rule-sdk/index.js"
+    }
   },
   "types": "./dist/cli.d.ts",
   "files": [
@@ -32,7 +36,15 @@
     "dist/viewer/",
     "dist/historical/",
     "dist/plugin/",
+    "dist/rule-sdk/",
+    "dist/quality-packs/",
     "dist/self-analysis/",
+    "dist/spec-drift/",
+    "dist/doctor/",
+    "dist/test-plan/",
+    "dist/ownership/",
+    "dist/pr-review/",
+    "dist/release-pack/",
     "dist/qeg/",
     "dist/utils/",
     "!dist/**/__tests__/**",
@@ -62,10 +74,18 @@
     "test:package": "node scripts/package-smoke.mjs",
     "test:real-repo": "vitest run --config vitest.heavy.config.ts src/__tests__/real-repos --reporter verbose",
     "test:performance": "vitest run --config vitest.heavy.config.ts src/__tests__/performance --reporter verbose",
+    "docs:stale": "node scripts/check-doc-review-due.mjs docs",
+    "docs:roadmap-drift": "node scripts/check-roadmap-completion-drift.mjs",
+    "docs:distribution": "node scripts/check-distribution-status.mjs",
+    "docs:lint-refs": "node scripts/lint-doc-references.mjs",
+    "quality:spec-drift": "npm run build && npm run ctg -- spec-drift . --out .qh-spec-drift && npm run ctg -- schema validate .qh-spec-drift/spec-drift.json",
+    "quality:qeos-matrix": "npm run build && npm run ctg -- qeos matrix --from . --out .qh && npm run ctg -- schema validate .qh/qeos-acceptance-matrix.json",
+    "package:integrity": "node scripts/package-integrity.mjs",
+    "acceptance:harness": "node scripts/acceptance-harness.mjs",
     "real-repo-test": "node ./dist/cli.js analyze ./fixtures/demo-ci-imports --out ./fixtures/demo-ci-imports/.qh",
     "fp-eval": "node ./dist/cli.js analyze ./fixtures/demo-shop-ts --out ./fixtures/demo-shop-ts/.qh --emit all",
     "release:prepare": "npm run build && npm run ctg -- analyze . --policy .ctg/policy.yaml --emit all --out .qh",
-    "release:validate": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:architecture && npm run test:package && npm audit --audit-level=high && npm run ctg -- analyze . --policy .ctg/policy.yaml --emit all --out .qh-release && npm run ctg -- readiness . --policy .ctg/policy.yaml --from .qh-release --out .qh-release && npm run ctg -- schema validate-all .qh-release --strict",
+    "release:validate": "npm run build && npm run lint && npm run typecheck && npm run ctg -- spec-drift . --out .qh-release && npm run test:smoke && npm run test:architecture && npm run test:package && npm audit --audit-level=high && npm run ctg -- analyze . --policy .ctg/policy.yaml --emit all --out .qh-release && npm run ctg -- readiness . --policy .ctg/policy.yaml --from .qh-release --out .qh-release && npm run ctg -- schema validate-all .qh-release --strict",
     "release:public": "npm run lint && npm run typecheck && npm run test:smoke && npm pack --dry-run",
     "release:public:quality": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:ci:stable && npm run test:coverage && npm run release:validate",
     "audit:deps": "npm audit --audit-level=high",

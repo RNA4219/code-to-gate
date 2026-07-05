@@ -106,10 +106,10 @@ git clone --depth 1 https://github.com/expressjs/express.git .real-repo-temp/exp
 node dist/cli.js scan .real-repo-temp/express --out .real-repo-results/express/scan
 
 # 3. Run analyze
-node dist/cli.js analyze .real-repo-temp/express --emit all --out .real-repo-results/express/analyze --llm-mode none
+node dist/cli.js analyze .real-repo-temp/express --emit all --out .real-repo-results/express/analyze --llm-mode local-only --llm-provider deterministic
 
 # 4. Run readiness
-node dist/cli.js readiness .real-repo-temp/express --out .real-repo-results/express/readiness --llm-mode none
+node dist/cli.js readiness .real-repo-temp/express --policy fixtures/policies/strict.yaml --from .real-repo-results/express/analyze --out .real-repo-results/express/readiness
 
 # 5. Validate schemas
 node dist/cli.js schema validate .real-repo-results/express/analyze/repo-graph.json

@@ -26,6 +26,11 @@
 
 v0.1 Local Release Readiness MVP の受入基準は `docs/acceptance-v0.1.md` で定義済み。本書は Phase 1 以降を対象とする。
 
+Precision evidence note:
+- Controlled fixture validation and real public repository validation are separate evidence classes.
+- Fixture FP/FN rates must not be presented as real repo precision.
+- Real repo acceptance requires repository URL, commit hash, policy/config, generated artifacts, and human TP/FP/Uncertain classification.
+
 ---
 
 ## 2. Non-goals
@@ -82,11 +87,12 @@ v0.1 fixture + Phase 1 新 fixture。
 **Fixture 受入コマンド**:
 
 ```bash
-code-to-gate fixture run demo-shop-ts --out .qh/fixtures/demo-shop-ts
-code-to-gate fixture run demo-auth-js --out .qh/fixtures/demo-auth-js
-code-to-gate fixture run demo-ci-imports --out .qh/fixtures/demo-ci-imports
-code-to-gate fixture run demo-suppressions-ts --out .qh/fixtures/demo-suppressions-ts
-code-to-gate fixture run demo-github-actions-ts --out .qh/fixtures/demo-github-actions-ts
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/fixtures/demo-shop-ts --llm-provider deterministic
+code-to-gate readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh/fixtures/demo-shop-ts --out .qh/fixtures/demo-shop-ts
+code-to-gate analyze fixtures/demo-auth-js --emit all --out .qh/fixtures/demo-auth-js --llm-provider deterministic
+code-to-gate analyze fixtures/demo-ci-imports --emit all --out .qh/fixtures/demo-ci-imports --llm-provider deterministic
+code-to-gate analyze fixtures/demo-suppressions-ts --emit all --out .qh/fixtures/demo-suppressions-ts --llm-provider deterministic
+code-to-gate analyze fixtures/demo-github-actions-ts --emit all --out .qh/fixtures/demo-github-actions-ts --llm-provider deterministic
 ```
 
 期待結果:
@@ -132,9 +138,8 @@ code-to-gate schema validate .qh/results.sarif
 | `import` | ESLint/Semgrep/tsc/coverage import |
 | `readiness` | ReleaseReadiness evaluation |
 | `export` | 4 downstream + SARIF export |
-| `plugin` | doctor / list / validate 動作 |
 | `schema` | validate 動作 |
-| `fixture` | run 動作 |
+| Fixture directory | `fixtures/<name>` を通常 repo として analyze/readiness 可能 |
 
 **CLI Acceptance Commands**:
 
@@ -158,7 +163,7 @@ code-to-gate import tsc fixtures/demo-ci-imports/tsc.json --out .qh/import-test
 # 期待: exit code 0, normalized findings 生成
 
 # Readiness
-code-to-gate readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --out .qh/readiness-test
+code-to-gate readiness fixtures/demo-shop-ts --policy fixtures/policies/strict.yaml --from .qh/analyze-test --out .qh/readiness-test
 # 期待: exit code 1, blocked_input
 
 # Export
@@ -169,17 +174,12 @@ code-to-gate export workflow-evidence --from .qh/readiness-test --out .qh/workfl
 code-to-gate export sarif --from .qh/readiness-test --out .qh/sarif-test.sarif
 # 期待: すべて exit code 0
 
-# Plugin
-code-to-gate plugin list
-code-to-gate plugin doctor
-# 期待: exit code 0
-
 # Schema
 code-to-gate schema validate .qh/readiness-test/release-readiness.json
 # 期待: exit code 0
 
 # Fixture
-code-to-gate fixture run demo-shop-ts
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/fixture-test --llm-provider deterministic
 # 期待: exit code 1, blocked_input
 ```
 
@@ -209,7 +209,7 @@ jobs:
           fetch-depth: 0
       
       - name: Install code-to-gate
-        run: npm install -g @code-to-gate/cli
+        run: npm install -g github:RNA4219/code-to-gate
       
       - name: Run scan
         run: code-to-gate scan . --out .qh
@@ -249,11 +249,9 @@ jobs:
 **PR Comment Test Command**:
 
 ```bash
-# PR comment 生成 (dry-run)
-code-to-gate export pr-comment --from .qh --out .qh/pr-comment.md --dry-run
-
-# PR comment 投稿
-code-to-gate export pr-comment --from .qh --repo owner/repo --pr-number 123 --token $GITHUB_TOKEN
+# 現行 CLI には export pr-comment はない。
+# PR comment は GitHub Actions 側で workflow-evidence export または analysis-report.md を読み込んで投稿する。
+code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.json
 ```
 
 期待結果:
@@ -273,11 +271,9 @@ code-to-gate export pr-comment --from .qh --repo owner/repo --pr-number 123 --to
 **Checks Test Command**:
 
 ```bash
-# Check run 生成 (dry-run)
-code-to-gate export checks --from .qh --out .qh/checks-payload.json --dry-run
-
-# Check run 投稿
-code-to-gate export checks --from .qh --repo owner/repo --sha abc123 --token $GITHUB_TOKEN
+# 現行 CLI には export checks はない。
+# Checks / annotations は SARIF export と GitHub Actions upload-sarif で検証する。
+code-to-gate export sarif --from .qh --out .qh/results.sarif
 ```
 
 期待結果:
@@ -299,16 +295,16 @@ code-to-gate export checks --from .qh --repo owner/repo --sha abc123 --token $GI
 
 ```bash
 # Remote LLM 動作確認
-code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-test --llm-mode remote --require-llm
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-test --llm-mode allow-cloud --llm-provider openai --require-llm
 # 期待: exit code 1 (blocked_input), LLM artifact 生成
 
 # LLM 失敗 fallback 確認 (timeout 模擬)
-code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-fallback --llm-mode remote --llm-timeout 1
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-fallback --llm-provider deterministic
 # 期待: deterministic artifact 生成, LLM partial or failed
 
 # require-llm 失敗確認
-code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-fail --llm-mode none --require-llm
-# 期待: exit code 4
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-fail --llm-provider ollama --require-llm
+# 期待: provider unavailable の場合 exit code 4
 ```
 
 #### 3.1.9 Redaction Acceptance
@@ -334,34 +330,28 @@ code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/redaction-test -
 - LLM request payload に secret 値が含まれない
 - Audit に `redaction.enabled=true` 記録
 
-#### 3.1.10 Plugin Acceptance
+#### 3.1.10 Plugin Sandbox Acceptance
 
 | 基準 | 受入条件 |
 |---|---|
-| Plugin doctor | `code-to-gate plugin doctor` 動作 |
-| Plugin list | `code-to-gate plugin list` 動作 |
-| Plugin validate | `code-to-gate plugin validate` 動作 |
-| Core plugins | `@code-to-gate/lang-ts`, `@code-to-gate/rules-core` 読み込み |
-| Private plugin | `file:../private-plugin` 読み込み可能 |
+| Sandbox status | `code-to-gate plugin-sandbox status` 動作 |
+| Sandbox run | `code-to-gate plugin-sandbox run` が plugin path と input を受け取る |
+| Sandbox image | Docker 利用環境で `code-to-gate plugin-sandbox build-image` が実行可能 |
 
-**Plugin Test Commands**:
+**Plugin Sandbox Test Commands**:
 
 ```bash
-# Plugin doctor
-code-to-gate plugin doctor
-# 期待: exit code 0, plugin health status 出力
+# Sandbox status
+code-to-gate plugin-sandbox status
+# 期待: exit code 0, sandbox status 出力
 
-# Plugin list
-code-to-gate plugin list
-# 期待: exit code 0, loaded plugins list
+# Sandbox run (fixture plugin がある場合)
+code-to-gate plugin-sandbox run fixtures/plugins/test-plugin --input fixtures/plugins/input.json --sandbox docker
+# 期待: exit code 0 or sandbox/plugin error code
 
-# Plugin validate
-code-to-gate plugin validate fixtures/plugins/test-plugin
-# 期待: exit code 0 or 6 (manifest invalid)
-
-# Private plugin 読み込み
-code-to-gate analyze fixtures/demo-shop-ts --plugin file:fixtures/plugins/test-plugin --out .qh/plugin-test
-# 期待: plugin 読み込み成功, findings 生成
+# Sandbox image build (Docker 利用環境)
+code-to-gate plugin-sandbox build-image
+# 期待: exit code 0
 ```
 
 #### 3.1.11 Performance Acceptance
@@ -369,7 +359,7 @@ code-to-gate analyze fixtures/demo-shop-ts --plugin file:fixtures/plugins/test-p
 | 基準 | 条件 | 目標 | 測定方法 |
 |---|---|---:|---|
 | Small repo scan | 100-500 files, TS/JS | <= 30s | `time code-to-gate scan` |
-| Small repo analyze | 100-500 files, LLM excluded | <= 60s | `time code-to-gate analyze --llm-mode none` |
+| Small repo analyze | 100-500 files, deterministic/local analysis | <= 60s | `time code-to-gate analyze --llm-mode local-only --llm-provider deterministic` |
 | Schema validation | Generated artifacts | <= 5s | `time code-to-gate schema validate` |
 
 **Performance Test Commands**:
@@ -380,7 +370,7 @@ time code-to-gate scan fixtures/demo-shop-ts --out .qh/perf-scan
 # 期待: <= 30s
 
 # Small repo analyze timing (no LLM)
-time code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/perf-analyze --llm-mode none
+time code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/perf-analyze --llm-mode local-only --llm-provider deterministic
 # 期待: <= 60s
 
 # Schema validation timing
@@ -393,7 +383,7 @@ time code-to-gate schema validate .qh/perf-analyze/findings.json
 #### 3.1.12 FP Acceptance
 
 | 基準 | 受入条件 | 測定方法 |
-|---|---|
+|---|---|---|
 | FP rate | <= 15% | Human review-based evaluation |
 
 **FP Evaluation Method**:
@@ -447,7 +437,7 @@ FP rate > 15% の場合:
 #### 3.1.13 FN Acceptance
 
 | 基準 | 受入条件 | 測定方法 |
-|---|---|
+|---|---|---|
 | Detection rate | >= 80% | Seeded smells evaluation |
 
 **FN Evaluation Method**:
@@ -563,12 +553,12 @@ Phase 2 OSS β の受入基準。Phase 1 基準 + 以下追加基準。
 # 1. plugin template から新規 plugin 作成
 # 2. manifest.yaml 作成
 # 3. plugin 実装
-# 4. plugin validate
-code-to-gate plugin validate my-custom-plugin
+# 4. sandbox status / execution
+code-to-gate plugin-sandbox status
 
 # Plugin 実行確認
-code-to-gate analyze fixtures/demo-shop-ts --plugin my-custom-plugin --out .qh/custom-plugin-test
-# 期待: custom plugin findings 生成
+code-to-gate plugin-sandbox run my-custom-plugin --input fixtures/plugins/input.json --sandbox docker
+# 期待: plugin sandbox 実行または sandbox/plugin error code が記録される
 ```
 
 #### 3.2.3 Contract Tests Acceptance
@@ -696,7 +686,7 @@ time code-to-gate scan fixtures/demo-medium --out .qh/perf-medium
 # 期待: <= 45s
 
 # Medium repo analyze timing (no LLM)
-time code-to-gate analyze fixtures/demo-medium --emit all --out .qh/perf-medium-analyze --llm-mode none
+time code-to-gate analyze fixtures/demo-medium --emit all --out .qh/perf-medium-analyze --llm-mode local-only --llm-provider deterministic
 # 期待: <= 120s
 
 # Incremental cache timing
@@ -830,8 +820,9 @@ Forward compatibility:
 # 期待: plugin list, examples
 
 # Plugin docs 確認
-code-to-gate docs plugin-guide
-# 期待: plugin 作成 guide 出力
+test -f docs/plugin-development.md
+test -f docs/plugin-sandbox.md
+# 期待: plugin 作成 / sandbox guide が存在
 ```
 
 #### 3.3.5 FP Acceptance
@@ -874,9 +865,13 @@ code-to-gate viewer --from .qh --port 3000 --full
 # - export button (SARIF, downstream)
 ```
 
-#### 3.3.8 Adoption Acceptance
+#### 3.3.8 Market Traction Metrics
 
-| 基準 | 受入条件 |
+These metrics are launch and adoption signals. They are tracked separately from
+engineering acceptance and do not prove analyzer correctness, release readiness,
+or schema stability.
+
+| 基準 | Tracking condition |
 |---|---|
 | GitHub stars | 100+ GitHub stars |
 | Real project usage | 10+ real project usage evidence |
@@ -981,15 +976,33 @@ Phase 3 v1.0 Release の GO 条件 (Phase 2 基準 + 以下)。
 | Detection rate >= 95% | Yes | Phase 2 の 90% 改善 |
 | Plugin ecosystem | Yes | 3+ public plugins |
 | Web viewer | Yes | Full viewer 動作 |
-| Adoption | Yes | 100+ GitHub stars |
+| Market traction | No | 100+ GitHub stars tracked separately from quality GO/NO-GO |
 
 ---
 
 ## 5. Acceptance Commands
 
+The executable fixture harness is `npm run acceptance:harness`. It replaces
+the older pseudo `EXPECT_*` notation for local fixture acceptance and writes
+artifacts under `.qh/acceptance/harness/`.
+
+Real public repository acceptance is executed by `scripts/real-repo-test.ps1`
+or `scripts/real-repo-test.sh` after target repositories have been cloned and
+pinned to reviewed commits. That heavy path must produce the evidence fields
+listed in section 6 and `docs/real-repo-validation-record.md`.
+
 ### 5.1 Phase 1 α Acceptance Commands
 
-実行可能な受入コマンドセット。
+実行可能なfixture受入コマンドセット。
+
+```bash
+npm run build
+npm run acceptance:harness
+```
+
+The historical command sketch below remains as a requirements trace for Phase
+coverage. New local automation must be added to `scripts/acceptance-harness.mjs`
+or the real-repo scripts instead of adding new pseudo `EXPECT_*` lines.
 
 ```bash
 #!/bin/bash
@@ -999,13 +1012,13 @@ echo "=== Phase 1 α Acceptance Test ==="
 
 # 5.1.1 Fixture Tests
 echo ">>> Fixture Tests"
-code-to-gate fixture run demo-shop-ts --out .qh/acceptance/demo-shop-ts
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/acceptance/demo-shop-ts --llm-provider deterministic
 EXPECT_EXIT=1 EXPECT_STATUS=blocked_input
 
-code-to-gate fixture run demo-auth-js --out .qh/acceptance/demo-auth-js
+code-to-gate analyze fixtures/demo-auth-js --emit all --out .qh/acceptance/demo-auth-js --llm-provider deterministic
 EXPECT_EXIT=1 EXPECT_STATUS=needs_review
 
-code-to-gate fixture run demo-ci-imports --out .qh/acceptance/demo-ci-imports
+code-to-gate analyze fixtures/demo-ci-imports --emit all --out .qh/acceptance/demo-ci-imports --llm-provider deterministic
 EXPECT_EXIT=0
 
 # 5.1.2 Real Repo Tests
@@ -1036,10 +1049,10 @@ echo ">>> CLI Command Tests"
 code-to-gate scan fixtures/demo-shop-ts --out .qh/cli-test
 EXPECT_EXIT=0
 
-code-to-gate plugin doctor
+code-to-gate plugin-sandbox status
 EXPECT_EXIT=0
 
-code-to-gate plugin list
+code-to-gate plugin-sandbox status
 EXPECT_EXIT=0
 
 # 5.1.5 Performance Tests
@@ -1052,7 +1065,7 @@ echo "Scan duration: $DURATION seconds"
 EXPECT_DURATION<=30
 
 START=$(date +%s)
-code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/perf-analyze --llm-mode none
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/perf-analyze --llm-mode local-only --llm-provider deterministic
 END=$(date +%s)
 DURATION=$((END - START))
 echo "Analyze duration (no LLM): $DURATION seconds"
@@ -1063,7 +1076,7 @@ echo ">>> LLM Tests"
 code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-test --require-llm
 EXPECT_EXIT=1 EXPECT_LLM_ARTIFACTS
 
-code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-fail --llm-mode none --require-llm
+code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/llm-fail --llm-provider ollama --require-llm
 EXPECT_EXIT=4
 
 # 5.1.7 Export Tests
@@ -1093,7 +1106,7 @@ echo ">>> Medium Repo Tests"
 time code-to-gate scan fixtures/demo-medium --out .qh/acceptance/medium
 EXPECT_DURATION<=45
 
-time code-to-gate analyze fixtures/demo-medium --emit all --out .qh/acceptance/medium-analyze --llm-mode none
+time code-to-gate analyze fixtures/demo-medium --emit all --out .qh/acceptance/medium-analyze --llm-mode local-only --llm-provider deterministic
 EXPECT_DURATION<=120
 
 # 5.2.2 Monorepo Tests
@@ -1103,11 +1116,11 @@ EXPECT_PACKAGE_BOUNDARY
 
 # 5.2.3 Plugin SDK Tests
 echo ">>> Plugin SDK Tests"
-code-to-gate plugin validate fixtures/plugins/custom-rule
+code-to-gate plugin-sandbox status
 EXPECT_EXIT=0
 
-code-to-gate analyze fixtures/demo-shop-ts --plugin fixtures/plugins/custom-rule --out .qh/plugin-custom
-EXPECT_CUSTOM_FINDINGS
+code-to-gate plugin-sandbox run fixtures/plugins/custom-rule --input fixtures/plugins/input.json --sandbox docker
+EXPECT_PLUGIN_SANDBOX_RESULT
 
 # 5.2.4 Contract Tests
 echo ">>> Contract Tests"
@@ -1230,7 +1243,7 @@ run_id: acceptance-phase1-001
 date: 2026-05-01
 
 commands:
-  - command: "code-to-gate fixture run demo-shop-ts"
+  - command: "code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/fixture-test --llm-provider deterministic"
     exit_code: 1
     expected: 1
     result: pass
@@ -1240,7 +1253,7 @@ commands:
     expected: 0
     result: pass
   
-  - command: "code-to-gate analyze demo-shop-ts --require-llm --llm-mode none"
+  - command: "code-to-gate analyze fixtures/demo-shop-ts --require-llm --llm-provider ollama"
     exit_code: 4
     expected: 4
     result: pass

@@ -15,6 +15,21 @@ const DEFAULT_MAX_LINES = 500;
 const DEFAULT_MAX_FUNCTIONS = 20;
 const DEFAULT_MAX_SIZE_KB = 50; // 50KB
 
+function isTypeContractModule(path: string, content: string): boolean {
+  if (!/src[\\/]+types[\\/]/.test(path)) return false;
+
+  const executableSignals = [
+    /\bfunction\s+\w+/,
+    /\bclass\s+\w+/,
+    /\bconst\s+\w+\s*=\s*(?:async\s*)?\(/,
+    /\b(?:let|var)\s+\w+\s*=/,
+  ];
+  if (executableSignals.some((signal) => signal.test(content))) return false;
+
+  const typeContractSignals = content.match(/\b(?:export\s+)?(?:interface|type)\s+\w+/g) ?? [];
+  return typeContractSignals.length >= 5;
+}
+
 export const LARGE_MODULE_RULE: RulePlugin = {
   id: "LARGE_MODULE",
   name: "Large Module",
@@ -42,6 +57,15 @@ export const LARGE_MODULE_RULE: RulePlugin = {
         file.path.endsWith("index.ts") ||
         file.path.endsWith("index.js") ||
         file.path.includes("config/") ||
+        file.path.includes("fixtures/") ||
+        file.path.includes("/.qh/") ||
+        file.path.includes(".qh/") ||
+        file.path.includes("generated/") ||
+        file.path.includes("__generated__/") ||
+        file.path.includes("reports/") ||
+        file.path.includes("coverage/") ||
+        file.path.endsWith("analysis-report.md") ||
+        file.path.endsWith("report.html") ||
         file.path.includes("__tests__/") ||
         file.path.includes("tests/") ||
         file.path.includes("test/")
@@ -51,6 +75,7 @@ export const LARGE_MODULE_RULE: RulePlugin = {
 
       const content = context.getFileContent(file.path);
       if (!content) continue;
+      if (isTypeContractModule(file.path, content)) continue;
 
       const lines = content.split("\n");
       const lineCount = file.lineCount || lines.length;

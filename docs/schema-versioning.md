@@ -44,7 +44,20 @@ The v1 schema freeze establishes the following guarantees:
 | risk-register | `risk-register@v1` | `risk-register@v1` | Stable |
 | invariants | `invariants@v1` | `invariants@v1` | Stable |
 | test-seeds | `test-seeds@v1` | `test-seeds@v1` | Stable |
+| quality-pack-golden-suite | `quality-pack-golden-suite@v1` | `quality-pack-golden-suite@v1` | Stable |
+| rule-quality-score | `rule-quality-score@v1` | `rule-quality-score@v1` | Stable |
 | release-readiness | `release-readiness@v1` | `release-readiness@v1` | Stable |
+| hosted-evidence-portal | `hosted-evidence-portal@v1` | `hosted-evidence-portal@v1` | Stable |
+| pr-review | `pr-review@v1` | `pr-review@v1` | Stable |
+| github-app-health | `github-app-health@v1` | `github-app-health@v1` | Stable |
+| evidence-query | `evidence-query@v1` | `evidence-query@v1` | Stable |
+| redaction-profile | `redaction-profile@v1` | `redaction-profile@v1` | Stable |
+| gate-explainability | `gate-explainability@v1` | `gate-explainability@v1` | Stable |
+| drift-budget | `drift-budget@v1` | `drift-budget@v1` | Stable |
+| evidence-provenance-index | `evidence-provenance-index@v1` | `evidence-provenance-index@v1` | Stable |
+| review-queue | `review-queue@v1` | `review-queue@v1` | Stable |
+| baseline-debt-ledger | `baseline-debt-ledger@v1` | `baseline-debt-ledger@v1` | Stable |
+| qeos-acceptance-matrix | `qeos-acceptance-matrix@v1` | `qeos-acceptance-matrix@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |
 | database-assets | - | `database-assets@v1alpha1` | Experimental |
@@ -96,11 +109,20 @@ The following changes are allowed without version bump:
 
 ### 4.1 v1alpha1 to v1 Migration
 
-v1 parsers must accept v1alpha1 artifacts by:
+Use the built-in migration command before strict v1 validation:
+
+```bash
+code-to-gate schema migrate .qh/legacy/findings.json --out .qh/migrated
+code-to-gate schema validate .qh/migrated/findings.json
+code-to-gate schema validate .qh/migrated/schema-migration.json
+```
+
+v1 consumers should handle v1alpha1 artifacts by:
 
 1. Recognizing `ctg/v1alpha1` version string as valid
-2. Applying schema validation against v1 definitions
-3. Normalizing missing optional fields to defaults
+2. Migrating or normalizing the version string to `ctg/v1`
+3. Applying schema validation against v1 definitions
+4. Keeping `schema-migration.json` with the validation evidence when artifacts are transformed
 
 ### 4.2 Implementation Guidelines
 
@@ -144,9 +166,22 @@ schemas/
   invariants.schema.json       # Invariants artifact
   test-seeds.schema.json       # Test seeds artifact
   release-readiness.schema.json # Release readiness artifact
+  quality-pack-golden-suite.schema.json # Quality pack golden repository suite evidence
+  rule-quality-score.schema.json # Rule/plugin quality scoring artifact
   audit.schema.json            # Audit artifact
   normalized-repo-graph.schema.json # Repository graph
   evidence-ref.schema.json     # Evidence reference
+  schema-migration.schema.json # Migration report artifact
+  ownership-risk.schema.json   # CODEOWNERS and module ownership risk
+  plugin-marketplace.schema.json # Plugin registry for distribution review
+  pr-review.schema.json        # PR review artifact and comment body contract
+  redaction-profile.schema.json # Redaction profile contract
+  gate-explainability.schema.json # Gate failure explanation and action candidates
+  drift-budget.schema.json     # Spec drift budget and branch policy evidence
+  evidence-provenance-index.schema.json # Human surface to artifact/source reverse index
+  review-queue.schema.json    # App/Bot-native review queue artifact
+  baseline-debt-ledger.schema.json # Baseline debt owner/expiry ledger artifact
+  hosted-evidence-portal.schema.json # Multi-run hosted evidence portal manifest
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

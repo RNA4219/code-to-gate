@@ -175,26 +175,32 @@ No other changes required.
 
 ## 5. Automated Migration
 
-### 5.1 Migration Script
+### 5.1 CLI Migration
 
-Use the following script to update artifact version strings:
+Use the built-in CLI to update artifact version strings and produce a
+validation report:
 
 ```bash
-# Update artifact header version
-node scripts/migrate-v1alpha1-to-v1.js --input ./artifacts/
+code-to-gate schema migrate ./artifacts/findings.json --out ./artifacts-v1
 ```
 
-The script will:
-1. Scan all JSON files in the input directory
-2. Update `version` fields from `ctg/v1alpha1` to `ctg/v1`
-3. Update integration schema version strings
-4. Preserve all other fields unchanged
+The command will:
+
+1. Read one JSON artifact.
+2. Update supported `version` fields from `ctg/v1alpha1` to `ctg/v1`.
+3. Update supported integration payload versions, such as
+   `ctg.state-gate/v1alpha1` to `ctg.state-gate/v1`.
+4. Preserve all other fields unchanged.
+5. Validate the migrated artifact against the current schema.
+6. Write `schema-migration.json` with the source, target, changes, and
+   validation result.
 
 ### 5.2 Validation After Migration
 
 ```bash
 # Validate migrated artifacts against v1 schemas
-npx code-to-gate schema validate --schema-dir ./schemas/ --artifacts ./artifacts/
+code-to-gate schema validate ./artifacts-v1/findings.json
+code-to-gate schema validate ./artifacts-v1/schema-migration.json
 ```
 
 ---

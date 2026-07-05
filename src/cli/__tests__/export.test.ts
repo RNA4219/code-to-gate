@@ -88,6 +88,8 @@ function getExpectedOutputFile(target: string): string {
     "manual-bb": "manual-bb.json",
     "workflow-evidence": "workflow.json",
     "sarif": "results.sarif",
+    "evidence-dag": "evidence-dag.json",
+    "provenance-index": "evidence-provenance-index.json",
   };
   return v1Files[target] || "";
 }
@@ -134,6 +136,86 @@ describe("export CLI", () => {
           expect(output.producer).toBe("code-to-gate");
         }
       }
+    });
+  });
+
+  describe("provenance-index export", () => {
+    it("indexes human surfaces back to source artifacts", async () => {
+      const finding = createFinding({ id: "finding-001", evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10 }] });
+      writeFindings(tempOutDir, [finding]);
+      writeFileSync(path.join(tempOutDir, "viewer-report.html"), "<!doctype html><div id=\"finding-finding-001\"></div>", "utf8");
+      writeFileSync(path.join(tempOutDir, "pr-review.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "pr-review-run",
+        repo: { root: "/test/repo" },
+        tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+        artifact: "pr-review",
+        schema: "pr-review@v1",
+        completeness: "complete",
+        status: "needs_review",
+        markdown: { path: "pr-review.md", generated: true },
+        sections: {
+          blockReasons: [{
+            id: "block-finding-001",
+            title: "Finding blocks release",
+            detail: "High finding requires review.",
+            severity: "high",
+            sourceArtifact: "findings.json",
+            sourceIds: ["finding-001"],
+            evidence: [{ path: "findings.json", detail: "findings[0]" }],
+          }],
+          acceptableReasons: [],
+          additionalTests: [],
+          specDiffs: [],
+          artifactLinks: [],
+        },
+        summary: { blockReasons: 1, acceptableReasons: 0, additionalTests: 0, specDiffs: 0, artifactLinks: 0, findings: 1, critical: 0, high: 1, reviewerCandidates: 0 },
+      }), "utf8");
+      writeFileSync(path.join(tempOutDir, "release-pack.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "release-pack-run",
+        repo: { root: "/test/repo" },
+        tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+        artifact: "release-pack",
+        schema: "release-pack@v1",
+        completeness: "complete",
+        status: "ready",
+        ci: {},
+        entries: [{
+          id: "findings",
+          role: "findings",
+          label: "Findings",
+          kind: "required",
+          present: true,
+          sourcePath: "findings.json",
+          packPath: "artifacts/findings.json",
+        }],
+        outputs: { manifest: ".qh/release-pack.json", html: ".qh/release-pack/release-pack.html", zip: ".qh/release-pack.zip" },
+        summary: { requiredEvidence: 1, presentRequiredEvidence: 1, missingRequiredEvidence: 0, includedArtifacts: 1, findings: 1, qegSchemaChecks: 0, manualTestCandidates: 0, changedFiles: 0 },
+      }), "utf8");
+      writeFileSync(path.join(tempOutDir, "results.sarif"), JSON.stringify({
+        version: "2.1.0",
+        runs: [{
+          results: [{
+            ruleId: "TEST_RULE",
+            partialFingerprints: { findingId: "finding-001" },
+            locations: [{ physicalLocation: { artifactLocation: { uri: "src/test.ts" }, region: { startLine: 10 } } }],
+          }],
+        }],
+      }), "utf8");
+
+      const { exitCode, output } = await runExport("provenance-index", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(output.artifact).toBe("evidence-provenance-index");
+      expect(output.schema).toBe("evidence-provenance-index@v1");
+      expect(output.summary.entries).toBeGreaterThanOrEqual(4);
+      expect(output.entries.map((entry: { surface: string }) => entry.surface)).toEqual(
+        expect.arrayContaining(["pr-comment", "viewer", "release-pack", "sarif"])
+      );
+      expect(output.entries.some((entry: { sourceId: string }) => entry.sourceId === "finding-001")).toBe(true);
     });
   });
 
@@ -241,6 +323,34 @@ describe("export CLI", () => {
       // Known gaps
       expect(Array.isArray(output.known_gaps)).toBe(true);
     });
+
+    it("includes known gaps and oracle gaps for manual test planning", async () => {
+      writeFindings(tempOutDir, [
+        createFinding({
+          id: "finding-low-confidence",
+          confidence: 0.55,
+          category: "security",
+          ruleId: "LOW_CONFIDENCE_RULE",
+        }),
+        createFinding({
+          id: "finding-testing-oracle",
+          category: "testing",
+          ruleId: "MISSING_TEST_COVERAGE",
+        }),
+      ]);
+
+      const { exitCode, output } = await runExport("manual-bb", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(Array.isArray(output.known_gaps)).toBe(true);
+      expect(Array.isArray(output.oracle_gaps)).toBe(true);
+      expect(output.known_gaps).toEqual(
+        expect.arrayContaining([expect.stringContaining("LOW_CONFIDENCE_RULE")])
+      );
+      expect(output.oracle_gaps).toEqual(
+        expect.arrayContaining([expect.stringContaining("MISSING_TEST_COVERAGE")])
+      );
+    });
   });
 
   describe("workflow-evidence export", () => {
@@ -270,6 +380,103 @@ describe("export CLI", () => {
       // Summary
       expect(output.summary).toBeDefined();
       expect(output.summary.status).toBeDefined();
+    });
+  });
+
+  describe("evidence-dag export", () => {
+    it("generates a cross-artifact DAG from findings, readiness, and manual-bb evidence", async () => {
+      writeFindings(tempOutDir, [
+        createFinding({
+          id: "finding-auth",
+          ruleId: "WEAK_AUTH_GUARD",
+          category: "auth",
+          severity: "high",
+          title: "Weak auth guard",
+        }),
+      ]);
+      writeFileSync(
+        path.join(tempOutDir, "release-readiness.json"),
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: new Date().toISOString(),
+          run_id: "export-test-run",
+          repo: { root: "/test/repo" },
+          tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+          artifact: "release-readiness",
+          schema: "release-readiness@v1",
+          status: "blocked_input",
+          completeness: "complete",
+          summary: "Blocked by auth finding",
+          counts: {
+            findings: 1,
+            critical: 0,
+            high: 1,
+            risks: 0,
+            testSeeds: 0,
+            unsupportedClaims: 0,
+          },
+          failedConditions: [],
+          recommendedActions: [],
+          artifactRefs: { findings: "findings.json" },
+        }),
+        "utf8"
+      );
+      writeFileSync(
+        path.join(tempOutDir, "manual-bb.json"),
+        JSON.stringify({
+          version: "ctg.manual-bb/v1",
+          producer: "code-to-gate",
+          run_id: "export-test-run",
+          scope: { repo: "/test/repo", changed_files: [], affected_entrypoints: [] },
+          risk_seeds: [
+            {
+              id: "risk-finding-auth",
+              title: "Manual auth verification",
+              severity: "high",
+              evidence: ["src/test.ts:10"],
+              suggested_test_intents: ["negative", "abuse"],
+            },
+          ],
+          invariant_seeds: [],
+          test_seed_refs: [],
+          known_gaps: [],
+          oracle_gaps: ["Pen-test verification"],
+        }),
+        "utf8"
+      );
+      writeFileSync(
+        path.join(tempOutDir, "pr-review.md"),
+        ["## Evidence links", "- Findings: findings.json", "- Readiness: release-readiness.json"].join("\n"),
+        "utf8"
+      );
+
+      const { exitCode, output } = await runExport("evidence-dag", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(output.artifact).toBe("evidence-dag");
+      expect(output.schema).toBe("evidence-dag@v1");
+      expect(output.summary.findings).toBe(1);
+
+      const nodes = output.nodes as Array<{ id: string; type: string }>;
+      const edges = output.edges as Array<{ source: string; target: string; type: string }>;
+      expect(nodes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "requirement:QEOS-001", type: "requirement" }),
+        expect.objectContaining({ id: "rule:WEAK_AUTH_GUARD", type: "rule" }),
+        expect.objectContaining({ id: "finding:finding-auth", type: "finding" }),
+        expect.objectContaining({ id: "artifact:findings", type: "artifact" }),
+        expect.objectContaining({ id: "artifact:pr-review-comment", type: "artifact" }),
+        expect.objectContaining({ id: "verdict:blocked_input", type: "verdict" }),
+        expect.objectContaining({ id: "manual-test:risk-finding-auth", type: "manual-test" }),
+        expect.objectContaining({ id: "pr-comment-line:2", type: "pr-comment-line" }),
+      ]));
+      expect(edges).toEqual(expect.arrayContaining([
+        expect.objectContaining({ source: "requirement:QEOS-001", target: "rule:WEAK_AUTH_GUARD", type: "satisfies" }),
+        expect.objectContaining({ source: "rule:WEAK_AUTH_GUARD", target: "finding:finding-auth", type: "generated_by" }),
+        expect.objectContaining({ source: "finding:finding-auth", target: "artifact:findings", type: "evidenced_by" }),
+        expect.objectContaining({ source: "artifact:release-readiness", target: "verdict:blocked_input", type: "gated_by" }),
+        expect.objectContaining({ source: "finding:finding-auth", target: "manual-test:risk-finding-auth", type: "requires_manual_oracle" }),
+        expect.objectContaining({ source: "pr-comment-line:2", target: "artifact:findings", type: "cites_artifact" }),
+      ]));
     });
   });
 

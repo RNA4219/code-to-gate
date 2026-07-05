@@ -41,6 +41,13 @@ function createFindings(findings: Finding[] = []): FindingsArtifact {
   };
 }
 
+function createPartialFindings(findings: Finding[] = []): FindingsArtifact {
+  return {
+    ...createFindings(findings),
+    completeness: "partial",
+  };
+}
+
 describe("Invariant Generator", () => {
   beforeAll(() => {
     if (!existsSync(TEMP_DIR)) {
@@ -77,6 +84,26 @@ describe("Invariant Generator", () => {
       expect(invariants.invariants.length).toBeGreaterThan(0);
       expect(invariants.invariants[0].kind).toBe("business");
       expect(invariants.invariants[0].statement).toContain("server");
+    });
+
+    it("inherits partial completeness from findings", () => {
+      const findings = createPartialFindings([
+        {
+          id: "finding-CLIENT_TRUSTED_PRICE-001",
+          ruleId: "CLIENT_TRUSTED_PRICE",
+          category: "payment",
+          severity: "critical",
+          confidence: 0.9,
+          title: "Client trusted price",
+          summary: "Price is trusted from client",
+          evidence: createEvidence("src/api/order.ts", 24),
+        },
+      ]);
+
+      const invariants = buildInvariantsFromFindings(findings, "test-run", "/test/repo");
+
+      expect(invariants.invariants.length).toBeGreaterThan(0);
+      expect(invariants.completeness).toBe("partial");
     });
 
     it("generates security invariants for auth findings", () => {

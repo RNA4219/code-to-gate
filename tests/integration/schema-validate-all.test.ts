@@ -114,6 +114,8 @@ describe("schema validate-all integration", () => {
       expect(validateResult.exitCode).toBe(EXIT_SCHEMA_FAILED);
       expect(validateResult.stderr).toContain("Schema validation failed for:");
       expect(validateResult.stderr).toContain("findings.json");
+      expect(fileExists(path.join(malformedDir, "findings.json"))).toBe(false);
+      expect(fileExists(path.join(malformedDir, "invalid", "findings.json"))).toBe(true);
 
       cleanupTempDir(malformedDir);
     });
@@ -151,6 +153,8 @@ artifact: risk-register
 
       expect(validateResult.exitCode).toBe(EXIT_SCHEMA_FAILED);
       expect(validateResult.stderr).toContain("risk-register.yaml");
+      expect(fileExists(path.join(yamlDir, "risk-register.yaml"))).toBe(false);
+      expect(fileExists(path.join(yamlDir, "invalid", "risk-register.yaml"))).toBe(true);
 
       cleanupTempDir(yamlDir);
     });

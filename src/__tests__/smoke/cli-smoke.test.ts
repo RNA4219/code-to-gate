@@ -7,8 +7,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { EXIT } from '../../cli/exit-codes.js';
 
 const CLI_PATH = './dist/cli.js';
 const FIXTURES_DIR = './fixtures';
@@ -17,13 +18,88 @@ const TEMP_DIR = './.test-temp/smoke-cli';
 describe('CLI Smoke Tests', () => {
   it('--help works and shows available commands', () => {
     const result = execSync(`node ${CLI_PATH} --help`).toString();
-    expect(result).toContain('scan');
-    expect(result).toContain('analyze');
-    expect(result).toContain('diff');
-    expect(result).toContain('import');
-    expect(result).toContain('readiness');
-    expect(result).toContain('export');
-    expect(result).toContain('viewer');
+    for (const command of [
+      'scan',
+      'analyze',
+      'diff',
+      'import',
+      'readiness',
+      'export',
+      'viewer',
+      'historical',
+      'spec-drift',
+      'drift-budget',
+      'review-queue',
+      'baseline-ledger',
+      'rule new',
+      'pack',
+      'doctor',
+      'test-plan',
+      'ownership',
+      'query',
+      'explain-gate',
+      'qeos matrix',
+      'pr-review',
+      'pr-review-publish',
+      'release-pack',
+      'plugin-marketplace',
+      'llm-health',
+      'evidence',
+      'plugin-sandbox',
+      'assurance inspect',
+    ]) {
+      expect(result).toContain(command);
+    }
+  });
+
+  it('cli reference lists every command shown in --help', () => {
+    const help = execSync(`node ${CLI_PATH} --help`).toString();
+    const docs = readFileSync('./docs/cli-reference.md', 'utf-8');
+    const commandUsages = [
+      'schema validate',
+      'scan',
+      'analyze',
+      'diff',
+      'import',
+      'readiness',
+      'export',
+      'viewer',
+      'historical',
+      'spec-drift',
+      'drift-budget',
+      'review-queue',
+      'baseline-ledger',
+      'rule new',
+      'pack',
+      'doctor',
+      'test-plan',
+      'ownership',
+      'query',
+      'explain-gate',
+      'qeos matrix',
+      'pr-review',
+      'pr-review-publish',
+      'release-pack',
+      'plugin-marketplace',
+      'llm-health',
+      'evidence',
+      'plugin-sandbox',
+      'assurance inspect',
+    ];
+
+    for (const usage of commandUsages) {
+      expect(help).toContain(`code-to-gate ${usage}`);
+      const anchorText = usage.split(' ')[0];
+      expect(docs).toContain(`### ${anchorText}`);
+    }
+  });
+
+  it('cli reference documents every implemented exit code', () => {
+    const docs = readFileSync('./docs/cli-reference.md', 'utf-8');
+
+    for (const code of Object.values(EXIT)) {
+      expect(docs).toContain(`| ${code} |`);
+    }
   });
 
   it('--version shows version number', () => {
@@ -109,6 +185,48 @@ describe('CLI Smoke Tests', () => {
       { encoding: 'utf-8', timeout: 60000 }
     );
 
+    writeFileSync(join(analyzeDir, 'qeg-code-to-gate.json'), JSON.stringify({
+      version: 'ctg.qeg-input/v1',
+      producer: 'code-to-gate',
+      run_id: 'viewer-smoke-qeg',
+      artifact_dir: analyzeDir,
+      findings_summary: {
+        total: 1,
+        by_severity: { high: 1 },
+        by_category: { auth: 1 },
+        by_rule: { WEAK_AUTH_GUARD: 1 },
+      },
+      readiness_status: 'needs_review',
+      schema_compliance: [{ artifact: 'findings.json', status: 'ok' }],
+      quality_checks_actual: [{ name: 'smoke', status: 'pass', details: 'smoke qeg evidence' }],
+      artifact_hashes: [{
+        artifact: 'findings',
+        path: join(analyzeDir, 'findings.json'),
+        hash: 'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      }],
+    }, null, 2));
+    writeFileSync(join(analyzeDir, 'evidence-dag.json'), JSON.stringify({
+      version: 'ctg/v1',
+      generated_at: '2026-07-05T00:00:00Z',
+      run_id: 'viewer-smoke-qeg',
+      repo: { root: repoPath },
+      tool: { name: 'code-to-gate', version: '1.5.0', plugin_versions: [] },
+      artifact: 'evidence-dag',
+      schema: 'evidence-dag@v1',
+      completeness: 'complete',
+      nodes: [
+        { id: 'finding:smoke-finding', type: 'finding', label: 'Smoke finding' },
+        { id: 'manual-test:risk-smoke-finding', type: 'manual-test', label: 'Smoke manual test' },
+      ],
+      edges: [{
+        id: 'finding:smoke-finding|requires_manual_oracle|manual-test:risk-smoke-finding',
+        source: 'finding:smoke-finding',
+        target: 'manual-test:risk-smoke-finding',
+        type: 'requires_manual_oracle',
+      }],
+      summary: { nodeCount: 2, edgeCount: 1, findings: 1, artifacts: 0, verdicts: 0 },
+    }, null, 2));
+
     // Generate HTML report
     execSync(
       `node ${CLI_PATH} viewer --from ${analyzeDir} --out ${htmlOut}`,
@@ -121,5 +239,7 @@ describe('CLI Smoke Tests', () => {
     expect(htmlContent).toContain('<!DOCTYPE html>');
     expect(htmlContent).toContain('<html');
     expect(htmlContent).toContain('code-to-gate');
+    expect(htmlContent).toContain('QEG Evidence');
+    expect(htmlContent).toContain('Smoke manual test');
   });
 });

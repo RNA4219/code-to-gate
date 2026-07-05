@@ -211,6 +211,75 @@ async function deleteUser(userId) {
     expect(findings[0].confidence).toBeGreaterThan(0.9);
   });
 
+  it("should not treat DOM remove as destructive delete", () => {
+    const content = `
+function closeToast(toast: HTMLElement) {
+  toast.remove();
+}
+`;
+
+    const files = [createMockFile("src/ui/toast.ts", content)];
+    const contents = new Map([["src/ui/toast.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = UNSAFE_DELETE_RULE.evaluate(context);
+
+    expect(findings.length).toBe(0);
+  });
+
+  it("should not let a SMELL block turn DOM remove into a destructive delete", () => {
+    const content = `
+// SMELL: UNSAFE_DELETE - nearby UI cleanup should not be destructive
+function removeDialog(dialog: HTMLElement) {
+  dialog.remove();
+}
+// END SMELL
+`;
+
+    const files = [createMockFile("src/ui/dialog.ts", content)];
+    const contents = new Map([["src/ui/dialog.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = UNSAFE_DELETE_RULE.evaluate(context);
+
+    expect(findings.length).toBe(0);
+  });
+
+  it("should not report guarded temporary directory cleanup", () => {
+    const content = `
+async function cleanupTempBuild(tempDir: string) {
+  if (!tempDir.startsWith(os.tmpdir())) throw new Error("refuse non-temp cleanup");
+  await fs.rm(tempDir, { recursive: true, force: true });
+}
+`;
+
+    const files = [createMockFile("src/jobs/temp-cleanup.ts", content)];
+    const contents = new Map([["src/jobs/temp-cleanup.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = UNSAFE_DELETE_RULE.evaluate(context);
+
+    expect(findings.length).toBe(0);
+  });
+
+  it("should not report bounded upload file cleanup", () => {
+    const content = `
+async function cleanupUpload(file: { path: string; size: number }) {
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error("invalid upload");
+  if (!file.path.startsWith(uploadTempDir)) throw new Error("outside upload temp");
+  await fs.unlink(file.path);
+}
+`;
+
+    const files = [createMockFile("src/uploads/cleanup.ts", content)];
+    const contents = new Map([["src/uploads/cleanup.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = UNSAFE_DELETE_RULE.evaluate(context);
+
+    expect(findings.length).toBe(0);
+  });
+
   it("should correctly identify evidence location", () => {
     const content = `
 async function clearAll() {

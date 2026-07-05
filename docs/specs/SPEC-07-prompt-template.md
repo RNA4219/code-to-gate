@@ -22,6 +22,10 @@ Create a customizable prompt template library allowing users to define custom LL
 - Variable interpolation in templates
 - Template versioning
 
+### Versioned Contract
+
+Prompt templates use `apiVersion: ctg.prompt-template/v1` for the stable contract. The template identifier is `{name}@{version}` where `version` is semver. `prompt_version` in `audit.json` must point to the built-in template version or the user template identifier, and `prompt_template_hash` is future schema extension metadata. v1 rejects templates without `apiVersion`, `kind: prompt-template`, `name`, `version`, `systemPrompt`, and `userPrompt`.
+
 ### Excluded
 - Template UI editor (future)
 - Template sharing platform (future)
@@ -45,7 +49,7 @@ Create a customizable prompt template library allowing users to define custom LL
 
 ```yaml
 # prompts/security-analysis.yaml
-apiVersion: ctg/v1
+apiVersion: ctg.prompt-template/v1
 kind: prompt-template
 name: security-analysis
 version: 1.0.0

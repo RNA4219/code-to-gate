@@ -601,6 +601,25 @@ export async function checkout(req) {
     expect(findings.length).toBe(0);
   });
 
+  it("should not detect when client price is ignored after server-side catalog lookup", () => {
+    const content = `
+export async function checkout(req) {
+  const { productId, price } = req.body;
+  const product = await catalog.lookup(productId);
+  const serverPrice = product.price;
+  await saveOrder({ productId, price: serverPrice });
+}
+`;
+
+    const files = [createMockFile("src/api/checkout.ts", content)];
+    const contents = new Map([["src/api/checkout.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = CLIENT_TRUSTED_PRICE_RULE.evaluate(context);
+
+    expect(findings.length).toBe(0);
+  });
+
   // Multi-file scenarios
   it("should detect client-trusted price across multiple files", () => {
     const orderContent = `

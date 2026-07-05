@@ -2,7 +2,10 @@
 
 ## Executive Summary
 
-**code-to-gate** is a local-first static analysis platform that helps organizations ship secure, high-quality code faster while maintaining compliance audit trails.
+**code-to-gate** is a local-first quality evidence tool that helps teams turn
+code signals into review-required release-readiness artifacts. It can surface
+security-relevant code patterns, but it does not confirm vulnerabilities or
+replace SAST, linters, tests, or human approval gates.
 
 ### Public Readiness Thesis
 
@@ -23,7 +26,7 @@
 
 Modern organizations face three converging pressures:
 
-1. **Security Requirements**: Must detect vulnerabilities before deployment
+1. **Security Requirements**: Must review security-relevant code patterns before deployment
 2. **Quality Standards**: Need consistent code quality across teams
 3. **Audit Evidence**: Regulators and auditors demand proof of controls
 
@@ -37,7 +40,7 @@ Current solutions address one or two of these, but not all three in a unified to
 | Application Security | $7.5B | 18% | $17.1B | ⚠️ Hypothesis (industry analyst consensus) |
 | Compliance Software | $4.2B | 15% | $8.4B | ⚠️ Hypothesis (industry analyst consensus) |
 
-**Serviceable Market**: Organizations requiring both security scanning AND compliance evidence
+**Serviceable Market**: Organizations requiring both local-first code risk review AND audit-supporting evidence
 
 | Claim | Classification | Basis |
 |-------|---------------|-------|
@@ -64,7 +67,7 @@ A static analysis tool that:
 | Feature | Status | Classification |
 |---------|--------|---------------|
 | **Scans code locally** | ✅ Implemented | Verified (architecture review) |
-| **Detects issues** | ✅ 17 core rules + optional DB analysis | Verified (src/rules/) |
+| **Surfaces review candidates** | ✅ 17 core rules + optional DB analysis | Verified (src/rules/) |
 | **Enforces gates** | ✅ Policy engine | Verified (src/config/) |
 | **Generates evidence** | ✅ SARIF, JSON, HTML | Verified (src/reporters/) |
 
@@ -220,8 +223,8 @@ A static analysis tool that:
 code-to-gate addresses a growing market need for privacy-preserving security tools that also satisfy compliance requirements. We're building the platform that lets organizations:
 
 1. **Ship faster** with automated quality gates
-2. **Stay secure** with built-in vulnerability detection
-3. **Prove compliance** with evidence generation
+2. **Review security-relevant risks** with evidence-backed candidates
+3. **Support compliance reviews** with traceable evidence generation
 
 **Next Steps**: Schedule a technical deep-dive or request a pilot evaluation.
 
@@ -242,4 +245,4 @@ GitHub: https://github.com/RNA4219/code-to-gate
 
 npm registry publication: pending. The package name is reserved in documentation as `@quality-harness/code-to-gate`, but npm publish has not yet been completed.
 
-Last Updated: 2026-06-17
+Last Updated: 2026-07-04

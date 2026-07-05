@@ -67,6 +67,30 @@ describe("DEBT_MARKER_RULE", () => {
     expect(findings).toHaveLength(0);
   });
 
+  it("ignores accepted compatibility workaround explanations", () => {
+    const content = [
+      "import Ajv from 'ajv';",
+      "// Ajv ESM/CJS interop workaround",
+      "export const ajv = new Ajv();",
+    ].join("\n");
+    const files = [createMockFile("src/cli/schema-validate.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/cli/schema-validate.ts", content]])));
+
+    expect(findings).toHaveLength(0);
+  });
+
+  it("ignores fixture sample comments", () => {
+    const content = [
+      "export const sample = `",
+      "// TODO: intentionally present in fixture text",
+      "`;",
+    ].join("\n");
+    const files = [createMockFile("fixtures/demo-debt/src/sample.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["fixtures/demo-debt/src/sample.ts", content]])));
+
+    expect(findings).toHaveLength(0);
+  });
+
   it("detects Python hash comments", () => {
     const content = [
       "def calculate():",

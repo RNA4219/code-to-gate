@@ -201,6 +201,139 @@ describe("import CLI", () => {
     }
   });
 
+  // SARIF / CodeQL import tests
+
+  it("import sarif generates normalized findings", async () => {
+    const sarifFile = path.join(tempOutDir, "results.sarif");
+    writeFileSync(
+      sarifFile,
+      JSON.stringify({
+        version: "2.1.0",
+        runs: [
+          {
+            tool: {
+              driver: {
+                name: "Generic SARIF",
+                rules: [
+                  {
+                    id: "js/injection",
+                    name: "Injection risk",
+                    properties: {
+                      tags: ["security", "cwe-089"],
+                      "security-severity": "9.1",
+                    },
+                  },
+                ],
+              },
+            },
+            results: [
+              {
+                ruleId: "js/injection",
+                ruleIndex: 0,
+                level: "error",
+                message: { text: "User controlled input reaches a sink." },
+                locations: [
+                  {
+                    physicalLocation: {
+                      artifactLocation: { uri: "src/db.ts" },
+                      region: { startLine: 42, endLine: 45 },
+                    },
+                  },
+                ],
+                partialFingerprints: { primaryLocationLineHash: "sarif-fingerprint" },
+              },
+            ],
+          },
+        ],
+      }),
+      "utf8"
+    );
+
+    const result = await importCommand(["sarif", sarifFile, "--out", tempOutDir], { VERSION, EXIT, getOption });
+    expect(result).toBe(EXIT.OK);
+
+    const outputPath = path.join(tempOutDir, "imports", "sarif-findings.json");
+    const findings = JSON.parse(readFileSync(outputPath, "utf8"));
+
+    expect(findings.findings).toHaveLength(1);
+    expect(findings.findings[0]).toMatchObject({
+      ruleId: "SARIF_JS_INJECTION",
+      category: "security",
+      severity: "critical",
+      summary: "User controlled input reaches a sink.",
+      upstream: { tool: "sarif", ruleId: "js/injection" },
+    });
+    expect(findings.findings[0].evidence[0]).toMatchObject({
+      path: "src/db.ts",
+      startLine: 42,
+      endLine: 45,
+      externalRef: { tool: "sarif", ruleId: "js/injection" },
+    });
+    expect(findings.findings[0].fingerprint).toHaveLength(16);
+  });
+
+  it("import codeql reads CodeQL SARIF with codeql upstream metadata", async () => {
+    const codeqlFile = path.join(tempOutDir, "codeql.sarif");
+    writeFileSync(
+      codeqlFile,
+      JSON.stringify({
+        version: "2.1.0",
+        runs: [
+          {
+            tool: {
+              driver: {
+                name: "CodeQL",
+                rules: [
+                  {
+                    id: "js/sql-injection",
+                    shortDescription: { text: "SQL injection" },
+                    properties: {
+                      tags: ["security", "external/cwe/cwe-089"],
+                      "security-severity": 8.2,
+                    },
+                  },
+                ],
+              },
+            },
+            results: [
+              {
+                ruleId: "js/sql-injection",
+                ruleIndex: 0,
+                level: "warning",
+                message: { text: "Query built from user-controlled data." },
+                locations: [
+                  {
+                    physicalLocation: {
+                      artifactLocation: { uri: "src/query.ts" },
+                      region: { startLine: 12 },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+      "utf8"
+    );
+
+    const result = await importCommand(["codeql", codeqlFile, "--out", tempOutDir], { VERSION, EXIT, getOption });
+    expect(result).toBe(EXIT.OK);
+
+    const outputPath = path.join(tempOutDir, "imports", "codeql-findings.json");
+    const findings = JSON.parse(readFileSync(outputPath, "utf8"));
+
+    expect(findings.findings).toHaveLength(1);
+    expect(findings.findings[0]).toMatchObject({
+      ruleId: "CODEQL_JS_SQL_INJECTION",
+      category: "security",
+      severity: "high",
+      confidence: 0.9,
+      upstream: { tool: "codeql", ruleId: "js/sql-injection" },
+    });
+    expect(findings.findings[0].evidence[0].externalRef.tool).toBe("codeql");
+  });
+
   // TSC import tests
 
   it("import tsc generates findings", async () => {

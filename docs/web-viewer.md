@@ -24,6 +24,10 @@ code-to-gate viewer --from .qh --out report.html --title "My Project Analysis"
 
 # Generate with dark mode default
 code-to-gate viewer --from .qh --out report.html --dark
+
+# Generate a GitHub Pages / artifact-preview ready report manifest
+code-to-gate viewer --from .qh --out public/index.html --hosted \
+  --hosted-target github-pages --public-url https://example.github.io/repo/
 ```
 
 ### Options
@@ -34,6 +38,9 @@ code-to-gate viewer --from .qh --out report.html --dark
 | `--out <file>` | Output HTML file path | `viewer-report.html` |
 | `--title <title>` | Report title | `code-to-gate Analysis Report` |
 | `--dark` | Enable dark mode by default | Light mode |
+| `--hosted` | Write `hosted-static-report.json` next to the HTML output | false |
+| `--public-url <url>` | Expected URL after publishing the HTML report | - |
+| `--hosted-target <target>` | `github-pages`, `artifact-preview`, or `generic-static` | `generic-static` |
 
 ## Input Artifacts
 
@@ -46,6 +53,27 @@ The viewer loads artifacts from the input directory:
 | `test-seeds.json` | Test seeds artifact | Optional |
 | `release-readiness.json` | Release readiness artifact | Optional |
 | `repo-graph.json` | Normalized repo graph | Optional |
+| `qeg-code-to-gate.json` | Evidence-only QEG input export | Optional |
+| `evidence-dag.json` | Cross-artifact evidence graph | Optional |
+| `historical-comparison.json` | Historical quality trend artifact | Optional |
+
+## Hosted Static Reports
+
+Hosted mode keeps the report as a single HTML file and adds an adjacent
+`hosted-static-report.json` manifest. The manifest records:
+
+- HTML path, SHA-256 hash, size, and single-file guarantee.
+- Source artifact hashes and schemas for reproducible review.
+- Static hosting target, such as `github-pages` or `artifact-preview`.
+- Optional `publicUrl` for the expected published report URL.
+
+Validate the manifest before uploading the report:
+
+```bash
+code-to-gate viewer --from .qh --out public/index.html --hosted \
+  --hosted-target github-pages --public-url https://example.github.io/repo/
+code-to-gate schema validate public/hosted-static-report.json
+```
 
 ## Report Sections
 
@@ -68,6 +96,16 @@ Interactive findings explorer with:
 - **Filter Toolbar**: Buttons to filter by severity and category
 - **Search Input**: Text search across finding titles and summaries
 - **Findings List**: Collapsible cards with evidence details
+
+### QEG Tab
+
+Displayed when `qeg-code-to-gate.json` or `evidence-dag.json` exists.
+
+- Readiness status and finding summary.
+- Schema compliance results from QEG input generation.
+- Artifact hashes for evidence integrity review.
+- Evidence DAG finding drill-down with connected edges.
+- Manual test candidates and CI run nodes when present in the DAG.
 
 #### Finding Cards
 
@@ -323,5 +361,7 @@ Phase 3 planned features:
 - Export findings as CSV/JSON
 - Custom theme configuration
 - Sidebar navigation for large reports
+- Finding filters for severity, category, suppression status, and text search
+- Large finding lists are capped in the static viewer; use JSON artifacts for the full set when the cap is reached
 - Keyboard shortcuts for navigation
 - Full Mermaid library integration for advanced diagrams

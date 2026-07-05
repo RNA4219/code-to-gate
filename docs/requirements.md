@@ -298,10 +298,10 @@ LLM が単独で決めないもの:
 | `code-to-gate analyze` | scan + rules + LLM + reports | `code-to-gate analyze ./repo --emit all --out .qh` |
 | `code-to-gate diff` | PR / changed files 解析 | `code-to-gate diff ./repo --base main --head HEAD --out .qh` |
 | `code-to-gate import` | 外部ツール成果物を取り込む | `code-to-gate import semgrep semgrep.json --out .qh/imports` |
-| `code-to-gate readiness` | release readiness bundle を生成 | `code-to-gate readiness ./repo --policy policy.yaml --out .qh` |
+| `code-to-gate readiness` | release readiness bundle を生成 | `code-to-gate readiness ./repo --policy policy.yaml --from .qh --out .qh` |
 | `code-to-gate export` | downstream 連携形式へ変換 | `code-to-gate export gatefield --from .qh --out gatefield-static-result.json` |
-| `code-to-gate plugin` | plugin doctor / list / validate | `code-to-gate plugin doctor` |
-| `code-to-gate fixture` | synthetic fixture 検証 | `code-to-gate fixture run demo-shop-ts` |
+| `code-to-gate plugin-sandbox` | plugin sandbox の状態確認 / 実行 | `code-to-gate plugin-sandbox status` |
+| Fixture directory | synthetic fixture 検証 | `code-to-gate analyze fixtures/demo-shop-ts --emit all --out .qh/fixtures/demo-shop-ts` |
 
 ### 8.2 Library API
 
@@ -392,7 +392,7 @@ export interface Finding {
   affectedEntrypoints?: string[];
   tags?: string[];
   upstream?: {
-    tool: "native" | "semgrep" | "eslint" | "sonarqube" | "tsc" | "coverage" | "test";
+    tool: "native" | "semgrep" | "eslint" | "sarif" | "codeql" | "sonarqube" | "tsc" | "coverage" | "test";
     ruleId?: string;
   };
 }

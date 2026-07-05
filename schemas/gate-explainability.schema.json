@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/gate-explainability.schema.json",
+  "title": "GateExplainabilityArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "status",
+    "failedConditions",
+    "blockingFindings",
+    "manualEvidenceCandidates",
+    "baselineUpdateCandidates",
+    "severityReEvaluationCandidates",
+    "summary",
+    "sourceArtifacts",
+    "generated_by"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "gate-explainability" },
+    "schema": { "const": "gate-explainability@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["passed", "needs_action"] },
+    "failedConditions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/failedCondition" }
+    },
+    "blockingFindings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/blockingFinding" }
+    },
+    "manualEvidenceCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "baselineUpdateCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "severityReEvaluationCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "failedConditions",
+        "blockingFindings",
+        "manualEvidenceCandidates",
+        "baselineUpdateCandidates",
+        "severityReEvaluationCandidates",
+        "requiredActions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "failedConditions": { "type": "integer", "minimum": 0 },
+        "blockingFindings": { "type": "integer", "minimum": 0 },
+        "manualEvidenceCandidates": { "type": "integer", "minimum": 0 },
+        "baselineUpdateCandidates": { "type": "integer", "minimum": 0 },
+        "severityReEvaluationCandidates": { "type": "integer", "minimum": 0 },
+        "requiredActions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/sourceArtifact" }
+    },
+    "generated_by": { "const": "ctg-gate-explainability-v1" }
+  },
+  "$defs": {
+    "failedCondition": {
+      "type": "object",
+      "required": ["id", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "matchedFindingIds": { "type": "array", "items": { "type": "string" } },
+        "matchedRiskIds": { "type": "array", "items": { "type": "string" } },
+        "matchedInputIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "blockingFinding": {
+      "type": "object",
+      "required": ["id", "ruleId", "severity", "confidence", "title", "summary", "sourceConditionIds", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "ruleId": { "type": "string", "minLength": 1 },
+        "severity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "sourceConditionIds": { "type": "array", "items": { "type": "string" } },
+        "evidence": { "type": "array", "items": { "$ref": "./shared-defs.schema.json#/$defs/evidenceRef" } }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["id", "type", "title", "detail", "priority", "sourceIds", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["manual_evidence", "baseline_update", "severity_re_evaluation"] },
+        "title": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "priority": { "enum": ["low", "medium", "high", "critical"] },
+        "sourceIds": { "type": "array", "items": { "type": "string" } },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "detail"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "detail": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["file", "hashSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "schema": { "type": "string", "minLength": 1 },
+        "hashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  }
+}

@@ -118,6 +118,7 @@ next_review_due: 2026-05-15
 | `invariants.yaml` | 不変条件候補 | QA、manual-bb |
 | `test-seeds.json` | QA 設計 seed | manual-bb-test-harness |
 | `release-readiness.json` | 判断材料 bundle | agent-state-gate、CI |
+| `spec-drift.json` | docs/schema/CLI/test の不整合検出 | CI、reviewer |
 | `analysis-report.md` | 人間向け要約 | 開発者、レビュアー |
 | `audit.json` | run metadata | 監査、再現 |
 | `results.sarif` | code scanning | GitHub |
@@ -148,6 +149,9 @@ next_review_due: 2026-05-15
 ## 9. 参照
 
 - [docs/requirements.md](docs/requirements.md): 正本要件定義
+- [docs/quality-evidence-os-requirements.md](docs/quality-evidence-os-requirements.md): Quality Evidence OS 拡張要件
+- [docs/quality-evidence-os-spec.md](docs/quality-evidence-os-spec.md): Quality Evidence OS 拡張仕様
+- [orchestration/quality-evidence-os-implementation.md](orchestration/quality-evidence-os-implementation.md): Workflow-cookbook 形式の Task Seed 実装計画
 - [docs/self-analysis-debt-inventory-2026-05-17.md](docs/self-analysis-debt-inventory-2026-05-17.md): self-analysis 棚卸
 - [docs/self-analysis-remediation-requirements.md](docs/self-analysis-remediation-requirements.md): self-analysis 改善要件
 - [docs/self-analysis-remediation-spec.md](docs/self-analysis-remediation-spec.md): self-analysis 改善仕様

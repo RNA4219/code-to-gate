@@ -75,18 +75,18 @@ SCAN_FAILED: unsupported language
 
 | Cause | Solution |
 |-------|----------|
-| Unsupported language | Use `--lang ts,js` to limit to supported languages |
+| Unsupported language | Remove unsupported files from the scan tree or keep them outside the repo path |
 | Corrupted file | Check for binary files or encoding issues |
 | Syntax error in source | Fix source file syntax errors |
 | Permission denied | Check file permissions |
 
 **Example Fix:**
 ```bash
-# Limit to TypeScript
-code-to-gate scan ./my-repo --out .qh --lang ts,tsx
+# Inspect parser diagnostics with verbose output
+code-to-gate scan ./my-repo --out .qh --verbose
 
-# Exclude problematic files
-code-to-gate scan ./my-repo --out .qh --ignore node_modules,dist,legacy
+# Keep problematic generated or binary files outside the scanned repo path
+code-to-gate scan ./my-repo --out .qh
 ```
 
 ---
@@ -328,17 +328,14 @@ ls .qh/*.json
 
 | Cause | Solution |
 |-------|----------|
-| Large repository | Use `--ignore` to exclude large directories |
-| Too many files | Limit languages with `--lang` |
+| Large repository | Use `.gitignore` / repo layout to keep generated assets outside the scan tree |
+| Too many files | Use `--cache enabled` and tune `--parallel` |
 | Binary files | Exclude non-source directories |
 
 ```bash
-# Exclude unnecessary directories
+# Use cache and more parser workers
 code-to-gate scan ./large-repo --out .qh \
-  --ignore node_modules,dist,coverage,.git,docs,assets
-
-# Limit to specific language
-code-to-gate scan ./large-repo --out .qh --lang ts
+  --cache enabled --parallel 8
 ```
 
 ### Memory Issues
@@ -415,8 +412,10 @@ cat .qh/audit.json | jq '.llm.redaction_enabled'
 Ensure sensitive files are excluded:
 
 ```bash
-code-to-gate scan ./my-repo --out .qh --ignore .env,secrets,credentials
+code-to-gate scan ./my-repo --out .qh
 ```
+
+Do not keep `.env`, secrets, or credentials under the scanned repo path unless they are intentionally part of a security fixture.
 
 ---
 

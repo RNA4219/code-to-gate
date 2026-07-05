@@ -477,6 +477,38 @@ describe("schema-validate CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
+  it("rejects invalid test-seeds intent values", async () => {
+    const invalidSeedsPath = path.join(tempDir, "invalid-test-seeds.json");
+    writeFileSync(invalidSeedsPath, JSON.stringify({
+      version: "ctg/v1",
+      generated_at: "2025-01-01T00:00:00Z",
+      run_id: "test-run-001",
+      repo: { root: "/test" },
+      tool: {
+        name: "code-to-gate",
+        version: "0.1.0",
+        plugin_versions: []
+      },
+      artifact: "test-seeds",
+      schema: "test-seeds@v1",
+      completeness: "complete",
+      seeds: [
+        {
+          id: "seed-001",
+          title: "Reject non-canonical intent",
+          intent: "happy-path",
+          sourceRiskIds: [],
+          sourceFindingIds: ["finding-001"],
+          evidence: [],
+          suggestedLevel: "unit"
+        }
+      ]
+    }), "utf8");
+
+    const result = await schemaValidate(["validate", invalidSeedsPath]);
+    expect(result).toBe(EXIT.SCHEMA_FAILED);
+  });
+
   it("validates release-readiness schema", async () => {
     const schemaPath = path.join(schemasDir, "release-readiness.schema.json");
     if (!existsSync(schemaPath)) {
@@ -585,6 +617,132 @@ describe("schema-validate CLI", () => {
     const result = await schemaValidate(args);
     // Should validate against findings schema and may fail for wrong schema field
     expect(typeof result).toBe("number");
+  });
+
+  it("migrates v1alpha1 artifact version to ctg/v1 and writes migration report", async () => {
+    const legacyFindingsPath = path.join(tempDir, "legacy-findings.json");
+    const outDir = path.join(tempDir, "migrated");
+    writeFileSync(legacyFindingsPath, JSON.stringify({
+      version: "ctg/v1alpha1",
+      generated_at: "2025-01-01T00:00:00Z",
+      run_id: "legacy-run",
+      repo: { root: "/test" },
+      tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+      artifact: "findings",
+      schema: "findings@v1",
+      completeness: "complete",
+      findings: [],
+      unsupported_claims: []
+    }), "utf8");
+
+    const result = await schemaValidate(["migrate", legacyFindingsPath, "--out", outDir]);
+    const migratedPath = path.join(outDir, "legacy-findings.json");
+    const reportPath = path.join(outDir, "schema-migration.json");
+    const migrated = JSON.parse(readFileSync(migratedPath, "utf8"));
+    const report = JSON.parse(readFileSync(reportPath, "utf8"));
+
+    expect(result).toBe(EXIT.OK);
+    expect(migrated.version).toBe("ctg/v1");
+    expect(report).toMatchObject({
+      artifact: "schema-migration",
+      schema: "schema-migration@v1",
+      status: "migrated",
+      source: {
+        artifact: "findings",
+        schema: "findings@v1",
+        version: "ctg/v1alpha1",
+      },
+      target: {
+        artifact: "findings",
+        schema: "findings@v1",
+        version: "ctg/v1",
+      },
+      validation: {
+        status: "ok",
+        errors: [],
+      },
+    });
+    expect(report.changes).toEqual([
+      expect.objectContaining({ path: "/version", from: "ctg/v1alpha1", to: "ctg/v1" }),
+    ]);
+  });
+
+  it("schema migrate records unchanged status for current v1 artifacts", async () => {
+    const currentFindingsPath = path.join(tempDir, "current-findings.json");
+    const outDir = path.join(tempDir, "unchanged");
+    writeFileSync(currentFindingsPath, JSON.stringify({
+      version: "ctg/v1",
+      generated_at: "2025-01-01T00:00:00Z",
+      run_id: "current-run",
+      repo: { root: "/test" },
+      tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+      artifact: "findings",
+      schema: "findings@v1",
+      completeness: "complete",
+      findings: [],
+      unsupported_claims: []
+    }), "utf8");
+
+    const result = await schemaValidate(["migrate", currentFindingsPath, "--out", outDir]);
+    const report = JSON.parse(readFileSync(path.join(outDir, "schema-migration.json"), "utf8"));
+
+    expect(result).toBe(EXIT.OK);
+    expect(report.status).toBe("unchanged");
+    expect(report.changes).toEqual([]);
+    expect(report.validation.status).toBe("ok");
+  });
+
+  it("schema migrate infers integration artifact target versions", async () => {
+    const stateGatePath = path.join(tempDir, "state-gate-v1alpha1.json");
+    const outDir = path.join(tempDir, "state-gate-migrated");
+    writeFileSync(stateGatePath, JSON.stringify({
+      version: "ctg.state-gate/v1alpha1",
+      producer: "code-to-gate",
+      run_id: "integration-run",
+      artifact_hash: "sha256:abc",
+      release_readiness: {
+        status: "passed",
+        summary: "ok",
+        failed_conditions: [],
+      },
+      evidence_refs: [],
+      approval_relevance: {
+        requires_human_attention: false,
+        reasons: [],
+      },
+    }), "utf8");
+
+    const result = await schemaValidate(["migrate", stateGatePath, "--out", outDir]);
+    const migrated = JSON.parse(readFileSync(path.join(outDir, "state-gate-v1alpha1.json"), "utf8"));
+    const report = JSON.parse(readFileSync(path.join(outDir, "schema-migration.json"), "utf8"));
+
+    expect(result).toBe(EXIT.OK);
+    expect(migrated.version).toBe("ctg.state-gate/v1");
+    expect(report.status).toBe("migrated");
+    expect(report.target.version).toBe("ctg.state-gate/v1");
+    expect(report.validation.status).toBe("ok");
+  });
+
+  it("schema migrate rejects unsupported target versions", async () => {
+    const currentFindingsPath = path.join(tempDir, "target-findings.json");
+    writeFileSync(currentFindingsPath, JSON.stringify({
+      version: "ctg/v1",
+      artifact: "findings",
+    }), "utf8");
+
+    const result = await schemaValidate(["migrate", currentFindingsPath, "--out", tempDir, "--target-version", "ctg/v2"]);
+    expect(result).toBe(EXIT.USAGE_ERROR);
+  });
+
+  it("schema migrate rejects target versions that do not match the source migration path", async () => {
+    const stateGatePath = path.join(tempDir, "state-gate-target.json");
+    writeFileSync(stateGatePath, JSON.stringify({
+      version: "ctg.state-gate/v1alpha1",
+      producer: "code-to-gate",
+    }), "utf8");
+
+    const result = await schemaValidate(["migrate", stateGatePath, "--out", tempDir, "--target-version", "ctg/v1"]);
+    expect(result).toBe(EXIT.SCHEMA_FAILED);
   });
 
   it("handles first argument not being 'validate'", async () => {

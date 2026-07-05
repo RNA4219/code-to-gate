@@ -6,7 +6,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { evaluateRules, createFindingsHeader, clearFileContentCache } from "../rule-evaluator.js";
 import type { Finding, RepoFile } from "../../types/artifacts.js";
 import type { ApplicationContext } from "../context.js";
-import { CORE_RULES } from "../../rules/index.js";
+import { CORE_RULES, type RulePlugin } from "../../rules/index.js";
+import { hashExcerpt } from "../../core/evidence-utils.js";
 
 // Mock application context for testing
 const mockApplicationContext: ApplicationContext = {
@@ -58,6 +59,169 @@ describe("Rule Evaluator", () => {
   });
 
   describe("evaluateRules", () => {
+    const graphFile: RepoFile = {
+      id: "file-1",
+      path: "src/app.ts",
+      language: "ts",
+      role: "source",
+      hash: "hash-1",
+      lineCount: 3,
+      sizeBytes: 48,
+      parser: { status: "parsed" },
+    };
+
+    const graph = {
+      files: [graphFile],
+      run_id: "ctg-test-evidence",
+      generated_at: "2024-01-15T10:30:00Z",
+      repo: { root: "/test" },
+      stats: { partial: false },
+    };
+
+    const contentContext: ApplicationContext = {
+      ...mockApplicationContext,
+      fileAccess: {
+        ...mockApplicationContext.fileAccess,
+        readFile: (path: string) => path.endsWith("src/app.ts") ? "const a = 1;\nconst b = 2;\nconst c = 3;" : null,
+      },
+    };
+
+    function testRule(finding: Finding): RulePlugin {
+      return {
+        id: "TEST_RULE",
+        name: "Test Rule",
+        description: "test",
+        category: "maintainability",
+        defaultSeverity: "low",
+        defaultConfidence: 0.5,
+        evaluate: () => [finding],
+      };
+    }
+
+    function testFinding(overrides: Partial<Finding>): Finding {
+      return {
+        id: "source-finding",
+        ruleId: "TEST_RULE",
+        category: "maintainability",
+        severity: "low",
+        confidence: 0.5,
+        title: "Test finding",
+        summary: "Test summary",
+        evidence: [
+          {
+            id: "source-evidence",
+            path: "src/app.ts",
+            startLine: 1,
+            endLine: 2,
+            kind: "text",
+            excerptHash: "stale",
+          },
+        ],
+        ...overrides,
+      };
+    }
+
+    it("routes findings without evidence to unsupported_claims", () => {
+      const artifact = evaluateRules(graph, contentContext, undefined, [
+        testRule(testFinding({ evidence: [] })),
+      ]);
+
+      expect(artifact.findings).toHaveLength(0);
+      expect(artifact.unsupported_claims).toHaveLength(1);
+      expect(artifact.unsupported_claims[0].reason).toBe("missing_evidence");
+    });
+
+    it("marks findings partial when source graph is partial", () => {
+      const artifact = evaluateRules(
+        { ...graph, stats: { partial: true } },
+        contentContext,
+        undefined,
+        [testRule(testFinding({}))]
+      );
+
+      expect(artifact.findings).toHaveLength(1);
+      expect(artifact.completeness).toBe("partial");
+    });
+
+    it("routes findings with missing evidence paths to unsupported_claims", () => {
+      const artifact = evaluateRules(graph, contentContext, undefined, [
+        testRule(testFinding({
+          evidence: [
+            {
+              id: "source-evidence",
+              path: "src/missing.ts",
+              startLine: 1,
+              endLine: 1,
+              kind: "text",
+              excerptHash: "stale",
+            },
+          ],
+        })),
+      ]);
+
+      expect(artifact.findings).toHaveLength(0);
+      expect(artifact.unsupported_claims[0].sourceSection).toBe("rule-evaluator:evidence-path");
+    });
+
+    it("routes findings with line ranges outside file bounds to unsupported_claims", () => {
+      const artifact = evaluateRules(graph, contentContext, undefined, [
+        testRule(testFinding({
+          evidence: [
+            {
+              id: "source-evidence",
+              path: "src/app.ts",
+              startLine: 2,
+              endLine: 10,
+              kind: "text",
+              excerptHash: "stale",
+            },
+          ],
+        })),
+      ]);
+
+      expect(artifact.findings).toHaveLength(0);
+      expect(artifact.unsupported_claims[0].sourceSection).toBe("rule-evaluator:evidence-range");
+      expect(artifact.unsupported_claims[0].reason).toBe("schema_invalid");
+    });
+
+    it("recomputes text evidence excerpt hashes from the source line range", () => {
+      const artifact = evaluateRules(graph, contentContext, undefined, [
+        testRule(testFinding({})),
+      ]);
+
+      expect(artifact.findings).toHaveLength(1);
+      expect(artifact.findings[0].evidence[0].excerptHash).toBe(hashExcerpt("const a = 1;\nconst b = 2;"));
+    });
+
+    it("keeps unsupported evidence issues out of primary findings", () => {
+      const artifact = evaluateRules(graph, contentContext, undefined, [
+        testRule(testFinding({
+          evidence: [
+            {
+              id: "source-evidence",
+              path: "src/app.ts",
+              startLine: 1,
+              endLine: 1,
+              kind: "text",
+              excerptHash: "stale",
+            },
+            {
+              id: "bad-evidence",
+              path: "src/missing.ts",
+              startLine: 1,
+              endLine: 1,
+              kind: "text",
+              excerptHash: "stale",
+            },
+          ],
+        })),
+      ]);
+
+      expect(artifact.findings).toHaveLength(0);
+      expect(artifact.unsupported_claims).toHaveLength(1);
+      expect(artifact.unsupported_claims[0].claim).toContain("src/missing.ts");
+    });
+
     it("should add fingerprint to all findings", () => {
       const mockGraph = {
         files: [

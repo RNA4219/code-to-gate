@@ -129,6 +129,61 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "redactionProfile": {
+      "type": "object",
+      "required": [
+        "name",
+        "allowsPath",
+        "allowsHash",
+        "allowsCount",
+        "allowsExcerpt",
+        "allowsDetail",
+        "requiresSigner",
+        "requiresRetention",
+        "requiresApprovalBinding"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "enum": ["public", "private", "regulated"] },
+        "allowsPath": { "type": "boolean" },
+        "allowsHash": { "type": "boolean" },
+        "allowsCount": { "type": "boolean" },
+        "allowsExcerpt": { "type": "boolean" },
+        "allowsDetail": { "type": "boolean" },
+        "requiresSigner": { "type": "boolean" },
+        "requiresRetention": { "type": "boolean" },
+        "requiresApprovalBinding": { "type": "boolean" },
+        "binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "signer": { "type": "string", "minLength": 1 },
+            "retention": { "type": "string", "minLength": 1 },
+            "approvalBinding": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "redactionSummary": {
+      "type": "object",
+      "required": ["profile", "visibleFields", "redactedFields", "warnings"],
+      "additionalProperties": false,
+      "properties": {
+        "profile": { "enum": ["public", "private", "regulated"] },
+        "visibleFields": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "redactedFields": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
     }
   }
 }

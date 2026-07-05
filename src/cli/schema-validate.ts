@@ -4,16 +4,29 @@ const Ajv = AjvImport.default || AjvImport;
 import type { ValidateFunction, ErrorObject } from "ajv";
 import addFormatsImport from "ajv-formats";
 const addFormats = addFormatsImport.default || addFormatsImport;
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import yamlImport from "js-yaml";
+import type { SchemaMigrationArtifact } from "../types/artifacts.js";
 
 const EXIT = {
   OK: 0,
   USAGE_ERROR: 2,
   SCHEMA_FAILED: 7,
 };
+
+const TOOL_VERSION = "schema-cli";
+
+const VERSION_MIGRATIONS = new Map<string, string>([
+  ["ctg/v1alpha1", "ctg/v1"],
+  ["ctg.state-gate/v1alpha1", "ctg.state-gate/v1"],
+  ["ctg.manual-bb/v1alpha1", "ctg.manual-bb/v1"],
+  ["ctg.workflow-evidence/v1alpha1", "ctg.workflow-evidence/v1"],
+  ["ctg.gatefield/v1alpha1", "ctg.gatefield/v1"],
+]);
+
+const SUPPORTED_MIGRATION_TARGETS = new Set<string>(["ctg/v1", ...VERSION_MIGRATIONS.values()]);
 
 export interface SchemaValidationResult {
   artifact: string;
@@ -138,15 +151,41 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
   const schemaFiles = [
     "shared-defs.schema.json",
     "normalized-repo-graph.schema.json",
+    "raw-findings.schema.json",
     "findings.schema.json",
     "risk-register.schema.json",
     "invariants.schema.json",
     "test-seeds.schema.json",
+    "test-plan.schema.json",
+    "quality-pack.schema.json",
+    "quality-pack-golden-suite.schema.json",
+    "rule-quality-score.schema.json",
+    "release-pack.schema.json",
+    "hosted-static-report.schema.json",
+    "hosted-evidence-portal.schema.json",
+    "github-app-health.schema.json",
+    "evidence-query.schema.json",
+    "redaction-profile.schema.json",
+    "gate-explainability.schema.json",
+    "drift-budget.schema.json",
+    "evidence-provenance-index.schema.json",
+    "review-queue.schema.json",
+    "baseline-debt-ledger.schema.json",
+    "qeos-acceptance-matrix.schema.json",
+    "schema-migration.schema.json",
+    "ownership-risk.schema.json",
+    "plugin-marketplace.schema.json",
+    "pr-review.schema.json",
     "release-readiness.schema.json",
     "audit.schema.json",
     "evidence-ref.schema.json",
+    "evidence-dag.schema.json",
+    "historical-comparison.schema.json",
+    "spec-drift.schema.json",
+    "doctor.schema.json",
     "diff-analysis.schema.json",
     "database-assets.schema.json",
+    "self-analysis-debt.schema.json",
   ];
 
   for (const file of schemaFiles) {
@@ -247,9 +286,35 @@ const OPTIONAL_ARTIFACTS = [
   "risk-register.yaml",
   "self-analysis-debt.json",
   "test-seeds.json",
+  "test-plan.json",
+  "quality-pack.json",
+  "quality-pack-golden-suite.json",
+  "rule-quality-score.json",
+  "release-pack.json",
+  "hosted-static-report.json",
+  "hosted-evidence-portal.json",
+  "github-app-health.json",
+  "evidence-query.json",
+  "redaction-profile.json",
+  "gate-explainability.json",
+  "drift-budget.json",
+  "evidence-provenance-index.json",
+  "review-queue.json",
+  "baseline-debt-ledger.json",
+  "qeos-acceptance-matrix.json",
+  "schema-migration.json",
+  "ownership-risk.json",
+  "plugin-marketplace.json",
+  "pr-review.json",
   "invariants.json",
   "raw-findings.json",
   "database-assets.json",
+  "diff.json",
+  "diff-analysis.json",
+  "evidence-dag.json",
+  "historical-comparison.json",
+  "spec-drift.json",
+  "doctor.json",
 ];
 
 /**
@@ -380,6 +445,7 @@ async function validateArtifactsInDir(
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       results.push({ artifact, status: "error", errors: [`parse error: ${errorMsg}`] });
+      quarantineInvalidArtifact(dir, filePath, artifact);
       if (!silent) {
         console.error(`parse error: ${artifact}`);
         console.error(errorMsg);
@@ -390,6 +456,7 @@ async function validateArtifactsInDir(
     const schemaPath = schemaForArtifact(data);
     if (!schemaPath) {
       results.push({ artifact, status: "error", errors: ["no schema found"] });
+      quarantineInvalidArtifact(dir, filePath, artifact);
       if (!silent) {
         console.error(`no schema: ${artifact}`);
       }
@@ -405,6 +472,7 @@ async function validateArtifactsInDir(
       if (!valid) {
         const errors = formatErrors(validate.errors);
         results.push({ artifact, status: "error", errors });
+        quarantineInvalidArtifact(dir, filePath, artifact);
         if (!silent) {
           console.error(`invalid: ${artifact}`);
           for (const error of errors) {
@@ -420,6 +488,7 @@ async function validateArtifactsInDir(
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       results.push({ artifact, status: "error", errors: [`validation error: ${errorMsg}`] });
+      quarantineInvalidArtifact(dir, filePath, artifact);
       if (!silent) {
         console.error(`error: ${artifact}`);
         console.error(`  ${errorMsg}`);
@@ -443,6 +512,21 @@ async function validateArtifactsInDir(
   }
 
   return results;
+}
+
+function quarantineInvalidArtifact(dir: string, filePath: string, artifact: string): void {
+  if (!existsSync(filePath)) return;
+
+  const invalidDir = path.join(dir, "invalid");
+  mkdirSync(invalidDir, { recursive: true });
+
+  let target = path.join(invalidDir, artifact);
+  if (existsSync(target)) {
+    const parsed = path.parse(artifact);
+    target = path.join(invalidDir, `${parsed.name}-${Date.now()}${parsed.ext}`);
+  }
+
+  renameSync(filePath, target);
 }
 
 async function validateAllArtifacts(
@@ -481,8 +565,243 @@ export async function validateAllArtifactsWithResults(
   return validateArtifactsInDir(dirArg, silent, strictMode, allowMissing, getValidationProfile(options));
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function cloneJsonRecord(value: Record<string, unknown>): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function parseMigrateArgs(args: string[]): {
+  inputArg: string;
+  outArg: string;
+  targetVersion?: string;
+} | { error: string } {
+  const inputArg = args[0];
+  if (!inputArg || inputArg.startsWith("--")) {
+    return { error: "usage: code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]" };
+  }
+
+  let outArg: string | undefined;
+  let targetVersion: string | undefined;
+
+  for (let index = 1; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--out") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) {
+        return { error: "Error: --out requires a value" };
+      }
+      outArg = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--target-version") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) {
+        return { error: "Error: --target-version requires a value" };
+      }
+      targetVersion = value;
+      index += 1;
+      continue;
+    }
+
+    return { error: `Error: unknown schema migrate option '${arg}'` };
+  }
+
+  if (!outArg) {
+    return { error: "Error: schema migrate requires --out <file-or-dir>" };
+  }
+
+  if (targetVersion && !SUPPORTED_MIGRATION_TARGETS.has(targetVersion)) {
+    return {
+      error: `Error: unsupported --target-version '${targetVersion}'. Supported targets: ${Array.from(SUPPORTED_MIGRATION_TARGETS).join(", ")}`,
+    };
+  }
+
+  return { inputArg, outArg, targetVersion };
+}
+
+function migrationOutputPaths(inputPath: string, outArg: string): { artifactPath: string; reportPath: string } {
+  const output = path.resolve(process.cwd(), outArg);
+  const outputIsDirectory = existsSync(output)
+    ? statSync(output).isDirectory()
+    : path.extname(output) === "";
+
+  if (outputIsDirectory) {
+    return {
+      artifactPath: path.join(output, path.basename(inputPath)),
+      reportPath: path.join(output, "schema-migration.json"),
+    };
+  }
+
+  return {
+    artifactPath: output,
+    reportPath: path.join(path.dirname(output), "schema-migration.json"),
+  };
+}
+
+function getStringField(record: Record<string, unknown>, field: string): string | undefined {
+  const value = record[field];
+  return typeof value === "string" ? value : undefined;
+}
+
+function createMigrationReport(input: {
+  inputPath: string;
+  outputPath: string;
+  source: Record<string, unknown>;
+  target: Record<string, unknown>;
+  changes: SchemaMigrationArtifact["changes"];
+  validation: SchemaMigrationArtifact["validation"];
+  status: SchemaMigrationArtifact["status"];
+}): SchemaMigrationArtifact {
+  const sourceRepo = isRecord(input.source.repo) ? input.source.repo : undefined;
+  const targetRepo = isRecord(input.target.repo) ? input.target.repo : undefined;
+  const repoRoot = getStringField(targetRepo ?? sourceRepo ?? {}, "root") ?? process.cwd();
+  const runId = getStringField(input.target, "run_id") ?? getStringField(input.source, "run_id") ?? `schema-migration-${Date.now()}`;
+
+  return {
+    version: "ctg/v1",
+    generated_at: new Date().toISOString(),
+    run_id: runId,
+    repo: { root: repoRoot },
+    tool: { name: "code-to-gate", version: TOOL_VERSION, plugin_versions: [] },
+    artifact: "schema-migration",
+    schema: "schema-migration@v1",
+    completeness: input.validation.status === "ok" ? "complete" : "partial",
+    status: input.status,
+    source: {
+      path: path.relative(process.cwd(), input.inputPath) || ".",
+      artifact: getStringField(input.source, "artifact"),
+      schema: getStringField(input.source, "schema"),
+      version: getStringField(input.source, "version"),
+    },
+    target: {
+      path: path.relative(process.cwd(), input.outputPath) || ".",
+      artifact: getStringField(input.target, "artifact"),
+      schema: getStringField(input.target, "schema"),
+      version: getStringField(input.target, "version") ?? "ctg/v1",
+    },
+    changes: input.changes,
+    validation: input.validation,
+    generated_by: "ctg-schema-migrate-v1",
+  };
+}
+
+async function migrateSchemaArtifact(args: string[]): Promise<number> {
+  const parsed = parseMigrateArgs(args);
+  if ("error" in parsed) {
+    console.error(parsed.error);
+    return EXIT.USAGE_ERROR;
+  }
+
+  const inputPath = path.resolve(process.cwd(), parsed.inputArg);
+  if (!existsSync(inputPath)) {
+    console.error(`file not found: ${parsed.inputArg}`);
+    return EXIT.USAGE_ERROR;
+  }
+
+  let source: unknown;
+  try {
+    source = readJson(inputPath);
+  } catch (error) {
+    console.error(`invalid JSON: ${parsed.inputArg}`);
+    console.error(error instanceof Error ? error.message : String(error));
+    return EXIT.SCHEMA_FAILED;
+  }
+
+  if (!isRecord(source)) {
+    console.error("schema migrate requires a JSON object artifact");
+    return EXIT.SCHEMA_FAILED;
+  }
+
+  const sourceVersion = getStringField(source, "version");
+  const inferredTargetVersion = sourceVersion ? VERSION_MIGRATIONS.get(sourceVersion) : undefined;
+  const isCurrentTargetVersion = sourceVersion ? SUPPORTED_MIGRATION_TARGETS.has(sourceVersion) : false;
+  if (!sourceVersion || (!inferredTargetVersion && !isCurrentTargetVersion)) {
+    console.error(`unsupported artifact version for migration: ${sourceVersion ?? "missing"}`);
+    return EXIT.SCHEMA_FAILED;
+  }
+
+  const targetVersion = inferredTargetVersion ?? sourceVersion;
+  if (parsed.targetVersion && parsed.targetVersion !== targetVersion) {
+    console.error(
+      `unsupported migration target '${parsed.targetVersion}' for source version '${sourceVersion}'. Expected target: ${targetVersion}`
+    );
+    return EXIT.SCHEMA_FAILED;
+  }
+
+  const migrated = cloneJsonRecord(source);
+  const changes: SchemaMigrationArtifact["changes"] = [];
+  let status: SchemaMigrationArtifact["status"] = "unchanged";
+
+  if (targetVersion && targetVersion !== sourceVersion) {
+    migrated.version = targetVersion;
+    status = "migrated";
+    changes.push({
+      path: "/version",
+      from: sourceVersion,
+      to: targetVersion,
+      reason: "Normalize legacy v1alpha1 artifact version to the stable v1 version string.",
+    });
+  }
+
+  const outputs = migrationOutputPaths(inputPath, parsed.outArg);
+  mkdirSync(path.dirname(outputs.artifactPath), { recursive: true });
+  writeFileSync(outputs.artifactPath, JSON.stringify(migrated, null, 2) + "\n", "utf8");
+
+  const validationResult = await validateArtifactFile(outputs.artifactPath);
+  const validation: SchemaMigrationArtifact["validation"] = validationResult.status === "ok"
+    ? { status: "ok", errors: [] }
+    : { status: "error", errors: validationResult.errors ?? ["schema validation failed"] };
+
+  if (validation.status === "error") {
+    status = "failed";
+  }
+
+  const report = createMigrationReport({
+    inputPath,
+    outputPath: outputs.artifactPath,
+    source,
+    target: migrated,
+    changes,
+    validation,
+    status,
+  });
+
+  mkdirSync(path.dirname(outputs.reportPath), { recursive: true });
+  writeFileSync(outputs.reportPath, JSON.stringify(report, null, 2) + "\n", "utf8");
+
+  console.log(JSON.stringify({
+    schema: "ctg.cli.summary@v1",
+    tool: "code-to-gate",
+    command: "schema migrate",
+    status,
+    exit_code: validation.status === "ok" ? EXIT.OK : EXIT.SCHEMA_FAILED,
+    output: {
+      artifact: path.relative(process.cwd(), outputs.artifactPath) || ".",
+      report: path.relative(process.cwd(), outputs.reportPath) || ".",
+    },
+    migration: {
+      from: sourceVersion,
+      to: getStringField(migrated, "version"),
+      changes: changes.length,
+    },
+    validation,
+  }));
+
+  return validation.status === "ok" ? EXIT.OK : EXIT.SCHEMA_FAILED;
+}
+
 export async function schemaValidate(args: string[]): Promise<number> {
   const command = args[0];
+
+  if (command === "migrate") {
+    return migrateSchemaArtifact(args.slice(1));
+  }
 
   if (command === "validate-all") {
     const parsed = parseValidateAllArgs(args.slice(1));
@@ -497,11 +816,13 @@ export async function schemaValidate(args: string[]): Promise<number> {
     if (args.length !== 2 || !args[1] || args[1].startsWith("--")) {
       console.error("usage: code-to-gate schema validate <artifact-or-schema>");
       console.error("usage: code-to-gate schema validate-all <dir> [--profile <analyze|readiness|full>] [--strict] [--allow-missing]");
+      console.error("usage: code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]");
       return EXIT.USAGE_ERROR;
     }
   } else {
     console.error("usage: code-to-gate schema validate <artifact-or-schema>");
     console.error("usage: code-to-gate schema validate-all <dir> [--profile <analyze|readiness|full>] [--strict] [--allow-missing]");
+    console.error("usage: code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]");
     return EXIT.USAGE_ERROR;
   }
 

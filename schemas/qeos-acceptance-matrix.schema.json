@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/qeos-acceptance-matrix.schema.json",
+  "title": "QeosAcceptanceMatrixArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "entries", "summary", "generated_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "qeos-acceptance-matrix" },
+    "schema": { "const": "qeos-acceptance-matrix@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "done", "planned", "inProgress", "needsEvidence"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "done": { "type": "integer", "minimum": 0 },
+        "planned": { "type": "integer", "minimum": 0 },
+        "inProgress": { "type": "integer", "minimum": 0 },
+        "needsEvidence": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "generated_by": { "const": "ctg-qeos-acceptance-matrix-v1" }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["qeosId", "title", "priority", "requirement", "specAcceptance", "schemas", "cli", "testCommands", "ciGates", "status", "evidenceLinks"],
+      "additionalProperties": false,
+      "properties": {
+        "qeosId": { "type": "string", "pattern": "^QEOS-[0-9]{3}$" },
+        "title": { "type": "string", "minLength": 1 },
+        "priority": { "type": "string", "minLength": 1 },
+        "requirement": { "type": "string", "minLength": 1 },
+        "specAcceptance": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "schemas": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "cli": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "testCommands": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "ciGates": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "status": { "enum": ["planned", "in_progress", "done", "needs_evidence"] },
+        "evidenceLinks": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

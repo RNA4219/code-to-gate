@@ -7,6 +7,8 @@
  * - manual-bb: ManualBbSeed
  * - workflow-evidence: WorkflowEvidence
  * - sarif: SARIF v2.1.0
+ * - evidence-dag: Cross-artifact evidence graph
+ * - provenance-index: Human surface locator to source artifact index
  */
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -46,6 +48,8 @@ import { nodeHashService } from "../adapters/node-hash-service.js";
 import { nodePathService } from "../adapters/node-path-service.js";
 import { validateAllArtifactsWithResults, validateArtifactFile } from "./schema-validate.js";
 import { loadReleaseReadinessArtifact } from "./artifact-loader.js";
+import { generateEvidenceDagFromArtifacts } from "../evidence/evidence-dag.js";
+import { generateEvidenceProvenanceIndex } from "../evidence/provenance-index.js";
 
 export interface ExportOptions {
   VERSION: string;
@@ -229,6 +233,26 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
 
         return options.EXIT.OK;
       }
+
+      case "evidence-dag":
+        output = generateEvidenceDagFromArtifacts({
+          artifactDir,
+          cwd,
+          version: options.VERSION,
+          ciEnv: process.env,
+        });
+        outputPath = outFile ?? path.join(artifactDir, "evidence-dag.json");
+        break;
+
+      case "provenance-index":
+        output = generateEvidenceProvenanceIndex({
+          artifactDir,
+          cwd,
+          version: options.VERSION,
+          findings,
+        });
+        outputPath = outFile ?? path.join(artifactDir, "evidence-provenance-index.json");
+        break;
 
       default:
         console.error(`unsupported target: ${targetArg}`);

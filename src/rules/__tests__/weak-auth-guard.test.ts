@@ -144,6 +144,22 @@ export function authenticate(req) {
         expect(findings.length).toBe(0);
       }
     });
+
+    it("does not flag accepted public route handlers as weak auth guards", () => {
+      const content = `
+export function publicCatalogRoute(req, res) {
+  return res.json({ items: [] });
+}
+
+export function publicHealthRoute(req, res) {
+  return res.json({ ok: true });
+}
+`;
+
+      const findings = runRule("src/routes/public.ts", content);
+
+      expect(findings.length).toBe(0);
+    });
   });
 
   describe("multi-file scenarios", () => {

@@ -148,6 +148,28 @@ if (!parserInstance || !language) {
 **Fallback保証**:
 - WASM package未インストール環境でも動作
 - テスト環境の互換性維持
+- CLI `--tree-sitter` 有効時に grammar 初期化へ失敗しても scan は継続し、repo graph の `diagnostics[]` に `TREE_SITTER_INIT_FAILED` を記録する。
+- fallback error message は絶対パスを `<path>` に sanitize して出力する。
+
+### 4.1 Tree-sitter vs Regex Fallback Scope
+
+| Language | Tree-sitter scope | Regex fallback scope | Known difference |
+|---|---|---|---|
+| Python | imports, functions, async functions, classes, inheritance/type hints | imports, top-level functions/classes, basic routes | fallback は nested method/type hint の精度が低い |
+| Ruby | require, methods, singleton methods, classes, modules, inheritance | require, top-level methods/classes/modules | fallback は nested method と complex receiver を限定的に扱う |
+| Go | imports, functions, methods, structs, interfaces, receiver types | imports, functions, structs/interfaces basic | fallback は receiver/generic signature の精度が低い |
+| Rust | use, functions, async, structs, enums, traits, impls | use, functions, structs/enums/traits basic | fallback は impl/trait association と scoped use の精度が低い |
+
+Fallback output is acceptable for graph continuity and conservative rule evidence. Findings that depend on missing tree-sitter-only structure must lower confidence or avoid claiming AST completeness.
+
+### 4.2 WASM Compatibility Limitations
+
+Known compatibility failures include missing WASM packages, unsupported `web-tree-sitter` runtime initialization, and grammar load errors on restricted CI environments. These are not release blockers when:
+
+- scan/analyze exits normally for supported source files,
+- `repo-graph.json` includes `TREE_SITTER_INIT_FAILED` diagnostics,
+- affected files use `parser.status: "text_fallback"` or a regex adapter id,
+- downstream artifacts mark completeness conservatively when the graph is partial.
 
 ---
 
@@ -199,6 +221,8 @@ Phase 5完了判定: ✅ PASS
 | Rust adapter | 15+ tests | ✓ 19 tests |
 | WASM loading | Node.js + fallback | ✓ pass |
 | Regex fallback | 維持 | ✓ pass |
+| Fallback diagnostics | `TREE_SITTER_INIT_FAILED` recorded | ✓ pass |
+| Known limitation documented | compatibility failure is non-blocking with diagnostics | ✓ pass |
 
 ---
 

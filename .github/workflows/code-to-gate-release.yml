@@ -68,6 +68,7 @@ jobs:
         with:
           name: ctg-audit-${{ github.sha }}
           path: .qh/audit.json
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 90
 
@@ -119,6 +120,17 @@ jobs:
 
       - name: Run test coverage
         run: npm run test:coverage
+
+      - name: Check docs review dates
+        run: npm run docs:stale
+
+      - name: Check distribution status docs
+        run: npm run docs:distribution
+
+      - name: Detect spec drift
+        run: |
+          node ./dist/cli.js spec-drift . --out .qh
+          node ./dist/cli.js schema validate .qh/spec-drift.json
 
       - name: Run full analysis
         id: analyze
@@ -180,8 +192,31 @@ jobs:
             echo "summary=Release readiness file not found" >> $GITHUB_OUTPUT
           fi
 
+      - name: Summarize suppression debt
+        run: |
+          SUPPRESSION_TOTAL=$(node -e "const fs=require('fs'); const text=fs.existsSync('.ctg/suppressions.yaml')?fs.readFileSync('.ctg/suppressions.yaml','utf8'):''; console.log((text.match(/^\\s*-\\s+ruleId:/gm)||[]).length)")
+          EXPIRED_COUNT=$(node -e "const fs=require('fs'); const text=fs.existsSync('.ctg/suppressions.yaml')?fs.readFileSync('.ctg/suppressions.yaml','utf8'):''; const today=new Date().toISOString().slice(0,10); let n=0; for (const m of text.matchAll(/^\\s*expiry:\\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/gm)) { if (m[1] < today) n++; } console.log(n)")
+          BROAD_COUNT=0
+          if [ -f .qh/self-analysis-debt.json ]; then
+            BROAD_COUNT=$(jq '.broadSuppressions.total // 0' .qh/self-analysis-debt.json)
+          fi
+          {
+            echo "## Suppression Debt Summary"
+            echo "- suppressions: ${SUPPRESSION_TOTAL}"
+            echo "- expired suppressions: ${EXPIRED_COUNT}"
+            echo "- broad suppressions: ${BROAD_COUNT}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EXPIRED_COUNT" -gt 0 ]; then
+            echo "::error::Expired suppressions found: ${EXPIRED_COUNT}"
+            exit 1
+          fi
+
       - name: Export SARIF
         run: node ./dist/cli.js export sarif --from .qh --out .qh/results.sarif
+
+      - name: Validate SARIF 2.1.0
+        run: |
+          node --input-type=module -e 'import { readFileSync } from "node:fs"; const sarif = JSON.parse(readFileSync(".qh/results.sarif", "utf8")); if (sarif.version !== "2.1.0") throw new Error(`Invalid SARIF version: ${sarif.version}`); if (!String(sarif["$schema"] || "").includes("sarif-schema-2.1.0")) throw new Error("Invalid SARIF schema"); if (!Array.isArray(sarif.runs)) throw new Error("SARIF runs must be an array");'
 
       - name: Upload SARIF to code scanning
         uses: github/codeql-action/upload-sarif@v4
@@ -191,7 +226,10 @@ jobs:
 
       - name: Generate release evidence
         run: |
+          npm run package:integrity
           node ./dist/cli.js export workflow-evidence --from .qh --out .qh/workflow-evidence.json
+          node ./dist/cli.js export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
+          node ./dist/cli.js schema validate .qh/qeg-code-to-gate.json
 
           # Create release evidence summary
           cat > .qh/release-evidence.md << 'EOF'
@@ -214,10 +252,17 @@ jobs:
           ## Artifacts
           - [Release Readiness](./release-readiness.json)
           - [Findings](./findings.json)
+          - [Spec Drift](./spec-drift.json)
           - [Risk Register](./risk-register.yaml)
           - [Test Seeds](./test-seeds.json)
+          - [Package Integrity](./package/package-integrity.json)
           - [SARIF Report](./results.sarif)
           - [Workflow Evidence](./workflow-evidence.json)
+          - [QEG Code-to-gate Evidence](./qeg-code-to-gate.json)
+
+          ## QEG
+          `qeg-code-to-gate.json` is evidence-only input for quality-evidence-graph.
+          Release decision ownership remains in QEG and the human release gate.
           EOF
 
       - name: Upload release evidence artifacts
@@ -227,14 +272,18 @@ jobs:
           path: |
             .qh/release-readiness.json
             .qh/findings.json
+            .qh/spec-drift.json
             .qh/risk-register.yaml
             .qh/test-seeds.json
             .qh/analysis-report.md
             .qh/results.sarif
             .qh/workflow-evidence.json
+            .qh/qeg-code-to-gate.json
             .qh/release-evidence.md
             .qh/audit.json
+            .qh/package/package-integrity.json
             coverage/coverage-summary.json
+          include-hidden-files: true
           retention-days: 90
 
       - name: Block release if not ready
@@ -286,4 +335,5 @@ jobs:
         with:
           name: ctg-acceptance-evidence-${{ github.sha }}
           path: .qh/acceptance/
+          include-hidden-files: true
           retention-days: 90

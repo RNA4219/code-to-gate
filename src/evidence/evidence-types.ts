@@ -47,6 +47,8 @@ export type ArtifactType =
   | "state-gate-evidence"
   | "manual-bb-seed"
   | "workflow-evidence"
+  | "pr-review"
+  | "github-app-health"
   | "sarif"
   | "metadata"
   | "signature";
@@ -114,6 +116,8 @@ export const OPTIONAL_ARTIFACTS: ArtifactType[] = [
   "state-gate-evidence",
   "manual-bb-seed",
   "workflow-evidence",
+  "pr-review",
+  "github-app-health",
   "sarif",
 ];
 
@@ -135,6 +139,8 @@ export const ARTIFACT_FILENAME_MAP: Record<ArtifactType, string> = {
   "state-gate-evidence": "state-gate-evidence.json",
   "manual-bb-seed": "manual-bb-seed.json",
   "workflow-evidence": "workflow-evidence.json",
+  "pr-review": "pr-review.json",
+  "github-app-health": "github-app-health.json",
   "sarif": "results.sarif",
   "metadata": "metadata.json",
   "signature": "signature.json",

@@ -26,6 +26,11 @@ import {
   writeSelfAnalysisDebtJson,
 } from "../reporters/index.js";
 import { countSuppressedByClass } from "../self-analysis/suppression-summary.js";
+import {
+  evaluateBaselineRatchet,
+  loadBaselineFindingsArtifact,
+  type BaselineRatchetResult,
+} from "../historical/ratchet-gate.js";
 
 interface ReadinessOptions {
   VERSION: string;
@@ -60,6 +65,12 @@ function mapFailedConditions(result: PolicyEvaluationResult): Array<{
         break;
       case "low_confidence":
         id = `LOW_CONFIDENCE_${condition.findingId || "UNKNOWN"}`;
+        break;
+      case "dsl_block":
+        id = `POLICY_DSL_BLOCK_${condition.dslRuleId || "UNKNOWN"}`;
+        break;
+      case "dsl_hold":
+        id = `POLICY_DSL_HOLD_${condition.dslRuleId || "UNKNOWN"}`;
         break;
       default:
         id = "UNKNOWN_CONDITION";
@@ -162,6 +173,62 @@ function mergeReadinessStatus(status: ReadinessStatus, intake?: IntakeAssessment
   return status;
 }
 
+function collectManualEvidenceFindingIds(value: unknown, ids: Set<string>): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectManualEvidenceFindingIds(item, ids);
+    }
+    return;
+  }
+
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["finding_id", "findingId", "sourceFindingId", "source_finding_id"]) {
+    const id = record[key];
+    if (typeof id === "string" && id.length > 0) {
+      ids.add(id);
+    }
+  }
+  for (const key of ["source_findings", "sourceFindingIds", "source_finding_ids", "matchedFindingIds"]) {
+    const raw = record[key];
+    if (Array.isArray(raw)) {
+      for (const id of raw) {
+        if (typeof id === "string" && id.length > 0) {
+          ids.add(id);
+        }
+      }
+    }
+  }
+  const id = record.id;
+  if (typeof id === "string" && id.startsWith("risk-")) {
+    ids.add(id);
+    ids.add(id.slice("risk-".length));
+  }
+
+  for (const nested of Object.values(record)) {
+    if (typeof nested === "object" && nested !== null) {
+      collectManualEvidenceFindingIds(nested, ids);
+    }
+  }
+}
+
+function loadManualEvidenceFindingIds(manualEvidencePath: string | undefined, cwd: string): string[] {
+  if (!manualEvidencePath) {
+    return [];
+  }
+  const absolutePath = path.resolve(cwd, manualEvidencePath);
+  if (!existsSync(absolutePath)) {
+    throw new Error(`manual evidence artifact not found: ${manualEvidencePath}`);
+  }
+  const parsed = JSON.parse(readFileSync(absolutePath, "utf8")) as unknown;
+  const ids = new Set<string>();
+  collectManualEvidenceFindingIds(parsed, ids);
+  return [...ids].sort();
+}
+
 function getMergedStatusSummary(
   status: ReadinessStatus,
   evalResult: PolicyEvaluationResult,
@@ -185,9 +252,11 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
   const fromDir = options.getOption(args, "--from");
   const outDir = options.getOption(args, "--out") ?? ".qh";
   const intakePath = options.getOption(args, "--intake");
+  const baselinePath = options.getOption(args, "--baseline");
+  const manualEvidencePath = options.getOption(args, "--manual-evidence");
 
   if (!repoArg || !policyPath || !fromDir) {
-    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>] [--intake <file>]");
+    console.error("usage: code-to-gate readiness <repo> --policy <file> --from <dir> [--out <dir>] [--intake <file>] [--baseline <file-or-dir>] [--manual-evidence <file>]");
     console.error("Note: --from is required. Run 'code-to-gate analyze' first to generate findings.json");
     return options.EXIT.USAGE_ERROR;
   }
@@ -214,6 +283,11 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
   const absoluteIntakePath = intakePath ? path.resolve(cwd, intakePath) : undefined;
   if (absoluteIntakePath && !existsSync(absoluteIntakePath)) {
     console.error(`intake artifact not found: ${intakePath}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+  const absoluteManualEvidencePath = manualEvidencePath ? path.resolve(cwd, manualEvidencePath) : undefined;
+  if (absoluteManualEvidencePath && !existsSync(absoluteManualEvidencePath)) {
+    console.error(`manual evidence artifact not found: ${manualEvidencePath}`);
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -259,6 +333,19 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     const findingsContent = readFileSync(findingsPath, "utf8");
     const findings: FindingsArtifact = JSON.parse(findingsContent);
 
+    const configuredBaselinePath = baselinePath ?? (policy.baseline?.enabled ? policy.baseline.file : undefined);
+    const baselineBaseDir = baselinePath ? cwd : repoRoot;
+    let baselineResult: BaselineRatchetResult | undefined;
+    let findingsForPolicy: Finding[] = findings.findings;
+    if (configuredBaselinePath) {
+      const baseline = loadBaselineFindingsArtifact(configuredBaselinePath, baselineBaseDir);
+      baselineResult = evaluateBaselineRatchet(findings.findings, baseline);
+      baselineResult.summary.source = path.relative(cwd, baseline.source) || baseline.source;
+      if (policy.baseline?.newFindingsBlock !== false) {
+        findingsForPolicy = baselineResult.gatedFindings;
+      }
+    }
+
     // Load raw-findings.json for true raw counts (before suppression)
     // Falls back to findings.json if raw-findings.json doesn't exist
     const rawFindingsPath = path.resolve(cwd, fromDir, "raw-findings.json");
@@ -277,7 +364,11 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
 
     // Evaluate findings against policy using policy-evaluator
-    const evalResult = evaluatePolicy(findings.findings, policy, suppressions);
+    const manualEvidenceFindingIds = loadManualEvidenceFindingIds(manualEvidencePath, cwd);
+    const evalResult = evaluatePolicy(findingsForPolicy, policy, suppressions, {
+      baselineNewOrWorsenedFindingIds: baselineResult?.summary.gatedFindingIds,
+      manualEvidenceFindingIds,
+    });
     const intakeAssessment = absoluteIntakePath ? assessIntakeArtifact(absoluteIntakePath) : undefined;
     const readinessStatus = mergeReadinessStatus(evalResult.status, intakeAssessment);
 
@@ -322,6 +413,23 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
     if (intakeAssessment) {
       recommendedActions.push(...intakeAssessment.recommendedActions);
+    }
+    if (baselineResult) {
+      if (baselineResult.summary.gatedFindingIds.length === 0) {
+        recommendedActions.push("Baseline ratchet: no new or worsened findings; existing findings are carried as known debt.");
+      } else {
+        recommendedActions.push(
+          `Baseline ratchet: review ${baselineResult.summary.newFindings} new and ${baselineResult.summary.worsenedFindings} worsened finding(s).`
+        );
+      }
+      if (baselineResult.summary.expired) {
+        recommendedActions.push(`Baseline ratchet: baseline expired at ${baselineResult.summary.expiresAt}; assign owner and refresh or remove known debt.`);
+      } else if (!baselineResult.summary.owner) {
+        recommendedActions.push("Baseline ratchet: owner is not set; set CTG_BASELINE_OWNER for debt accountability.");
+      }
+    }
+    if (manualEvidenceFindingIds.length > 0) {
+      recommendedActions.push(`Policy DSL: manual evidence references ${manualEvidenceFindingIds.length} finding/risk id(s).`);
     }
 
     // Calculate self-analysis summary for transparency (using true raw counts)
@@ -381,12 +489,15 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
         broadSuppressions: broadSuppressions.length,
         acceptedExceptionsByClass,
       },
+      baseline: baselineResult?.summary,
       failedConditions,
       recommendedActions,
       artifactRefs: {
         findings: fromDir ? path.join(fromDir, "findings.json") : undefined,
         riskRegister: fromDir ? path.join(fromDir, "risk-register.yaml") : undefined,
         intake: intakePath,
+        baseline: configuredBaselinePath,
+        manualEvidence: manualEvidencePath,
       },
     };
 
@@ -422,6 +533,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
           critical: readiness.counts.critical,
           high: readiness.counts.high,
           failed_conditions: failedConditions.length,
+          baseline_gated_findings: baselineResult?.summary.gatedFindingIds.length,
         },
       })
     );

@@ -88,6 +88,9 @@
 
 **Stable v1 Freeze**: 2026-05-03 (after QA-DEBT resolution)
 
+**No-breaking-change tracking start**: 2026-05-03
+**Initial 6-month checkpoint**: 2026-11-03
+
 ### 4.2 Commitment Period
 
 | Period | Commitment |

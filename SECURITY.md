@@ -35,10 +35,10 @@ We take security vulnerabilities seriously. If you discover a security vulnerabi
 
 | Severity | Initial Response | Fix Target |
 |----------|------------------|------------|
-| Critical | 48 hours | 7 days |
-| High | 72 hours | 14 days |
-| Medium | 5 business days | 30 days |
-| Low | 10 business days | Next release |
+| Critical | 3 business days | Best effort within 14 days |
+| High | 5 business days | Best effort within 30 days |
+| Medium | 10 business days | Next planned maintenance window |
+| Low | 15 business days | Backlog triage |
 
 We will:
 - Confirm receipt of your report within the initial response window

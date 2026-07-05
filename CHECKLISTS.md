@@ -19,6 +19,16 @@ code-to-gate運用時のチェックリスト集。
 - 例外や設定変更は [docs/security/Security_Review_Checklist.md](docs/security/Security_Review_Checklist.md) の該当フェーズで可否を確認
 - 検収が必要な作業は `docs/acceptance/AC-YYYYMMDD-xx.md` を作成し、判定・証跡・残課題を記録
 
+## Quality Evidence OS Expansion
+
+- [docs/quality-evidence-os-requirements.md](docs/quality-evidence-os-requirements.md) の要求IDを実装・テスト・docsに紐付ける
+- [docs/quality-evidence-os-spec.md](docs/quality-evidence-os-spec.md) のI/O契約とschema互換性を確認する
+- [orchestration/quality-evidence-os-implementation.md](orchestration/quality-evidence-os-implementation.md) の Task Seed 単位で差分を小さく進める
+- P0は Baseline/Ratchet Gate、LLM Trust Boundary 接続、`ctg doctor` 仕様化を優先する
+- P1以降の追加案は [docs/quality-evidence-os-expansion-ideas.md](docs/quality-evidence-os-expansion-ideas.md) に追記し、要件化する前に受入条件を確認する
+- 新規 artifact field は optional を基本とし、`ctg/v1` consumer を壊さない
+- baseline/ratchet では既存負債を可視化しつつ、新規・悪化分だけを gate 対象にする
+
 ## Pull Request / Review
 
 - 失敗させたテストが緑化する最小コミット単位を維持し、差分を可視化

@@ -103,6 +103,14 @@ export const UNSAFE_REDIRECT_RULE: RulePlugin = {
         /\.startsWith\s*\(\s*['"]\/['"]/,
         /\.startsWith\s*\(\s*['"]https:\/\/['"]/,
         /isRelativeUrl|isInternalUrl|isValidRedirect/,
+        // Same-origin navigation checks
+        /\.origin\s*={2,3}\s*(?:window\.location\.origin|req\.origin|request\.origin|origin|baseUrl)/,
+        /\.host\s*={2,3}\s*(?:req\.get\(['"]host['"]\)|request\.host|host)/,
+        /sameOrigin|same-origin|same origin/i,
+        /(?:url|redirect|target|next)\.origin.*(?:window\.location\.origin|req\.origin|request\.origin)/i,
+        // OAuth/native callback schemes handled by explicit allowlist or callback validation
+        /(?:allowed|valid|permitted).*(?:callback|scheme|protocol|redirectUri|redirect_uri)/i,
+        /(?:callback|scheme|protocol|redirectUri|redirect_uri).*(?:allowed|valid|permitted)/i,
         // Hardcoded URLs (safe)
         /(?:res|response)\s*\.\s*redirect\s*\(\s*['"][/.\\w-]+['"]\s*\)/,
         /(?:window|document)\s*\.\s*location\s*=\s*['"][/.\\w-]+['"]/,
@@ -176,7 +184,15 @@ export const UNSAFE_REDIRECT_RULE: RulePlugin = {
               context.includes("safeRedirect") ||
               context.includes("validateUrl") ||
               context.includes("startsWith('/')") ||
-              context.includes("startsWith('https')");
+              context.includes("startsWith('https')") ||
+              context.includes("sameOrigin") ||
+              context.includes("same origin") ||
+              context.includes(".origin ===") ||
+              context.includes(".origin ==") ||
+              context.includes(".host ===") ||
+              context.includes(".host ==") ||
+              /allowed.*(?:callback|scheme|protocol|redirectUri|redirect_uri)/i.test(context) ||
+              /(?:callback|scheme|protocol|redirectUri|redirect_uri).*allowed/i.test(context);
 
             if (!hasNearbyValidation) {
               // Extract the context for evidence

@@ -388,6 +388,12 @@ describe("file-utils", () => {
         expect(detectRole("types.d.ts")).toBe("generated");
         expect(detectRole("src/index.d.ts")).toBe("generated");
       });
+
+      it("detects vendored and minified files as generated", () => {
+        expect(detectRole("vendor/jquery.js")).toBe("generated");
+        expect(detectRole("third_party/lib/main.cpp")).toBe("generated");
+        expect(detectRole("src/assets/app.min.js")).toBe("generated");
+      });
     });
 
     describe("Source file detection", () => {
@@ -481,6 +487,14 @@ describe("file-utils", () => {
 
       const files = walkDir(tempTestDir);
       expect(files.some((f) => f.includes("dist"))).toBe(false);
+    });
+
+    it("ignores vendored directories by default", () => {
+      mkdirSync(path.join(tempTestDir, "vendor"), { recursive: true });
+      writeFileSync(path.join(tempTestDir, "vendor", "bundle.js"), "{}", "utf8");
+
+      const files = walkDir(tempTestDir);
+      expect(files.some((f) => f.includes("vendor"))).toBe(false);
     });
 
     it("allows custom ignored directories", () => {

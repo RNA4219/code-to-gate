@@ -215,6 +215,39 @@ describe("LARGE_MODULE_RULE", () => {
     expect(findings.length).toBe(0);
   });
 
+  it("should skip generated, fixture, and report output paths", () => {
+    const content = generateLargeContent(600);
+    const paths = [
+      "fixtures/demo-shop-ts/src/generated-fixture.ts",
+      "src/generated/client.ts",
+      "src/__generated__/schema.ts",
+      ".qh/analysis-report.md",
+      "reports/report.html",
+      "coverage/lcov-report/index.js",
+    ];
+
+    for (const filePath of paths) {
+      const files = [createMockFile(filePath, content)];
+      const contents = new Map([[filePath, content]]);
+      const context = createMockContext(files, contents);
+
+      const findings = LARGE_MODULE_RULE.evaluate(context);
+
+      expect(findings, filePath).toHaveLength(0);
+    }
+  });
+
+  it("should skip type-only contract modules", () => {
+    const content = Array.from({ length: 120 }, (_, index) => `export interface Contract${index} { value: string; }`).join("\n");
+    const files = [createMockFile("src/types/artifacts.ts", content, "ts", "source", 1200)];
+    const contents = new Map([["src/types/artifacts.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings).toHaveLength(0);
+  });
+
   it("should work with JavaScript files", () => {
     const content = generateLargeContent(600);
     const files = [createMockFile("src/large.js", content, "js")];

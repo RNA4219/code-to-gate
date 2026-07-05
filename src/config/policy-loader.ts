@@ -14,6 +14,9 @@ import {
   type SuppressionFile,
   type SuppressionEntry,
   type SuppressionClass,
+  type PolicyDslAction,
+  type PolicyDslBaseline,
+  type PolicyDslManualEvidence,
 } from "./policy-types.js";
 import { parseYamlPolicy, mergeWithDefaults, parseSuppressionFile } from "./policy-yaml-parser.js";
 
@@ -39,6 +42,12 @@ export {
   PartialConfig,
   BaselineConfig,
   ExitConfig,
+  PolicyDslAction,
+  PolicyDslBaseline,
+  PolicyDslConfig,
+  PolicyDslManualEvidence,
+  PolicyDslRule,
+  PolicyDslWhen,
   CtgPolicy,
 } from "./policy-types.js";
 
@@ -76,6 +85,43 @@ export function validatePolicy(policy: CtgPolicy): { valid: boolean; errors: str
   if (policy.llm?.minConfidence !== undefined) {
     if (policy.llm.minConfidence < 0 || policy.llm.minConfidence > 1) {
       errors.push(`Invalid LLM min_confidence: ${policy.llm.minConfidence}. Must be between 0 and 1`);
+    }
+  }
+
+  const validDslActions: PolicyDslAction[] = ["block", "hold", "allow"];
+  const validBaseline: PolicyDslBaseline[] = ["new_or_worsened"];
+  const validManualEvidence: PolicyDslManualEvidence[] = ["present", "absent"];
+  const validSeverities = ["critical", "high", "medium", "low"];
+  const validCategories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"];
+  const dslRuleIds = new Set<string>();
+
+  for (const rule of policy.dsl?.rules ?? []) {
+    if (!rule.id) {
+      errors.push("Policy DSL rule id is required");
+    } else if (dslRuleIds.has(rule.id)) {
+      errors.push(`Duplicate Policy DSL rule id: ${rule.id}`);
+    } else {
+      dslRuleIds.add(rule.id);
+    }
+    if (!validDslActions.includes(rule.action)) {
+      errors.push(`Invalid Policy DSL action for ${rule.id}: ${rule.action}`);
+    }
+    const when = rule.when;
+    if (!when || Object.values(when).every((value) => value === undefined || value === "")) {
+      errors.push(`Policy DSL rule ${rule.id} requires at least one when condition`);
+      continue;
+    }
+    if (when.severity && !validSeverities.includes(when.severity)) {
+      errors.push(`Invalid Policy DSL severity for ${rule.id}: ${when.severity}`);
+    }
+    if (when.category && !validCategories.includes(when.category)) {
+      errors.push(`Invalid Policy DSL category for ${rule.id}: ${when.category}`);
+    }
+    if (when.baseline && !validBaseline.includes(when.baseline)) {
+      errors.push(`Invalid Policy DSL baseline for ${rule.id}: ${when.baseline}`);
+    }
+    if (when.manualEvidence && !validManualEvidence.includes(when.manualEvidence)) {
+      errors.push(`Invalid Policy DSL manual_evidence for ${rule.id}: ${when.manualEvidence}`);
     }
   }
 

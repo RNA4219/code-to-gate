@@ -1,6 +1,7 @@
 name: 'code-to-gate PR Comment'
 description: 'Create a PR comment with code-to-gate analysis results'
 author: 'code-to-gate'
+# Required caller permission: pull-requests: write
 
 inputs:
   artifact_dir:
@@ -18,6 +19,10 @@ inputs:
     description: 'Fail the action if comment creation fails'
     required: false
     default: 'true'
+  pr-review.json:
+    description: 'Deterministic pr-review artifact; generated alongside pr-review.md'
+    required: false
+    default: ''
 
 outputs:
   comment_id:
@@ -87,6 +92,17 @@ runs:
       id: body
       shell: bash
       run: |
+        ARTIFACT_DIR="${{ inputs.artifact_dir }}"
+        if [ -f "$ARTIFACT_DIR/pr-review.md" ]; then
+          cp "$ARTIFACT_DIR/pr-review.md" /tmp/comment_body.md
+          {
+            echo ""
+            echo "<!-- code-to-gate Analysis -->"
+          } >> /tmp/comment_body.md
+          echo "file=/tmp/comment_body.md" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
         # Determine status emoji and color
         STATUS="${{ steps.parse.outputs.status }}"
         CRITICAL="${{ steps.parse.outputs.critical }}"

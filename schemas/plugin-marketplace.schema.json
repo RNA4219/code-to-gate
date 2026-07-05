@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/plugin-marketplace.schema.json",
+  "title": "PluginMarketplaceArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "status", "entries", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "plugin-marketplace" },
+    "schema": { "const": "plugin-marketplace@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["ready", "partial", "empty"] },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "plugins",
+        "valid",
+        "invalid",
+        "public",
+        "private",
+        "rulePlugins",
+        "reporterPlugins",
+        "exporterPlugins",
+        "importerPlugins",
+        "languagePlugins"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "plugins": { "type": "integer", "minimum": 0 },
+        "valid": { "type": "integer", "minimum": 0 },
+        "invalid": { "type": "integer", "minimum": 0 },
+        "public": { "type": "integer", "minimum": 0 },
+        "private": { "type": "integer", "minimum": 0 },
+        "rulePlugins": { "type": "integer", "minimum": 0 },
+        "reporterPlugins": { "type": "integer", "minimum": 0 },
+        "exporterPlugins": { "type": "integer", "minimum": 0 },
+        "importerPlugins": { "type": "integer", "minimum": 0 },
+        "languagePlugins": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": [
+        "id",
+        "capabilities",
+        "receives",
+        "returns",
+        "source",
+        "distribution",
+        "sandbox",
+        "validation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "kind": {
+          "enum": [
+            "rule-plugin",
+            "language-plugin",
+            "importer-plugin",
+            "reporter-plugin",
+            "exporter-plugin"
+          ]
+        },
+        "visibility": { "enum": ["public", "private"] },
+        "description": { "type": "string" },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "receives": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "returns": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "source": {
+          "type": "object",
+          "required": ["type", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "local" },
+            "path": { "type": "string", "minLength": 1 }
+          }
+        },
+        "distribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "homepage": { "type": "string" },
+            "license": { "type": "string" },
+            "package": { "type": "string" }
+          }
+        },
+        "sandbox": {
+          "type": "object",
+          "required": ["network", "read", "write", "secrets"],
+          "additionalProperties": false,
+          "properties": {
+            "network": { "type": "boolean" },
+            "read": { "type": "array", "items": { "type": "string" } },
+            "write": { "type": "array", "items": { "type": "string" } },
+            "secrets": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "validation": {
+          "type": "object",
+          "required": ["status", "errors"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "enum": ["valid", "invalid"] },
+            "errors": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["code", "message"],
+                "additionalProperties": false,
+                "properties": {
+                  "code": { "type": "string", "minLength": 1 },
+                  "message": { "type": "string", "minLength": 1 },
+                  "path": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
+        "qualityScore": {
+          "type": "object",
+          "required": [
+            "artifactPath",
+            "totalScore",
+            "grade",
+            "fixtureCoverage",
+            "falsePositiveReview",
+            "evidenceCompleteness",
+            "schemaCompatibility",
+            "runtimeCost"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "artifactPath": { "type": "string", "minLength": 1 },
+            "totalScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "grade": { "enum": ["A", "B", "C", "D", "F"] },
+            "fixtureCoverage": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "falsePositiveReview": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "evidenceCompleteness": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "schemaCompatibility": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "runtimeCost": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        }
+      }
+    }
+  }
+}

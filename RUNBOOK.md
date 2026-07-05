@@ -2,13 +2,26 @@
 intent_id: RUN-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-05-03
-next_review_due: 2026-05-15
+last_reviewed_at: 2026-07-04
+next_review_due: 2026-08-04
 ---
 
 # code-to-gate RUNBOOK
 
 実行手順、コマンド、トラブルシューティング。
+
+## 0. 現在の判断入口
+
+code-to-gate の現在地、公開表現、精度証跡、配布状態、QAチェーン内の役割を確認する場合は、先に以下を読む。
+
+| 文書 | 用途 |
+|---|---|
+| `docs/product-maturity-issues.md` | PoC / MVP / product candidate / public product の位置づけと、今後直す課題。 |
+| `docs/distribution-status.md` | package version、GitHub release、npm publish 状態の正本。 |
+| `docs/rule-precision-backlog.md` | false positive / detector precision 改善候補。 |
+| `docs/assurance-precision-evaluation.md` | controlled fixture 上の precision 評価。実 repo 全体の保証ではない。 |
+| `docs/real-repo-validation-record.md` | real repo validation 名義の既存記録。fixture 証跡との混線に注意。 |
+| `docs/completion-record.md` | 完了済み phase / 実装証跡の記録。 |
 
 ## 1. 前提確認
 
@@ -57,8 +70,11 @@ code-to-gate scan ./my-repo --out .qh
 
 Options:
 - `--out <dir>`: 出力ディレクトリ (default: `.qh`)
-- `--lang <langs>`: 対象言語 (例: `ts,js`)
-- `--ignore <patterns>`: 除外パターン (例: `node_modules,dist`)
+- `--cache <mode>`: `enabled`, `disabled`, `force`
+- `--parallel <n>`: parser worker 数
+- `--database-analysis`: SQL / migration analysis を有効化
+
+Note: 現行 CLI には `--lang`, `--languages`, `--ignore`, `--exclude` はない。言語判定と標準除外は scanner の既定実装に従う。
 
 Exit codes:
 - `0`: 成功
@@ -100,11 +116,14 @@ Outputs:
 - `.qh/repo-graph.json`
 - `.qh/findings.json`
 - `.qh/risk-register.yaml`
-- `.qh/invariants.yaml`
+- `.qh/invariants.json`
 - `.qh/test-seeds.json`
-- `.qh/release-readiness.json`
 - `.qh/analysis-report.md`
 - `.qh/audit.json`
+
+Note:
+- `analyze --emit all` does not generate `.qh/release-readiness.json`.
+- Run `readiness --from .qh` after `analyze` to evaluate the policy gate.
 
 Exit codes:
 - `0`: passed / passed_with_risk
@@ -166,10 +185,10 @@ Exit codes:
 release readiness を評価。
 
 ```powershell
-code-to-gate readiness <repo-path> --policy <policy.yaml> --out <output-dir>
+code-to-gate readiness <repo-path> --policy <policy.yaml> --from <artifact-dir> --out <output-dir>
 
 # 例
-code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --out .qh
+code-to-gate readiness ./my-repo --policy ./policies/strict.yaml --from .qh --out .qh
 ```
 
 Outputs:
@@ -223,19 +242,19 @@ Exit codes:
 
 ---
 
-### 2.8 plugin
+### 2.8 plugin-sandbox
 
-plugin 管理。
+plugin sandbox の状態確認と実行。
 
 ```powershell
-# plugin 一覧
-code-to-gate plugin list
+# sandbox 状態確認
+code-to-gate plugin-sandbox status
 
-# plugin 検証
-code-to-gate plugin doctor <plugin-name>
+# plugin を sandbox 実行
+code-to-gate plugin-sandbox run <plugin-path> --input <input-file> --sandbox docker
 
-# 例
-code-to-gate plugin doctor @quality-harness/rules-core
+# Docker image build
+code-to-gate plugin-sandbox build-image
 ```
 
 ---
@@ -243,7 +262,7 @@ code-to-gate plugin doctor @quality-harness/rules-core
 ## 3. Policy YAML 形式
 
 ```yaml
-apiVersion: ctg/v1alpha1
+apiVersion: ctg/v1
 kind: release-policy
 id: strict
 version: 0.1.0
@@ -348,8 +367,8 @@ code-to-gate scan ./my-repo --out .qh --verbose
 # .qh/repo-graph.json の diagnostics 確認
 # PARSER_FAILED、UNSUPPORTED_LANGUAGE を確認
 
-# 対象言語限定
-code-to-gate scan ./my-repo --out .qh --lang ts
+# 現行 CLI では言語限定 option は未実装。不要な巨大ファイルは .gitignore / repo 構成で除外する。
+code-to-gate scan ./my-repo --out .qh --verbose
 ```
 
 ---
@@ -405,7 +424,7 @@ code-to-gate schema validate .qh/findings.json
 # JSON 内容確認
 cat .qh/findings.json | jq .
 
-# version 確認 (ctg/v1alpha1)
+# version 確認 (ctg/v1; ctg/v1alpha1 は後方互換)
 ```
 
 ---
@@ -472,8 +491,8 @@ cat .qh/audit.json | jq '.llm.redaction_enabled'
 # 環境変数確認
 echo $env:OPENAI_API_KEY
 
-# .env を repo から除外
-code-to-gate scan ./my-repo --out .qh --ignore .env,secrets
+# .env / secrets は repo 管理外または .gitignore で除外してから scan
+code-to-gate scan ./my-repo --out .qh
 ```
 
 ---
@@ -958,6 +977,24 @@ Phase 5 Python/Ruby/Go/Rust tree-sitter adapters実装完了。
 
 code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml --out .qh-self` で解析した結果。
 
+#### 現行未解決と完了履歴の扱い
+
+完了履歴は `docs/completion-record.md` に集約する。現行未解決はこの RUNBOOK、`TECH_DEBT_REGISTER.md`、`.ctg/suppressions.yaml`、`docs/acceptance-evidence-index.md` の4点で同期する。
+
+| 区分 | 正本 | 更新タイミング |
+|---|---|---|
+| 完了履歴 | `docs/completion-record.md` | 修正完了、受入コマンド確認後 |
+| 現行 suppression debt | `.ctg/suppressions.yaml`, `TECH_DEBT_REGISTER.md` | suppression 追加・期限変更時 |
+| release acceptance evidence | `docs/acceptance-evidence-index.md` | release workflow / acceptance command 変更時 |
+| 運用手順 | `RUNBOOK.md` | gate、CI、release procedure 変更時 |
+
+`TECH_DEBT_REGISTER.md` と RUNBOOK の同期ルール:
+
+- suppression 総数、expired count、broad suppression count は CI の `Summarize suppression debt` step と `self-analysis-debt.json` を優先する。
+- `TECH_DEBT_REGISTER.md` には現行負債の分類と解消方針を置く。
+- RUNBOOK には実行手順、gate の扱い、直近の現状証跡を置く。
+- 片方だけ更新した場合は release review で差分として扱う。
+
 #### Summary (Suppression適用後)
 
 | Metric | Count |
@@ -991,6 +1028,45 @@ code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml 
 **Evidence**:
 - `.ctg/suppressions.yaml` (163 suppressions)
 - `docs/completion-record.md` (完了記録)
+
+### 6.12.1 Monthly self-analysis rerun
+
+毎月または release 前に次を実行する。
+
+```bash
+npm run build
+node ./dist/cli.js analyze . --policy .github/ctg-policy.yaml --emit all --out .qh-self --llm-provider deterministic
+node ./dist/cli.js readiness . --policy .github/ctg-policy.yaml --from .qh-self --out .qh-self
+node ./dist/cli.js schema validate-all .qh-self --strict
+```
+
+確認項目:
+
+- `.qh-self/self-analysis-debt.json` の `acceptedExceptions.total`、`broadSuppressions.total`、`debtCandidates` を前回値と比較する。
+- `.qh-*` 出力先は scan 対象から除外される。証跡: `src/core/file-utils.ts` の `.qh*` ignore と `src/core/__tests__/file-utils.test.ts` の `.qh-custom` exclusion test。
+- broad suppression が増えた場合は `TECH_DEBT_REGISTER.md` に理由と期限を追記する。
+
+### 6.12.2 Current test evidence (2026-07-04)
+
+| Command | Status | Evidence note |
+|---|---|---|
+| `npm run build` | pass | `tsc` completed |
+| `npm run test:smoke` | pass | 3 files, 56 tests passed |
+| `npm test` | incomplete | timed out after 184s in local run; use CI stable split for release evidence |
+| `npm run test:coverage` | fail | 1201 tests passed, then `src/cli/__tests__/scan.test.ts` `beforeAll` hit 60s hook timeout |
+
+Release evidence must not treat the incomplete local `npm test` or failing coverage run as green. CI release gate remains the source of truth until the scan hook timeout is fixed.
+
+### 6.12.3 Performance targets
+
+| Size | Target | Evidence source |
+|---|---:|---|
+| small repo scan | <= 30s | `src/__tests__/performance/scan-performance.test.ts` |
+| small repo analyze, LLM excluded | <= 60s | `src/__tests__/performance/analyze-performance.test.ts` |
+| medium repo scan/analyze | record trend, no hard release block until fixture is stable | `docs/product-acceptance-v1.md` medium commands |
+| large repo scan | 5000+ files <= 120s | `src/__tests__/performance/large-repo-performance.test.ts` |
+
+Large repo acceptance artifact is the synthetic 5000+ file run produced by `large-repo-performance.test.ts`; store timing output in `.qh/acceptance/timing.json` or the CI artifact bundle when running the heavy suite.
 
 ### 6.12 負債解析精度の再調査メモ (2026-05-02)
 
@@ -1073,7 +1149,7 @@ code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml 
 - P0-04: ✓ PR workflowにreadiness step追加、blocked_input時exit 1
 
 残理由 (P1/P2):
-- `analyze --emit all` が README / acceptance に載っている `repo-graph.json`、`invariants.yaml`、`test-seeds.json` を実生成していない。
+- `analyze --emit all` が README / acceptance に載っている `repo-graph.json`、`invariants.json`、`test-seeds.json` を実生成していなかった。
 - `risk-register.yaml` は schema validation 対象として扱われているが、現行 `schema validate` は JSON 前提で YAML artifact を検証できない。
 
 #### 負債一覧
@@ -1084,7 +1160,7 @@ code-to-gate 自身を `code-to-gate analyze . --policy .github/ctg-policy.yaml 
 | QA-DEBT-P0-02 | P0 | integration exporter と v1 schema の不一致 | gatefield / state-gate / manual-bb / workflow-evidence 連携が実運用で壊れる | ✓ DONE: v1 schema準拠、schema validate通過 |
 | QA-DEBT-P0-03 | P0 | `manual-bb` seed が QA 入力として弱い | manual-bb-test-harness に渡す risk / invariant / known gaps / oracle gap が不足する | ✓ DONE: risk_seeds/invariant_seeds/known_gaps追加 |
 | QA-DEBT-P0-04 | P0 | PR workflow が readiness gate まで到達しない | PR 上でブロック判定・レビュー優先度・QA 確認範囲を信用できない | ✓ DONE: readiness step追加、blocked_input時exit 1 |
-| QA-DEBT-P1-01 | P1 | `test-seeds.json` / `invariants.yaml` 未生成 | QA が観点・境界値・負例・abuse case を再設計する必要がある | ✓ DONE: seed generator追加、`analyze --emit all`で生成 |
+| QA-DEBT-P1-01 | P1 | `test-seeds.json` / `invariants.json` 未生成 | QA が観点・境界値・負例・abuse case を再設計する必要がある | ✓ DONE: seed generator追加、`analyze --emit all`で生成 |
 | QA-DEBT-P1-02 | P1 | `repo-graph.json` 未出力 | 解析範囲、entrypoint、test mapping、partial 状態を後から検証できない | ✓ DONE: `analyze --emit all`でrepo-graph.json出力 |
 | QA-DEBT-P1-03 | P1 | YAML artifact の schema validation 不可 | `risk-register.yaml` の acceptance / audit 証跡が機械検証できない | ✓ DONE: js-yaml追加、JSON_SCHEMAでYAML validate |
 | QA-DEBT-P1-04 | P1 | import 結果が analyze/readiness に合流しない | coverage/test/ESLint/Semgrep 証跡が release risk に反映されない | ✓ DONE: `analyze --from-imports`でexternal findings統合 |
@@ -1213,6 +1289,33 @@ node ./dist/cli.js viewer --from .qh-refactor-smoke --out .qh-refactor-smoke/vie
 
 ## 8. CI 連携例
 
+### 8.0 Required CI jobs and release gate
+
+Release gate の必須 jobs:
+
+| Workflow | Job | Required evidence |
+|---|---|---|
+| `code-to-gate-pr.yml` | `lint-typecheck` | ESLint + TypeScript strict check |
+| `code-to-gate-pr.yml` | `coverage` | `npm run test:coverage`, coverage threshold |
+| `code-to-gate-pr.yml` | `contract-tests` | downstream export schema validation |
+| `code-to-gate-pr.yml` | `macos-compatibility` | macOS build, smoke, fixture analyze/readiness |
+| `code-to-gate-pr.yml` | `analyze` | diff/readiness/SARIF/test-plan/Evidence DAG/QEG evidence/PR review artifact/PR comment/Checks |
+| `code-to-gate-release.yml` | `audit` | `npm audit --audit-level=high` artifact |
+| `code-to-gate-release.yml` | `macos-compatibility` | macOS CLI smoke |
+| `code-to-gate-release.yml` | `analyze` | coverage, docs stale summary, full analyze/readiness, SARIF, QEG evidence, release evidence, suppression summary |
+| `code-to-gate-release.yml` | `acceptance` | scheduled/manual fixture acceptance evidence |
+
+Release procedure must update `docs/distribution-status.md` before public release and must review public docs claims in README, quickstart, CLI reference, and release notes. The evidence index is `docs/acceptance-evidence-index.md`.
+
+Public docs claim review checklist:
+
+- install commands match `docs/distribution-status.md`;
+- preview/experimental artifacts are labeled as such;
+- CLI examples use implemented options only;
+- release readiness claims cite generated artifacts or CI evidence;
+- QEG claims cite `qeg-code-to-gate.json` as evidence-only input and do not imply code-to-gate owns the final verdict;
+- schema stability claims match `docs/stable-schema-v1-verification.md`.
+
 ### GitHub Actions
 
 ```yaml
@@ -1319,7 +1422,7 @@ code-to-gate analyze ./my-repo --emit findings,risk-register --out .qh
 ```powershell
 # version 確認
 cat .qh/findings.json | jq '.version'
-# 期待値: "ctg/v1alpha1"
+# 期待値: "ctg/v1" (ctg/v1alpha1 は後方互換)
 
 # shared-defs 確認
 code-to-gate schema validate schemas/shared-defs.schema.json
@@ -1328,11 +1431,11 @@ code-to-gate schema validate schemas/shared-defs.schema.json
 ### plugin crash
 
 ```powershell
-# plugin 除外
-code-to-gate analyze ./my-repo --emit all --out .qh --plugin core-only
+# sandbox 状態確認
+code-to-gate plugin-sandbox status
 
-# doctor 確認
-code-to-gate plugin doctor @quality-harness/rules-core
+# sandbox 実行の問題切り分け
+code-to-gate plugin-sandbox run <plugin-path> --input <input-file> --sandbox docker
 ```
 
 ---

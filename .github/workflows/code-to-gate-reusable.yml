@@ -1,0 +1,105 @@
+name: code-to-gate reusable analysis
+
+on:
+  workflow_call:
+    inputs:
+      policy_file:
+        description: Policy file path
+        required: false
+        type: string
+        default: .github/ctg-policy.yaml
+      artifact_dir:
+        description: Output artifact directory
+        required: false
+        type: string
+        default: .qh
+    outputs:
+      readiness_status:
+        description: Release readiness status
+        value: ${{ jobs.analyze.outputs.readiness_status }}
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    outputs:
+      readiness_status: ${{ steps.readiness.outputs.status }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Detect spec drift
+        run: |
+          node ./dist/cli.js spec-drift . --out "${{ inputs.artifact_dir }}"
+          node ./dist/cli.js schema validate "${{ inputs.artifact_dir }}/spec-drift.json"
+
+      - name: Analyze repository
+        run: |
+          set +e
+          node ./dist/cli.js analyze . \
+            --policy "${{ inputs.policy_file }}" \
+            --emit all \
+            --out "${{ inputs.artifact_dir }}" \
+            --llm-provider deterministic \
+            --format json
+          ANALYZE_EXIT=$?
+          set -e
+          if [ "$ANALYZE_EXIT" -ne 0 ] && [ ! -f "${{ inputs.artifact_dir }}/findings.json" ]; then
+            exit "$ANALYZE_EXIT"
+          fi
+
+      - name: Evaluate readiness
+        id: readiness
+        run: |
+          set +e
+          node ./dist/cli.js readiness . \
+            --policy "${{ inputs.policy_file }}" \
+            --from "${{ inputs.artifact_dir }}" \
+            --out "${{ inputs.artifact_dir }}"
+          READINESS_EXIT=$?
+          set -e
+          if [ "$READINESS_EXIT" -ne 0 ] && [ ! -f "${{ inputs.artifact_dir }}/release-readiness.json" ]; then
+            exit "$READINESS_EXIT"
+          fi
+          STATUS=$(jq -r '.status' "${{ inputs.artifact_dir }}/release-readiness.json")
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+      - name: Validate artifacts
+        run: node ./dist/cli.js schema validate-all "${{ inputs.artifact_dir }}" --strict
+
+      - name: Export SARIF
+        run: node ./dist/cli.js export sarif --from "${{ inputs.artifact_dir }}" --out "${{ inputs.artifact_dir }}/results.sarif"
+
+      - name: Export QEG evidence input
+        run: |
+          node ./dist/cli.js export qeg-code-to-gate --from "${{ inputs.artifact_dir }}" --out "${{ inputs.artifact_dir }}/qeg-code-to-gate.json"
+          node ./dist/cli.js schema validate "${{ inputs.artifact_dir }}/qeg-code-to-gate.json"
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ inputs.artifact_dir }}/results.sarif
+          category: code-to-gate-reusable
+
+      - name: Upload code-to-gate artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: code-to-gate-artifacts-${{ github.sha }}
+          path: ${{ inputs.artifact_dir }}/
+          include-hidden-files: true
+          retention-days: 90

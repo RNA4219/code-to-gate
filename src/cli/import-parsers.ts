@@ -7,7 +7,7 @@
 
 import { readFileSync } from "node:fs";
 import { sha256 } from "../core/path-utils.js";
-import type { Finding, Severity, FindingCategory } from "../types/artifacts.js";
+import type { Finding, Severity, FindingCategory, UpstreamTool } from "../types/artifacts.js";
 
 // Type definitions for imported tool outputs
 
@@ -41,6 +41,50 @@ interface SemgrepResult {
     };
   }>;
   errors?: Array<{ message: string }>;
+}
+
+interface SarifRule {
+  id?: string;
+  name?: string;
+  shortDescription?: { text?: string };
+  fullDescription?: { text?: string };
+  properties?: Record<string, unknown>;
+}
+
+interface SarifResult {
+  ruleId?: string;
+  ruleIndex?: number;
+  level?: string;
+  message?: { text?: string };
+  locations?: Array<{
+    physicalLocation?: {
+      artifactLocation?: { uri?: string };
+      region?: {
+        startLine?: number;
+        startColumn?: number;
+        endLine?: number;
+        endColumn?: number;
+      };
+    };
+  }>;
+  partialFingerprints?: Record<string, string>;
+  fingerprints?: Record<string, string>;
+  properties?: Record<string, unknown>;
+}
+
+interface SarifRun {
+  tool?: {
+    driver?: {
+      name?: string;
+      rules?: SarifRule[];
+    };
+  };
+  results?: SarifResult[];
+}
+
+interface SarifLog {
+  version?: string;
+  runs?: SarifRun[];
 }
 
 interface TSCDiagnostic {
@@ -94,6 +138,32 @@ export function mapSemgrepSeverity(severity: string | undefined): Severity {
 }
 
 /**
+ * Map SARIF/CodeQL level and security metadata to code-to-gate severity
+ */
+function mapSARIFSeverity(level: string | undefined, rule?: SarifRule, result?: SarifResult): Severity {
+  const rawSecuritySeverity = result?.properties?.["security-severity"]
+    ?? rule?.properties?.["security-severity"];
+  const securitySeverity = typeof rawSecuritySeverity === "number"
+    ? rawSecuritySeverity
+    : typeof rawSecuritySeverity === "string"
+      ? Number.parseFloat(rawSecuritySeverity)
+      : undefined;
+
+  if (securitySeverity !== undefined && !Number.isNaN(securitySeverity)) {
+    if (securitySeverity >= 9) return "critical";
+    if (securitySeverity >= 7) return "high";
+    if (securitySeverity >= 4) return "medium";
+    return "low";
+  }
+
+  const normalized = (level ?? "warning").toLowerCase();
+  if (normalized === "error") return "high";
+  if (normalized === "warning") return "medium";
+  if (normalized === "note" || normalized === "none") return "low";
+  return "medium";
+}
+
+/**
  * Map TSC category to code-to-gate severity
  */
 export function mapTSCSeverity(category: number | undefined): Severity {
@@ -126,6 +196,50 @@ export function inferCategoryFromRule(ruleId: string, _tool: string): FindingCat
     return "maintainability";
   }
   return "maintainability";
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function normalizeTags(...tagSets: unknown[]): string[] | undefined {
+  const tags = new Set<string>();
+  for (const tagSet of tagSets) {
+    for (const tag of stringArray(tagSet)) {
+      if (tag.length > 0) {
+        tags.add(tag);
+      }
+    }
+  }
+  return tags.size > 0 ? [...tags].sort() : undefined;
+}
+
+function inferCategoryFromSarif(ruleId: string, rule?: SarifRule, result?: SarifResult): FindingCategory {
+  const tags = [
+    ...stringArray(rule?.properties?.tags),
+    ...stringArray(result?.properties?.tags),
+  ].map((tag) => tag.toLowerCase());
+  const combined = [ruleId.toLowerCase(), ...tags].join(" ");
+
+  if (combined.includes("auth") || combined.includes("jwt") || combined.includes("password")) {
+    return "auth";
+  }
+  if (
+    combined.includes("security")
+    || combined.includes("cwe")
+    || combined.includes("owasp")
+    || combined.includes("injection")
+    || combined.includes("xss")
+  ) {
+    return "security";
+  }
+  return inferCategoryFromRule(ruleId, "sarif");
+}
+
+function sanitizeRuleIdForPrefix(ruleId: string): string {
+  return ruleId.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "UNKNOWN";
 }
 
 /**
@@ -196,6 +310,61 @@ export function importSemgrep(inputFile: string): Finding[] {
       upstream: { tool: "semgrep", ruleId: finding.check_id },
       tags: finding.extra.metadata?.owasp ? [`owasp-${finding.extra.metadata.owasp}`] : undefined,
     });
+  }
+
+  return findings;
+}
+
+/**
+ * Import SARIF 2.1.0 results. CodeQL is accepted through the same parser by
+ * passing sourceTool="codeql".
+ */
+export function importSARIF(inputFile: string, sourceTool: Extract<UpstreamTool, "sarif" | "codeql"> = "sarif"): Finding[] {
+  const content = readFileSync(inputFile, "utf8");
+  const log: SarifLog = JSON.parse(content);
+  const findings: Finding[] = [];
+
+  for (const run of log.runs ?? []) {
+    const rules = run.tool?.driver?.rules ?? [];
+    const toolName = run.tool?.driver?.name ?? sourceTool;
+
+    for (const result of run.results ?? []) {
+      const rule = result.ruleIndex !== undefined ? rules[result.ruleIndex] : undefined;
+      const ruleId = result.ruleId ?? rule?.id ?? "unknown-rule";
+      const location = result.locations?.[0]?.physicalLocation;
+      const filePath = location?.artifactLocation?.uri ?? "unknown";
+      const line = location?.region?.startLine ?? 1;
+      const endLine = location?.region?.endLine ?? line;
+      const findingId = generateImportId(sourceTool, ruleId, filePath, line);
+      const category = inferCategoryFromSarif(ruleId, rule, result);
+      const tags = normalizeTags(rule?.properties?.tags, result.properties?.tags);
+      const rawFingerprint = result.partialFingerprints?.primaryLocationLineHash
+        ?? result.fingerprints?.["primaryLocationLineHash"];
+
+      findings.push({
+        id: findingId,
+        ruleId: `${sourceTool.toUpperCase()}_${sanitizeRuleIdForPrefix(ruleId)}`,
+        category,
+        severity: mapSARIFSeverity(result.level, rule, result),
+        confidence: sourceTool === "codeql" ? 0.9 : 0.85,
+        title: rule?.name ?? ruleId,
+        summary: result.message?.text
+          ?? rule?.shortDescription?.text
+          ?? rule?.fullDescription?.text
+          ?? `${toolName} result ${ruleId}`,
+        evidence: [{
+          id: generateImportEvidenceId(findingId, 0),
+          path: filePath,
+          startLine: line,
+          endLine,
+          kind: "external",
+          externalRef: { tool: sourceTool, ruleId },
+        }],
+        upstream: { tool: sourceTool, ruleId },
+        tags,
+        fingerprint: rawFingerprint ? sha256(rawFingerprint).slice(0, 16) : undefined,
+      });
+    }
   }
 
   return findings;

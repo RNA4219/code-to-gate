@@ -39,6 +39,22 @@ Add C/C++ language support via tree-sitter for include, function, struct, and cl
 
 **Need**: C/C++ still widely used, especially in embedded/systems. Current baseline covers C++ include/class/function extraction, while this spec tracks fuller C/C++ tree-sitter support.
 
+### Re-evaluation 2026-07-04
+
+Decision: keep C/C++ tree-sitter as Phase 6+ future scope and maintain the C++ regex baseline for v1.
+
+Rationale:
+- `src/adapters/regex-language-adapter.ts` already provides C++ include/class/function/test baseline extraction.
+- `fixtures/demo-multilang` covers C++ in the static-language graph.
+- `src/adapters/__tests__/regex-language-adapter.test.ts`, `src/core/__tests__/static-language-support.test.ts`, and `tests/integration/demo-multilang-static.test.ts` verify C++ parsing, language detection, role classification, and graph inclusion.
+- Full C/C++ precision depends on preprocessor, header/source pairing, templates, and build-system context, which is beyond current v1 scope.
+
+Acceptance for current release:
+- C++ files are detected as `language: "cpp"`.
+- C++ test files are classified as tests.
+- Regex adapter id is `cpp-regex-v0`.
+- C tree-sitter and full C/C++ AST support remain non-blocking future work.
+
 ---
 
 ## 4. Proposed Implementation

@@ -39,6 +39,18 @@ function isTestOrFixture(path: string): boolean {
   return EXCLUDE_PATTERNS.some(p => p.test(path));
 }
 
+function isRuleSelfReference(path: string): boolean {
+  return /src[\\/]+rules[\\/]+hardcoded-secret\.ts$/.test(path);
+}
+
+function isSchemaPropertyDefinition(line: string): boolean {
+  return /^\s*["']?[A-Za-z_$][\w$-]*["']?\s*:\s*(?:\{|schema|z\.|Type\.)/.test(line);
+}
+
+function isDescriptiveMetadataAssignment(name: string): boolean {
+  return ["description", "summary", "title", "useCase", "recommendedAction", "narrative"].includes(name);
+}
+
 function isSafeValue(value: string): boolean {
   const safeValues = ["changeme", "your_key_here", "replace_me", "xxx", "test", "example"];
   return safeValues.some(s => value.toLowerCase().includes(s)) ||
@@ -61,6 +73,7 @@ export const HARDCODED_SECRET_RULE: RulePlugin = {
     for (const file of context.graph.files) {
       if (file.role !== "source") continue;
       if (isTestOrFixture(file.path)) continue;
+      if (isRuleSelfReference(file.path)) continue;
 
       const content = context.getFileContent(file.path);
       if (!content) continue;
@@ -69,6 +82,7 @@ export const HARDCODED_SECRET_RULE: RulePlugin = {
 
       for (let lineNum = 0; lineNum < lines.length; lineNum++) {
         const line = lines[lineNum];
+        if (isSchemaPropertyDefinition(line)) continue;
 
         // Check for secret patterns
         for (const { pattern, name } of SECRET_PATTERNS) {
@@ -95,6 +109,8 @@ export const HARDCODED_SECRET_RULE: RulePlugin = {
         if (SECRET_VAR_NAMES.some(v => line.toLowerCase().includes(v))) {
           const match = line.match(/([A-Za-z_][A-Za-z0-9_]*)\s*[=:]\s*["']([^"']{16,})["']/);
           if (match && !isSafeValue(match[2])) {
+            if (isDescriptiveMetadataAssignment(match[1])) continue;
+
             const excerpt = line.trim();
             findings.push({
               id: generateFindingId("HARDCODED_SECRET_VAR", file.path, lineNum + 1),

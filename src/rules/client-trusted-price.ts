@@ -89,6 +89,16 @@ export const CLIENT_TRUSTED_PRICE_RULE: RulePlugin = {
               nextLines.includes("verify") ||
               prevLines.includes("recalculate") ||
               nextLines.includes("recalculate") ||
+              prevLines.includes("catalog") ||
+              nextLines.includes("catalog") ||
+              prevLines.includes("pricebook") ||
+              nextLines.includes("pricebook") ||
+              prevLines.includes("lookup") ||
+              nextLines.includes("lookup") ||
+              prevLines.includes("serverprice") ||
+              nextLines.includes("serverprice") ||
+              prevLines.includes("product.price") ||
+              nextLines.includes("product.price") ||
               line.includes("validate") ||
               line.includes("verify");
 

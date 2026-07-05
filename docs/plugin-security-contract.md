@@ -88,13 +88,18 @@ v0.1 では最低限、次を満たす。
 - exit code 非 0 は `PLUGIN_FAILED` として扱う。
 - plugin output は採用前に schema validation する。
 
-v1.0 では追加で検討する。
+v1.0 で必須とする。
 
 - OS sandbox
 - network deny by default
 - per-plugin allowlist
+
+future scope とする。
+
 - signed plugin manifest
-- plugin provenance
+- plugin provenance verification beyond manifest metadata
+
+現行 v1 は manifest の `source` / `provenance` metadata を audit/review 入力として保持するが、署名検証による trust decision は行わない。署名検証を gate 条件にする場合は別途 signing key 管理、失効、private registry policy を定義してから導入する。
 
 ---
 

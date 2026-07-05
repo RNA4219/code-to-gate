@@ -100,8 +100,24 @@ export interface HistoricalSummaryReport extends ArtifactHeader {
   risksComparison?: RisksComparisonResult;
   readinessComparison?: ReadinessComparisonResult;
   riskTrends: RiskTrendAnalysis;
+  qualitySlo?: QualitySloSummary;
   recommendations: string[];
   generated_by: "ctg-historical-v1";
+}
+
+export interface QualitySloSummary {
+  status: "met" | "at_risk" | "breached";
+  blockerRegressions: number;
+  criticalOrHighIncrease: number;
+  highFindingsIncreaseRate: number;
+  specDriftRecurrenceRate?: number;
+  unresolvedBaselineAgeDays?: number;
+  readinessDegraded: boolean;
+  indicators: Array<{
+    id: string;
+    status: "pass" | "warn" | "fail";
+    summary: string;
+  }>;
 }
 
 // === Readiness Comparison ===
@@ -134,6 +150,8 @@ export interface RiskTrendPoint {
   totalFindings: number;
   riskCount: number;
   readinessStatus: ReadinessStatus;
+  specDriftFailed?: boolean;
+  baselineOldestAgeDays?: number;
 }
 
 export interface RiskTrendAnalysis {

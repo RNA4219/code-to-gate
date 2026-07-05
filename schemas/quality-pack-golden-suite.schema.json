@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/quality-pack-golden-suite.schema.json",
+  "title": "QualityPackGoldenSuiteArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "packId", "sampleRepo", "expectedArtifacts", "expectedFindingProfile", "fpFnSummary", "packUpdateDiff", "generated_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "quality-pack-golden-suite" },
+    "schema": { "const": "quality-pack-golden-suite@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "packId": {
+      "enum": ["security-basic", "release-evidence", "frontend-risk", "api-contract", "ai-generated-code", "compliance-lite"]
+    },
+    "sampleRepo": { "type": "string", "minLength": 1 },
+    "expectedArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "expectedFindingProfile": { "$ref": "#/$defs/findingProfile" },
+    "fpFnSummary": {
+      "type": "object",
+      "required": ["truePositive", "falsePositive", "falseNegative", "uncertain", "fpRate", "detectionRate", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "truePositive": { "type": "integer", "minimum": 0 },
+        "falsePositive": { "type": "integer", "minimum": 0 },
+        "falseNegative": { "type": "integer", "minimum": 0 },
+        "uncertain": { "type": "integer", "minimum": 0 },
+        "fpRate": { "type": "number", "minimum": 0, "maximum": 100 },
+        "detectionRate": { "type": "number", "minimum": 0, "maximum": 100 },
+        "status": { "enum": ["pass", "warn", "fail"] }
+      }
+    },
+    "packUpdateDiff": {
+      "type": "object",
+      "required": ["changedExpectations"],
+      "additionalProperties": false,
+      "properties": {
+        "changedExpectations": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "previousSuiteHash": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "generated_by": { "const": "ctg-quality-pack-golden-suite-v1" }
+  },
+  "$defs": {
+    "findingProfile": {
+      "type": "object",
+      "required": ["rules", "severities", "minFindings", "maxFalsePositiveRate", "minDetectionRate"],
+      "additionalProperties": false,
+      "properties": {
+        "rules": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "severities": {
+          "type": "array",
+          "items": { "enum": ["low", "medium", "high", "critical"] }
+        },
+        "minFindings": { "type": "integer", "minimum": 0 },
+        "maxFalsePositiveRate": { "type": "number", "minimum": 0, "maximum": 100 },
+        "minDetectionRate": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    }
+  }
+}

@@ -286,11 +286,15 @@ export class DockerSandboxRunner implements PluginRunner {
 
       const dockerVersion = dockerCheck.version ?? "";
 
+      // Confirm the daemon is responsive before probing images or attempting a build.
+      const availableMemoryMB = await getDockerSystemMemory();
+      if (availableMemoryMB === undefined) {
+        errors.push("Docker daemon is not reachable");
+        return { dockerAvailable: false, dockerVersion, imageExists: false, errors };
+      }
+
       // Check if image exists
       const imageExists = await checkDockerImageExists(this.config.dockerImage);
-
-      // Get available memory
-      const availableMemoryMB = await getDockerSystemMemory();
 
       return {
         dockerAvailable: true,
@@ -441,7 +445,10 @@ export function createDockerSandboxRunner(config?: Partial<SandboxConfig>): Dock
  */
 export async function isDockerSandboxAvailable(): Promise<boolean> {
   const check = await checkDockerVersion();
-  return check.available;
+  if (!check.available) {
+    return false;
+  }
+  return (await getDockerSystemMemory()) !== undefined;
 }
 
 /**

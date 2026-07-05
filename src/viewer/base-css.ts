@@ -532,6 +532,33 @@ a:hover {
   border-left: 3px solid var(--color-link);
 }
 
+.timeline-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-height: 150px;
+  overflow-x: auto;
+  padding: 16px;
+  background: var(--color-bg);
+  border-radius: 6px;
+}
+
+.timeline-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 76px;
+  font-size: 0.75em;
+  color: #6c757d;
+}
+
+.timeline-bar-fill {
+  width: 28px;
+  background: var(--color-link);
+  border-radius: 4px 4px 0 0;
+}
+
 /* Test Seed Cards */
 .test-seed {
   border: 1px solid var(--color-border);

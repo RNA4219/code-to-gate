@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/baseline-debt-ledger.schema.json",
+  "title": "BaselineDebtLedgerArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "status", "items", "summary", "generated_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "baseline-debt-ledger" },
+    "schema": { "const": "baseline-debt-ledger@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["empty", "active", "expired"] },
+    "items": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+    "summary": {
+      "type": "object",
+      "required": ["items", "active", "expired", "unowned"],
+      "additionalProperties": false,
+      "properties": {
+        "items": { "type": "integer", "minimum": 0 },
+        "active": { "type": "integer", "minimum": 0 },
+        "expired": { "type": "integer", "minimum": 0 },
+        "unowned": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "generated_by": { "const": "ctg-baseline-ledger-v1" }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": [
+        "id",
+        "owner",
+        "expiresAt",
+        "expired",
+        "approver",
+        "approvalReason",
+        "refreshReason",
+        "estimatedEffort",
+        "preventionNote",
+        "sourceArtifact",
+        "sourceIds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "expiresAt": { "type": "string", "format": "date" },
+        "expired": { "type": "boolean" },
+        "approver": { "type": "string", "minLength": 1 },
+        "approvalReason": { "type": "string", "minLength": 1 },
+        "refreshReason": { "type": "string", "minLength": 1 },
+        "estimatedEffort": { "type": "string", "minLength": 1 },
+        "preventionNote": { "type": "string", "minLength": 1 },
+        "sourceArtifact": { "type": "string", "minLength": 1 },
+        "sourceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "baselineSource": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

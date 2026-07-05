@@ -31,11 +31,18 @@ Enable distributed scanning across multiple workers for large repositories (5000
 
 ## 3. Current State
 
-**Status**: Single-threaded scan (with parallel file processing option)
+**Status**: Local parallel/streaming scan is implemented; remote/distributed scan is future scope.
 
-**Current Parallel**: `--parallel` flag uses worker threads for file parsing
+**Current Parallel**:
+- `--parallel` flag uses worker-backed file parsing where appropriate.
+- Large repositories use streaming batches and lazy symbol handling in `src/parallel/file-processor.ts`.
+- Cache validation supports streaming validation for large file sets.
+- Performance coverage lives in `src/__tests__/performance/large-repo-performance.test.ts`.
 
-**Limitation**: Large repos (5000+ files) still take > 2 minutes.
+**Re-evaluation 2026-07-04**:
+- Do not add a separate distributed coordinator for v1. The current local worker + streaming model covers the acceptance goal with less operational complexity.
+- Remote worker nodes, dynamic worker scaling, and distributed result aggregation remain future scope until real customer repos show local parallelism is insufficient.
+- The v1 acceptance evidence should be the large-repo performance suite and generated artifacts, not a new distributed runtime.
 
 ---
 
@@ -151,11 +158,11 @@ class WorkerPool {
 
 | File | Action | Purpose |
 |---|---|---|
-| `src/parallel/distributed-scan.ts` | Create | Distributed coordinator |
-| `src/parallel/worker-pool.ts` | Create | Worker pool management |
-| `src/parallel/result-aggregator.ts` | Create | Result merging |
-| `src/cli/scan.ts` | Modify | Add distributed option |
-| `src/__tests__/distributed-scan.test.ts` | Create | Tests |
+| `src/parallel/file-processor.ts` | Existing | Local worker/streaming file processing |
+| `src/parallel/batch-processor.ts` | Existing | Batch sizing and processing support |
+| `src/cache/*` | Existing | Incremental cache and streaming validation |
+| `src/__tests__/performance/large-repo-performance.test.ts` | Existing | 5000+ file acceptance/performance evidence |
+| `src/parallel/distributed-scan.ts` | Future | Remote/distributed coordinator if local mode proves insufficient |
 
 ---
 
@@ -174,9 +181,9 @@ class WorkerPool {
 | Criterion | Measurable | Verification |
 |---|---|---|
 | Large repo scan < 2 min | 5000 files in < 120s | Automated |
-| Worker utilization | All workers active | Automated |
-| Result correctness | Same as single-threaded | Automated |
-| Graceful degradation | Single-thread fallback | Automated |
+| Local worker/streaming path active | Streaming chunks and worker-backed parsing covered | Automated |
+| Result correctness | Same graph contract as normal scan | Automated |
+| Graceful degradation | Direct processing without distributed coordinator | Automated |
 
 ---
 

@@ -144,6 +144,7 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
         ) {
           // Check if this is inside a catch block
           const prevLines = lines.slice(Math.max(0, i - 5), i);
+          const declarationContext = lines.slice(Math.max(0, i - 20), i);
 
           if (
             prevLines.some((prevLine) => isCatchLikeOpener(prevLine.trim())) ||
@@ -160,6 +161,8 @@ export const TRY_CATCH_SWALLOW_RULE: RulePlugin = {
             );
 
             if (!hasLogging) {
+              if (isExplicitOptionalReturn(declarationContext)) continue;
+
               const startLine = Math.max(1, lineNum - 5);
               const endLine = lineNum + 1;
               const excerpt = lines.slice(startLine - 1, endLine).join("\n");
@@ -201,4 +204,14 @@ function isCatchLikeOpener(trimmedLine: string): boolean {
     /^except\b/.test(trimmedLine) ||
     /^rescue\b/.test(trimmedLine)
   );
+}
+
+function isExplicitOptionalReturn(lines: string[]): boolean {
+  return lines.some((line) => {
+    const trimmed = line.trim();
+    return (
+      /^function\s+\w+\s*\([^)]*\)\s*:\s*[^{}]*(?:\|\s*null|\|\s*undefined)/.test(trimmed) ||
+      /^(?:const|let|var)\s+\w+\s*=\s*\([^)]*\)\s*:\s*[^=]*(?:\|\s*null|\|\s*undefined)\s*=>/.test(trimmed)
+    );
+  });
 }

@@ -280,6 +280,60 @@ suppression:
       expect(result.policy.suppression?.maxSuppressionsPerRule).toBe(5);
     });
 
+    it("should parse Policy DSL rules", () => {
+      const policyPath = path.join(tempDir, "dsl-policy.yaml");
+      writeFileSync(policyPath, `
+version: ctg/v1
+policy_id: dsl-test
+
+dsl:
+  rules:
+    - id: critical-always-block
+      when:
+        severity: critical
+      action: block
+      reason: Critical findings always block release.
+    - id: manual-evidence-hold
+      when:
+        manual_evidence: present
+      action: hold
+`);
+
+      const result = loadPolicyFile(policyPath, tempDir);
+
+      expect(result.errors).toHaveLength(0);
+      expect(result.policy.dsl?.rules).toHaveLength(2);
+      expect(result.policy.dsl?.rules[0]).toMatchObject({
+        id: "critical-always-block",
+        action: "block",
+        when: { severity: "critical" },
+      });
+      expect(result.policy.dsl?.rules[1]).toMatchObject({
+        id: "manual-evidence-hold",
+        action: "hold",
+        when: { manualEvidence: "present" },
+      });
+    });
+
+    it("should reject invalid Policy DSL rules", () => {
+      const policyPath = path.join(tempDir, "invalid-dsl-policy.yaml");
+      writeFileSync(policyPath, `
+version: ctg/v1
+policy_id: invalid-dsl
+
+dsl:
+  rules:
+    - id: bad-action
+      when:
+        severity: critical
+      action: pause
+`);
+
+      const result = loadPolicyFile(policyPath, tempDir);
+
+      expect(result.errors.some((error) => error.includes("Invalid Policy DSL action"))).toBe(true);
+    });
+
     it("should merge with defaults for missing fields", () => {
       const policyPath = path.join(tempDir, "minimal-policy.yaml");
       writeFileSync(policyPath, `

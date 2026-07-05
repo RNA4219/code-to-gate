@@ -2,6 +2,14 @@
 
 This document provides a comprehensive guide for developing plugins for code-to-gate.
 
+## Documentation Responsibility
+
+`docs/plugin-guide.md` is the overview and reading-order entry point.
+This document owns the plugin manifest, runtime contract, SDK behavior, and
+failure handling details. Copyable examples live in `docs/plugin-examples.md`;
+sandbox and provenance boundaries live in `docs/plugin-sandbox.md` and
+`docs/plugin-security-contract.md`.
+
 ## Overview
 
 code-to-gate supports a plugin architecture that allows developers to extend the core functionality with custom rules, language adapters, importers, reporters, and exporters.
@@ -208,6 +216,27 @@ Evidence must include:
 
 ## Plugin Implementation
 
+## Rule SDK Scaffold
+
+For TypeScript rules that should live outside the OSS core rule directory, use
+the Rule SDK scaffold command:
+
+```bash
+code-to-gate rule new unsafe-redirect --category security --severity high
+```
+
+The command writes `.ctg/rules/unsafe-redirect/` by default and includes:
+
+- `rule.ts` importing `RulePlugin`, `RuleContext`, `Finding`, and evidence helpers from `@quality-harness/code-to-gate/rule-sdk`
+- `rule.test.ts` using `runRuleFixture` for positive and negative fixtures
+- `fixtures/positive.ts` and `fixtures/negative.ts`
+- `rule.manifest.json` plus `schema/rule.manifest.schema.json`
+- `README.md`
+
+The scaffold is intentionally local-first. It gives rule authors a contract,
+fixture harness, and manifest schema before they package the rule as a process
+plugin or submit it to a future registry.
+
 ### Node.js Example
 
 ```javascript
@@ -364,18 +393,18 @@ node ./dist/index.js < test-input.json
 cat output.json | jq '.version' # Should be "ctg.plugin-output/v1"
 ```
 
-### Using Plugin Doctor
+### Validating with Plugin Sandbox
 
 ```bash
-code-to-gate plugin doctor ./my-plugin
+code-to-gate plugin-sandbox status
 
-code-to-gate plugin validate ./my-plugin
+code-to-gate plugin-sandbox run ./my-plugin --input ./test-input.json --sandbox docker
 ```
 
 ### Integration Testing
 
 ```bash
-code-to-gate analyze ./test-repo --plugin ./my-plugin
+code-to-gate plugin-sandbox run ./my-plugin --input ./test-input.json --sandbox docker
 ```
 
 ## Plugin Configuration
@@ -395,18 +424,32 @@ Configuration is passed in the input JSON under `config`.
 
 ## Publishing Plugins
 
+Before publishing or submitting plugins for review, build a local marketplace
+registry artifact:
+
+```bash
+code-to-gate plugin-marketplace --plugins ./plugins --out .qh
+code-to-gate schema validate .qh/plugin-marketplace.json
+```
+
+`plugin-marketplace.json` records rule, reporter, exporter, importer, and
+language plugin manifests with validation status, capabilities, schema inputs
+and outputs, sandbox permissions, and distribution metadata.
+
 ### Public Plugins
 
 1. Create a GitHub repository
 2. Add proper documentation
-3. Publish to npm (optional)
-4. Submit to code-to-gate plugin registry
+3. Generate and validate `plugin-marketplace.json`
+4. Publish to npm (optional)
+5. Submit to code-to-gate plugin registry
 
 ### Private Plugins
 
 1. Place in local directory
 2. Use `visibility: private` in manifest
-3. Reference via `file:` prefix in config:
+3. Generate a private `plugin-marketplace.json` for internal review
+4. Reference via `file:` prefix in config:
 
 ```yaml
 plugins:

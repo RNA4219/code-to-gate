@@ -31,6 +31,11 @@ function splitClaims(llmText: string): string[] {
     .filter((line) => !/^recommend enabling llm provider/i.test(line));
 }
 
+function looksLikeStructuredOutput(llmText: string): boolean {
+  const trimmed = llmText.trim();
+  return trimmed.startsWith("{") || trimmed.startsWith("[");
+}
+
 function categoriesForClaim(claim: string): Set<Finding["category"]> {
   const lower = claim.toLowerCase();
   const categories = new Set<Finding["category"]>();
@@ -80,6 +85,25 @@ export function applyLlmEnrichment(
 ): FindingsArtifact {
   if (!llmText?.trim()) {
     return artifact;
+  }
+
+  if (looksLikeStructuredOutput(llmText)) {
+    try {
+      JSON.parse(llmText);
+    } catch {
+      return {
+        ...artifact,
+        unsupported_claims: [
+          ...artifact.unsupported_claims,
+          {
+            id: "unsupported-llm-schema-001",
+            claim: "LLM response was JSON-like but failed schema parsing.",
+            reason: "schema_invalid",
+            sourceSection: `llm:${provider}`,
+          },
+        ],
+      };
+    }
   }
 
   const claims = splitClaims(llmText);

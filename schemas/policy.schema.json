@@ -9,7 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "ctg/v1alpha1",
+      "const": "ctg/v1",
       "description": "Policy schema version"
     },
     "policy_id": {
@@ -138,6 +138,52 @@
         "fail_on_critical": { "type": "boolean" },
         "fail_on_high": { "type": "boolean" },
         "warn_only": { "type": "boolean" }
+      }
+    },
+    "dsl": {
+      "type": "object",
+      "description": "Context-aware Policy DSL rules",
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "when", "action"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "description": { "type": "string" },
+              "when": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "severity": { "enum": ["critical", "high", "medium", "low"] },
+                  "category": {
+                    "enum": [
+                      "auth",
+                      "payment",
+                      "validation",
+                      "data",
+                      "config",
+                      "maintainability",
+                      "testing",
+                      "compatibility",
+                      "release-risk",
+                      "security"
+                    ]
+                  },
+                  "rule_id": { "type": "string", "minLength": 1 },
+                  "baseline": { "enum": ["new_or_worsened"] },
+                  "manual_evidence": { "enum": ["present", "absent"] }
+                }
+              },
+              "action": { "enum": ["block", "hold", "allow"] },
+              "reason": { "type": "string" }
+            }
+          }
+        }
       }
     }
   }

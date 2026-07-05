@@ -10,22 +10,23 @@
 
 ## 1. Purpose
 
-Add framework-specific detection patterns for Express, FastAPI, NestJS, React to reduce false positives.
+Add framework-specific detection patterns for Express, Fastify, NestJS, and Next.js to reduce false positives.
 
 ---
 
 ## 2. Scope
 
 ### Included
-- Express.js route patterns
-- FastAPI decorator patterns
-- NestJS controller patterns
-- React component patterns
+- Express route and middleware patterns
+- Fastify route, hook, and schema patterns
+- NestJS controller, guard, pipe, and DTO patterns
+- Next.js App Router / Pages Router / Server Action patterns
 
 ### Excluded
 - Django patterns (future)
 - Spring patterns (future)
 - Vue patterns (future)
+- Generic React component styling rules; only Next.js routing/security contexts are in scope
 
 ---
 
@@ -45,16 +46,16 @@ Add framework-specific detection patterns for Express, FastAPI, NestJS, React to
 
 ```typescript
 // src/adapters/framework-detector.ts
-type Framework = "express" | "fastapi" | "nestjs" | "react" | "generic";
+type Framework = "express" | "fastify" | "nestjs" | "nextjs" | "generic";
 
 function detectFramework(graph: RepoGraphArtifact): Framework {
   // Check package.json dependencies
   const dependencies = graph.dependencies || [];
 
   if (dependencies.some(d => d.name === "express")) return "express";
+  if (dependencies.some(d => d.name === "fastify" || d.name === "@fastify/websocket")) return "fastify";
   if (dependencies.some(d => d.name === "@nestjs/core")) return "nestjs";
-  if (dependencies.some(d => d.name === "fastapi")) return "fastapi";
-  if (dependencies.some(d => d.name === "react")) return "react";
+  if (dependencies.some(d => d.name === "next")) return "nextjs";
 
   return "generic";
 }
@@ -88,6 +89,30 @@ function isExpressSafeContext(content: string, lineNum: number): boolean {
 }
 ```
 
+### Fastify-specific Patterns
+
+```typescript
+// src/rules/patterns/fastify-patterns.ts
+const FASTIFY_PATTERNS = {
+  routeHandler: [
+    /fastify\.(?:get|post|put|delete|patch)\s*\(\s*["']([^"']+)["']/,
+    /fastify\.route\s*\(\s*\{[\s\S]*?url:\s*["']([^"']+)["']/,
+  ],
+  authHook: [
+    /preHandler:\s*(?:authenticate|requireAuth|verifyToken)/,
+    /fastify\.addHook\s*\(\s*["']preHandler["']\s*,\s*(?:authenticate|requireAuth|verifyToken)/,
+  ],
+  schemaValidation: [
+    /schema:\s*\{[\s\S]*?(?:body|params|querystring):/,
+  ],
+};
+
+function isFastifySafeContext(content: string): boolean {
+  return FASTIFY_PATTERNS.authHook.some(p => p.test(content)) ||
+    FASTIFY_PATTERNS.schemaValidation.some(p => p.test(content));
+}
+```
+
 ### NestJS-specific Patterns
 
 ```typescript
@@ -112,26 +137,26 @@ function isNestJSSafeContext(content: string): boolean {
 }
 ```
 
-### React-specific Patterns
+### Next.js-specific Patterns
 
 ```typescript
-// src/rules/patterns/react-patterns.ts
-const REACT_PATTERNS = {
-  // Client-side component marker
-  clientComponent: /["']use client["']|\.client\./,
+// src/rules/patterns/nextjs-patterns.ts
+const NEXTJS_PATTERNS = {
+  // Route handlers
+  appRouteHandler: /export\s+async\s+function\s+(?:GET|POST|PUT|DELETE|PATCH)\s*\(/,
+  pagesApiRoute: /export\s+default\s+(?:async\s+)?function\s+handler\s*\(/,
 
-  // Server component marker
-  serverComponent: /["']use server["']|\.server\./,
+  // Server/client markers
+  serverAction: /["']use server["']/,
+  clientComponent: /["']use client["']/,
 
-  // Safe: controlled input
-  controlledInput: /value=\s*\{\s*state/,
-
-  // Dangerous: uncontrolled with default
-  uncontrolledDanger: /defaultValue=\s*\{\s*props/,
+  // Safe context hints
+  nextAuth: /getServerSession|auth\s*\(|withAuth/,
+  middleware: /export\s+function\s+middleware\s*\(/,
 };
 
-function isReactClientComponent(file: RepoFile): boolean {
-  return REACT_PATTERNS.clientComponent.test(file.path);
+function isNextRouteFile(filePath: string): boolean {
+  return /(?:app\/api\/.*\/route|pages\/api\/.*)\.(?:ts|tsx|js|jsx)$/.test(filePath);
 }
 ```
 
@@ -148,7 +173,9 @@ function evaluateWithContext(
 
   // Apply framework-specific safety checks
   const isSafe = framework === "express" ? isExpressSafeContext(content) :
+                 framework === "fastify" ? isFastifySafeContext(content) :
                  framework === "nestjs" ? isNestJSSafeContext(content) :
+                 framework === "nextjs" ? isNextSafeContext(content, file.path) :
                  false;
 
   // Only flag if not safe in framework context
@@ -170,8 +197,9 @@ function evaluateWithContext(
 |---|---|---|
 | `src/adapters/framework-detector.ts` | Create | Framework detection |
 | `src/rules/patterns/express-patterns.ts` | Create | Express patterns |
+| `src/rules/patterns/fastify-patterns.ts` | Create | Fastify patterns |
 | `src/rules/patterns/nestjs-patterns.ts` | Create | NestJS patterns |
-| `src/rules/patterns/react-patterns.ts` | Create | React patterns |
+| `src/rules/patterns/nextjs-patterns.ts` | Create | Next.js patterns |
 | `src/rules/*.ts` | Modify | Use framework patterns |
 | `docs/framework-patterns.md` | Create | Documentation |
 
@@ -191,10 +219,11 @@ function evaluateWithContext(
 
 | Criterion | Measurable | Verification |
 |---|---|---|
-| Framework detected correctly | Express/NestJS/React identified | Automated |
+| Framework detected correctly | Express/Fastify/NestJS/Next.js identified | Automated |
 | FP reduced for Express | Express routes not flagged incorrectly | Automated |
+| FP reduced for Fastify | Fastify schema/hook-protected routes not flagged incorrectly | Automated |
 | FP reduced for NestJS | NestJS DTOs not flagged | Automated |
-| Client-side React detected | Client components identified | Automated |
+| Next.js route context detected | App Router and Pages API routes identified | Automated |
 
 ---
 
@@ -211,6 +240,16 @@ describe("framework-detector", () => {
   it("should detect NestJS", () => {
     const graph = { dependencies: [{ name: "@nestjs/core" }] };
     expect(detectFramework(graph)).toBe("nestjs");
+  });
+
+  it("should detect Fastify", () => {
+    const graph = { dependencies: [{ name: "fastify" }] };
+    expect(detectFramework(graph)).toBe("fastify");
+  });
+
+  it("should detect Next.js", () => {
+    const graph = { dependencies: [{ name: "next" }] };
+    expect(detectFramework(graph)).toBe("nextjs");
   });
 });
 
@@ -241,4 +280,6 @@ describe("express-patterns", () => {
 | Import extraction | `src/adapters/ts-adapter.ts` |
 | Dependencies | `src/types/graph.ts` |
 | Express docs | https://expressjs.com/ |
+| Fastify docs | https://fastify.dev/ |
 | NestJS docs | https://nestjs.com/ |
+| Next.js docs | https://nextjs.org/docs |

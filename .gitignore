@@ -1,5 +1,6 @@
 .qh/
 .qh*/
+.real-repo-temp/
 .test-temp*/
 node_modules/
 dist/

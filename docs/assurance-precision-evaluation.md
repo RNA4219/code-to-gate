@@ -4,6 +4,8 @@
 
 Diff semantic rulesを11 fixtureで評価した。これは管理されたfixture精度であり、実repo全体のprecisionを保証するものではない。
 
+この文書の FP rate は fixture 上の precision 指標であり、外向き資料や release 判断で real repo precision として引用してはならない。実 repo precision を主張する場合は、対象 repo URL、commit hash、policy、artifact、human TP/FP/Uncertain 判定を別証跡として保存する。
+
 | Rule | Detect cases | Refutation cases |
 |---|---:|---:|
 | GUARD_WEAKENED | 1 | 2 |

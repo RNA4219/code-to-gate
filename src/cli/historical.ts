@@ -11,7 +11,7 @@
  *   code-to-gate historical --current <dir> --previous <dir> --out <file>
  */
 
-import { existsSync, mkdirSync, writeFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { EXIT, getOption } from "./exit-codes.js";
 
@@ -93,6 +93,13 @@ function loadTrendHistory(historyDir: string, currentTimestamp: string): RiskTre
 
     const risks = loadRisks(run.artifact_dir);
     const riskCount = risks?.risks.length ?? 0;
+    const specDrift = readOptionalJson(path.join(run.artifact_dir, "spec-drift.json"));
+    const specDriftFailed = typeof specDrift?.status === "string" ? specDrift.status === "failed" : undefined;
+    const baseline = readiness?.baseline;
+    const baselineExpiry = baseline?.expiresAt ? new Date(baseline.expiresAt).getTime() : undefined;
+    const baselineOldestAgeDays = baselineExpiry && runTime > baselineExpiry
+      ? Math.floor((runTime - baselineExpiry) / 86_400_000)
+      : undefined;
 
     points.push({
       run_id: run.run_id,
@@ -104,6 +111,8 @@ function loadTrendHistory(historyDir: string, currentTimestamp: string): RiskTre
       totalFindings: findings.findings.length,
       riskCount,
       readinessStatus: readiness?.status ?? "needs_review",
+      specDriftFailed,
+      baselineOldestAgeDays,
     });
   }
 
@@ -111,6 +120,20 @@ function loadTrendHistory(historyDir: string, currentTimestamp: string): RiskTre
   points.sort((a, b) => new Date(a.generated_at).getTime() - new Date(b.generated_at).getTime());
 
   return points;
+}
+
+function readOptionalJson(filePath: string): Record<string, unknown> | undefined {
+  if (!existsSync(filePath)) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

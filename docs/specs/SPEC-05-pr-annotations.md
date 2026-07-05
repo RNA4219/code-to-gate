@@ -23,7 +23,7 @@ Display findings as GitHub PR inline annotations for better developer experience
 - Annotation click-to-code-line linking
 
 ### Excluded
-- SARIF upload (already implemented)
+- SARIF upload (already implemented; Code Scanning is the security dashboard view)
 - PR comment summary (already implemented)
 - Third-party annotation services
 
@@ -37,6 +37,12 @@ Display findings as GitHub PR inline annotations for better developer experience
 - `createCheckRun()` creates check with annotations
 - `severityToAnnotationLevel()` maps severity
 - Annotations limited to 50 (GitHub limit)
+
+**Display Policy**:
+- SARIF upload is the Code Scanning and security dashboard evidence surface.
+- Checks annotations are the PR review surface for the same findings and are capped to the highest-priority annotations.
+- PR comments are the run summary and link back to generated artifacts.
+- Duplicate display between SARIF and Checks is acceptable when GitHub renders both, because they serve different review contexts. Operators should treat `findings.json` / `audit.json` as the canonical artifact identity and use rule ID + evidence path + line range to reconcile duplicates.
 
 **Missing**: Explicit annotation display verification in PR UI
 
@@ -126,6 +132,7 @@ function createAnnotationFromFinding(finding: Finding): CheckAnnotation | null {
 | Annotation level matches severity | critical→failure, high→warning, medium→notice | Automated |
 | Click annotation links to code | GitHub links to correct line | Manual |
 | Max 50 annotations handled | High finding count truncated to 50 | Automated |
+| SARIF and Checks display policy documented | Code Scanning, PR annotations, and PR comments have separate responsibilities | Documentation |
 
 ---
 

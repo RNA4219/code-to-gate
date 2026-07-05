@@ -5,6 +5,9 @@
 
 import {
   FindingsArtifact,
+  EvidenceDagArtifact,
+  EvidenceDagEdge,
+  EvidenceDagNode,
   RiskRegisterArtifact,
   TestSeedsArtifact,
   ReleaseReadinessArtifact,
@@ -12,6 +15,8 @@ import {
   TestLevel,
 } from "../types/artifacts.js";
 import { NormalizedRepoGraph, SymbolNode, GraphRelation } from "../types/graph.js";
+import type { HistoricalSummaryReport } from "../historical/types.js";
+import type { QEGCodeToGateEvidence } from "../qeg/qeg-types.js";
 import { GraphData, generateMermaidFlowchart } from "./graph-viewer.js";
 
 const VERSION = "0.2.0";
@@ -37,6 +42,9 @@ export interface LoadedArtifacts {
   testSeeds?: TestSeedsArtifact;
   readiness?: ReleaseReadinessArtifact;
   graph?: NormalizedRepoGraph;
+  historicalComparison?: HistoricalSummaryReport;
+  qegEvidence?: QEGCodeToGateEvidence;
+  evidenceDag?: EvidenceDagArtifact;
 }
 
 /**
@@ -83,6 +91,8 @@ export function generateTabsNav(config: {
   showTestSeeds?: boolean;
   showReadiness?: boolean;
   showGraph?: boolean;
+  showHistorical?: boolean;
+  showQeg?: boolean;
 }): string {
   if (!config.showTabs) return "";
 
@@ -92,6 +102,8 @@ export function generateTabsNav(config: {
     { id: "risks", label: "Risks", active: false },
     { id: "tests", label: "Test Seeds", active: false },
     { id: "readiness", label: "Readiness", active: false },
+    { id: "qeg", label: "QEG", active: false },
+    { id: "historical", label: "Historical", active: false },
   ];
 
   let nav = '<div class="tabs">';
@@ -100,7 +112,9 @@ export function generateTabsNav(config: {
       (tab.id === "risks" && !config.showRiskRegister) ||
       (tab.id === "tests" && !config.showTestSeeds) ||
       (tab.id === "readiness" && !config.showReadiness) ||
-      (tab.id === "graph" && !config.showGraph)
+      (tab.id === "graph" && !config.showGraph) ||
+      (tab.id === "qeg" && !config.showQeg) ||
+      (tab.id === "historical" && !config.showHistorical)
     ) {
       continue;
     }
@@ -114,6 +128,222 @@ export function generateTabsNav(config: {
   nav += "</div>";
 
   return nav;
+}
+
+function renderKeyValueRecord(record: Record<string, number>): string {
+  const entries = Object.entries(record);
+  if (entries.length === 0) {
+    return "<span>none</span>";
+  }
+
+  return `
+    <ul>
+      ${entries.map(([key, value]) => `<li>${escapeHtml(key)}: ${value}</li>`).join("\n")}
+    </ul>
+`;
+}
+
+function renderEvidenceDagNode(node: EvidenceDagNode, edges: EvidenceDagEdge[]): string {
+  const connectedEdges = edges.filter((edge) => edge.source === node.id || edge.target === node.id);
+  const metadata = node.metadata ? Object.entries(node.metadata) : [];
+
+  return `
+    <details class="risk-actions qeg-dag-node" data-qeg-node-type="${escapeHtml(node.type)}" data-qeg-node-text="${escapeHtml(`${node.id} ${node.type} ${node.label} ${JSON.stringify(node.metadata ?? {})}`.toLowerCase())}">
+      <summary>
+        <span class="badge">${escapeHtml(node.type)}</span>
+        <strong>${escapeHtml(node.label)}</strong>
+        <span class="finding-id">${escapeHtml(node.id)}</span>
+      </summary>
+      ${metadata.length > 0 ? `
+      <div class="finding-meta">
+        ${metadata.map(([key, value]) => `
+          <span class="finding-meta-label">${escapeHtml(key)}:</span>
+          <span>${escapeHtml(String(value))}</span>
+        `).join("\n")}
+      </div>
+      ` : ""}
+      ${connectedEdges.length > 0 ? `
+      <div class="risk-impact">
+        <strong>Connected edges:</strong>
+        <ul>
+          ${connectedEdges.map((edge) => `
+            <li>${escapeHtml(edge.source)} -- ${escapeHtml(edge.type)} --&gt; ${escapeHtml(edge.target)}</li>
+          `).join("\n")}
+        </ul>
+      </div>
+      ` : ""}
+    </details>
+`;
+}
+
+export function generateQegSection(
+  qegEvidence?: QEGCodeToGateEvidence,
+  evidenceDag?: EvidenceDagArtifact
+): string {
+  if (!qegEvidence && !evidenceDag) {
+    return `
+<div id="qeg-tab" class="tab-content">
+  <div class="empty-state">
+    <span class="empty-state-icon">-</span>
+    <p>No QEG evidence available</p>
+  </div>
+</div>
+`;
+  }
+
+  const schemaOk = qegEvidence?.schema_compliance.filter((item) => item.status === "ok").length ?? 0;
+  const schemaErrors = qegEvidence?.schema_compliance.filter((item) => item.status === "error").length ?? 0;
+  const artifactHashes = qegEvidence?.artifact_hashes ?? [];
+  const findingNodes = evidenceDag?.nodes.filter((node) => node.type === "finding") ?? [];
+  const manualNodes = evidenceDag?.nodes.filter((node) => node.type === "manual-test") ?? [];
+  const ciRunNodes = evidenceDag?.nodes.filter((node) => node.type === "ci-run") ?? [];
+  const artifactNodes = evidenceDag?.nodes.filter((node) => node.type === "artifact") ?? [];
+  const dagNodeTypes = evidenceDag ? Array.from(new Set(evidenceDag.nodes.map((node) => node.type))).sort() : [];
+
+  return `
+<div id="qeg-tab" class="tab-content">
+  <div class="section">
+    <div class="section-title">
+      <h2>QEG Evidence</h2>
+      <span class="section-count">${qegEvidence ? "qeg-code-to-gate.json" : "evidence-dag only"}</span>
+    </div>
+    <div class="dashboard">
+      <div class="card"><div class="card-title">Readiness</div><div class="card-value">${escapeHtml(qegEvidence?.readiness_status ?? "unknown")}</div></div>
+      <div class="card"><div class="card-title">Findings</div><div class="card-value">${qegEvidence?.findings_summary.total ?? evidenceDag?.summary.findings ?? 0}</div></div>
+      <div class="card"><div class="card-title">Schema OK</div><div class="card-value">${schemaOk}</div></div>
+      <div class="card"><div class="card-title">Schema Errors</div><div class="card-value">${schemaErrors}</div></div>
+      <div class="card"><div class="card-title">Artifact Hashes</div><div class="card-value">${artifactHashes.length}</div></div>
+      <div class="card"><div class="card-title">DAG Nodes</div><div class="card-value">${evidenceDag?.summary.nodeCount ?? 0}</div></div>
+    </div>
+
+    ${qegEvidence ? `
+    <div class="risk-actions">
+      <strong>Findings by severity:</strong>
+      ${renderKeyValueRecord(qegEvidence.findings_summary.by_severity)}
+      <strong>Findings by rule:</strong>
+      ${renderKeyValueRecord(qegEvidence.findings_summary.by_rule)}
+    </div>
+    ` : ""}
+
+    ${qegEvidence && qegEvidence.schema_compliance.length > 0 ? `
+    <div class="risk-actions">
+      <strong>Schema validation:</strong>
+      <ul>
+        ${qegEvidence.schema_compliance.map((item) => `
+          <li>
+            <span class="badge ${item.status === "error" ? "badge-critical" : "badge-low"}">${escapeHtml(item.status)}</span>
+            ${escapeHtml(item.artifact)}
+            ${item.errors?.length ? `: ${escapeHtml(item.errors.join("; "))}` : ""}
+          </li>
+        `).join("\n")}
+      </ul>
+    </div>
+    ` : ""}
+
+    ${artifactHashes.length > 0 ? `
+    <div class="risk-actions">
+      <strong>Artifact hashes:</strong>
+      <ul>
+        ${artifactHashes.map((item) => `
+          <li><code>${escapeHtml(item.hash)}</code> ${escapeHtml(item.artifact)} (${escapeHtml(item.path)})</li>
+        `).join("\n")}
+      </ul>
+    </div>
+    ` : ""}
+
+    ${evidenceDag ? `
+    <div class="risk-actions">
+      <strong>Evidence DAG:</strong>
+      <p>${evidenceDag.summary.edgeCount} edges, ${artifactNodes.length} artifacts, ${manualNodes.length} manual test candidates, ${ciRunNodes.length} CI runs.</p>
+    </div>
+    <div class="risk-actions">
+      <strong>DAG search:</strong>
+      <div class="finding-meta">
+        <label class="finding-meta-label" for="qeg-dag-search">Search</label>
+        <input id="qeg-dag-search" type="search" placeholder="node id, label, metadata" oninput="filterQegDag()" />
+        <label class="finding-meta-label" for="qeg-dag-type">Type</label>
+        <select id="qeg-dag-type" onchange="filterQegDag()">
+          <option value="all">all</option>
+          ${dagNodeTypes.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("\n")}
+        </select>
+        <span id="qeg-dag-count">${evidenceDag.nodes.length}</span>
+      </div>
+      <div>
+        ${evidenceDag.nodes.map((node) => renderEvidenceDagNode(node, evidenceDag.edges)).join("\n")}
+      </div>
+    </div>
+    <div class="section">
+      <h3>Finding Drill-down</h3>
+      ${findingNodes.length > 0
+        ? findingNodes.map((node) => renderEvidenceDagNode(node, evidenceDag.edges)).join("\n")
+        : `<div class="empty-state"><span class="empty-state-icon">-</span><p>No finding nodes in evidence DAG</p></div>`}
+    </div>
+    <div class="section">
+      <h3>Manual Test Candidates</h3>
+      ${manualNodes.length > 0
+        ? manualNodes.map((node) => renderEvidenceDagNode(node, evidenceDag.edges)).join("\n")
+        : `<div class="empty-state"><span class="empty-state-icon">-</span><p>No manual test candidates in evidence DAG</p></div>`}
+    </div>
+    ` : ""}
+  </div>
+</div>
+`;
+}
+
+export function generateHistoricalSection(
+  historical?: HistoricalSummaryReport
+): string {
+  if (!historical) {
+    return `
+<div id="historical-tab" class="tab-content">
+  <div class="empty-state">
+    <span class="empty-state-icon">-</span>
+    <p>No historical comparison available</p>
+  </div>
+</div>
+`;
+  }
+
+  const summary = historical.findingsComparison.summary;
+  const trendPoints = historical.riskTrends.historyPoints ?? [];
+  const qualitySlo = historical.qualitySlo;
+  const bars = trendPoints.slice(-12).map((point) => {
+    const total = Math.max(point.totalFindings, 1);
+    const height = Math.min(100, Math.max(8, total * 6));
+    return `
+      <div class="timeline-bar" title="${escapeHtml(point.run_id)}: ${point.totalFindings} findings">
+        <div class="timeline-bar-fill" style="height:${height}px"></div>
+        <span>${escapeHtml(point.generated_at.slice(0, 10))}</span>
+      </div>
+`;
+  }).join("\n");
+
+  return `
+<div id="historical-tab" class="tab-content">
+  <div class="section">
+    <div class="section-title">
+      <h2>Historical Diff</h2>
+      <span class="section-count">${summary.totalCurrent} current / ${summary.totalPrevious} previous</span>
+    </div>
+    <div class="dashboard">
+      <div class="card"><div class="card-title">New</div><div class="card-value">${summary.newCount}</div></div>
+      <div class="card"><div class="card-title">Resolved</div><div class="card-value">${summary.resolvedCount}</div></div>
+      <div class="card"><div class="card-title">Unchanged</div><div class="card-value">${summary.unchangedCount}</div></div>
+      <div class="card"><div class="card-title">Regressions</div><div class="card-value">${summary.regressionCount}</div></div>
+    </div>
+    <div class="risk-narrative">
+      <p>Trend: ${escapeHtml(historical.riskTrends.trendDirection)} (score ${historical.riskTrends.trendScore.toFixed(2)})</p>
+      ${qualitySlo ? `<p>Quality SLO: ${escapeHtml(qualitySlo.status)} (${qualitySlo.indicators.map((indicator) => `${indicator.id}:${indicator.status}`).join(", ")})</p>` : ""}
+    </div>
+    ${bars ? `<div class="timeline-chart">${bars}</div>` : `
+    <div class="empty-state">
+      <span class="empty-state-icon">-</span>
+      <p>No timeline history points available</p>
+    </div>
+    `}
+  </div>
+</div>
+`;
 }
 
 /**

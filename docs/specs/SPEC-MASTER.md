@@ -2,7 +2,7 @@
 
 **Version**: v1.0
 **Created**: 2026-05-04
-**Status**: draft
+**Status**: active index; individual specs may remain draft/partial/done
 **Total Specs**: 29
 **Purpose**: Comprehensive specification documents for all feature enhancement items
 
@@ -11,6 +11,30 @@
 ## Overview
 
 This document serves as the master index for all code-to-gate feature enhancement specifications. Each specification follows a standardized template and is designed for acceptance review.
+
+## Status Recheck (2026-07-04)
+
+The original `draft` marker in SPEC-01 through SPEC-28 is retained inside
+individual spec files until each document is fully rewritten. The implementation
+status below is the current routing table for planning and public claims.
+
+| Spec range | Current implementation status | Evidence / boundary |
+|---|---|---|
+| SPEC-01, SPEC-04 | partial | lint/coverage gates exist, but full coverage gate is not green in current local evidence |
+| SPEC-02 | partial | tree-sitter adapters and fallback paths exist; WASM compatibility remains environment-dependent |
+| SPEC-03, SPEC-09, SPEC-10, SPEC-12 | implemented core baseline | rule implementations and tests exist for new rule families |
+| SPEC-05 | implemented | PR annotations, Checks, SARIF responsibilities documented and wired in workflows |
+| SPEC-06, SPEC-07, SPEC-08 | partial / guarded | LLM trust, prompt trace, schema invalid isolation exist; auto-tuning/calibration claims require real repo evidence |
+| SPEC-11, SPEC-13, SPEC-14, SPEC-15, SPEC-16, SPEC-17 | future / draft | not part of current public release surface |
+| SPEC-18, SPEC-20 | implemented local baseline | large-repo/local streaming evidence exists; remote distributed runtime and explicit heap CLI remain future scope |
+| SPEC-19 | implemented baseline | baseline/historical comparison exists |
+| SPEC-21, SPEC-23 | implemented static viewer baseline | filters, timeline diff, and large-artifact cap are implemented in static HTML viewer |
+| SPEC-22 | future / draft | VS Code extension is not implemented |
+| SPEC-24 | implemented dataflow-lite baseline | full proof-grade cross-file taint remains future scope |
+| SPEC-25 | partial | generic/framework patterns exist; framework-specific precision requires more real repo evidence |
+| SPEC-26 | partial | policy severity thresholds exist; per-rule custom severity tuning remains future scope |
+| SPEC-27, SPEC-28 | partial | regex fallback baseline exists; full tree-sitter Java/C++ adapters remain future scope |
+| SPEC-29 | done | `docs/acceptance/QA-SPEC-29-20260614.md`, `docs/acceptance/AC-20260611-01.md` |
 
 ---
 
@@ -118,6 +142,20 @@ This document serves as the master index for all code-to-gate feature enhancemen
 
 ### Automated Validation
 - Structure Check: All 10 required sections present
+
+### Quarterly Draft Review
+
+All `draft` specs are reviewed quarterly. Review output must record:
+
+| Field | Required value |
+|---|---|
+| review_date | YYYY-MM-DD |
+| reviewed_specs | SPEC IDs reviewed |
+| decision | keep draft / promote / defer / close |
+| evidence | implementation link, acceptance artifact, or reason for defer |
+| reviewer | maintainer handle |
+
+Quarterly review should prioritize stale P1/P2 drafts and specs whose implementation has already landed, then update this master index and `docs/completion-record.md` when status changes.
 - Link Check: Cross-references valid
 - Consistency Check: No conflicting requirements
 - Estimate Check: Time estimates reasonable

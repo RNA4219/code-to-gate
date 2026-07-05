@@ -1,5 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
+process.env.GIT_CONFIG_COUNT ??= '1';
+process.env.GIT_CONFIG_KEY_0 ??= 'core.autocrlf';
+process.env.GIT_CONFIG_VALUE_0 ??= 'false';
+
 export default defineConfig({
   test: {
     globals: true,

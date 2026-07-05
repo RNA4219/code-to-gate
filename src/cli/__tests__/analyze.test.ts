@@ -2,11 +2,12 @@
  * Tests for analyze CLI command
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { analyzeCommand, resolveSuppressionPath } from "../analyze.js";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import { analyzeCommand, buildGeneratedArtifactRefs, resolveSuppressionPath } from "../analyze.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 
 const EXIT = {
   OK: 0,
@@ -134,6 +135,67 @@ describe("analyze CLI", () => {
     expect(audit.exit).toBeDefined();
     expect(audit.exit.code).toBeDefined();
     expect(audit.exit.status).toBeDefined();
+  });
+
+  it("audit.json records hashes for generated artifacts", async () => {
+    const outDir = path.join(tempOutDir, "audit-artifact-hashes");
+    mkdirSync(outDir, { recursive: true });
+    const args = [fixturesDir, "--emit", "all", "--out", outDir];
+    await analyzeCommand(args, { VERSION, EXIT, getOption });
+
+    const auditPath = path.join(outDir, "audit.json");
+    const audit = JSON.parse(readFileSync(auditPath, "utf8")) as {
+      artifacts: Array<{ path: string; hash: string; stable_hash?: string; kind: string }>;
+    };
+
+    expect(audit.artifacts.length).toBeGreaterThanOrEqual(7);
+    expect(audit.artifacts.map((artifact) => path.basename(artifact.path))).toEqual(
+      expect.arrayContaining([
+        "raw-findings.json",
+        "findings.json",
+        "risk-register.yaml",
+        "analysis-report.md",
+        "test-seeds.json",
+        "invariants.json",
+        "repo-graph.json",
+      ])
+    );
+    expect(audit.artifacts.some((artifact) => path.basename(artifact.path) === "audit.json")).toBe(false);
+
+    for (const artifact of audit.artifacts) {
+      const artifactPath = path.resolve(process.cwd(), artifact.path);
+      const content = readFileSync(artifactPath, "utf8");
+      const expectedHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+      expect(existsSync(artifactPath)).toBe(true);
+      expect(artifact.hash).toBe(expectedHash);
+      expect(artifact.hash).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(artifact.stable_hash).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(artifact.kind).toMatch(/^(json|yaml|markdown|graph|test-seeds|invariants|self-analysis|database)$/);
+    }
+  });
+
+  it("stable artifact hashes are reproducible when only generated_at and run_id differ", () => {
+    const stableDir = path.join(tempOutDir, "stable-hash");
+    mkdirSync(stableDir, { recursive: true });
+    const firstPath = path.join(stableDir, "first-findings.json");
+    const secondPath = path.join(stableDir, "second-findings.json");
+    const baseArtifact = {
+      version: "ctg/v1",
+      repo: { root: "/repo" },
+      tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+      artifact: "findings",
+      schema: "findings@v1",
+      completeness: "complete",
+      findings: [],
+      unsupported_claims: [],
+    };
+    writeFileSync(firstPath, JSON.stringify({ ...baseArtifact, generated_at: "2026-07-04T00:00:00.000Z", run_id: "run-a" }, null, 2));
+    writeFileSync(secondPath, JSON.stringify({ ...baseArtifact, generated_at: "2026-07-04T00:01:00.000Z", run_id: "run-b" }, null, 2));
+
+    const [first, second] = buildGeneratedArtifactRefs([firstPath, secondPath], process.cwd());
+
+    expect(first.hash).not.toBe(second.hash);
+    expect(first.stable_hash).toBe(second.stable_hash);
   });
 
   it("analysis-report.md is generated with --emit all", async () => {
@@ -371,9 +433,60 @@ describe("analyze CLI", () => {
 
   it("output summary JSON to stdout", async () => {
     const args = [fixturesDir, "--out", tempOutDir];
-    // The command outputs a summary JSON - just verify it runs without error
-    const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
-    expect(result).toBe(EXIT.OK);
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
+      expect(result).toBe(EXIT.OK);
+
+      const summary = JSON.parse(String(logSpy.mock.calls.at(-1)?.[0]));
+      expect(summary.schema).toBe("ctg.cli.summary@v1");
+      expect(summary.command).toBe("analyze");
+      expect(summary.status).toBe("passed");
+      expect(summary.exit_code).toBe(EXIT.OK);
+      expect(Array.isArray(summary.artifacts)).toBe(true);
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
+  it("--quiet suppresses successful stdout summary", async () => {
+    const args = [fixturesDir, "--out", tempOutDir, "--quiet"];
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
+      expect(result).toBe(EXIT.OK);
+      expect(logSpy).not.toHaveBeenCalled();
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
+  it("error output includes human text and machine-readable JSON diagnostic", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const result = await analyzeCommand(
+        [fixturesDir, "--out", tempOutDir, "--format", "text"],
+        { VERSION, EXIT, getOption }
+      );
+      expect(result).toBe(EXIT.USAGE_ERROR);
+
+      const stderrLines = errorSpy.mock.calls.map((call) => String(call[0]));
+      expect(stderrLines).toContain("Unsupported output format: text");
+
+      const diagnostic = stderrLines
+        .map((line) => {
+          try {
+            return JSON.parse(line) as { schema?: string; code?: string };
+          } catch {
+            return undefined;
+          }
+        })
+        .find((line) => line?.schema === "ctg.cli.diagnostic@v1");
+
+      expect(diagnostic?.code).toBe("UNSUPPORTED_OUTPUT_FORMAT");
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("findings.severity values are valid", async () => {

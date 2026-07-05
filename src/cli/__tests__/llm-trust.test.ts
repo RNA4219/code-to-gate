@@ -356,6 +356,7 @@ describe("P1-02: LLM Trust Tests", () => {
         `
 export const API_KEY = "sk-secret-key-12345";
 export const PASSWORD = "admin-password";
+export const PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\\nsecret-private-key-body\\n-----END PRIVATE KEY-----";
 export const DATABASE_URL = "postgres://user:pass@localhost/db";
 `,
         "utf8"
@@ -378,6 +379,7 @@ export const DATABASE_URL = "postgres://user:pass@localhost/db";
       // Secret values should not appear in findings
       expect(findingsContent).not.toContain("sk-secret-key-12345");
       expect(findingsContent).not.toContain("admin-password");
+      expect(findingsContent).not.toContain("secret-private-key-body");
       // Note: The ENV_DIRECT_ACCESS rule may detect the pattern, but actual values should be redacted
     });
 
@@ -405,6 +407,38 @@ export const DATABASE_URL = "postgres://user:pass@localhost/db";
       const auditContent = JSON.stringify(audit);
 
       expect(auditContent).not.toContain("super-secret-token-xyz");
+    });
+
+    it("debug LLM trace does not include .env body", async () => {
+      const secretFixtureDir = path.join(tempOutDir, "secret-fixture3");
+      mkdirSync(secretFixtureDir, { recursive: true });
+
+      writeFileSync(
+        path.join(secretFixtureDir, ".env"),
+        "DATABASE_PASSWORD=env-body-password\nAPI_TOKEN=env-token-value",
+        "utf8"
+      );
+      writeFileSync(
+        path.join(secretFixtureDir, "index.ts"),
+        "export const value = 1;",
+        "utf8"
+      );
+
+      const args = [
+        secretFixtureDir,
+        "--out", tempOutDir,
+        "--llm-provider", "deterministic",
+        "--debug-llm-trace",
+      ];
+
+      await analyzeCommand(args, { VERSION, EXIT, getOption });
+
+      const tracePath = path.join(tempOutDir, "llm-trace.json");
+      expect(existsSync(tracePath)).toBe(true);
+
+      const traceContent = readFileSync(tracePath, "utf8");
+      expect(traceContent).not.toContain("env-body-password");
+      expect(traceContent).not.toContain("env-token-value");
     });
   });
 });

@@ -64,6 +64,24 @@ async function getUser(userId) {
     expect(findings[0].title).toContain("SQL injection");
   });
 
+  it("should ignore rule id strings in test assertions", () => {
+    const content = `
+describe("plugin contract", () => {
+  it("declares RAW_SQL as a rule id", () => {
+    expect(ruleIds).toContain("RAW_SQL");
+  });
+});
+`;
+
+    const files = [createMockFile("src/plugin/__tests__/plugin-security-contract.test.ts", content, "ts", "source")];
+    const contents = new Map([["src/plugin/__tests__/plugin-security-contract.test.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = RAW_SQL_RULE.evaluate(context);
+
+    expect(findings).toHaveLength(0);
+  });
+
   it("should detect raw SQL with template literals", () => {
     const content = `
 async function searchUsers(searchName) {

@@ -18,6 +18,7 @@ import {
   sortFindingsBySeverity,
   filterFindingsBySeverity,
   filterFindingsByCategory,
+  filterFindingsBySuppression,
   searchFindings,
   countBySeverity,
   countByCategory,
@@ -25,6 +26,7 @@ import {
   getSeverityOrder,
 } from "../finding-viewer.js";
 import { getAllStyles, getBaseStyles } from "../styles.js";
+import { createEvidencePortal } from "../evidence-portal.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -36,6 +38,7 @@ import {
   createMockTestSeedsArtifact,
   createMockReleaseReadinessArtifact,
 } from "../../test-utils/index.js";
+import { createRedactionProfile, createRedactionSummary } from "../../redaction/redaction-profile.js";
 
 // Local alias for convenience (matches existing test usage)
 const createMockFindings = createMockFindingsArtifact;
@@ -117,6 +120,19 @@ describe("report-viewer", () => {
       expect(html).toContain("/test/repo");
     });
 
+    it("renders redaction summary when a profile is provided", () => {
+      const profile = createRedactionProfile("regulated");
+      const summary = createRedactionSummary(profile);
+      const html = generateReportHtml(
+        { findings: createMockFindings() },
+        { redactionProfile: profile, redactionSummary: summary }
+      );
+
+      expect(html).toContain("Redaction");
+      expect(html).toContain("regulated");
+      expect(html).toContain("regulated profile requires signer");
+    });
+
     it("supports dark mode default option", () => {
       const artifacts = { findings: createMockFindings() };
       const html = generateReportHtml(artifacts, { darkModeDefault: true });
@@ -164,6 +180,234 @@ describe("report-viewer", () => {
       // Toolbar appears in findings explorer when showFilters is true
       expect(html).toContain("filter-btn");
       expect(html).toContain("Severity:");
+      expect(html).toContain("Suppression:");
+    });
+
+    it("limits rendered findings for large reports", () => {
+      const findings = createMockFindings({
+        findings: Array.from({ length: 3 }, (_, i) => ({
+          ...createMockFinding("high", "security"),
+          id: `large-${i}`,
+          title: `Large ${i}`,
+        })),
+      });
+
+      const html = generateReportHtml(
+        { findings },
+        { findingsConfig: { maxRenderedFindings: 2 } }
+      );
+
+      expect(html).toContain("Viewer limit applied");
+      expect(html).toContain("large-0");
+      expect(html).toContain("large-1");
+      expect(html).not.toContain("large-2");
+    });
+
+    it("includes historical comparison tab when artifact is provided", () => {
+      const findings = createMockFindings();
+      const html = generateReportHtml(
+        {
+          findings,
+          historicalComparison: {
+            version: "ctg/v1",
+            generated_at: "2026-07-04T00:00:00Z",
+            run_id: "hist-1",
+            repo: { root: "/repo" },
+            tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+            artifact: "historical-comparison",
+            schema: "historical-comparison@v1",
+            completeness: "complete",
+            currentRun: { run_id: "current", generated_at: "2026-07-04T00:00:00Z", artifact_dir: ".qh" },
+            previousRun: { run_id: "previous", generated_at: "2026-07-03T00:00:00Z", artifact_dir: ".qh-prev" },
+            findingsComparison: {
+              new: [],
+              resolved: [],
+              unchanged: [],
+              modified: [],
+              regressions: [],
+              summary: {
+                totalCurrent: 2,
+                totalPrevious: 1,
+                newCount: 1,
+                resolvedCount: 0,
+                unchangedCount: 1,
+                modifiedCount: 0,
+                regressionCount: 0,
+                bySeverity: {
+                  critical: { new: 0, resolved: 0, unchanged: 0 },
+                  high: { new: 1, resolved: 0, unchanged: 1 },
+                  medium: { new: 0, resolved: 0, unchanged: 0 },
+                  low: { new: 0, resolved: 0, unchanged: 0 },
+                },
+                byCategory: {
+                  security: { new: 1, resolved: 0, unchanged: 1 },
+                },
+              },
+            },
+            riskTrends: {
+              trendDirection: "stable",
+              trendScore: 0,
+              criticalTrend: "stable",
+              highTrend: "stable",
+              riskScoreChange: 0,
+              historyPoints: [
+                {
+                  run_id: "current",
+                  generated_at: "2026-07-04T00:00:00Z",
+                  criticalFindings: 0,
+                  highFindings: 2,
+                  mediumFindings: 0,
+                  lowFindings: 0,
+                  totalFindings: 2,
+                  riskCount: 0,
+                  readinessStatus: "passed_with_risk",
+                },
+              ],
+            },
+            recommendations: [],
+            generated_by: "ctg-historical-v1",
+          },
+        },
+        { showTabs: true, showHistorical: true }
+      );
+
+      expect(html).toContain("Historical");
+      expect(html).toContain("Historical Diff");
+      expect(html).toContain("timeline-chart");
+    });
+
+    it("includes QEG evidence and DAG drill-down when artifacts are provided", () => {
+      const findings = createMockFindings();
+      const html = generateReportHtml(
+        {
+          findings,
+          qegEvidence: {
+            version: "ctg.qeg-input/v1",
+            producer: "code-to-gate",
+            run_id: "qeg-run-1",
+            artifact_dir: ".qh",
+            findings_summary: {
+              total: 1,
+              by_severity: { high: 1 },
+              by_category: { auth: 1 },
+              by_rule: { WEAK_AUTH_GUARD: 1 },
+            },
+            readiness_status: "blocked_input",
+            schema_compliance: [
+              { artifact: "findings.json", status: "ok" },
+              { artifact: "release-readiness.json", status: "error", errors: ["missing field"] },
+            ],
+            quality_checks_actual: [
+              { name: "assurance_inspection", status: "skipped", details: "not provided" },
+            ],
+            artifact_hashes: [
+              {
+                artifact: "findings",
+                path: ".qh/findings.json",
+                hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              },
+            ],
+          },
+          evidenceDag: {
+            version: "ctg/v1",
+            generated_at: "2026-07-05T00:00:00Z",
+            run_id: "qeg-run-1",
+            repo: { root: "." },
+            tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+            artifact: "evidence-dag",
+            schema: "evidence-dag@v1",
+            completeness: "complete",
+            nodes: [
+              { id: "finding:finding-auth", type: "finding", label: "Weak auth guard", metadata: { severity: "high" } },
+              { id: "manual-test:risk-finding-auth", type: "manual-test", label: "Manual auth verification" },
+              { id: "artifact:findings", type: "artifact", label: "findings.json" },
+            ],
+            edges: [
+              {
+                id: "finding:finding-auth|requires_manual_oracle|manual-test:risk-finding-auth",
+                source: "finding:finding-auth",
+                target: "manual-test:risk-finding-auth",
+                type: "requires_manual_oracle",
+              },
+            ],
+            summary: {
+              nodeCount: 3,
+              edgeCount: 1,
+              findings: 1,
+              artifacts: 1,
+              verdicts: 0,
+            },
+          },
+        },
+        { showTabs: true, showQeg: true }
+      );
+
+      expect(html).toContain("QEG Evidence");
+      expect(html).toContain("blocked_input");
+      expect(html).toContain("release-readiness.json");
+      expect(html).toContain("sha256:aaaaaaaa");
+      expect(html).toContain("Finding Drill-down");
+      expect(html).toContain("DAG search:");
+      expect(html).toContain("qeg-dag-search");
+      expect(html).toContain("filterQegDag");
+      expect(html).toContain("Weak auth guard");
+      expect(html).toContain("Manual Test Candidates");
+      expect(html).toContain("Manual auth verification");
+      expect(html).toContain("requires_manual_oracle");
+    });
+
+    it("generates hosted evidence portal HTML with searchable run evidence", () => {
+      const runsDir = path.join(tempOutDir, "portal-runs");
+      const runDir = path.join(runsDir, "run-a");
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(path.join(runDir, "release-readiness.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "portal-report-run",
+        repo: { root: "." },
+        tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+        artifact: "release-readiness",
+        schema: "release-readiness@v1",
+        completeness: "complete",
+        status: "passed",
+        summary: "Ready",
+        counts: { findings: 0, critical: 0, high: 0, risks: 0, testSeeds: 0, unsupportedClaims: 0 },
+        failedConditions: [],
+        recommendedActions: [],
+        artifactRefs: {},
+      }, null, 2));
+      writeFileSync(path.join(runDir, "pr-review.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "portal-report-run",
+        repo: { root: "." },
+        tool: { name: "code-to-gate", version: "1.5.0", plugin_versions: [] },
+        artifact: "pr-review",
+        schema: "pr-review@v1",
+        completeness: "complete",
+        status: "pass",
+        markdown: { path: "pr-review.md", generated: true },
+        sections: { blockReasons: [], acceptableReasons: [], additionalTests: [], specDiffs: [], artifactLinks: [] },
+        summary: { blockReasons: 0, acceptableReasons: 0, additionalTests: 0, specDiffs: 0, artifactLinks: 0, findings: 0, critical: 0, high: 0, reviewerCandidates: 0 },
+      }, null, 2));
+
+      const portal = createEvidencePortal({
+        runsDir,
+        cwd: process.cwd(),
+        outputPath: path.join(tempOutDir, "portal.html"),
+        version: "1.5.0",
+        redactionProfile: createRedactionProfile("public"),
+        redactionSummary: createRedactionSummary(createRedactionProfile("public")),
+        now: new Date("2026-07-05T00:00:00Z"),
+      });
+
+      expect(portal.html).toContain("code-to-gate Evidence Portal");
+      expect(portal.html).toContain("portal-report-run");
+      expect(portal.manifest.schema).toBe("hosted-evidence-portal@v1");
+      expect(portal.manifest.summary.runs).toBe(1);
+      expect(portal.manifest.summary.prReviews).toBe(1);
+      expect(portal.manifest.searchIndex.some((entry) => entry.type === "pr-review")).toBe(true);
+      expect(portal.manifest.security.externalNetworkRequired).toBe(false);
     });
   });
 
@@ -444,6 +688,16 @@ describe("finding-viewer utilities", () => {
 
       expect(filtered.length).toBe(1);
       expect(filtered[0].category).toBe("auth");
+    });
+  });
+
+  describe("filterFindingsBySuppression", () => {
+    it("filters suppressed findings by tag", () => {
+      const active = createMockFinding("high", "security");
+      const suppressed = { ...createMockFinding("high", "security"), tags: ["suppressed"] };
+
+      expect(filterFindingsBySuppression([active, suppressed], "active")).toEqual([active]);
+      expect(filterFindingsBySuppression([active, suppressed], "suppressed")).toEqual([suppressed]);
     });
   });
 

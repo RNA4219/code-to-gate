@@ -153,6 +153,9 @@ function isLongLived(expiry?: string): boolean {
 
 function isGenericReason(reason?: string): boolean {
   if (!reason) return true;
-  return /\b(architecture decision|intentional|acceptable|normal|temporary|todo|tbd)\b/i.test(reason) &&
+  return (
+    /\b(architecture decision|intentional|acceptable|normal|temporary|todo|tbd)\b/i.test(reason) ||
+    /(意図的|許容|一時対応|暫定|仮対応|通常|後で|未定|要確認|TODO|対応予定)/i.test(reason)
+  ) &&
     reason.length < 120;
 }

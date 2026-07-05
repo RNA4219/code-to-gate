@@ -188,3 +188,7 @@ LLM 利用時は `.qh/audit.json` に次を残す。
 - retry_count
 
 raw prompt / raw response は既定では保存しない。`--debug-llm-trace` 指定時のみ `.qh/llm-trace.json` に保存し、public artifact には含めない。
+
+`llm-trace.json` は `ctg.llm-trace@v1` とし、redaction 後の `request` / `response`、`request_hash`、`response_hash`、`prompt_version`、`redaction_enabled` を含む。`.env` body や secret literal を含めてはならない。回帰証跡は `src/cli/__tests__/llm-trust.test.ts` の debug trace test で維持する。
+
+schema invalid または JSON-like な壊れた LLM 出力は primary finding に混入させず、`unsupported_claims[].reason = "schema_invalid"` として隔離する。repair prompt は v1 の拡張余地だが、v1 acceptance では「隔離して review 対象にする」挙動を必須とする。

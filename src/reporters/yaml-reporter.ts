@@ -8,6 +8,7 @@ import {
   FindingsArtifact,
   Severity,
   Likelihood,
+  PackageRiskSummary,
 } from "../types/artifacts.js";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
@@ -41,6 +42,45 @@ function generateRiskId(sourceFindings: string[]): string {
   }
   const baseId = sourceFindings[0].replace("finding-", "risk-");
   return baseId.split("-").slice(0, 3).join("-");
+}
+
+function packagePathForEvidencePath(evidencePath: string | undefined): string {
+  if (!evidencePath) {
+    return ".";
+  }
+  const normalized = evidencePath.replace(/\\/g, "/");
+  const match = normalized.match(/(?:^|\/)(packages\/[^/]+)/);
+  return match?.[1] ?? ".";
+}
+
+function buildPackageSummary(findings: FindingsArtifact, risks: RiskSeed[]): PackageRiskSummary[] {
+  const riskIdsByFinding = new Map<string, string[]>();
+  for (const risk of risks) {
+    for (const findingId of risk.sourceFindingIds) {
+      riskIdsByFinding.set(findingId, [...(riskIdsByFinding.get(findingId) ?? []), risk.id]);
+    }
+  }
+
+  const summary = new Map<string, PackageRiskSummary>();
+  for (const finding of findings.findings) {
+    const packagePath = packagePathForEvidencePath(finding.evidence[0]?.path);
+    const item = summary.get(packagePath) ?? {
+      packagePath,
+      findingCount: 0,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      riskIds: [],
+    };
+
+    item.findingCount += 1;
+    item[finding.severity] += 1;
+    item.riskIds = Array.from(new Set([...item.riskIds, ...(riskIdsByFinding.get(finding.id) ?? [])])).sort();
+    summary.set(packagePath, item);
+  }
+
+  return Array.from(summary.values()).sort((a, b) => a.packagePath.localeCompare(b.packagePath));
 }
 
 /**
@@ -151,8 +191,9 @@ export function buildRiskRegisterFromFindings(
     ...findings,
     artifact: "risk-register",
     schema: "risk-register@v1",
-    completeness: risks.length > 0 ? "complete" : "partial",
+    completeness: findings.completeness === "partial" || risks.length === 0 ? "partial" : "complete",
     risks,
+    packageSummary: buildPackageSummary(findings, risks),
   };
 }
 
@@ -222,6 +263,29 @@ risks:
       ${risk.narrative.split("\n").join("\n      ")}
 `;
     }
+    }
+  }
+
+  yaml += "\npackageSummary:\n";
+  if (!artifact.packageSummary || artifact.packageSummary.length === 0) {
+    yaml += "  []\n";
+  } else {
+    for (const item of artifact.packageSummary) {
+      yaml += `  - packagePath: ${yamlString(item.packagePath)}
+    findingCount: ${item.findingCount}
+    critical: ${item.critical}
+    high: ${item.high}
+    medium: ${item.medium}
+    low: ${item.low}
+    riskIds:
+`;
+      if (item.riskIds.length === 0) {
+        yaml += "      []\n";
+      } else {
+        for (const riskId of item.riskIds) {
+          yaml += `      - ${yamlString(riskId)}\n`;
+        }
+      }
     }
   }
 

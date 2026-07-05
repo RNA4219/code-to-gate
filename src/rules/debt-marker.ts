@@ -40,6 +40,15 @@ const TYPE_COMMENT_EXCLUSIONS = [
 
 const ACTIONABLE_CONTEXT = /\b(remove|replace|refactor|cleanup|clean up|fix|migrate|deprecated|legacy|unsafe|slow|broken|until|after|before|because|blocked)\b/i;
 
+function isFixtureOrTestPath(path: string): boolean {
+  return /(^|[\\/])(?:fixtures?|__tests__|test|tests)([\\/]|$)/i.test(path);
+}
+
+function isAcceptedCompatibilityNote(text: string): boolean {
+  return /\b(?:interop|compatibility|esm\/cjs|cjs\/esm|adapter compatibility|known upstream)\b/i.test(text) &&
+    /\bwork\s*around\b|\bworkaround\b/i.test(text);
+}
+
 export const DEBT_MARKER_RULE: RulePlugin = {
   id: "DEBT_MARKER",
   name: "Technical Debt Marker",
@@ -54,6 +63,7 @@ export const DEBT_MARKER_RULE: RulePlugin = {
 
     for (const file of context.graph.files) {
       if (file.role !== "source") continue;
+      if (isFixtureOrTestPath(file.path)) continue;
       if (!["ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php"].includes(file.language)) continue;
 
       const content = context.getFileContent(file.path);
@@ -68,6 +78,7 @@ export const DEBT_MARKER_RULE: RulePlugin = {
 
         const marker = MARKERS.find((candidate) => candidate.pattern.test(comment.text));
         if (!marker) continue;
+        if (isAcceptedCompatibilityNote(comment.text)) continue;
 
         const actionable = ACTIONABLE_CONTEXT.test(comment.text);
         const severity = actionable && marker.severity === "low" ? "medium" : marker.severity;

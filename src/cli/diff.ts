@@ -74,6 +74,7 @@ interface BlastRadius {
   affectedSymbols: string[];
   affectedTests: string[];
   affectedEntrypoints: string[];
+  maxDepth?: number;
 }
 
 interface DiffAnalysisArtifact {
@@ -206,10 +207,44 @@ function getChangedFilesResult(
       };
 }
 
+function normalizeImportTarget(importerPath: string, importPath: string): string[] {
+  const normalizedImport = importPath.replace(/\\/g, "/");
+  if (!normalizedImport.startsWith(".")) {
+    return [normalizedImport];
+  }
+
+  const importerDir = nodePathService.dirname(importerPath).replace(/\\/g, "/");
+  const base = toPosix(`${importerDir}/${normalizedImport}`)
+    .split("/")
+    .reduce<string[]>((parts, part) => {
+      if (!part || part === ".") return parts;
+      if (part === "..") {
+        parts.pop();
+        return parts;
+      }
+      parts.push(part);
+      return parts;
+    }, [])
+    .join("/");
+  const extensions = ["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js", "/index.jsx"];
+  return extensions.map((extension) => `${base}${extension}`);
+}
+
+function extractImportSpecifiers(content: string): string[] {
+  const imports: string[] = [];
+  for (const match of content.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) {
+    imports.push(match[1]);
+  }
+  for (const match of content.matchAll(/\brequire\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    imports.push(match[1]);
+  }
+  return imports;
+}
+
 /**
  * Calculate blast radius from changed files
  */
-function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedFile[]): BlastRadius {
+function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedFile[], maxDepth = 1): BlastRadius {
   const affectedFiles = new Set<string>();
   const affectedSymbols = new Set<string>();
   const affectedTests = new Set<string>();
@@ -217,6 +252,7 @@ function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedF
 
   // Build import map (simplified)
   const importMap: Map<string, string[]> = new Map();
+  const reverseImportMap: Map<string, Set<string>> = new Map();
 
   for (const file of graph.files) {
     // Find files that import changed files
@@ -224,13 +260,13 @@ function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedF
     try {
       const fullPath = nodePathService.join(graph.repo.root, file.path);
       const content = nodeFileAccess.readFile(fullPath) ?? "";
-      // Extract import patterns
-      const importMatches = content.match(/from ['"]([^'"]+)['"]/g) || [];
-      const requireMatches = content.match(/require\(['"]([^'"]+)['"]\)/g) || [];
-
-      for (const match of [...importMatches, ...requireMatches]) {
-        const importPath = match.replace(/from ['"]|require\(['"]|['"]\)/g, "");
+      for (const importPath of extractImportSpecifiers(content)) {
         imports.push(importPath);
+        for (const target of normalizeImportTarget(file.path, importPath)) {
+          const importers = reverseImportMap.get(target) ?? new Set<string>();
+          importers.add(file.path);
+          reverseImportMap.set(target, importers);
+        }
       }
     } catch {
       // Skip files that can't be read
@@ -238,13 +274,21 @@ function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedF
     importMap.set(file.path, imports);
   }
 
-  // Level 1: Direct importers of changed files
+  // Level 1..N: direct and transitive importers of changed files
+  const queue: Array<{ path: string; depth: number }> = [];
   for (const changed of changedFiles) {
     affectedFiles.add(changed.path);
+    queue.push({ path: changed.path, depth: 0 });
+  }
 
-    for (const [filePath, imports] of importMap) {
-      if (imports.some((imp) => imp.includes(changed.path.replace(/\.(ts|js|tsx|jsx)$/, "")))) {
-        affectedFiles.add(filePath);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || current.depth >= maxDepth) continue;
+
+    for (const importer of reverseImportMap.get(current.path) ?? []) {
+      if (!affectedFiles.has(importer)) {
+        affectedFiles.add(importer);
+        queue.push({ path: importer, depth: current.depth + 1 });
       }
     }
   }
@@ -281,6 +325,7 @@ function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedF
     affectedSymbols: Array.from(affectedSymbols),
     affectedTests: Array.from(affectedTests),
     affectedEntrypoints: Array.from(affectedEntrypoints),
+    maxDepth,
   };
 }
 
@@ -569,6 +614,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
   const baseRef = options.getOption(args, "--base");
   const headRef = options.getOption(args, "--head");
   const outDir = options.getOption(args, "--out") ?? ".qh";
+  const blastDepth = Math.max(1, Math.min(10, Number.parseInt(options.getOption(args, "--blast-depth") ?? "1", 10) || 1));
   const useDatabaseAnalysis = args.includes("--database-analysis");
 
   if (!repoArg || !baseRef || !headRef) {
@@ -656,6 +702,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
           affectedSymbols: [],
           affectedTests: [],
           affectedEntrypoints: [],
+          maxDepth: blastDepth,
         },
         diff_findings: {
           new_findings: [],
@@ -681,7 +728,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     }
 
     // Calculate blast radius
-    const blastRadius = calculateBlastRadius(graph, changedFiles);
+    const blastRadius = calculateBlastRadius(graph, changedFiles, blastDepth);
 
     // Build diff findings
     const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES);

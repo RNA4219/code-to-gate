@@ -14,6 +14,10 @@ inputs:
     description: 'Name of the check run'
     required: false
     default: 'code-to-gate Analysis'
+  head_sha:
+    description: 'Commit SHA to associate the check run with. Defaults to the pull request head SHA, then github.sha.'
+    required: false
+    default: ''
   fail_on_critical:
     description: 'Fail the check if critical findings exist'
     required: false
@@ -97,22 +101,33 @@ runs:
         FAIL_CRITICAL="${{ inputs.fail_on_critical }}"
         FAIL_HIGH="${{ inputs.fail_on_high }}"
 
-        # Determine conclusion based on findings and settings
-        if [ "$STATUS" == "blocked_input" ]; then
+        # Release readiness is the gate verdict. Raw finding counts only apply
+        # when no readiness artifact is available.
+        if [ "$STATUS" == "passed" ]; then
+          CONCLUSION="success"
+          if [ "$TOTAL" -gt 0 ]; then
+            TITLE="Passed with Findings"
+          else
+            TITLE="Passed"
+          fi
+        elif [ "$STATUS" == "passed_with_risk" ]; then
+          CONCLUSION="success"
+          TITLE="Passed with Risk"
+        elif [ "$STATUS" == "blocked_input" ]; then
           CONCLUSION="failure"
           TITLE="Blocked - Input Issues"
+        elif [ "$STATUS" == "failed" ]; then
+          CONCLUSION="failure"
+          TITLE="Failed"
+        elif [ "$STATUS" == "needs_review" ]; then
+          CONCLUSION="neutral"
+          TITLE="Needs Review"
         elif [ "$CRITICAL" -gt 0 ] && [ "$FAIL_CRITICAL" == "true" ]; then
           CONCLUSION="failure"
           TITLE="Failed - Critical Findings"
         elif [ "$HIGH" -gt 0 ] && [ "$FAIL_HIGH" == "true" ]; then
           CONCLUSION="failure"
           TITLE="Failed - High Findings"
-        elif [ "$STATUS" == "needs_review" ]; then
-          CONCLUSION="neutral"
-          TITLE="Needs Review"
-        elif [ "$STATUS" == "passed_with_risk" ]; then
-          CONCLUSION="neutral"
-          TITLE="Passed with Risk"
         elif [ "$TOTAL" -gt 0 ]; then
           CONCLUSION="neutral"
           TITLE="Passed with Findings"
@@ -130,11 +145,18 @@ runs:
       run: |
         # Generate annotations from findings as a JSON array
         # GitHub limits to 50 annotations per check run
-        jq -c '[.[] | {
+        READINESS_STATUS="${{ steps.parse.outputs.status }}"
+        jq -c --arg status "$READINESS_STATUS" '[.[] | {
           path: (.evidence[0].path // "unknown"),
           start_line: (.evidence[0].startLine // 1),
           end_line: (.evidence[0].endLine // (.evidence[0].startLine // 1)),
-          annotation_level: (if .severity == "critical" or .severity == "high" then "failure" elif .severity == "medium" then "warning" else "notice" end),
+          annotation_level: (
+            if $status == "passed" or $status == "passed_with_risk" then
+              if .severity == "low" then "notice" else "warning" end
+            else
+              if .severity == "critical" or .severity == "high" then "failure" elif .severity == "medium" then "warning" else "notice" end
+            end
+          ),
           message: (.summary // .title // "Finding"),
           title: "\(.ruleId) [\(.severity)]"
         }]' /tmp/findings.json > /tmp/annotations.json
@@ -150,7 +172,10 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github_token }}
       run: |
         REPO="${{ github.repository }}"
-        SHA="${{ github.sha }}"
+        INPUT_SHA="${{ inputs.head_sha }}"
+        PR_HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        SHA="${INPUT_SHA:-$PR_HEAD_SHA}"
+        SHA="${SHA:-${{ github.sha }}}"
         CHECK_NAME="${{ inputs.check_name }}"
         CONCLUSION="${{ steps.conclusion.outputs.conclusion }}"
         TITLE="${{ steps.conclusion.outputs.title }}"

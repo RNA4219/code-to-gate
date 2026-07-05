@@ -23,6 +23,8 @@ const ROOT = resolve(import.meta.dirname, "..");
 const TEMP_DIR = join(ROOT, ".test-temp", "package-smoke");
 const FIXTURES_DIR = join(ROOT, "fixtures", "demo-shop-ts");
 const DIST_DIR = join(ROOT, "dist");
+const NPM_CACHE_DIR = join(ROOT, ".qh", "npm-cache");
+const NPM_ENV = { ...process.env, npm_config_cache: NPM_CACHE_DIR };
 
 let tgzPath = null;
 
@@ -44,7 +46,8 @@ try {
 
   // Step 2: Fresh build
   console.log("Step 2: Fresh build...");
-  execSync("npm run build", { cwd: ROOT, stdio: "inherit" });
+  mkdirSync(NPM_CACHE_DIR, { recursive: true });
+  execSync("npm run build", { cwd: ROOT, stdio: "inherit", env: NPM_ENV });
   console.log("  ✓ Build complete\n");
 
   // Step 3: npm pack
@@ -52,7 +55,7 @@ try {
   rmSync(TEMP_DIR, { recursive: true, force: true });
   mkdirSync(TEMP_DIR, { recursive: true });
 
-  const packOutput = execSync("npm pack", { cwd: ROOT, encoding: "utf8" });
+  const packOutput = execSync("npm pack", { cwd: ROOT, encoding: "utf8", env: NPM_ENV });
   const tgzFile = packOutput.trim();
   tgzPath = join(ROOT, tgzFile);
 
@@ -71,7 +74,7 @@ try {
   };
   writeFileSync(join(TEMP_DIR, "package.json"), JSON.stringify(tempPackageJson, null, 2));
 
-  execSync(`npm install "${tgzPath}"`, { cwd: TEMP_DIR, stdio: "inherit" });
+  execSync(`npm install "${tgzPath}"`, { cwd: TEMP_DIR, stdio: "inherit", env: NPM_ENV });
 
   const installedDir = join(TEMP_DIR, "node_modules", "@quality-harness", "code-to-gate");
   if (!existsSync(installedDir)) {

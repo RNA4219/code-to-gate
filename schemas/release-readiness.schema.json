@@ -45,6 +45,38 @@
       }
     },
     "recommendedActions": { "type": "array", "items": { "type": "string" } },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "source",
+        "baselineFindings",
+        "currentFindings",
+        "newFindings",
+        "worsenedFindings",
+        "unchangedFindings",
+        "resolvedFindings",
+        "gatedFindingIds",
+        "resolvedFindingIds"
+      ],
+      "properties": {
+        "mode": { "const": "ratchet" },
+        "source": { "type": "string" },
+        "baselineRunId": { "type": "string" },
+        "baselineFindings": { "type": "integer", "minimum": 0 },
+        "currentFindings": { "type": "integer", "minimum": 0 },
+        "newFindings": { "type": "integer", "minimum": 0 },
+        "worsenedFindings": { "type": "integer", "minimum": 0 },
+        "unchangedFindings": { "type": "integer", "minimum": 0 },
+        "resolvedFindings": { "type": "integer", "minimum": 0 },
+        "gatedFindingIds": { "type": "array", "items": { "type": "string" } },
+        "resolvedFindingIds": { "type": "array", "items": { "type": "string" } },
+        "owner": { "type": "string", "minLength": 1 },
+        "expiresAt": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+        "expired": { "type": "boolean" }
+      }
+    },
     "selfAnalysis": {
       "type": "object",
       "additionalProperties": false,
@@ -100,7 +132,9 @@
         "invariants": { "type": "string" },
         "testSeeds": { "type": "string" },
         "audit": { "type": "string" },
-        "intake": { "type": "string" }
+        "intake": { "type": "string" },
+        "baseline": { "type": "string" },
+        "manualEvidence": { "type": "string" }
       }
     }
   }

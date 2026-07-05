@@ -255,6 +255,39 @@ describe("diff CLI", () => {
     expect(Array.isArray(diffAnalysis.blast_radius.affectedEntrypoints)).toBe(true);
   });
 
+  it("--blast-depth controls direct versus transitive importer radius", async () => {
+    const gitRepo = path.join(tempOutDir, "blast-depth-repo");
+    const depthOneOut = path.join(tempOutDir, "blast-depth-one");
+    const depthTwoOut = path.join(tempOutDir, "blast-depth-two");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      {
+        "src/a.ts": "import { b } from './b';\nexport const a = b;\n",
+        "src/b.ts": "import { c } from './c';\nexport const b = c;\n",
+        "src/c.ts": "export const c = 1;\n",
+      },
+      {
+        "src/a.ts": "import { b } from './b';\nexport const a = b;\n",
+        "src/b.ts": "import { c } from './c';\nexport const b = c;\n",
+        "src/c.ts": "export const c = 2;\n",
+      }
+    );
+
+    await diffCommand([gitRepo, "--base", "base", "--head", "head", "--out", depthOneOut, "--blast-depth", "1"], { VERSION, EXIT, getOption });
+    await diffCommand([gitRepo, "--base", "base", "--head", "head", "--out", depthTwoOut, "--blast-depth", "2"], { VERSION, EXIT, getOption });
+
+    const depthOne = JSON.parse(readFileSync(path.join(depthOneOut, "diff-analysis.json"), "utf8"));
+    const depthTwo = JSON.parse(readFileSync(path.join(depthTwoOut, "diff-analysis.json"), "utf8"));
+
+    expect(depthOne.blast_radius.maxDepth).toBe(1);
+    expect(depthOne.blast_radius.affectedFiles).toContain("src/b.ts");
+    expect(depthOne.blast_radius.affectedFiles).not.toContain("src/a.ts");
+
+    expect(depthTwo.blast_radius.maxDepth).toBe(2);
+    expect(depthTwo.blast_radius.affectedFiles).toContain("src/a.ts");
+  });
+
   it("diff-analysis.json has diff_findings object", async () => {
     const gitRepo = path.join(tempOutDir, "diff-findings-repo");
     mkdirSync(gitRepo, { recursive: true });

@@ -2,6 +2,13 @@
 
 This document provides complete examples for each plugin type.
 
+## Documentation Responsibility
+
+This document owns runnable examples only. General plugin concepts and the
+reading order live in `docs/plugin-guide.md`; manifest and runtime details live
+in `docs/plugin-development.md`; security boundaries live in
+`docs/plugin-security-contract.md` and `docs/plugin-sandbox.md`.
+
 ## Example 1: Custom Rule Plugin
 
 This example demonstrates a rule plugin that detects hardcoded API keys.
@@ -56,6 +63,52 @@ metadata:
   author: "code-to-gate team"
   license: "MIT"
 ```
+
+## Private Plugin Example Contract
+
+Private plugins use the same stdout/stderr JSON contract as public plugins, but set `visibility: private` and keep source distribution outside OSS core. The example below is the minimum manifest shape maintained by docs and contract tests:
+
+```yaml
+apiVersion: ctg/v1
+kind: rule-plugin
+name: private-risk-rules
+version: 0.1.0
+visibility: private
+description: Private rulepack loaded from a local path
+
+entry:
+  command: ["node", "./dist/index.js"]
+  timeout: 30
+  retry: 0
+
+capabilities:
+  - evaluate
+
+receives:
+  - normalized-repo-graph@v1
+
+returns:
+  - findings@v1
+
+security:
+  network: false
+  filesystem:
+    read:
+      - "${repoRoot}"
+    write:
+      - "${workDir}/plugin-output"
+  secrets:
+    allow: []
+```
+
+Maintenance evidence:
+
+| Contract | Evidence |
+|---|---|
+| `visibility: private` is accepted | `src/plugin/__tests__/plugin-security-contract.test.ts` |
+| private plugin output still uses strict stdout JSON | `src/plugin/__tests__/plugin-security-contract.test.ts` |
+| secret-like plugin output is rejected before adoption | `src/plugin/__tests__/plugin-security-contract.test.ts` |
+| direct process timeout / invalid output isolation is covered | `src/plugin/__tests__/plugin-runner.test.ts` |
 
 ### src/index.ts
 

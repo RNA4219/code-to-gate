@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/hosted-evidence-portal.schema.json",
+  "title": "HostedEvidencePortalArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "html",
+    "runs",
+    "searchIndex",
+    "sourceArtifacts",
+    "security",
+    "summary",
+    "generated_by"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "hosted-evidence-portal" },
+    "schema": { "const": "hosted-evidence-portal@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "publicUrl": { "type": "string", "minLength": 1 },
+    "redactionProfile": { "$ref": "./shared-defs.schema.json#/$defs/redactionProfile" },
+    "redactionSummary": { "$ref": "./shared-defs.schema.json#/$defs/redactionSummary" },
+    "html": {
+      "type": "object",
+      "required": ["path", "hashSha256", "sizeBytes", "singleFile", "externalAssets"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "hashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "singleFile": { "const": true },
+        "externalAssets": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "runs": { "type": "array", "items": { "$ref": "#/$defs/run" } },
+    "searchIndex": { "type": "array", "items": { "$ref": "#/$defs/searchEntry" } },
+    "sourceArtifacts": { "type": "array", "items": { "$ref": "#/$defs/runArtifact" } },
+    "security": {
+      "type": "object",
+      "required": ["selfContained", "externalNetworkRequired", "inlineAssets"],
+      "additionalProperties": false,
+      "properties": {
+        "selfContained": { "const": true },
+        "externalNetworkRequired": { "const": false },
+        "inlineAssets": { "const": true }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["runs", "artifacts", "searchEntries", "manualBb", "releasePacks", "prReviews", "baselineDebtExpired"],
+      "additionalProperties": false,
+      "properties": {
+        "runs": { "type": "integer", "minimum": 0 },
+        "artifacts": { "type": "integer", "minimum": 0 },
+        "searchEntries": { "type": "integer", "minimum": 0 },
+        "manualBb": { "type": "integer", "minimum": 0 },
+        "releasePacks": { "type": "integer", "minimum": 0 },
+        "prReviews": { "type": "integer", "minimum": 0 },
+        "baselineDebtExpired": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "generated_by": { "const": "ctg-viewer-portal-v1" }
+  },
+  "$defs": {
+    "run": {
+      "type": "object",
+      "required": ["id", "path", "artifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "generatedAt": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+        "readinessStatus": { "type": "string", "minLength": 1 },
+        "historicalSloStatus": { "type": "string", "minLength": 1 },
+        "releasePack": { "type": "string", "minLength": 1 },
+        "manualBb": { "type": "string", "minLength": 1 },
+        "prReview": { "type": "string", "minLength": 1 },
+        "baselineDebtExpired": { "type": "integer", "minimum": 0 },
+        "artifacts": { "type": "array", "items": { "$ref": "#/$defs/runArtifact" } }
+      }
+    },
+    "runArtifact": {
+      "type": "object",
+      "required": ["file", "hashSha256", "sizeBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "schema": { "type": "string", "minLength": 1 },
+        "hashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "generatedAt": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" }
+      }
+    },
+    "searchEntry": {
+      "type": "object",
+      "required": ["id", "runId", "type", "title", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["run", "artifact", "readiness", "slo", "release-pack", "manual-bb", "pr-review", "baseline-debt"] },
+        "title": { "type": "string", "minLength": 1 },
+        "text": { "type": "string", "minLength": 1 },
+        "artifact": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

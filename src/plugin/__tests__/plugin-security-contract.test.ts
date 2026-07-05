@@ -358,6 +358,18 @@ describe("P2-02: Plugin Security Contract Tests", () => {
       expect(result.valid).toBe(true);
     });
 
+    it("should reject unexpected top-level stdout JSON fields", async () => {
+      const output = {
+        version: "ctg.plugin-output/v1",
+        findings: [],
+        raw_secret_dump: "not allowed",
+      };
+
+      const result = await validator.validateOutput(output, []);
+      expect(result.valid).toBe(false);
+      expect(result.errors?.some((e) => e.path === "raw_secret_dump")).toBe(true);
+    });
+
     it("should reject invalid output schema version", async () => {
       const output = {
         version: "invalid-version",

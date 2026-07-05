@@ -12,23 +12,66 @@ import { historicalCommand } from "./cli/historical.js";
 import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { assuranceCommand } from "./cli/assurance.js";
+import { specDriftCommand } from "./cli/spec-drift.js";
+import { ruleCommand } from "./cli/rule.js";
+import { packCommand } from "./cli/pack.js";
+import { doctorCommand } from "./cli/doctor.js";
+import { testPlanCommand } from "./cli/test-plan.js";
+import { releasePackCommand } from "./cli/release-pack.js";
+import { ownershipCommand } from "./cli/ownership.js";
+import { pluginMarketplaceCommand } from "./cli/plugin-marketplace.js";
+import { prReviewCommand } from "./cli/pr-review.js";
+import { prReviewPublishCommand } from "./cli/pr-review-publish.js";
+import { queryCommand } from "./cli/query.js";
+import { qeosCommand } from "./cli/qeos.js";
+import { explainGateCommand } from "./cli/explain-gate.js";
+import { driftBudgetCommand } from "./cli/drift-budget.js";
+import { reviewQueueCommand } from "./cli/review-queue.js";
+import { baselineLedgerCommand } from "./cli/baseline-ledger.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
+import { emitCliError } from "./cli/output.js";
 
 function printHelp(): void {
   console.log(`code-to-gate ${VERSION}
 
 Usage:
   code-to-gate schema validate <artifact-or-schema>
+  code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]
   code-to-gate scan <repo> --out <dir> [--database-analysis]
-  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--database-analysis]
+  code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--debug-llm-trace] [--database-analysis]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
   code-to-gate import <tool> <input-file> --out <dir>
-    Tools: eslint, semgrep, tsc, coverage, test
-  code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir>
+    Tools: eslint, semgrep, sarif, codeql, tsc, coverage, test
+  code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
-    Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate
-  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
+    Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, evidence-dag, provenance-index
+  code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--portal] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <profile>]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
+  code-to-gate spec-drift <repo> --out <dir>
+  code-to-gate rule <command>
+    Commands: new, score
+    new: Create a fixture-based custom rule scaffold
+         code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
+    score: Score a rule/plugin quality contract
+         code-to-gate rule score <rule-or-plugin> [--out <file-or-dir>] [--quiet]
+  code-to-gate pack <command>
+    Commands: list, show, golden-suite, export-policy
+    show:          code-to-gate pack show <id> [--out <file-or-dir>] [--quiet]
+    golden-suite:  code-to-gate pack golden-suite <id> [--out <file-or-dir>] [--quiet]
+    export-policy: code-to-gate pack export-policy <id> --out <file> [--quiet]
+  code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
+  code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--redaction-profile <profile>] [--quiet]
+  code-to-gate explain-gate --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate drift-budget --from <history-dir|artifact-dir> [--out <file-or-dir>] [--failed-budget <n>] [--warning-budget <n>] [--recurrence-budget <n>] [--branch <name>] [--release-branch] [--quiet]
+  code-to-gate review-queue --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate baseline-ledger --from <artifact-dir> [--out <file-or-dir>] [--owner <owner>] [--approver <approver>] [--approval-reason <text>] [--refresh-reason <text>] [--estimated-effort <text>] [--prevention-note <text>] [--quiet]
+  code-to-gate qeos matrix --from <repo-or-artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--redaction-profile <profile>] [--quiet]
+  code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--commit-sha <sha>] [--artifact-url <url>] [--dry-run] [--quiet]
+  code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--redaction-profile <profile>] [--quiet]
+  code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
     Commands: bundle, validate, list, extract
@@ -54,6 +97,10 @@ Options:
   --head <ref>       Head ref for diff (branch, commit, tag)
   --policy <file>    Policy file for readiness evaluation
   --from <dir>       Input artifact directory
+  --baseline <file-or-dir>
+                     Baseline findings/readiness artifact or artifact directory for ratchet gating
+  --manual-evidence <file>
+                     Manual BB evidence artifact used by Policy DSL
   --emit <formats>   Output formats (all, json, yaml, md, mermaid)
   --require-llm      Require LLM analysis
   --llm-provider     LLM provider (ollama, llamacpp, deterministic)
@@ -61,19 +108,43 @@ Options:
   --llm-model        Model name for provider
   --llm-port         Custom port for provider
   --llm-base-url     Localhost base URL for provider (for example http://localhost:11434)
+  --debug-llm-trace  Write redacted LLM request/response trace to output dir
   --cache <mode>     Cache mode: enabled, disabled, force (default: enabled)
                      enabled  - Use incremental cache for faster scans
                      disabled - Skip caching, fresh scan each time
                      force    - Ignore cache, rebuild and update cache
   --parallel <n>     Max parallel workers for file parsing (default: 4)
+  --format <format>  Machine output format for supported commands (json)
+  --quiet            Suppress success summary on stdout; diagnostics still use stderr
   --database-analysis Enable SQL and migration risk analysis
   --plugin-sandbox   Sandbox mode for plugin execution: none, docker (default: none)
   --verbose          Show detailed progress and timing information
   --title <title>    Report title for viewer
   --dark             Enable dark mode for viewer
+  --hosted           Write hosted-static-report.json next to viewer HTML
+  --portal           Treat --from as a runs directory and write hosted-evidence-portal.json
+  --public-url <url> Expected hosted URL for viewer report
+  --hosted-target <target>
+                     Static host target: github-pages, artifact-preview, generic-static
+  --redaction-profile <profile>
+                     Output profile: public, private, regulated
+  --owner <owner>    Baseline ledger debt owner
+  --approver <owner> Baseline ledger approver
   --current <dir>    Current run artifact directory (historical)
   --previous <dir>   Previous run artifact directory (historical)
   --history <dir>    Directory with historical runs for trend analysis
+  --ci-url <url>     CI run URL for release-pack
+  --comment-file <file>
+                     Markdown PR comment output path for pr-review
+  --artifact-url <url>
+                     Published report URL included in pr-review evidence links
+  --repo <owner/repo>
+                     GitHub repository for pr-review-publish
+  --pull <number>    Pull request number for pr-review-publish
+  --commit-sha <sha> Commit SHA recorded in pr-review-publish health evidence
+  --dry-run          Write publish health evidence without posting to GitHub
+  --target-version <version>
+                     Target version for schema migrate; inferred from source version by default
   --help, -h         Show this help
   --version          Show version
 
@@ -141,6 +212,70 @@ async function main(): Promise<number> {
       return await historicalCommand(args, { VERSION, EXIT, getOption });
     }
 
+    if (command === "spec-drift") {
+      return await specDriftCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "rule") {
+      return await ruleCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "pack") {
+      return await packCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "doctor") {
+      return await doctorCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "test-plan") {
+      return await testPlanCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "ownership") {
+      return await ownershipCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "query") {
+      return await queryCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "explain-gate") {
+      return await explainGateCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "drift-budget") {
+      return await driftBudgetCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "review-queue") {
+      return await reviewQueueCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "baseline-ledger") {
+      return await baselineLedgerCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "qeos") {
+      return await qeosCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "release-pack") {
+      return await releasePackCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "pr-review") {
+      return await prReviewCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "pr-review-publish") {
+      return await prReviewPublishCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "plugin-marketplace") {
+      return await pluginMarketplaceCommand(args, { VERSION, EXIT, getOption });
+    }
+
     if (command === "evidence") {
       return await evidenceCommand(args, { VERSION, EXIT, getOption });
     }
@@ -153,11 +288,18 @@ async function main(): Promise<number> {
       return await assuranceCommand(args, { VERSION, EXIT, getOption });
     }
 
-    console.error(`unknown command: ${command}`);
+    emitCliError(`unknown command: ${command}`, {
+      code: "UNKNOWN_COMMAND",
+      command,
+      exitCode: EXIT.USAGE_ERROR,
+    });
     console.error("Run 'code-to-gate --help' for usage information");
     return EXIT.USAGE_ERROR;
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    emitCliError(error instanceof Error ? error.message : String(error), {
+      code: "INTERNAL_ERROR",
+      exitCode: EXIT.INTERNAL_ERROR,
+    });
     return EXIT.INTERNAL_ERROR;
   }
 }

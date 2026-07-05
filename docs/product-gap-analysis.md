@@ -12,6 +12,13 @@
 
 **Phase 1-3 完了済み**。以下のギャップは解消済み。
 
+Completion rows below are implementation completion records. Release-quality
+acceptance evidence is tracked separately in `docs/acceptance-evidence-index.md`
+and `docs/product-maturity-issues.md`. A row marked `完了` here must not be
+used as a public precision or distribution claim unless the corresponding
+evidence-index row has command output, artifact path, reviewer/date, and
+current status.
+
 ### 0.1 Phase 1 完了事項 (OSS Alpha)
 
 | gap | 完了状態 | 証跡 |

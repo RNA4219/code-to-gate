@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/drift-budget.schema.json",
+  "title": "DriftBudgetArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "status", "current", "recurrence", "budget", "branchPolicy", "exceeded", "sourceArtifacts", "summary", "generated_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "drift-budget" },
+    "schema": { "const": "drift-budget@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["within_budget", "exceeded"] },
+    "current": {
+      "type": "object",
+      "required": ["sourceArtifact", "failed", "warnings", "findings"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceArtifact": { "type": "string", "minLength": 1 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "findings": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "recurrence": {
+      "type": "object",
+      "required": ["recurringChecks", "count"],
+      "additionalProperties": false,
+      "properties": {
+        "recurringChecks": { "type": "array", "items": { "$ref": "#/$defs/recurringCheck" } },
+        "count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "required": ["failed", "warnings", "recurringChecks"],
+      "additionalProperties": false,
+      "properties": {
+        "failed": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "recurringChecks": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "branchPolicy": {
+      "type": "object",
+      "required": ["releaseBranch", "blockOnExceeded"],
+      "additionalProperties": false,
+      "properties": {
+        "branch": { "type": "string", "minLength": 1 },
+        "releaseBranch": { "type": "boolean" },
+        "blockOnExceeded": { "type": "boolean" }
+      }
+    },
+    "exceeded": { "type": "array", "items": { "$ref": "#/$defs/exceeded" } },
+    "sourceArtifacts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/sourceArtifact" } },
+    "summary": {
+      "type": "object",
+      "required": ["status", "failed", "warnings", "recurringChecks", "exceeded"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["within_budget", "exceeded"] },
+        "failed": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "recurringChecks": { "type": "integer", "minimum": 0 },
+        "exceeded": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "generated_by": { "const": "ctg-drift-budget-v1" }
+  },
+  "$defs": {
+    "recurringCheck": {
+      "type": "object",
+      "required": ["id", "occurrences", "statuses", "sourceArtifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "occurrences": { "type": "integer", "minimum": 2 },
+        "statuses": { "type": "array", "items": { "enum": ["fail", "warning"] } },
+        "sourceArtifacts": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "exceeded": {
+      "type": "object",
+      "required": ["metric", "actual", "budget", "severity", "sourceIds"],
+      "additionalProperties": false,
+      "properties": {
+        "metric": { "enum": ["failed", "warnings", "recurringChecks"] },
+        "actual": { "type": "integer", "minimum": 0 },
+        "budget": { "type": "integer", "minimum": 0 },
+        "severity": { "enum": ["medium", "high", "critical"] },
+        "sourceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["path", "hashSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "hashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "generatedAt": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" }
+      }
+    }
+  }
+}

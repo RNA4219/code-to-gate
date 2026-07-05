@@ -5,6 +5,8 @@
 **Analyzer**: code-to-gate v1.0.0
 **Total Suppressed**: 162 findings
 
+**Sync policy**: 現行の release gate では RUNBOOK `6.12`、`.ctg/suppressions.yaml`、`docs/acceptance-evidence-index.md` と本 register を同期対象とする。suppression 総数、expired count、broad suppression count は CI の `Summarize suppression debt` step と `self-analysis-debt.json` を最新値として扱う。
+
 ---
 
 ## 負債分類定義

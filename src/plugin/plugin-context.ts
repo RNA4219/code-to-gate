@@ -276,6 +276,23 @@ export class PluginSchemaValidatorImpl implements PluginSchemaValidator {
     }
 
     const o = output as Record<string, unknown>;
+    const allowedTopLevelKeys = new Set([
+      "version",
+      "plugin_name",
+      "metadata",
+      "findings",
+      "risk_seeds",
+      "invariant_seeds",
+      "test_seeds",
+      "diagnostics",
+      "errors",
+    ]);
+
+    for (const key of Object.keys(o)) {
+      if (!allowedTopLevelKeys.has(key)) {
+        errors.push({ path: key, message: "Unexpected top-level plugin output field" });
+      }
+    }
 
     // Validate version
     if (o.version !== "ctg.plugin-output/v1") {
@@ -283,7 +300,9 @@ export class PluginSchemaValidatorImpl implements PluginSchemaValidator {
     }
 
     // Validate findings if present
-    if (o.findings && Array.isArray(o.findings)) {
+    if (o.findings !== undefined && !Array.isArray(o.findings)) {
+      errors.push({ path: "findings", message: "Findings must be an array" });
+    } else if (Array.isArray(o.findings)) {
       for (let i = 0; i < o.findings.length; i++) {
         const findingErrors = this.validateFinding(o.findings[i], `findings[${i}]`);
         errors.push(...findingErrors);
@@ -291,15 +310,25 @@ export class PluginSchemaValidatorImpl implements PluginSchemaValidator {
     }
 
     // Validate risk_seeds if present
-    if (o.risk_seeds && Array.isArray(o.risk_seeds)) {
+    if (o.risk_seeds !== undefined && !Array.isArray(o.risk_seeds)) {
+      errors.push({ path: "risk_seeds", message: "Risk seeds must be an array" });
+    } else if (Array.isArray(o.risk_seeds)) {
       for (let i = 0; i < o.risk_seeds.length; i++) {
         const riskErrors = this.validateRiskSeed(o.risk_seeds[i], `risk_seeds[${i}]`);
         errors.push(...riskErrors);
       }
     }
 
+    for (const arrayField of ["invariant_seeds", "test_seeds", "errors"]) {
+      if (o[arrayField] !== undefined && !Array.isArray(o[arrayField])) {
+        errors.push({ path: arrayField, message: `${arrayField} must be an array` });
+      }
+    }
+
     // Validate diagnostics if present
-    if (o.diagnostics && Array.isArray(o.diagnostics)) {
+    if (o.diagnostics !== undefined && !Array.isArray(o.diagnostics)) {
+      errors.push({ path: "diagnostics", message: "Diagnostics must be an array" });
+    } else if (Array.isArray(o.diagnostics)) {
       for (let i = 0; i < o.diagnostics.length; i++) {
         const diag = o.diagnostics[i] as Record<string, unknown>;
         if (!diag.id || !diag.severity || !diag.code || !diag.message) {
