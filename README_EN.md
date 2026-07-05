@@ -65,6 +65,7 @@ code-to-gate analyze ./my-repo --database-analysis --emit all --out .qh
 | `evidence-dag.json` | Cross-artifact evidence graph |
 | `spec-drift.json` | Docs, schema, CLI, and test drift checks |
 | `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk |
+| `plugin-marketplace.json` | Validated plugin registry for marketplace/distribution review |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 

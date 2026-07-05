@@ -21,6 +21,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [test-plan](#test-plan)
    - [ownership](#ownership)
    - [release-pack](#release-pack)
+   - [plugin-marketplace](#plugin-marketplace)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
    - [plugin-sandbox](#plugin-sandbox)
@@ -61,6 +62,7 @@ These options apply to all commands:
 | `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
 | `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
+| `plugin-marketplace` | Build a validated local plugin registry for distribution review. | `plugin-marketplace.json` |
 
 ### scan
 
@@ -859,7 +861,7 @@ code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-ur
 | `--from <artifact-dir>` | `.qh` | Directory containing release evidence artifacts. |
 | `--out <file-or-dir>` | `<from>/release-pack` | Output ZIP path or directory. Directories receive `release-pack.json`, `release-pack.html`, and `release-pack.zip`. |
 | `--ci-url <url>` | GitHub Actions env when present | CI run URL recorded in the manifest and HTML. |
-| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, test plan, and ownership risk when present. |
+| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, test plan, ownership risk, and plugin marketplace when present. |
 | `--allow-partial` | false | Return OK even when required evidence is missing; the manifest still records `status: "partial"`. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 
@@ -894,6 +896,50 @@ code-to-gate schema validate .qh/release-pack/release-pack.json
 | 0 | OK | Release pack was generated and required evidence is present, or `--allow-partial` was used |
 | 1 | READINESS_NOT_CLEAR | Release pack was generated but required evidence is missing |
 | 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
+### plugin-marketplace
+
+Build a validated local plugin registry artifact from plugin manifests. The
+artifact is intended for marketplace review, CI evidence, and release packs.
+
+**Usage:**
+```bash
+code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--plugins <dir[,dir...]>` | Required | Plugin directories or parent directories containing plugin manifests. Can be repeated. |
+| `--out <file-or-dir>` | `.qh/plugin-marketplace.json` | Output file. If a directory is provided, writes `plugin-marketplace.json` inside it. |
+| `--allow-invalid` | false | Return OK even when invalid manifests are recorded. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `plugin-marketplace.json` | Validated plugin registry entries for rule, reporter, exporter, importer, and language plugins |
+
+**Behavior:**
+- Accepts explicit plugin directories or a parent directory with child plugin manifests.
+- Reuses the existing plugin manifest loader and validation rules.
+- Records invalid manifests as `validation.status: "invalid"` with errors.
+- Returns `PLUGIN_FAILED` when invalid manifests are present unless `--allow-invalid` is used.
+
+**Example:**
+```bash
+code-to-gate plugin-marketplace --plugins ./plugins --out .qh
+code-to-gate schema validate .qh/plugin-marketplace.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Registry generated and valid, or invalid entries allowed |
+| 2 | USAGE_ERROR | Missing plugin paths or invalid arguments |
+| 6 | PLUGIN_FAILED | One or more plugin manifests were invalid |
 
 ---
 

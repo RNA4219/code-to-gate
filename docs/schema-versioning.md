@@ -158,6 +158,7 @@ schemas/
   evidence-ref.schema.json     # Evidence reference
   schema-migration.schema.json # Migration report artifact
   ownership-risk.schema.json   # CODEOWNERS and module ownership risk
+  plugin-marketplace.schema.json # Plugin registry for distribution review
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

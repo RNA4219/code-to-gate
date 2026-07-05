@@ -178,7 +178,6 @@ Commands:
 ## Task Seed QEOS-P2/P3 Backlog
 
 - QEOS-002 PR Reviewer Bot
-- QEOS-017 Plugin Marketplace
 
 ## Task Seed QEOS-P1-06 Policy DSL
 
@@ -316,5 +315,25 @@ Requirements:
 Commands:
 
 - `npx vitest run src/ownership/__tests__/ownership-risk.test.ts src/cli/__tests__/ownership.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P3-01 Plugin Marketplace
+
+Objective: rule、reporter、exporter、importer、language plugin を配布・reviewできる marketplace registry artifact を定義し、既存 plugin manifest validation と sandbox 契約に接続する。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate plugin-marketplace --plugins <dir[,dir...]> --out <file-or-dir>` は plugin manifest 群から `plugin-marketplace.json` を生成できる。
+- registry entry は kind、capabilities、receives、returns、sandbox permissions、distribution metadata、validation status を含む。
+- invalid manifest は `validation.status: invalid` と errors に記録する。
+- `--allow-invalid` がない場合、invalid manifest がある registry は `PLUGIN_FAILED` を返す。
+- `plugin-marketplace.json` は `plugin-marketplace@v1` schema に合格する。
+
+Commands:
+
+- `npx vitest run src/plugin/__tests__/marketplace.test.ts src/cli/__tests__/plugin-marketplace.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`

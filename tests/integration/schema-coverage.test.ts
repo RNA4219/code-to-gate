@@ -146,6 +146,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates plugin-marketplace schema", () => {
+      const schemaFile = schemaPath("plugin-marketplace");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates release-readiness schema", () => {
       const schemaFile = schemaPath("release-readiness");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -268,6 +276,7 @@ describe("schema coverage integration", () => {
         "hosted-static-report.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
+        "plugin-marketplace.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "historical-comparison.schema.json",
@@ -908,6 +917,69 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalOwnershipPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal plugin-marketplace artifact", () => {
+      const minimalMarketplacePath = path.join(tempDir, "minimal-plugin-marketplace.json");
+      writeFileSync(
+        minimalMarketplacePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "plugin-marketplace-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "plugin-marketplace",
+          schema: "plugin-marketplace@v1",
+          completeness: "complete",
+          status: "ready",
+          entries: [
+            {
+              id: "security-rule@1.0.0",
+              name: "security-rule",
+              version: "1.0.0",
+              kind: "rule-plugin",
+              visibility: "public",
+              description: "Security rule plugin.",
+              capabilities: ["evaluate"],
+              receives: ["normalized-repo-graph@v1"],
+              returns: ["findings@v1"],
+              source: { type: "local", path: "plugins/security-rule" },
+              distribution: {
+                homepage: "https://example.com/security-rule",
+                license: "MIT",
+                package: "@example/security-rule",
+              },
+              sandbox: {
+                network: false,
+                read: ["${repoRoot}"],
+                write: [],
+                secrets: [],
+              },
+              validation: {
+                status: "valid",
+                errors: [],
+              },
+            },
+          ],
+          summary: {
+            plugins: 1,
+            valid: 1,
+            invalid: 0,
+            public: 1,
+            private: 0,
+            rulePlugins: 1,
+            reporterPlugins: 0,
+            exporterPlugins: 0,
+            importerPlugins: 0,
+            languagePlugins: 0,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalMarketplacePath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

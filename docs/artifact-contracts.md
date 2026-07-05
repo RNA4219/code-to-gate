@@ -498,6 +498,7 @@ v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を�
 - `schemas/audit.schema.json`
 - `schemas/schema-migration.schema.json`
 - `schemas/ownership-risk.schema.json`
+- `schemas/plugin-marketplace.schema.json`
 
 受入条件:
 

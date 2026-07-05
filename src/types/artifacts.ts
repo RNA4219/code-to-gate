@@ -21,6 +21,7 @@ export const SCHEMA_VERSIONS = {
   hostedStaticReport: "hosted-static-report@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
+  pluginMarketplace: "plugin-marketplace@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1",
@@ -40,6 +41,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   hostedStaticReport: "hosted-static-report@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
+  pluginMarketplace: "plugin-marketplace@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1alpha1",
@@ -620,6 +622,72 @@ export interface OwnershipRiskArtifact extends ArtifactHeader {
     changedFiles: number;
     highRiskModules: number;
     reviewerCandidates: number;
+  };
+}
+
+// === Plugin Marketplace ===
+
+export type PluginMarketplaceStatus = "ready" | "partial" | "empty";
+export type PluginMarketplaceValidationStatus = "valid" | "invalid";
+export type PluginMarketplaceKind =
+  | "rule-plugin"
+  | "language-plugin"
+  | "importer-plugin"
+  | "reporter-plugin"
+  | "exporter-plugin";
+
+export interface PluginMarketplaceEntry {
+  id: string;
+  name?: string;
+  version?: string;
+  kind?: PluginMarketplaceKind;
+  visibility?: "public" | "private";
+  description?: string;
+  capabilities: string[];
+  receives: string[];
+  returns: string[];
+  source: {
+    type: "local";
+    path: string;
+  };
+  distribution: {
+    homepage?: string;
+    license?: string;
+    package?: string;
+  };
+  sandbox: {
+    network: boolean;
+    read: string[];
+    write: string[];
+    secrets: string[];
+  };
+  validation: {
+    status: PluginMarketplaceValidationStatus;
+    errors: Array<{
+      code: string;
+      message: string;
+      path?: string;
+    }>;
+  };
+}
+
+export interface PluginMarketplaceArtifact extends ArtifactHeader {
+  artifact: "plugin-marketplace";
+  schema: "plugin-marketplace@v1";
+  completeness: Completeness;
+  status: PluginMarketplaceStatus;
+  entries: PluginMarketplaceEntry[];
+  summary: {
+    plugins: number;
+    valid: number;
+    invalid: number;
+    public: number;
+    private: number;
+    rulePlugins: number;
+    reporterPlugins: number;
+    exporterPlugins: number;
+    importerPlugins: number;
+    languagePlugins: number;
   };
 }
 

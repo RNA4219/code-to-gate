@@ -26,6 +26,7 @@ optional artifact / optional field を追加する。
 | `hosted-static-report.json` | static hosting manifest for single-file viewer HTML | P2 |
 | `schema-migration.json` | artifact schema migration evidence and validation result | P2 |
 | `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk | P1 |
+| `plugin-marketplace.json` | validated plugin registry for marketplace/distribution review | P3 |
 | `doctor.json` | local/CI readiness diagnosis | P0 |
 
 ## 2. Baseline/Ratchet Gate
@@ -331,3 +332,13 @@ P1 Ownership / Module Risk の初期 acceptance は次の通り。
   file risk と module risk を出力する。
 - owner が存在しない changed source/config file は high risk として記録する。
 - `ownership-risk.json` は `ownership-risk@v1` schema に合格する。
+
+P3 Plugin Marketplace の初期 acceptance は次の通り。
+
+- `code-to-gate plugin-marketplace --plugins <dir[,dir...]> --out <file-or-dir>`
+  は local plugin manifests から registry artifact を生成できる。
+- registry は rule、reporter、exporter、importer、language plugin の kind、
+  capabilities、receives、returns、sandbox permissions、distribution metadata を記録する。
+- invalid manifest は落とさず `validation.status: "invalid"` と errors に記録する。
+- `--allow-invalid` がない場合、invalid manifest があれば `PLUGIN_FAILED` を返す。
+- `plugin-marketplace.json` は `plugin-marketplace@v1` schema に合格する。

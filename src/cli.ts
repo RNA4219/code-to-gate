@@ -19,6 +19,7 @@ import { doctorCommand } from "./cli/doctor.js";
 import { testPlanCommand } from "./cli/test-plan.js";
 import { releasePackCommand } from "./cli/release-pack.js";
 import { ownershipCommand } from "./cli/ownership.js";
+import { pluginMarketplaceCommand } from "./cli/plugin-marketplace.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -51,6 +52,7 @@ Usage:
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
+  code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
     Commands: bundle, validate, list, extract
@@ -203,6 +205,10 @@ async function main(): Promise<number> {
 
     if (command === "release-pack") {
       return await releasePackCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "plugin-marketplace") {
+      return await pluginMarketplaceCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "evidence") {

@@ -116,6 +116,14 @@ const OPTIONAL_INPUTS: InputSpec[] = [
     description: "CODEOWNERS reviewer candidates and module ownership risk.",
   },
   {
+    id: "plugin-marketplace",
+    role: "artifact",
+    label: "Plugin marketplace",
+    files: ["plugin-marketplace.json"],
+    required: false,
+    description: "Validated local plugin registry for rule, reporter, exporter, importer, and language plugins.",
+  },
+  {
     id: "test-seeds",
     role: "artifact",
     label: "Test seeds",

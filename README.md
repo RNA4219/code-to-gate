@@ -87,6 +87,7 @@ preview/experimental surface and should not be treated as part of the stable
 | `hosted-static-report.json` | Static hosting manifest for a single-file HTML report |
 | `schema-migration.json` | Schema migration report and validation result |
 | `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk |
+| `plugin-marketplace.json` | Validated plugin registry for marketplace/distribution review |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 

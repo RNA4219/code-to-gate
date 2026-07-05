@@ -424,18 +424,32 @@ Configuration is passed in the input JSON under `config`.
 
 ## Publishing Plugins
 
+Before publishing or submitting plugins for review, build a local marketplace
+registry artifact:
+
+```bash
+code-to-gate plugin-marketplace --plugins ./plugins --out .qh
+code-to-gate schema validate .qh/plugin-marketplace.json
+```
+
+`plugin-marketplace.json` records rule, reporter, exporter, importer, and
+language plugin manifests with validation status, capabilities, schema inputs
+and outputs, sandbox permissions, and distribution metadata.
+
 ### Public Plugins
 
 1. Create a GitHub repository
 2. Add proper documentation
-3. Publish to npm (optional)
-4. Submit to code-to-gate plugin registry
+3. Generate and validate `plugin-marketplace.json`
+4. Publish to npm (optional)
+5. Submit to code-to-gate plugin registry
 
 ### Private Plugins
 
 1. Place in local directory
 2. Use `visibility: private` in manifest
-3. Reference via `file:` prefix in config:
+3. Generate a private `plugin-marketplace.json` for internal review
+4. Reference via `file:` prefix in config:
 
 ```yaml
 plugins:

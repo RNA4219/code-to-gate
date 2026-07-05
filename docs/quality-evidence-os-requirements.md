@@ -119,3 +119,6 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 - QEOS-015: `code-to-gate ownership --from <artifact-dir>` による
   CODEOWNERS reviewer candidates、file risk、module risk、`ownership-risk@v1`
   artifact。
+- QEOS-017: `code-to-gate plugin-marketplace --plugins <dir>` による
+  rule/reporter/exporter/importer/language plugin registry、manifest validation、
+  `plugin-marketplace@v1` artifact。
