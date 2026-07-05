@@ -24,6 +24,25 @@ Commands:
 - `npx vitest run src/cli/__tests__/readiness.test.ts --reporter=dot`
 - `npm run build`
 
+## Task Seed QEOS-P0-02 Doctor
+
+Objective: OSS利用者とCIが code-to-gate の前提条件を事前診断できるようにする。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate doctor` を追加する。
+- Node/Git/Docker/schema bundle/artifact dir/GitHub Actions context を診断する。
+- `doctor.json` と `doctor@v1` schema を追加する。
+- failed check がある場合は `READINESS_NOT_CLEAR` を返す。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/doctor.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
 ## Task Seed QEOS-P1-01 Evidence DAG
 
 Objective: findings、audit、readiness、QEG、manual-bb、Gatefield、CI artifact を横断する証跡DAGを出す。
@@ -118,7 +137,6 @@ Commands:
 - QEOS-013 Release Evidence Pack
 - QEOS-014 Policy DSL
 - QEOS-015 Ownership / Module Risk
-- QEOS-016 `ctg doctor`
 - QEOS-017 Plugin Marketplace
 - QEOS-018 AI Code Review Mode
 - QEOS-019 Historical Quality Trend

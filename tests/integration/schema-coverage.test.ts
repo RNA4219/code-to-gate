@@ -122,6 +122,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates doctor schema", () => {
+      const schemaFile = schemaPath("doctor");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates diff-analysis schema", () => {
       const schemaFile = schemaPath("diff-analysis");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -201,6 +209,7 @@ describe("schema coverage integration", () => {
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "spec-drift.schema.json",
+        "doctor.schema.json",
         "diff-analysis.schema.json",
         "database-assets.schema.json",
         "self-analysis-debt.schema.json",
@@ -617,6 +626,44 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalSpecDriftPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal doctor artifact", () => {
+      const minimalDoctorPath = path.join(tempDir, "minimal-doctor.json");
+      writeFileSync(
+        minimalDoctorPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "doctor-test-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "doctor",
+          schema: "doctor@v1",
+          completeness: "complete",
+          status: "passed",
+          checks: [
+            {
+              id: "runtime.node",
+              category: "runtime",
+              status: "pass",
+              summary: "Node.js version is supported.",
+              observed: "20.0.0",
+            },
+          ],
+          summary: {
+            checks: 1,
+            passed: 1,
+            warnings: 0,
+            failed: 0,
+            skipped: 0,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalDoctorPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

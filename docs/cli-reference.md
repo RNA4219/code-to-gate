@@ -16,6 +16,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [historical](#historical)
    - [spec-drift](#spec-drift)
    - [rule](#rule)
+   - [doctor](#doctor)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
    - [plugin-sandbox](#plugin-sandbox)
@@ -50,6 +51,7 @@ These options apply to all commands:
 | `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
 | `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
+| `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 
 ### scan
 
@@ -599,6 +601,48 @@ code-to-gate rule new payment-total --category payment --severity critical --out
 |------|------|-------------|
 | 0 | OK | Rule scaffold was created |
 | 2 | USAGE_ERROR | Invalid rule id, category, severity, or existing target without `--force` |
+
+---
+
+### doctor
+
+Diagnose local and CI readiness before running quality gates.
+
+**Usage:**
+```bash
+code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--out <file-or-dir>` | `.qh/doctor.json` | Output file. If a directory is provided, writes `doctor.json` inside it. |
+| `--from <artifact-dir>` | none | Optional artifact directory to verify before downstream validation. |
+| `--require-docker` | false | Treat missing Docker as a failed check for plugin sandbox workflows. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Checks:**
+| Check | Category | Behavior |
+|-------|----------|----------|
+| `runtime.node` | runtime | Fails when Node.js is older than 20. |
+| `tooling.git` | tooling | Warns when Git is not available on PATH. |
+| `tooling.docker` | tooling | Passes when Docker is available; fails only with `--require-docker`. |
+| `filesystem.output` | filesystem | Fails when the output directory cannot be written. |
+| `schema.bundle` | schema | Fails when packaged schemas are missing. |
+| `artifact.from` | artifact | Fails when `--from` points to a missing artifact directory. |
+| `ci.github-actions` | ci | Records GitHub Actions context when present. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `doctor.json` | Diagnostic checks, status, and remediation hints |
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | No failed checks |
+| 1 | READINESS_NOT_CLEAR | One or more checks failed |
+| 2 | USAGE_ERROR | Invalid arguments |
 
 ---
 

@@ -77,7 +77,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-013 | Release Evidence Pack | P1 | QEG、audit、diff、readiness、manual-bb、CI URL、hash をHTML/ZIP化できる |
 | QEOS-014 | Policy DSL | P1 | new/worsened、manual evidence、criticalなどをYAMLで表現できる |
 | QEOS-015 | Ownership / Module Risk | P1 | CODEOWNERS/workspace/module graph から reviewer と影響領域を出せる |
-| QEOS-016 | `ctg doctor` | P0 | Node/Git/Docker/schema/CI/plugin sandbox の導入診断を出せる |
+| QEOS-016 | `ctg doctor` | P0 | Node/Git/Docker/schema/CI/plugin sandbox の導入診断を `doctor.json` として出せる |
 | QEOS-017 | Plugin Marketplace | P3 | rule/reporter/exporter/adapter plugin の配布契約を定義する |
 | QEOS-018 | AI Code Review Mode | P2 | AI生成コード特有のrisk packを選択できる |
 | QEOS-019 | Historical Quality Trend | P2 | QEG/readinessの時系列 trend をviewerに表示できる |
@@ -87,7 +87,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 
 - QEOS-003: `readiness --baseline <path>` で ratchet gate が動く。
 - QEOS-010: 既存 LLM trust boundary と audit hash の仕様を本拡張仕様に接続する。
-- QEOS-016: `ctg doctor` の要求・I/O 契約が仕様化される。
+- QEOS-016: `code-to-gate doctor` が local/CI readiness と remediation を `doctor.json` に出力する。
 - この文書、仕様書、Task Seed、チェックリストが相互参照される。
 
 ## 6. 非機能要件
@@ -102,3 +102,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 
 - QEOS-006: `code-to-gate rule new <id>`、`@quality-harness/code-to-gate/rule-sdk`、
   fixture-based harness、生成README、生成manifest schema。
+- QEOS-016: `code-to-gate doctor`、`doctor@v1` schema、schema validation、
+  Node/Git/Docker/schema/artifact/CI readiness checks。

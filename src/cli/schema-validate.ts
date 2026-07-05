@@ -148,6 +148,7 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "evidence-ref.schema.json",
     "evidence-dag.schema.json",
     "spec-drift.schema.json",
+    "doctor.schema.json",
     "diff-analysis.schema.json",
     "database-assets.schema.json",
     "self-analysis-debt.schema.json",
@@ -257,6 +258,7 @@ const OPTIONAL_ARTIFACTS = [
   "diff.json",
   "evidence-dag.json",
   "spec-drift.json",
+  "doctor.json",
 ];
 
 /**

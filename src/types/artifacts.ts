@@ -473,6 +473,35 @@ export interface SpecDriftArtifact extends ArtifactHeader {
   };
 }
 
+// === Doctor ===
+
+export type DoctorCheckStatus = "pass" | "warn" | "fail" | "skip";
+export type DoctorCheckCategory = "runtime" | "tooling" | "filesystem" | "schema" | "artifact" | "ci";
+
+export interface DoctorCheck {
+  id: string;
+  category: DoctorCheckCategory;
+  status: DoctorCheckStatus;
+  summary: string;
+  observed?: string;
+  remediation?: string;
+}
+
+export interface DoctorArtifact extends ArtifactHeader {
+  artifact: "doctor";
+  schema: "doctor@v1";
+  completeness: Completeness;
+  status: "passed" | "needs_attention" | "failed";
+  checks: DoctorCheck[];
+  summary: {
+    checks: number;
+    passed: number;
+    warnings: number;
+    failed: number;
+    skipped: number;
+  };
+}
+
 // === Normalized Repo Graph (for analyze input) ===
 
 export interface RepoFile {

@@ -44,6 +44,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "self-analysis-debt.json": "self-analysis-debt.schema.json",
   "evidence-dag.json": "evidence-dag.schema.json",
   "spec-drift.json": "spec-drift.schema.json",
+  "doctor.json": "doctor.schema.json",
 };
 
 const DOC_ARTIFACT_IGNORE = new Set([
