@@ -361,7 +361,7 @@ Commands:
 
 Objective: `pr-review@v1` を GitHub Actions comment step だけでなく常設GitHub App/Botからも利用できる安定contractにする。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
@@ -383,7 +383,7 @@ Commands:
 
 Objective: workflow YAML と PR comment action/template を spec-drift の監視対象に追加し、QEG/PR証跡経路の欠落を検出する。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
@@ -400,7 +400,7 @@ Commands:
 
 Objective: PRコメント行から根拠artifactへ逆引きできる Evidence DAG edge と、release pack 標準同梱を実装する。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
@@ -417,7 +417,7 @@ Commands:
 
 Objective: Quality Pack配布単位、Actions権限doctor、oracle gap手動テスト草案、Evidence DAG検索、Historical SLOを追加する。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
