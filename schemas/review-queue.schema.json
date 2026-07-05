@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/review-queue.schema.json",
+  "title": "ReviewQueueArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "items", "summary", "generated_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "review-queue" },
+    "schema": { "const": "review-queue@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "items": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+    "summary": {
+      "type": "object",
+      "required": ["items", "open", "dismissed", "resolved", "critical", "high", "byType"],
+      "additionalProperties": false,
+      "properties": {
+        "items": { "type": "integer", "minimum": 0 },
+        "open": { "type": "integer", "minimum": 0 },
+        "dismissed": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "byType": {
+          "type": "object",
+          "required": ["slo_breach", "baseline_expiry", "manual_oracle_gap", "spec_drift_recurrence"],
+          "additionalProperties": false,
+          "properties": {
+            "slo_breach": { "type": "integer", "minimum": 0 },
+            "baseline_expiry": { "type": "integer", "minimum": 0 },
+            "manual_oracle_gap": { "type": "integer", "minimum": 0 },
+            "spec_drift_recurrence": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "generated_by": { "const": "ctg-review-queue-v1" }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": ["id", "type", "title", "detail", "priority", "status", "sourceArtifact", "sourceIds"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["slo_breach", "baseline_expiry", "manual_oracle_gap", "spec_drift_recurrence"] },
+        "title": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "priority": { "enum": ["low", "medium", "high", "critical"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "dueDate": { "type": "string", "format": "date" },
+        "status": { "enum": ["open", "dismissed", "resolved"] },
+        "dismissalReason": { "type": "string", "minLength": 1 },
+        "sourceArtifact": { "type": "string", "minLength": 1 },
+        "sourceIds": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

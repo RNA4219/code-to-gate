@@ -545,7 +545,7 @@ Commands:
 
 Objective: GitHub App/Bot が SLO逸脱、baseline expiry、manual oracle gap、spec drift recurrence を queue item として管理できる。
 
-Status: planned
+Status: done
 
 Requirements:
 

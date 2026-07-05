@@ -281,6 +281,7 @@ describe("schema coverage integration", () => {
         "gate-explainability.schema.json",
         "drift-budget.schema.json",
         "evidence-provenance-index.schema.json",
+        "review-queue.schema.json",
         "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
@@ -1632,6 +1633,56 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalProvenancePath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal review-queue artifact", () => {
+      const minimalReviewQueuePath = path.join(tempDir, "minimal-review-queue.json");
+      writeFileSync(
+        minimalReviewQueuePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "review-queue-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "review-queue",
+          schema: "review-queue@v1",
+          completeness: "complete",
+          items: [
+            {
+              id: "manual-oracle-gap-001",
+              type: "manual_oracle_gap",
+              title: "Manual oracle required",
+              detail: "Changed source lacks mapped automated tests.",
+              priority: "high",
+              owner: "@quality",
+              dueDate: "2024-01-08",
+              status: "open",
+              sourceArtifact: "test-plan.json",
+              sourceIds: ["oracle-001", "src/payment.ts"],
+            },
+          ],
+          summary: {
+            items: 1,
+            open: 1,
+            dismissed: 0,
+            resolved: 0,
+            critical: 0,
+            high: 1,
+            byType: {
+              slo_breach: 0,
+              baseline_expiry: 0,
+              manual_oracle_gap: 1,
+              spec_drift_recurrence: 0,
+            },
+          },
+          generated_by: "ctg-review-queue-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalReviewQueuePath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

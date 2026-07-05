@@ -681,6 +681,7 @@ v0.1 では、上記 TypeScript 契約をもとに `schemas/*.schema.json` を�
 - `schemas/gate-explainability.schema.json`
 - `schemas/drift-budget.schema.json`
 - `schemas/evidence-provenance-index.schema.json`
+- `schemas/review-queue.schema.json`
 - `schemas/qeos-acceptance-matrix.schema.json`
 
 受入条件:

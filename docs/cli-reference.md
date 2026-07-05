@@ -16,6 +16,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [historical](#historical)
    - [spec-drift](#spec-drift)
    - [drift-budget](#drift-budget)
+   - [review-queue](#review-queue)
    - [rule](#rule)
    - [pack](#pack)
    - [doctor](#doctor)
@@ -62,6 +63,7 @@ These options apply to all commands:
 | `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
 | `drift-budget` | Track failed, warning, and recurring spec-drift checks against branch policy budgets. | `drift-budget.json` |
+| `review-queue` | Convert SLO breaches, baseline expiry, manual oracle gaps, and spec-drift recurrence into App/Bot queue items. | `review-queue.json` |
 | `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
 | `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
@@ -991,6 +993,44 @@ code-to-gate schema validate .qh/drift-budget.json
 | 0 | OK | Drift budget artifact was generated, or exceeded only in non-blocking PR policy |
 | 1 | READINESS_NOT_CLEAR | Budget was exceeded with `--release-branch` |
 | 2 | USAGE_ERROR | Missing input artifact, missing artifact directory, or invalid arguments |
+
+---
+
+### review-queue
+
+Generate App/Bot-native review queue evidence from existing artifacts. The core
+CLI only writes `review-queue.json`; hosted service state, assignment syncing,
+and comment/check publishing remain outside the core runtime.
+
+**Usage:**
+```bash
+code-to-gate review-queue --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+```
+
+**Inputs:**
+| Artifact | Queue item source |
+|----------|-------------------|
+| `historical-comparison.json` | `qualitySlo.indicators[]` with `warn` or `fail` status |
+| `release-readiness.json` | expired `baseline` summary |
+| `test-plan.json` | `oracleGaps[]` manual verification needs |
+| `drift-budget.json` | recurring spec-drift checks |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `review-queue.json` | `review-queue@v1` artifact with queue items, owner, due date, status, dismissal reason, source artifact, and source IDs |
+
+**Example:**
+```bash
+code-to-gate review-queue --from .qh --out .qh
+code-to-gate schema validate .qh/review-queue.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Review queue artifact was generated |
+| 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
 
 ---
 

@@ -26,6 +26,7 @@ export const SCHEMA_VERSIONS = {
   ruleQualityScore: "rule-quality-score@v1",
   driftBudget: "drift-budget@v1",
   evidenceProvenanceIndex: "evidence-provenance-index@v1",
+  reviewQueue: "review-queue@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -55,6 +56,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   ruleQualityScore: "rule-quality-score@v1",
   driftBudget: "drift-budget@v1",
   evidenceProvenanceIndex: "evidence-provenance-index@v1",
+  reviewQueue: "review-queue@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -753,6 +755,45 @@ export interface EvidenceProvenanceIndexArtifact extends ArtifactHeader {
     sourceArtifacts: number;
   };
   generated_by: "ctg-evidence-provenance-index-v1";
+}
+
+// === Review Queue ===
+
+export type ReviewQueueItemType =
+  | "slo_breach"
+  | "baseline_expiry"
+  | "manual_oracle_gap"
+  | "spec_drift_recurrence";
+
+export interface ReviewQueueItem {
+  id: string;
+  type: ReviewQueueItemType;
+  title: string;
+  detail: string;
+  priority: "low" | "medium" | "high" | "critical";
+  owner?: string;
+  dueDate?: string;
+  status: "open" | "dismissed" | "resolved";
+  dismissalReason?: string;
+  sourceArtifact: string;
+  sourceIds: string[];
+}
+
+export interface ReviewQueueArtifact extends ArtifactHeader {
+  artifact: "review-queue";
+  schema: "review-queue@v1";
+  completeness: Completeness;
+  items: ReviewQueueItem[];
+  summary: {
+    items: number;
+    open: number;
+    dismissed: number;
+    resolved: number;
+    critical: number;
+    high: number;
+    byType: Record<ReviewQueueItemType, number>;
+  };
+  generated_by: "ctg-review-queue-v1";
 }
 
 // === Doctor ===

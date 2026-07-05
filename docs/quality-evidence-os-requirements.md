@@ -207,6 +207,10 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   PR comment、viewer section、release-pack HTML、SARIF annotation の locator から
   artifact path、artifact hash、source id、line/anchor へ戻る
   `evidence-provenance-index@v1` を出力する。
+- QEOS-037: `code-to-gate review-queue --from <artifact-dir>` が SLO逸脱、
+  baseline expiry、manual oracle gap、spec drift recurrence を
+  owner/due date/status/dismissal reason/source artifact 付きの `review-queue@v1`
+  item として出力する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。
