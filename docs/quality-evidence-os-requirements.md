@@ -67,7 +67,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-003 | Baseline/Ratchet Gate | P0 | baseline 既知findingは gate 対象外、新規・severity悪化だけ policy 評価対象になる |
 | QEOS-004 | Spec Drift Detector | P1 | README/RUNBOOK/schema/実装/テストの不整合を `spec-drift.json` と `release-risk` finding にできる |
 | QEOS-005 | QEG Viewer | P1 | QEG JSON を standalone HTML として閲覧でき、finding単位に drill-down できる |
-| QEOS-006 | Rule SDK | P2 | `ctg rule new <id>` で rule/test/docs/schema fixture の雛形を生成できる |
+| QEOS-006 | Rule SDK | P2 | `code-to-gate rule new <id>` で rule/test/docs/schema fixture の雛形を生成できる |
 | QEOS-007 | Quality Packs | P2 | `security-basic` などの pack を選択し、rule/policy/export を一括適用できる |
 | QEOS-008 | Auto Test Selection | P1 | diff blast radius から推奨テスト一覧を出力できる |
 | QEOS-009 | Manual BB First-Class | P1 | oracle不足・手動確認が必要な risk を manual-bb seed に明示できる |
@@ -97,3 +97,8 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 - baseline 比較は deterministic に行い、LLM判断に依存しない。
 - public fixtures は synthetic のみを使う。
 - CI では JSON summary と artifact hash により再現性を確認できる。
+
+## 7. 実装済み証跡
+
+- QEOS-006: `code-to-gate rule new <id>`、`@quality-harness/code-to-gate/rule-sdk`、
+  fixture-based harness、生成README、生成manifest schema。

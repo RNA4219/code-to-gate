@@ -216,6 +216,27 @@ Evidence must include:
 
 ## Plugin Implementation
 
+## Rule SDK Scaffold
+
+For TypeScript rules that should live outside the OSS core rule directory, use
+the Rule SDK scaffold command:
+
+```bash
+code-to-gate rule new unsafe-redirect --category security --severity high
+```
+
+The command writes `.ctg/rules/unsafe-redirect/` by default and includes:
+
+- `rule.ts` importing `RulePlugin`, `RuleContext`, `Finding`, and evidence helpers from `@quality-harness/code-to-gate/rule-sdk`
+- `rule.test.ts` using `runRuleFixture` for positive and negative fixtures
+- `fixtures/positive.ts` and `fixtures/negative.ts`
+- `rule.manifest.json` plus `schema/rule.manifest.schema.json`
+- `README.md`
+
+The scaffold is intentionally local-first. It gives rule authors a contract,
+fixture harness, and manifest schema before they package the rule as a process
+plugin or submit it to a future registry.
+
 ### Node.js Example
 
 ```javascript

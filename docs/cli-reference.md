@@ -15,6 +15,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [viewer](#viewer)
    - [historical](#historical)
    - [spec-drift](#spec-drift)
+   - [rule](#rule)
    - [llm-health](#llm-health)
    - [evidence](#evidence)
    - [plugin-sandbox](#plugin-sandbox)
@@ -48,6 +49,7 @@ These options apply to all commands:
 | `readiness` | Evaluate existing analysis artifacts against policy. Requires `--from <artifact-dir>`. | `release-readiness.json` |
 | `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
+| `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
 
 ### scan
 
@@ -547,6 +549,56 @@ code-to-gate spec-drift <repo> --out <dir>
 | 1 | READINESS_NOT_CLEAR | Drift detected and emitted as release-risk findings |
 | 2 | USAGE_ERROR | Invalid arguments or repository path |
 | 10 | INTERNAL_ERROR | Unexpected internal error |
+
+---
+
+### rule
+
+Create custom rule scaffolds for teams that want to extend code-to-gate without
+editing the OSS core rule directory.
+
+**Usage:**
+```bash
+code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `new <id>` | Create a TypeScript rule scaffold under `<out>/<id>` |
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--out <dir>` | `.ctg/rules` | Scaffold root. The command creates `<dir>/<id>`. |
+| `--category <category>` | `security` | Finding category such as `security`, `payment`, `auth`, or `validation`. |
+| `--severity <severity>` | `high` | Default finding severity: `low`, `medium`, `high`, or `critical`. |
+| `--description <text>` | generated | Rule description written to `rule.ts`, `README.md`, and `rule.manifest.json`. |
+| `--force` | false | Overwrite an existing scaffold directory. |
+
+**Generated Files:**
+| Path | Purpose |
+|------|---------|
+| `rule.ts` | RulePlugin implementation using `@quality-harness/code-to-gate/rule-sdk` |
+| `index.ts` | Rule export entry point |
+| `rule.test.ts` | Vitest fixture harness |
+| `fixtures/positive.ts` | Positive fixture with a detectable marker |
+| `fixtures/negative.ts` | Negative fixture |
+| `rule.manifest.json` | Rule metadata |
+| `schema/rule.manifest.schema.json` | Local scaffold manifest schema |
+| `README.md` | Rule authoring notes |
+
+**Example:**
+```bash
+code-to-gate rule new unsafe-redirect --category security --severity high
+code-to-gate rule new payment-total --category payment --severity critical --out .ctg/rules
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Rule scaffold was created |
+| 2 | USAGE_ERROR | Invalid rule id, category, severity, or existing target without `--force` |
 
 ---
 

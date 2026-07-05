@@ -194,3 +194,14 @@ P1 QEG Viewer の acceptance は次の通り。
   artifact hash、Evidence DAG node/edge を表示する。
 - finding node は `<details>` drill-down で connected edge を確認できる。
 - manual-test node と CI run node がある場合は QEG tab から確認できる。
+
+P2 Rule SDK の初期 acceptance は次の通り。
+
+- `code-to-gate rule new <id>` は `.ctg/rules/<id>/` に rule/test/docs/schema
+  fixture を生成する。
+- 生成された rule は `@quality-harness/code-to-gate/rule-sdk` だけを公開SDK
+  import として使う。
+- `rule-sdk` は `createFixtureRuleContext` と `runRuleFixture` を公開し、
+  ルール作者が repository scan なしで positive / negative fixture を検証できる。
+- 既存 core rule と plugin sandbox の契約を壊さず、`./rule-sdk` package export
+  として配布対象に含める。

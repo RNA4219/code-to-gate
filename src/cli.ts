@@ -13,6 +13,7 @@ import { evidenceCommand } from "./cli/evidence.js";
 import { pluginSandboxCommand } from "./cli/plugin-sandbox.js";
 import { assuranceCommand } from "./cli/assurance.js";
 import { specDriftCommand } from "./cli/spec-drift.js";
+import { ruleCommand } from "./cli/rule.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -32,6 +33,10 @@ Usage:
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark]
   code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--history <dir>]
   code-to-gate spec-drift <repo> --out <dir>
+  code-to-gate rule <command>
+    Commands: new
+    new: Create a fixture-based custom rule scaffold
+         code-to-gate rule new <id> [--out <dir>] [--category <category>] [--severity <severity>] [--description <text>] [--force]
   code-to-gate llm-health [--provider <provider>] [--all]
   code-to-gate evidence <command>
     Commands: bundle, validate, list, extract
@@ -151,6 +156,10 @@ async function main(): Promise<number> {
 
     if (command === "spec-drift") {
       return await specDriftCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "rule") {
+      return await ruleCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "evidence") {

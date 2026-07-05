@@ -8,7 +8,11 @@
   },
   "main": "./dist/cli.js",
   "exports": {
-    ".": "./dist/cli.js"
+    ".": "./dist/cli.js",
+    "./rule-sdk": {
+      "types": "./dist/rule-sdk/index.d.ts",
+      "import": "./dist/rule-sdk/index.js"
+    }
   },
   "types": "./dist/cli.d.ts",
   "files": [
@@ -32,7 +36,9 @@
     "dist/viewer/",
     "dist/historical/",
     "dist/plugin/",
+    "dist/rule-sdk/",
     "dist/self-analysis/",
+    "dist/spec-drift/",
     "dist/qeg/",
     "dist/utils/",
     "!dist/**/__tests__/**",

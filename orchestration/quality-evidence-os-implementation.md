@@ -62,7 +62,7 @@ Commands:
 
 Objective: QEG JSON を standalone HTML として drill-down 可能にする。
 
-Status: in_progress
+Status: done
 
 Requirements:
 
@@ -89,10 +89,29 @@ Requirements:
 - `test-plan.json` と human-readable summary を出す。
 - manual-bb seed へ oracle gap を渡す。
 
+## Task Seed QEOS-P2-01 Rule SDK
+
+Objective: OSS core を直接編集せず、外部チームが fixture 付き custom rule を作れる入口を提供する。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate rule new <id>` で `.ctg/rules/<id>/` を生成する。
+- 生成物は rule/test/docs/schema fixture を含む。
+- `@quality-harness/code-to-gate/rule-sdk` を package export として公開する。
+- fixture-based harness で positive / negative fixture を scan なしで評価できる。
+
+Commands:
+
+- `npx vitest run src/rule-sdk/__tests__/rule-harness.test.ts src/cli/__tests__/rule.test.ts --reporter=dot`
+- `npm run build`
+- `npm run lint`
+- `npm run docs:lint-refs`
+
 ## Task Seed QEOS-P2/P3 Backlog
 
 - QEOS-002 PR Reviewer Bot
-- QEOS-006 Rule SDK
 - QEOS-007 Quality Packs
 - QEOS-011 Schema Evolution
 - QEOS-012 Importer Expansion
