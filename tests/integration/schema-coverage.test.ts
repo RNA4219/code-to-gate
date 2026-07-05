@@ -277,6 +277,7 @@ describe("schema coverage integration", () => {
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
         "plugin-marketplace.schema.json",
+        "pr-review.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
         "historical-comparison.schema.json",
@@ -980,6 +981,92 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalMarketplacePath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal pr-review artifact", () => {
+      const minimalPrReviewPath = path.join(tempDir, "minimal-pr-review.json");
+      writeFileSync(
+        minimalPrReviewPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "pr-review-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "pr-review",
+          schema: "pr-review@v1",
+          completeness: "complete",
+          status: "needs_review",
+          markdown: {
+            path: ".qh/pr-review.md",
+            generated: true,
+          },
+          sections: {
+            blockReasons: [
+              {
+                id: "readiness-high",
+                title: "High finding requires review",
+                detail: "High finding matched the readiness policy.",
+                severity: "high",
+                sourceArtifact: "release-readiness.json",
+                sourceIds: ["finding-001"],
+                evidence: [{ path: "release-readiness.json", detail: "failedConditions" }],
+              },
+            ],
+            acceptableReasons: [
+              {
+                id: "baseline-ratchet",
+                title: "Existing debt is covered by baseline",
+                detail: "Only new and worsened findings are gated.",
+                severity: "info",
+                sourceArtifact: "release-readiness.json",
+                sourceIds: [],
+                evidence: [{ path: "release-readiness.json", detail: "baseline" }],
+              },
+            ],
+            additionalTests: [
+              {
+                id: "test-plan-001",
+                title: "Run changed module regression test",
+                detail: "Diff blast radius selected this unit test.",
+                severity: "medium",
+                sourceArtifact: "test-plan.json",
+                sourceIds: ["src/order.ts"],
+                evidence: [{ path: "test-plan.json", detail: "recommendedTests" }],
+              },
+            ],
+            specDiffs: [],
+            artifactLinks: [
+              {
+                id: "readiness",
+                label: "Release readiness",
+                artifact: "release-readiness",
+                path: ".qh/release-readiness.json",
+                role: "readiness",
+                present: true,
+                schema: "release-readiness@v1",
+                hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              },
+            ],
+          },
+          summary: {
+            blockReasons: 1,
+            acceptableReasons: 1,
+            additionalTests: 1,
+            specDiffs: 0,
+            artifactLinks: 1,
+            readinessStatus: "needs_review",
+            findings: 1,
+            critical: 0,
+            high: 1,
+            reviewerCandidates: 0,
+          },
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalPrReviewPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

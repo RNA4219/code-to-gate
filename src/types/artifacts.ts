@@ -22,6 +22,7 @@ export const SCHEMA_VERSIONS = {
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
+  prReview: "pr-review@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1",
@@ -42,6 +43,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
   pluginMarketplace: "plugin-marketplace@v1",
+  prReview: "pr-review@v1",
   audit: "audit@v1",
   normalizedRepoGraph: "normalized-repo-graph@v1",
   stateGateEvidence: "ctg.state-gate/v1alpha1",
@@ -688,6 +690,69 @@ export interface PluginMarketplaceArtifact extends ArtifactHeader {
     exporterPlugins: number;
     importerPlugins: number;
     languagePlugins: number;
+  };
+}
+
+// === PR Review ===
+
+export type PrReviewStatus = "pass" | "needs_review" | "block";
+export type PrReviewItemSeverity = Severity | "info";
+
+export interface PrReviewEvidence {
+  path: string;
+  detail: string;
+}
+
+export interface PrReviewItem {
+  id: string;
+  title: string;
+  detail: string;
+  severity: PrReviewItemSeverity;
+  sourceArtifact: string;
+  sourceIds: string[];
+  evidence: PrReviewEvidence[];
+}
+
+export interface PrReviewArtifactLink {
+  id: string;
+  label: string;
+  artifact: string;
+  path: string;
+  role: "readiness" | "findings" | "tests" | "spec" | "ownership" | "release" | "qeg" | "report" | "artifact";
+  present: boolean;
+  schema?: string;
+  hashSha256?: string;
+  url?: string;
+}
+
+export interface PrReviewArtifact extends ArtifactHeader {
+  artifact: "pr-review";
+  schema: "pr-review@v1";
+  completeness: Completeness;
+  status: PrReviewStatus;
+  markdown: {
+    path: string;
+    generated: boolean;
+  };
+  sections: {
+    blockReasons: PrReviewItem[];
+    acceptableReasons: PrReviewItem[];
+    additionalTests: PrReviewItem[];
+    specDiffs: PrReviewItem[];
+    artifactLinks: PrReviewArtifactLink[];
+    baselineSummary?: PrReviewItem;
+  };
+  summary: {
+    blockReasons: number;
+    acceptableReasons: number;
+    additionalTests: number;
+    specDiffs: number;
+    artifactLinks: number;
+    readinessStatus?: string;
+    findings: number;
+    critical: number;
+    high: number;
+    reviewerCandidates: number;
   };
 }
 

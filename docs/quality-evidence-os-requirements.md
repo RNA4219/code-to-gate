@@ -100,6 +100,9 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 
 ## 7. 実装済み証跡
 
+- QEOS-002: `code-to-gate pr-review --from <artifact-dir>` による
+  `pr-review@v1` artifact と `pr-review.md` 生成。PR comment の固定セクションとして
+  block理由、許容理由、追加テスト、仕様差分、artifact link、baseline summary を出力。
 - QEOS-006: `code-to-gate rule new <id>`、`@quality-harness/code-to-gate/rule-sdk`、
   fixture-based harness、生成README、生成manifest schema。
 - QEOS-016: `code-to-gate doctor`、`doctor@v1` schema、schema validation、

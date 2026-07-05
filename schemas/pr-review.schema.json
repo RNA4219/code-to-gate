@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/pr-review.schema.json",
+  "title": "PrReviewArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "status",
+    "markdown",
+    "sections",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "pr-review" },
+    "schema": { "const": "pr-review@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "status": { "enum": ["pass", "needs_review", "block"] },
+    "markdown": {
+      "type": "object",
+      "required": ["path", "generated"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "generated": { "type": "boolean" }
+      }
+    },
+    "sections": {
+      "type": "object",
+      "required": [
+        "blockReasons",
+        "acceptableReasons",
+        "additionalTests",
+        "specDiffs",
+        "artifactLinks"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "blockReasons": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reviewItem" }
+        },
+        "acceptableReasons": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reviewItem" }
+        },
+        "additionalTests": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reviewItem" }
+        },
+        "specDiffs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reviewItem" }
+        },
+        "artifactLinks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/artifactLink" }
+        },
+        "baselineSummary": { "$ref": "#/$defs/reviewItem" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "blockReasons",
+        "acceptableReasons",
+        "additionalTests",
+        "specDiffs",
+        "artifactLinks",
+        "findings",
+        "critical",
+        "high",
+        "reviewerCandidates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "blockReasons": { "type": "integer", "minimum": 0 },
+        "acceptableReasons": { "type": "integer", "minimum": 0 },
+        "additionalTests": { "type": "integer", "minimum": 0 },
+        "specDiffs": { "type": "integer", "minimum": 0 },
+        "artifactLinks": { "type": "integer", "minimum": 0 },
+        "readinessStatus": { "type": "string", "minLength": 1 },
+        "findings": { "type": "integer", "minimum": 0 },
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "reviewerCandidates": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "reviewItem": {
+      "type": "object",
+      "required": ["id", "title", "detail", "severity", "sourceArtifact", "sourceIds", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+        "sourceArtifact": { "type": "string", "minLength": 1 },
+        "sourceIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path", "detail"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "detail": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "artifactLink": {
+      "type": "object",
+      "required": ["id", "label", "artifact", "path", "role", "present"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "artifact": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "role": {
+          "enum": [
+            "readiness",
+            "findings",
+            "tests",
+            "spec",
+            "ownership",
+            "release",
+            "qeg",
+            "report",
+            "artifact"
+          ]
+        },
+        "present": { "type": "boolean" },
+        "schema": { "type": "string", "minLength": 1 },
+        "hashSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "url": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

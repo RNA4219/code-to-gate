@@ -124,6 +124,22 @@ const OPTIONAL_INPUTS: InputSpec[] = [
     description: "Validated local plugin registry for rule, reporter, exporter, importer, and language plugins.",
   },
   {
+    id: "pr-review",
+    role: "artifact",
+    label: "PR review artifact",
+    files: ["pr-review.json"],
+    required: false,
+    description: "Deterministic PR review sections for block reasons, accepted risk, tests, spec drift, and evidence links.",
+  },
+  {
+    id: "pr-review-comment",
+    role: "artifact",
+    label: "PR review comment",
+    files: ["pr-review.md"],
+    required: false,
+    description: "Markdown PR comment body generated from the PR review artifact.",
+  },
+  {
     id: "test-seeds",
     role: "artifact",
     label: "Test seeds",

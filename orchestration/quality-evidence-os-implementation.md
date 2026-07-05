@@ -175,9 +175,26 @@ Commands:
 - `npm run build`
 - `npm run quality:spec-drift`
 
-## Task Seed QEOS-P2/P3 Backlog
+## Task Seed QEOS-P2-07 PR Reviewer Bot
 
-- QEOS-002 PR Reviewer Bot
+Objective: PRに単なる失敗ログではなく、block理由、許容理由、追加テスト、仕様差分、artifact link を含むレビュー可能な判断材料を出す。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate pr-review --from <artifact-dir> --out <file-or-dir>` は `pr-review.json` と `pr-review.md` を生成できる。
+- `pr-review.json` は `pr-review@v1` schema に合格する。
+- PR comment body は Gate verdict、Blocking reasons、Acceptable risks、Suggested tests、Spec drift、Evidence links、Suppression / baseline summary を含む。
+- block理由は readiness failed conditions、failed spec drift、high-risk unowned changed files、partial release pack から deterministic に生成する。
+- 追加テストは `test-plan.json.recommendedTests` と `test-plan.json.oracleGaps` を使う。
+- `status: "block"` の場合は `READINESS_NOT_CLEAR` を返し、GitHub投稿なしでもCIで判定できる。
+
+Commands:
+
+- `npx vitest run src/pr-review/__tests__/pr-review.test.ts src/cli/__tests__/pr-review.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
 
 ## Task Seed QEOS-P1-06 Policy DSL
 

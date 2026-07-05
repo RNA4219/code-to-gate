@@ -46,6 +46,8 @@ code-to-gate analyze ./my-repo --emit all --out .qh
 code-to-gate ownership --from .qh --out .qh
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 code-to-gate spec-drift ./my-repo --out .qh
+code-to-gate test-plan --from .qh --out .qh
+code-to-gate pr-review --from .qh --out .qh
 code-to-gate export sarif --from .qh --out results.sarif
 code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 code-to-gate viewer --from .qh --out public/index.html --hosted
@@ -75,6 +77,8 @@ database analysis は review 用の補助 artifact を生成しますが、現�
 | `schema-migration.json` | schema migration report と validation result |
 | `ownership-risk.json` | CODEOWNERS reviewer 候補と module ownership risk |
 | `plugin-marketplace.json` | marketplace / 配布 review 用の validated plugin registry |
+| `pr-review.json` | block理由、許容理由、追加テスト、仕様差分、証跡linkを含むPR review artifact |
+| `pr-review.md` | `pr-review.json` から生成する Markdown PR comment body |
 | `analysis-report.md` | 人が読むサマリー |
 | `results.sarif` | GitHub Code Scanning 用 SARIF |
 

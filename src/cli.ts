@@ -20,6 +20,7 @@ import { testPlanCommand } from "./cli/test-plan.js";
 import { releasePackCommand } from "./cli/release-pack.js";
 import { ownershipCommand } from "./cli/ownership.js";
 import { pluginMarketplaceCommand } from "./cli/plugin-marketplace.js";
+import { prReviewCommand } from "./cli/pr-review.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -51,6 +52,7 @@ Usage:
   code-to-gate doctor [--out <file-or-dir>] [--from <artifact-dir>] [--require-docker] [--quiet]
   code-to-gate test-plan --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
   code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-url <url>] [--include-optional] [--allow-partial] [--quiet]
   code-to-gate plugin-marketplace --plugins <dir[,dir...]> [--out <file-or-dir>] [--allow-invalid] [--quiet]
   code-to-gate llm-health [--provider <provider>] [--all]
@@ -110,6 +112,10 @@ Options:
   --previous <dir>   Previous run artifact directory (historical)
   --history <dir>    Directory with historical runs for trend analysis
   --ci-url <url>     CI run URL for release-pack
+  --comment-file <file>
+                     Markdown PR comment output path for pr-review
+  --artifact-url <url>
+                     Published report URL included in pr-review evidence links
   --target-version <version>
                      Target version for schema migrate; inferred from source version by default
   --help, -h         Show this help
@@ -205,6 +211,10 @@ async function main(): Promise<number> {
 
     if (command === "release-pack") {
       return await releasePackCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "pr-review") {
+      return await prReviewCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "plugin-marketplace") {

@@ -20,6 +20,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [doctor](#doctor)
    - [test-plan](#test-plan)
    - [ownership](#ownership)
+   - [pr-review](#pr-review)
    - [release-pack](#release-pack)
    - [plugin-marketplace](#plugin-marketplace)
    - [llm-health](#llm-health)
@@ -60,6 +61,7 @@ These options apply to all commands:
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
 | `test-plan` | Select recommended tests from repo graph and diff blast radius. | `test-plan.json` |
 | `ownership` | Resolve CODEOWNERS reviewer candidates and module ownership risk. | `ownership-risk.json` |
+| `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
 | `viewer` | Generate a standalone HTML report from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json` |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 | `plugin-marketplace` | Build a validated local plugin registry for distribution review. | `plugin-marketplace.json` |
@@ -844,6 +846,68 @@ code-to-gate schema validate .qh/ownership-risk.json
 
 ---
 
+### pr-review
+
+Generate PR-review evidence from existing artifacts and write both a machine
+contract and a Markdown comment body. The command does not post to GitHub by
+itself; GitHub Actions or a GitHub App can publish `pr-review.md` after the
+artifact is generated.
+
+**Usage:**
+```bash
+code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <artifact-dir>` | `.qh` | Directory containing readiness, findings, test-plan, spec-drift, ownership, QEG, and release evidence artifacts. |
+| `--out <file-or-dir>` | `<from>` | Output file or directory. Directories receive `pr-review.json` and `pr-review.md`. |
+| `--comment-file <file>` | `<out>/pr-review.md` | Markdown PR comment body output path. |
+| `--artifact-url <url>` | none | Published viewer, artifact preview, or release evidence URL to include in Evidence Links. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `pr-review.json` | `pr-review@v1` artifact with fixed PR review sections |
+| `pr-review.md` | Markdown PR comment body generated from `pr-review.json` |
+
+**Fixed Sections:**
+| Section | Source Evidence |
+|---------|-----------------|
+| Gate verdict | `release-readiness.json`, `spec-drift.json`, `release-pack.json` |
+| Blocking reasons | readiness failed conditions, failed spec drift, unowned high-risk changed files, partial release pack |
+| Acceptable risks | readiness summary, baseline ratchet, unsupported-claim isolation, spec-drift pass, reviewer candidates |
+| Suggested tests | `test-plan.json.recommendedTests` and `test-plan.json.oracleGaps` |
+| Spec drift | `spec-drift.json.findings` or non-pass checks |
+| Evidence links | present source artifacts, hashes, schemas, hosted report URL |
+| Suppression / baseline summary | `release-readiness.json.baseline` |
+
+**Behavior:**
+- Returns `READINESS_NOT_CLEAR` when the generated PR review status is `block`.
+- Returns OK for `pass` and `needs_review`; downstream checks can decide whether `needs_review` is neutral or required.
+- The generated Markdown is deterministic and does not require LLM generation.
+- GitHub posting is intentionally outside this command so local CI can inspect and archive `pr-review.json` first.
+
+**Example:**
+```bash
+code-to-gate test-plan --from .qh --out .qh
+code-to-gate ownership --from .qh --out .qh
+code-to-gate spec-drift . --out .qh
+code-to-gate pr-review --from .qh --out .qh --artifact-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+code-to-gate schema validate .qh/pr-review.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | PR review was generated with status `pass` or `needs_review` |
+| 1 | READINESS_NOT_CLEAR | PR review was generated with status `block` |
+| 2 | USAGE_ERROR | Missing artifact directory or invalid arguments |
+
+---
+
 ### release-pack
 
 Assemble release review evidence into a manifest, a human-readable HTML review,
@@ -861,7 +925,7 @@ code-to-gate release-pack [--from <artifact-dir>] [--out <file-or-dir>] [--ci-ur
 | `--from <artifact-dir>` | `.qh` | Directory containing release evidence artifacts. |
 | `--out <file-or-dir>` | `<from>/release-pack` | Output ZIP path or directory. Directories receive `release-pack.json`, `release-pack.html`, and `release-pack.zip`. |
 | `--ci-url <url>` | GitHub Actions env when present | CI run URL recorded in the manifest and HTML. |
-| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, test plan, ownership risk, and plugin marketplace when present. |
+| `--include-optional` | false | Include additional artifacts such as findings, evidence DAG, SARIF, doctor, quality pack, test plan, ownership risk, PR review, and plugin marketplace when present. |
 | `--allow-partial` | false | Return OK even when required evidence is missing; the manifest still records `status: "partial"`. |
 | `--quiet` | false | Suppress stdout JSON summary. |
 

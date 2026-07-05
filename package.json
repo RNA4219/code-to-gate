@@ -43,6 +43,7 @@
     "dist/doctor/",
     "dist/test-plan/",
     "dist/ownership/",
+    "dist/pr-review/",
     "dist/release-pack/",
     "dist/qeg/",
     "dist/utils/",

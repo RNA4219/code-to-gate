@@ -45,6 +45,7 @@ The v1 schema freeze establishes the following guarantees:
 | invariants | `invariants@v1` | `invariants@v1` | Stable |
 | test-seeds | `test-seeds@v1` | `test-seeds@v1` | Stable |
 | release-readiness | `release-readiness@v1` | `release-readiness@v1` | Stable |
+| pr-review | `pr-review@v1` | `pr-review@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |
 | database-assets | - | `database-assets@v1alpha1` | Experimental |
@@ -159,6 +160,7 @@ schemas/
   schema-migration.schema.json # Migration report artifact
   ownership-risk.schema.json   # CODEOWNERS and module ownership risk
   plugin-marketplace.schema.json # Plugin registry for distribution review
+  pr-review.schema.json        # PR review artifact and comment body contract
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

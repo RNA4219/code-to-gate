@@ -27,6 +27,8 @@ optional artifact / optional field を追加する。
 | `schema-migration.json` | artifact schema migration evidence and validation result | P2 |
 | `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk | P1 |
 | `plugin-marketplace.json` | validated plugin registry for marketplace/distribution review | P3 |
+| `pr-review.json` | PR review sections for block reasons, accepted risk, tests, spec drift, and evidence links | P2 |
+| `pr-review.md` | Markdown PR comment body generated from `pr-review.json` | P2 |
 | `doctor.json` | local/CI readiness diagnosis | P0 |
 
 ## 2. Baseline/Ratchet Gate
@@ -127,7 +129,18 @@ edge type は `satisfies`、`generated_by`、`evidenced_by`、`gated_by`、
 初期DAGは、QEGの判定エンジンを置き換えない。QEGやPR reviewerが参照できる
 証跡索引として、既存 artifact の hash、path、schema、関係を固定する。
 
-## 4. PR Reviewer Bot 将来仕様
+## 4. PR Reviewer Bot 初期実装と将来仕様
+
+初期実装では GitHub へ直接投稿せず、次のコマンドで deterministic artifact と
+Markdown comment body を生成する。
+
+```bash
+code-to-gate pr-review --from .qh --out .qh --artifact-url <ci-or-report-url>
+```
+
+`pr-review.json` は `artifact: "pr-review"`、`schema: "pr-review@v1"`、
+`status: "pass" | "needs_review" | "block"` を持つ。`status: "block"` の場合、
+CLI は `READINESS_NOT_CLEAR` を返す。
 
 PR comment は次の固定セクションを持つ。
 
@@ -141,6 +154,21 @@ PR comment は次の固定セクションを持つ。
 
 LLM は文章化だけを担い、finding identity、gate status、artifact hash は
 deterministic artifact から取得する。
+
+初期入力:
+
+- `release-readiness.json`
+- `findings.json`
+- `test-plan.json`
+- `spec-drift.json`
+- `ownership-risk.json`
+- `release-pack.json`
+- `evidence-dag.json`
+- `qeg-code-to-gate.json`
+- `hosted-static-report.json`
+
+GitHub App / Action は `pr-review.md` を投稿し、`pr-review.json` をCI artifactとして
+保存する。投稿処理は artifact の外側に置き、ローカル検証と再現性を保つ。
 
 ## 5. Spec Drift Detector 初期実装と将来仕様
 
@@ -201,6 +229,18 @@ P1 QEG Viewer の acceptance は次の通り。
   artifact hash、Evidence DAG node/edge を表示する。
 - finding node は `<details>` drill-down で connected edge を確認できる。
 - manual-test node と CI run node がある場合は QEG tab から確認できる。
+
+P2 PR Reviewer Bot の初期 acceptance は次の通り。
+
+- `code-to-gate pr-review --from <artifact-dir> --out <file-or-dir>` は
+  `pr-review.json` と `pr-review.md` を生成できる。
+- `pr-review.json` は `pr-review@v1` schema に合格する。
+- Markdown comment は Gate verdict、Blocking reasons、Acceptable risks、
+  Suggested tests、Spec drift、Evidence links、Suppression / baseline summary を含む。
+- block理由は `release-readiness.json.failedConditions`、failed `spec-drift.json`、
+  high-risk unowned changed files、partial `release-pack.json` から deterministic に生成される。
+- 追加テストは `test-plan.json.recommendedTests` と `test-plan.json.oracleGaps` から生成される。
+- `status: "block"` の場合は `READINESS_NOT_CLEAR` を返し、GitHub投稿なしでもCIで判定できる。
 
 P2 Rule SDK の初期 acceptance は次の通り。
 

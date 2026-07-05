@@ -45,6 +45,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "schema-migration.json": "schema-migration.schema.json",
   "ownership-risk.json": "ownership-risk.schema.json",
   "plugin-marketplace.json": "plugin-marketplace.schema.json",
+  "pr-review.json": "pr-review.schema.json",
   "release-readiness.json": "release-readiness.schema.json",
   "audit.json": "audit.schema.json",
   "database-assets.json": "database-assets.schema.json",
@@ -58,6 +59,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
 
 const DOC_ARTIFACT_IGNORE = new Set([
   "analysis-report.md",
+  "pr-review.md",
   "results.sarif",
   "sbom.json",
   "qeg-code-to-gate.json",

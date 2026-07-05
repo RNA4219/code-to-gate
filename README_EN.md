@@ -42,6 +42,8 @@ code-to-gate analyze ./my-repo --emit all --out .qh
 code-to-gate ownership --from .qh --out .qh
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 code-to-gate spec-drift ./my-repo --out .qh
+code-to-gate test-plan --from .qh --out .qh
+code-to-gate pr-review --from .qh --out .qh
 code-to-gate export sarif --from .qh --out results.sarif
 code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 ```
@@ -66,6 +68,8 @@ code-to-gate analyze ./my-repo --database-analysis --emit all --out .qh
 | `spec-drift.json` | Docs, schema, CLI, and test drift checks |
 | `ownership-risk.json` | CODEOWNERS reviewer candidates and module ownership risk |
 | `plugin-marketplace.json` | Validated plugin registry for marketplace/distribution review |
+| `pr-review.json` | PR review sections for block reasons, accepted risk, tests, spec drift, and evidence links |
+| `pr-review.md` | Markdown PR comment body generated from `pr-review.json` |
 | `analysis-report.md` | Human-readable summary |
 | `results.sarif` | GitHub Code Scanning format |
 
