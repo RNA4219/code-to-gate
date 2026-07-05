@@ -266,6 +266,8 @@ function checkRequiredPaths(repoRoot: string): SpecDriftCheck {
     "src/cli/export-types.ts",
     "src/cli/schema-validate.ts",
     "tests/integration/schema-coverage.test.ts",
+    ".github/workflows/code-to-gate-pr.yml",
+    ".github/actions/pr-comment/action.yml",
     "schemas",
   ];
   const missingPaths = requiredPaths.filter((requiredPath) => !pathExists(repoRoot, requiredPath));
@@ -280,6 +282,52 @@ function checkRequiredPaths(repoRoot: string): SpecDriftCheck {
     expected: requiredPaths,
     actual: requiredPaths.filter((requiredPath) => pathExists(repoRoot, requiredPath)),
     evidence: collectEvidence(requiredPaths, "Spec drift requires stable comparison surfaces."),
+  });
+}
+
+function checkPrWorkflowEvidencePath(repoRoot: string): SpecDriftCheck {
+  const workflowPath = ".github/workflows/code-to-gate-pr.yml";
+  const content = readText(repoRoot, workflowPath);
+  const requiredTokens = [
+    "test-plan",
+    "evidence-dag",
+    "qeg-code-to-gate",
+    "pr-review",
+    "schema validate .qh/pr-review.json",
+    "./.github/actions/pr-comment",
+    "SPEC_DRIFT_EXIT",
+  ];
+  const missing = missingItems(requiredTokens, content);
+
+  return createCheck({
+    id: "status.pr-workflow.evidence-path",
+    type: "status",
+    status: missing.length > 0 ? "fail" : "pass",
+    summary: missing.length > 0
+      ? `PR workflow missing QEG/PR evidence steps: ${missing.join(", ")}`
+      : "PR workflow preserves QEG, evidence DAG, spec drift, and PR review evidence.",
+    expected: requiredTokens,
+    actual: requiredTokens.filter((token) => content.includes(token)),
+    evidence: collectEvidence([workflowPath], "PR workflow must preserve review evidence even when spec drift fails."),
+  });
+}
+
+function checkPrCommentActionContract(repoRoot: string): SpecDriftCheck {
+  const actionPath = ".github/actions/pr-comment/action.yml";
+  const content = readText(repoRoot, actionPath);
+  const requiredTokens = ["pr-review.md", "pr-review.json", "pull-requests: write"];
+  const missing = missingItems(requiredTokens, content);
+
+  return createCheck({
+    id: "status.pr-comment.template",
+    type: "status",
+    status: missing.length > 0 ? "fail" : "pass",
+    summary: missing.length > 0
+      ? `PR comment action missing review contract tokens: ${missing.join(", ")}`
+      : "PR comment action is bound to pr-review markdown and artifact inputs.",
+    expected: requiredTokens,
+    actual: requiredTokens.filter((token) => content.includes(token)),
+    evidence: collectEvidence([actionPath], "PR comment templates must prefer generated pr-review evidence."),
   });
 }
 
@@ -313,6 +361,8 @@ export function detectSpecDrift(options: DetectorOptions): SpecDriftArtifact {
     checkSchemaRegistration(options.repoRoot),
     checkDocumentedArtifactSchemas(options.repoRoot),
     checkSchemaTestCoverage(options.repoRoot),
+    checkPrWorkflowEvidencePath(options.repoRoot),
+    checkPrCommentActionContract(options.repoRoot),
   ];
   const failedChecks = checks.filter((check) => check.status === "fail");
   const warnings = checks.filter((check) => check.status === "warning");

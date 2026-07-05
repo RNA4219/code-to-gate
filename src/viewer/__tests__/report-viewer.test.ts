@@ -332,6 +332,9 @@ describe("report-viewer", () => {
       expect(html).toContain("release-readiness.json");
       expect(html).toContain("sha256:aaaaaaaa");
       expect(html).toContain("Finding Drill-down");
+      expect(html).toContain("DAG search:");
+      expect(html).toContain("qeg-dag-search");
+      expect(html).toContain("filterQegDag");
       expect(html).toContain("Weak auth guard");
       expect(html).toContain("Manual Test Candidates");
       expect(html).toContain("Manual auth verification");

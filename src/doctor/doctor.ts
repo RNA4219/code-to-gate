@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { constants, existsSync, mkdirSync, writeFileSync, accessSync } from "node:fs";
+import { constants, existsSync, mkdirSync, writeFileSync, accessSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -147,6 +147,41 @@ function checkCi(env: NodeJS.ProcessEnv): DoctorCheck {
   };
 }
 
+function checkGitHubActionsPermissions(repoRoot: string): DoctorCheck {
+  const workflowPath = join(repoRoot, ".github", "workflows", "code-to-gate-pr.yml");
+  if (!existsSync(workflowPath)) {
+    return {
+      id: "ci.github-actions.permissions",
+      category: "ci",
+      status: "skip",
+      summary: "PR workflow file was not found; permission diagnostics skipped.",
+      observed: workflowPath,
+    };
+  }
+
+  const content = readFileSync(workflowPath, "utf8");
+  const requiredPermissions = [
+    "contents: read",
+    "pull-requests: write",
+    "checks: write",
+    "security-events: write",
+  ];
+  const missing = requiredPermissions.filter((permission) => !content.includes(permission));
+
+  return {
+    id: "ci.github-actions.permissions",
+    category: "ci",
+    status: missing.length > 0 ? "warn" : "pass",
+    summary: missing.length > 0
+      ? `GitHub Actions workflow is missing permissions: ${missing.join(", ")}`
+      : "GitHub Actions workflow declares permissions for PR comments, checks, and code scanning.",
+    observed: missing.length > 0 ? `missing=${missing.join(",")}` : "contents:read,pull-requests:write,checks:write,security-events:write",
+    remediation: missing.length > 0
+      ? "Add the missing permissions to .github/workflows/code-to-gate-pr.yml."
+      : undefined,
+  };
+}
+
 function outputPath(out: string | undefined): string {
   if (!out) {
     return resolve(process.cwd(), ".qh", "doctor.json");
@@ -210,6 +245,7 @@ export function createDoctorArtifact(options: DoctorOptions): DoctorResult {
     checkSchemas(),
     checkArtifactDir(options.fromDir),
     checkCi(options.env ?? process.env),
+    checkGitHubActionsPermissions(options.repoRoot ?? process.cwd()),
   ];
   const summary = summarize(checks);
 

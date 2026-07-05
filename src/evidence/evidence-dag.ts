@@ -34,6 +34,11 @@ const ARTIFACT_CANDIDATES: ArtifactCandidate[] = [
   { name: "test-seeds", file: "test-seeds.json", schema: "test-seeds@v1" },
   { name: "invariants", file: "invariants.json", schema: "invariants@v1" },
   { name: "diff-analysis", file: "diff-analysis.json", schema: "diff-analysis@v1" },
+  { name: "test-plan", file: "test-plan.json", schema: "test-plan@v1" },
+  { name: "pr-review", file: "pr-review.json", schema: "pr-review@v1", downstream: true },
+  { name: "pr-review-comment", file: "pr-review.md", schema: "markdown", downstream: true },
+  { name: "hosted-static-report", file: "hosted-static-report.json", schema: "hosted-static-report@v1", downstream: true },
+  { name: "release-pack", file: "release-pack.json", schema: "release-pack@v1", downstream: true },
   { name: "qeg-code-to-gate", file: "qeg-code-to-gate.json", schema: "ctg.qeg-input/v1", downstream: true },
   { name: "manual-bb", file: "manual-bb.json", schema: "ctg.manual-bb/v1", downstream: true },
   { name: "manual-bb-seed", file: "manual-bb-seed.json", schema: "ctg.manual-bb/v1alpha1", downstream: true },
@@ -236,6 +241,51 @@ function addCiRunNode(
   }
 }
 
+function addPrCommentBacklinks(
+  nodes: Map<string, EvidenceDagNode>,
+  edges: Map<string, EvidenceDagEdge>,
+  cwd: string,
+  artifactDir: string
+): void {
+  const commentPath = path.join(artifactDir, "pr-review.md");
+  if (!existsSync(commentPath)) {
+    return;
+  }
+
+  const knownArtifacts = Array.from(nodes.values()).filter((node) => node.type === "artifact");
+  const lines = readFileSync(commentPath, "utf8").split(/\r?\n/);
+  for (const [index, line] of lines.entries()) {
+    const cited = knownArtifacts.filter((artifact) => {
+      const artifactPath = typeof artifact.metadata?.path === "string" ? path.basename(artifact.metadata.path) : "";
+      return line.includes(artifact.label) || (artifactPath.length > 0 && line.includes(artifactPath));
+    });
+    if (cited.length === 0) {
+      continue;
+    }
+
+    const lineNumber = index + 1;
+    const nodeId = `pr-comment-line:${lineNumber}`;
+    addTypedNode(
+      nodes,
+      nodeId,
+      "pr-comment-line",
+      line.trim().slice(0, 96) || `pr-review.md:${lineNumber}`,
+      metadata({
+        path: relativePath(cwd, commentPath),
+        line: lineNumber,
+      })
+    );
+
+    for (const artifact of cited) {
+      addEdge(edges, nodeId, artifact.id, "cites_artifact", metadata({
+        line: lineNumber,
+        sourcePath: relativePath(cwd, commentPath),
+        artifactPath: typeof artifact.metadata?.path === "string" ? artifact.metadata.path : artifact.label,
+      }));
+    }
+  }
+}
+
 export function generateEvidenceDagFromArtifacts(options: GenerateEvidenceDagOptions): EvidenceDagArtifact {
   const findingsPath = path.join(options.artifactDir, "findings.json");
   const findings = JSON.parse(readFileSync(findingsPath, "utf8")) as FindingsArtifact;
@@ -296,6 +346,7 @@ export function generateEvidenceDagFromArtifacts(options: GenerateEvidenceDagOpt
 
   addManualBbNodes(nodes, edges, options.artifactDir);
   addCiRunNode(nodes, edges, options.ciEnv);
+  addPrCommentBacklinks(nodes, edges, options.cwd, options.artifactDir);
 
   const nodeList = Array.from(nodes.values());
   const edgeList = Array.from(edges.values());

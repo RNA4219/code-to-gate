@@ -712,6 +712,11 @@ describe("Historical Comparison", () => {
       expect(report.currentRun.run_id).toBe("run-current");
       expect(report.previousRun.run_id).toBe("run-previous");
       expect(report.riskTrends).toBeDefined();
+      expect(report.qualitySlo).toMatchObject({
+        status: "met",
+        blockerRegressions: 0,
+        criticalOrHighIncrease: 0,
+      });
       expect(report.recommendations).toBeDefined();
       expect(Array.isArray(report.recommendations)).toBe(true);
     });

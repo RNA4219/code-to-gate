@@ -82,6 +82,33 @@ const REQUIRED_INPUTS: InputSpec[] = [
   },
 ];
 
+const STANDARD_OPTIONAL_INPUTS: InputSpec[] = [
+  {
+    id: "pr-review",
+    role: "artifact",
+    label: "PR review artifact",
+    files: ["pr-review.json"],
+    required: false,
+    description: "Deterministic PR review sections for block reasons, accepted risk, tests, spec drift, and evidence links.",
+  },
+  {
+    id: "pr-review-comment",
+    role: "artifact",
+    label: "PR review comment",
+    files: ["pr-review.md"],
+    required: false,
+    description: "Markdown PR comment body generated from the PR review artifact.",
+  },
+  {
+    id: "hosted-static-report",
+    role: "artifact",
+    label: "Hosted static report",
+    files: ["hosted-static-report.json"],
+    required: false,
+    description: "Hosted viewer manifest with public URL and source artifact hashes.",
+  },
+];
+
 const OPTIONAL_INPUTS: InputSpec[] = [
   {
     id: "findings",
@@ -122,22 +149,6 @@ const OPTIONAL_INPUTS: InputSpec[] = [
     files: ["plugin-marketplace.json"],
     required: false,
     description: "Validated local plugin registry for rule, reporter, exporter, importer, and language plugins.",
-  },
-  {
-    id: "pr-review",
-    role: "artifact",
-    label: "PR review artifact",
-    files: ["pr-review.json"],
-    required: false,
-    description: "Deterministic PR review sections for block reasons, accepted risk, tests, spec drift, and evidence links.",
-  },
-  {
-    id: "pr-review-comment",
-    role: "artifact",
-    label: "PR review comment",
-    files: ["pr-review.md"],
-    required: false,
-    description: "Markdown PR comment body generated from the PR review artifact.",
   },
   {
     id: "test-seeds",
@@ -353,6 +364,10 @@ function countChangedFiles(diff: Record<string, unknown> | null): number {
   return Array.isArray(changedFiles) ? changedFiles.length : 0;
 }
 
+function hostedReportUrl(hosted: Record<string, unknown> | null): string | undefined {
+  return typeof hosted?.publicUrl === "string" ? hosted.publicUrl : undefined;
+}
+
 function escapeHtml(value: unknown): string {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -425,6 +440,7 @@ function generateHtml(artifact: ReleasePackArtifact): string {
       <div class="metric">Manual Candidates<b>${artifact.summary.manualTestCandidates}</b></div>
     </div>
     ${artifact.ci.url ? `<p>CI: <a href="${escapeHtml(artifact.ci.url)}">${escapeHtml(artifact.ci.url)}</a></p>` : "<p class=\"missing\">CI URL missing</p>"}
+    ${artifact.summary.hostedReportUrl ? `<p>Hosted report: <a href="${escapeHtml(artifact.summary.hostedReportUrl)}">${escapeHtml(artifact.summary.hostedReportUrl)}</a></p>` : ""}
   </section>
 
   <section>
@@ -488,13 +504,16 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
   mkdirSync(path.dirname(outputs.zipPath), { recursive: true });
 
   const requiredEntries = REQUIRED_INPUTS.map((spec) => entryFromSpec(fromDir, spec));
+  const standardEntries = STANDARD_OPTIONAL_INPUTS.map((spec) => entryFromSpec(fromDir, spec)).filter((entry) => entry.present);
+  const standardIds = new Set(STANDARD_OPTIONAL_INPUTS.map((spec) => spec.id));
   const optionalEntries = options.includeOptional
     ? OPTIONAL_INPUTS.map((spec) => entryFromSpec(fromDir, spec)).filter((entry) => entry.present)
+      .filter((entry) => !standardIds.has(entry.id))
     : [];
   const ci = options.ciUrl
     ? { url: options.ciUrl, provider: "manual" as const }
     : ciUrlFromEnv(options.env ?? process.env);
-  const entries = [...requiredEntries, ciEntry(ci.url), ...optionalEntries];
+  const entries = [...requiredEntries, ciEntry(ci.url), ...standardEntries, ...optionalEntries];
   const missingRequired = entries.filter((entry) => entry.kind === "required" && !entry.present);
 
   const qeg = firstParsed(fromDir, ["qeg-code-to-gate.json"]);
@@ -502,6 +521,7 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
   const diff = firstParsed(fromDir, ["diff-analysis.json"]);
   const manual = firstParsed(fromDir, ["manual-bb.json", "manual-bb-seed.json"]);
   const findings = firstParsed(fromDir, ["findings.json"]);
+  const hosted = firstParsed(fromDir, ["hosted-static-report.json"]);
   const header = baseHeader(fromDir);
   const generatedAt = (options.now ?? new Date()).toISOString();
 
@@ -533,6 +553,7 @@ export function createReleasePack(options: ReleasePackOptions): ReleasePackResul
       manualTestCandidates: countManualCandidates(manual),
       changedFiles: countChangedFiles(diff),
       ciUrl: ci.url,
+      hostedReportUrl: hostedReportUrl(hosted),
     },
   };
 

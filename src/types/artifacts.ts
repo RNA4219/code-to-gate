@@ -322,6 +322,9 @@ export interface ReleaseReadinessBaselineSummary {
   resolvedFindings: number;
   gatedFindingIds: string[];
   resolvedFindingIds: string[];
+  owner?: string;
+  expiresAt?: string;
+  expired?: boolean;
 }
 
 export interface ReleaseReadinessArtifact extends ArtifactHeader {
@@ -403,7 +406,8 @@ export type EvidenceDagNodeType =
   | "artifact"
   | "verdict"
   | "manual-test"
-  | "ci-run";
+  | "ci-run"
+  | "pr-comment-line";
 
 export type EvidenceDagEdgeType =
   | "satisfies"
@@ -411,7 +415,8 @@ export type EvidenceDagEdgeType =
   | "evidenced_by"
   | "gated_by"
   | "exports_to"
-  | "requires_manual_oracle";
+  | "requires_manual_oracle"
+  | "cites_artifact";
 
 export interface EvidenceDagNode {
   id: string;
@@ -545,6 +550,14 @@ export interface TestPlanOracleGap {
   sourcePath: string;
   reason: string;
   suggestedManualTest: string;
+  manualTestDraft?: {
+    title: string;
+    objective: string;
+    steps: string[];
+    expectedResult: string;
+    priority: TestPlanPriority;
+    sourcePath: string;
+  };
   evidence: TestPlanEvidence[];
 }
 
@@ -804,6 +817,10 @@ export interface QualityPackDefinition {
   policy: QualityPackPolicyProfile;
   exports: string[];
   recommendedCommands: string[];
+  distribution: {
+    sampleRepo: string;
+    expectedArtifacts: string[];
+  };
 }
 
 export interface QualityPackArtifact extends ArtifactHeader {
@@ -869,6 +886,7 @@ export interface ReleasePackArtifact extends ArtifactHeader {
     manualTestCandidates: number;
     changedFiles: number;
     ciUrl?: string;
+    hostedReportUrl?: string;
   };
 }
 

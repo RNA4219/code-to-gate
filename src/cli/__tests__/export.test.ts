@@ -363,6 +363,11 @@ describe("export CLI", () => {
         }),
         "utf8"
       );
+      writeFileSync(
+        path.join(tempOutDir, "pr-review.md"),
+        ["## Evidence links", "- Findings: findings.json", "- Readiness: release-readiness.json"].join("\n"),
+        "utf8"
+      );
 
       const { exitCode, output } = await runExport("evidence-dag", tempOutDir);
 
@@ -378,8 +383,10 @@ describe("export CLI", () => {
         expect.objectContaining({ id: "rule:WEAK_AUTH_GUARD", type: "rule" }),
         expect.objectContaining({ id: "finding:finding-auth", type: "finding" }),
         expect.objectContaining({ id: "artifact:findings", type: "artifact" }),
+        expect.objectContaining({ id: "artifact:pr-review-comment", type: "artifact" }),
         expect.objectContaining({ id: "verdict:blocked_input", type: "verdict" }),
         expect.objectContaining({ id: "manual-test:risk-finding-auth", type: "manual-test" }),
+        expect.objectContaining({ id: "pr-comment-line:2", type: "pr-comment-line" }),
       ]));
       expect(edges).toEqual(expect.arrayContaining([
         expect.objectContaining({ source: "requirement:QEOS-001", target: "rule:WEAK_AUTH_GUARD", type: "satisfies" }),
@@ -387,6 +394,7 @@ describe("export CLI", () => {
         expect.objectContaining({ source: "finding:finding-auth", target: "artifact:findings", type: "evidenced_by" }),
         expect.objectContaining({ source: "artifact:release-readiness", target: "verdict:blocked_input", type: "gated_by" }),
         expect.objectContaining({ source: "finding:finding-auth", target: "manual-test:risk-finding-auth", type: "requires_manual_oracle" }),
+        expect.objectContaining({ source: "pr-comment-line:2", target: "artifact:findings", type: "cites_artifact" }),
       ]));
     });
   });

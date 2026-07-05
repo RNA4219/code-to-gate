@@ -422,6 +422,11 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
           `Baseline ratchet: review ${baselineResult.summary.newFindings} new and ${baselineResult.summary.worsenedFindings} worsened finding(s).`
         );
       }
+      if (baselineResult.summary.expired) {
+        recommendedActions.push(`Baseline ratchet: baseline expired at ${baselineResult.summary.expiresAt}; assign owner and refresh or remove known debt.`);
+      } else if (!baselineResult.summary.owner) {
+        recommendedActions.push("Baseline ratchet: owner is not set; set CTG_BASELINE_OWNER for debt accountability.");
+      }
     }
     if (manualEvidenceFindingIds.length > 0) {
       recommendedActions.push(`Policy DSL: manual evidence references ${manualEvidenceFindingIds.length} finding/risk id(s).`);

@@ -30,6 +30,7 @@
     "risksComparison": { "$ref": "#/$defs/risksComparison" },
     "readinessComparison": { "$ref": "#/$defs/readinessComparison" },
     "riskTrends": { "$ref": "#/$defs/riskTrends" },
+    "qualitySlo": { "$ref": "#/$defs/qualitySlo" },
     "recommendations": {
       "type": "array",
       "items": { "type": "string" }
@@ -241,6 +242,30 @@
         "historyPoints": {
           "type": "array",
           "items": { "$ref": "#/$defs/trendPoint" }
+        }
+      }
+    },
+    "qualitySlo": {
+      "type": "object",
+      "required": ["status", "blockerRegressions", "criticalOrHighIncrease", "readinessDegraded", "indicators"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["met", "at_risk", "breached"] },
+        "blockerRegressions": { "type": "integer", "minimum": 0 },
+        "criticalOrHighIncrease": { "type": "integer", "minimum": 0 },
+        "readinessDegraded": { "type": "boolean" },
+        "indicators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "status", "summary"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "status": { "enum": ["pass", "warn", "fail"] },
+              "summary": { "type": "string", "minLength": 1 }
+            }
+          }
         }
       }
     }

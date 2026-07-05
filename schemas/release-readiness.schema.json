@@ -71,7 +71,10 @@
         "unchangedFindings": { "type": "integer", "minimum": 0 },
         "resolvedFindings": { "type": "integer", "minimum": 0 },
         "gatedFindingIds": { "type": "array", "items": { "type": "string" } },
-        "resolvedFindingIds": { "type": "array", "items": { "type": "string" } }
+        "resolvedFindingIds": { "type": "array", "items": { "type": "string" } },
+        "owner": { "type": "string", "minLength": 1 },
+        "expiresAt": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+        "expired": { "type": "boolean" }
       }
     },
     "selfAnalysis": {

@@ -1,6 +1,7 @@
 name: 'code-to-gate PR Comment'
 description: 'Create a PR comment with code-to-gate analysis results'
 author: 'code-to-gate'
+# Required caller permission: pull-requests: write
 
 inputs:
   artifact_dir:
@@ -18,6 +19,10 @@ inputs:
     description: 'Fail the action if comment creation fails'
     required: false
     default: 'true'
+  pr-review.json:
+    description: 'Deterministic pr-review artifact; generated alongside pr-review.md'
+    required: false
+    default: ''
 
 outputs:
   comment_id:

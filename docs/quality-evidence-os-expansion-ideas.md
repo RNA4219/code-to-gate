@@ -53,3 +53,32 @@ plugin marketplace を作る前に、rule 自体の品質を測る。
 - CLI target 追加時に `--help` と CLI reference の更新を要求する。
 - RUNBOOK / Task Seed / CI workflow まで比較範囲を広げ、実装済み宣言と
   実装証跡のズレを status drift として扱う。
+
+## 6. Evidence Provenance Index
+
+PRコメント、viewer行、release-pack HTML、SARIF annotation など、人間が見る
+surface から元 artifact/hash/source id へ戻れる逆引き index を独立artifact化する。
+`evidence-dag` の edge を補完し、外部BotやIDE拡張も同じ索引を使えるようにする。
+
+## 7. App-Native Review Queue
+
+GitHub App化した PR reviewer が、単発コメントではなく repository 横断の review queue
+を持つ。SLO逸脱、baseline expiry、manual oracle gap を queue item として蓄積し、
+担当owner、due date、dismissal reason を管理する。
+
+## 8. Quality Pack Golden Repository Suite
+
+各 quality pack に sample repo と expected artifact を持たせるだけでなく、
+golden repository suite として定期実行し、pack更新時に検出力と false positive を
+継続測定する。Community Rule Quality Score の入力にもする。
+
+## 9. Baseline Debt Ledger
+
+baseline を単なる比較入力ではなく、owner、expiry、承認者、更新理由、残債金額/工数、
+再発防止メモを持つ debt ledger に拡張する。期限切れ baseline は release gate と
+review queue の両方に表示する。
+
+## 10. Hosted Evidence Portal
+
+`viewer --hosted` を単一HTMLから evidence portal へ拡張し、複数run、historical SLO、
+release pack、manual-bb結果、PR review backlink を横断検索できる静的サイトとして生成する。

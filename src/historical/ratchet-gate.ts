@@ -20,6 +20,9 @@ export interface BaselineRatchetSummary {
   resolvedFindings: number;
   gatedFindingIds: string[];
   resolvedFindingIds: string[];
+  owner?: string;
+  expiresAt?: string;
+  expired?: boolean;
 }
 
 export interface BaselineRatchetResult {
@@ -199,6 +202,9 @@ export function evaluateBaselineRatchet(
   const resolvedFindingIds = baseline.artifact.findings
     .filter((finding) => !seenBaselineKeys.has(findingIdentity(finding)))
     .map((finding) => finding.id);
+  const owner = process.env.CTG_BASELINE_OWNER;
+  const expiresAt = process.env.CTG_BASELINE_EXPIRES_AT;
+  const expired = expiresAt ? Date.parse(expiresAt) < Date.now() : undefined;
 
   return {
     gatedFindings,
@@ -214,6 +220,9 @@ export function evaluateBaselineRatchet(
       resolvedFindings: resolvedFindingIds.length,
       gatedFindingIds: gatedFindings.map((finding) => finding.id),
       resolvedFindingIds,
+      owner,
+      expiresAt,
+      expired,
     },
   };
 }

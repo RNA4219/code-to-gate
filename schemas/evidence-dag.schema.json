@@ -23,7 +23,7 @@
         "properties": {
           "id": { "type": "string" },
           "type": {
-            "enum": ["requirement", "rule", "finding", "artifact", "verdict", "manual-test", "ci-run"]
+            "enum": ["requirement", "rule", "finding", "artifact", "verdict", "manual-test", "ci-run", "pr-comment-line"]
           },
           "label": { "type": "string" },
           "metadata": {
@@ -52,7 +52,8 @@
               "evidenced_by",
               "gated_by",
               "exports_to",
-              "requires_manual_oracle"
+              "requires_manual_oracle",
+              "cites_artifact"
             ]
           },
           "metadata": {

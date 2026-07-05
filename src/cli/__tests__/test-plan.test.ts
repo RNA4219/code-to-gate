@@ -151,7 +151,13 @@ describe("test-plan CLI", () => {
     );
     expect(plan.oracleGaps).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ sourcePath: "src/payment.ts" }),
+        expect.objectContaining({
+          sourcePath: "src/payment.ts",
+          manualTestDraft: expect.objectContaining({
+            priority: "high",
+            sourcePath: "src/payment.ts",
+          }),
+        }),
       ])
     );
   });

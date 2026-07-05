@@ -382,3 +382,66 @@ P3 Plugin Marketplace の初期 acceptance は次の通り。
 - invalid manifest は落とさず `validation.status: "invalid"` と errors に記録する。
 - `--allow-invalid` がない場合、invalid manifest があれば `PLUGIN_FAILED` を返す。
 - `plugin-marketplace.json` は `plugin-marketplace@v1` schema に合格する。
+
+## 追加拡張 acceptance QEOS-021..030
+
+P2 PR Review App Mode の初期 acceptance は次の通り。
+
+- `pr-review@v1` は GitHub Actions step と常設GitHub App/Bot の両方が使える安定入力である。
+- App/Bot は `pr-review.md` の content hash と run id を保持し、同一PRの既存コメントを更新できる。
+- App/Bot contract は repository、pull request、commit sha、artifact URL、comment marker、permission要求を記録する。
+
+P1 Spec Drift Surface Expansion の初期 acceptance は次の通り。
+
+- `code-to-gate spec-drift <repo>` は `.github/workflows/code-to-gate-pr.yml` の QEG/PR review 生成経路を検査する。
+- workflow に `test-plan`、`evidence-dag`、`qeg-code-to-gate`、`pr-review`、schema validation、PR comment action が欠ける場合は drift finding にする。
+- `.github/actions/pr-comment/action.yml` は `pr-review.md` を優先して投稿する contract を持つ。
+- spec-drift が失敗しても PR review artifact と comment body を生成する workflow 構造を検査できる。
+
+P1 PR Comment Evidence Backlink の初期 acceptance は次の通り。
+
+- `evidence-dag@v1` は `pr-comment-line` node と `cites_artifact` edge を持てる。
+- `pr-review.md` の各 evidence/artifact link 行から、対応する artifact node へ逆引きできる。
+- edge metadata は `line`、`sourcePath`、`artifactPath` を保持する。
+
+P1 Standard Release Review Pack の初期 acceptance は次の通り。
+
+- `release-pack` は `--include-optional` なしでも `pr-review.json`、`pr-review.md`、`hosted-static-report.json` を検出して標準同梱する。
+- `hosted-static-report.json.publicUrl` がある場合、`release-pack.json.summary.hostedReportUrl` と HTML に表示する。
+- ZIP には標準同梱 artifact が `artifacts/` 配下に含まれる。
+
+P2 Quality Pack Distribution Unit の初期 acceptance は次の通り。
+
+- `quality-pack@v1` は `distribution.sampleRepo` と `distribution.expectedArtifacts` を持てる。
+- bundled pack は最低1つの sample repo と expected artifact filename を宣言する。
+- marketplace や docs は pack を policy断片ではなく検証可能な配布単位として扱う。
+
+P0 Doctor GitHub Actions Permissions の初期 acceptance は次の通り。
+
+- `code-to-gate doctor` は `.github/workflows/code-to-gate-pr.yml` を読み、PR comment / code scanning / checks に必要な `permissions` を検査する。
+- `pull-requests: write`、`contents: read`、`security-events: write`、`checks: write` の不足は warning 以上で記録する。
+- workflow が存在しない場合は skip とし、CI実行時だけを根拠に権限を推測しない。
+
+P1 Baseline Ownership and Expiry の初期 acceptance は次の通り。
+
+- baseline summary は optional `owner`、`expiresAt`、`expired` を持てる。
+- expired baseline は readiness の failed condition または warning として surface される。
+- owner がない baseline は remediation として owner 設定を促す。
+
+P1 Manual BB Drafts from Oracle Gaps の初期 acceptance は次の通り。
+
+- `test-plan.json.oracleGaps[]` は manual-bb がそのまま取り込める `manualTestDraft` を持つ。
+- draft は title、objective、steps、expectedResult、priority、sourcePath を含む。
+- automated test がない source file は suggestedManualTest だけでなく、実行可能な手動テスト草案に変換される。
+
+P2 Evidence DAG Search and Filter の初期 acceptance は次の通り。
+
+- viewer の Evidence DAG section は node/edge の text search を提供する。
+- type filter により `finding`、`artifact`、`verdict`、`manual-test`、`pr-comment-line` などを絞り込める。
+- 検索・filter は standalone HTML 内で完結し、外部networkに依存しない。
+
+P2 Historical Quality SLO の初期 acceptance は次の通り。
+
+- `historical-comparison@v1` は optional `qualitySlo` summary を持てる。
+- SLO indicator は blocker regression、high/critical増加、readiness低下、manual oracle gap増加を追跡する。
+- viewer は SLO status を Historical tab に表示する。

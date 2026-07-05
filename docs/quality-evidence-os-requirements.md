@@ -82,6 +82,16 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-018 | AI Code Review Mode | P2 | AI生成コード特有のrisk packを選択できる |
 | QEOS-019 | Historical Quality Trend | P2 | QEG/readinessの時系列 trend をviewerに表示できる |
 | QEOS-020 | Hosted Static Report | P2 | GitHub Pages/artifact preview 向け単一HTMLを生成できる |
+| QEOS-021 | PR Review App Mode | P2 | GitHub Actions comment step だけに依存せず、常設Bot/Appが `pr-review.json` / `pr-review.md` を投稿・更新できる contract を持つ |
+| QEOS-022 | Spec Drift Surface Expansion | P1 | workflow YAML と PR comment action/template も spec-drift の監視対象に含め、QEG/PR証跡生成経路の欠落を検出する |
+| QEOS-023 | PR Comment Evidence Backlink | P1 | `pr-review.md` の行と根拠 artifact を `evidence-dag.json` の逆引き edge で追跡できる |
+| QEOS-024 | Standard Release Review Pack | P1 | `release-pack` は `pr-review.md` と hosted report URL/manifest を標準同梱対象として扱う |
+| QEOS-025 | Quality Pack Distribution Unit | P2 | quality pack は sample repo と expected artifact を持つ実配布単位として export できる |
+| QEOS-026 | Doctor GitHub Actions Permissions | P0 | `ctg doctor` は GitHub Actions の権限不足を workflow file から診断できる |
+| QEOS-027 | Baseline Ownership and Expiry | P1 | baseline/ratchet は owner と expiry を持ち、期限切れ debt を明示できる |
+| QEOS-028 | Manual BB Drafts from Oracle Gaps | P1 | `oracleGaps` から手動ブラックボックステストケース草案を自動生成できる |
+| QEOS-029 | Evidence DAG Search and Filter | P2 | viewer は Evidence DAG node/edge を検索・filter できる |
+| QEOS-030 | Historical Quality SLO | P2 | historical comparison は品質SLO indicator を出し、regression だけでなくSLO逸脱を追跡できる |
 
 ## 5. P0 完了条件
 
@@ -147,3 +157,7 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   readiness/finding trend と regression の時系列表示。
 - QEOS-020: `code-to-gate viewer --hosted` による単一HTML品質レポートと
   `hosted-static-report@v1` manifest の GitHub Pages / artifact preview 対応。
+- QEOS-021..030: PR review App contract、workflow/comment spec-drift、PR comment
+  backlink、standard release review pack、quality pack distribution、Actions
+  permission doctor、baseline owner/expiry、manual-bb draft、DAG search、quality SLO
+  を追加拡張対象として定義。

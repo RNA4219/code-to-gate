@@ -148,7 +148,7 @@ function renderEvidenceDagNode(node: EvidenceDagNode, edges: EvidenceDagEdge[]):
   const metadata = node.metadata ? Object.entries(node.metadata) : [];
 
   return `
-    <details class="risk-actions">
+    <details class="risk-actions qeg-dag-node" data-qeg-node-type="${escapeHtml(node.type)}" data-qeg-node-text="${escapeHtml(`${node.id} ${node.type} ${node.label} ${JSON.stringify(node.metadata ?? {})}`.toLowerCase())}">
       <summary>
         <span class="badge">${escapeHtml(node.type)}</span>
         <strong>${escapeHtml(node.label)}</strong>
@@ -198,6 +198,7 @@ export function generateQegSection(
   const manualNodes = evidenceDag?.nodes.filter((node) => node.type === "manual-test") ?? [];
   const ciRunNodes = evidenceDag?.nodes.filter((node) => node.type === "ci-run") ?? [];
   const artifactNodes = evidenceDag?.nodes.filter((node) => node.type === "artifact") ?? [];
+  const dagNodeTypes = evidenceDag ? Array.from(new Set(evidenceDag.nodes.map((node) => node.type))).sort() : [];
 
   return `
 <div id="qeg-tab" class="tab-content">
@@ -255,6 +256,22 @@ export function generateQegSection(
       <strong>Evidence DAG:</strong>
       <p>${evidenceDag.summary.edgeCount} edges, ${artifactNodes.length} artifacts, ${manualNodes.length} manual test candidates, ${ciRunNodes.length} CI runs.</p>
     </div>
+    <div class="risk-actions">
+      <strong>DAG search:</strong>
+      <div class="finding-meta">
+        <label class="finding-meta-label" for="qeg-dag-search">Search</label>
+        <input id="qeg-dag-search" type="search" placeholder="node id, label, metadata" oninput="filterQegDag()" />
+        <label class="finding-meta-label" for="qeg-dag-type">Type</label>
+        <select id="qeg-dag-type" onchange="filterQegDag()">
+          <option value="all">all</option>
+          ${dagNodeTypes.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join("\n")}
+        </select>
+        <span id="qeg-dag-count">${evidenceDag.nodes.length}</span>
+      </div>
+      <div>
+        ${evidenceDag.nodes.map((node) => renderEvidenceDagNode(node, evidenceDag.edges)).join("\n")}
+      </div>
+    </div>
     <div class="section">
       <h3>Finding Drill-down</h3>
       ${findingNodes.length > 0
@@ -289,6 +306,7 @@ export function generateHistoricalSection(
 
   const summary = historical.findingsComparison.summary;
   const trendPoints = historical.riskTrends.historyPoints ?? [];
+  const qualitySlo = historical.qualitySlo;
   const bars = trendPoints.slice(-12).map((point) => {
     const total = Math.max(point.totalFindings, 1);
     const height = Math.min(100, Math.max(8, total * 6));
@@ -315,6 +333,7 @@ export function generateHistoricalSection(
     </div>
     <div class="risk-narrative">
       <p>Trend: ${escapeHtml(historical.riskTrends.trendDirection)} (score ${historical.riskTrends.trendScore.toFixed(2)})</p>
+      ${qualitySlo ? `<p>Quality SLO: ${escapeHtml(qualitySlo.status)} (${qualitySlo.indicators.map((indicator) => `${indicator.id}:${indicator.status}`).join(", ")})</p>` : ""}
     </div>
     ${bars ? `<div class="timeline-chart">${bars}</div>` : `
     <div class="empty-state">

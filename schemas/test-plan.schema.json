@@ -69,6 +69,23 @@
           "sourcePath": { "type": "string", "minLength": 1 },
           "reason": { "type": "string", "minLength": 1 },
           "suggestedManualTest": { "type": "string", "minLength": 1 },
+          "manualTestDraft": {
+            "type": "object",
+            "required": ["title", "objective", "steps", "expectedResult", "priority", "sourcePath"],
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string", "minLength": 1 },
+              "objective": { "type": "string", "minLength": 1 },
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "expectedResult": { "type": "string", "minLength": 1 },
+              "priority": { "enum": ["high", "medium", "low"] },
+              "sourcePath": { "type": "string", "minLength": 1 }
+            }
+          },
           "evidence": {
             "type": "array",
             "minItems": 1,

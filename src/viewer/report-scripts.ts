@@ -41,6 +41,23 @@ function showTab(tabId) {
   document.getElementById(tabId + '-tab').classList.add('active');
 }
 
+function filterQegDag() {
+  const query = (document.getElementById('qeg-dag-search')?.value || '').toLowerCase().trim();
+  const type = document.getElementById('qeg-dag-type')?.value || 'all';
+  let visible = 0;
+  document.querySelectorAll('.qeg-dag-node').forEach(node => {
+    const nodeType = node.getAttribute('data-qeg-node-type') || '';
+    const text = node.getAttribute('data-qeg-node-text') || '';
+    const matchesType = type === 'all' || nodeType === type;
+    const matchesQuery = !query || text.includes(query);
+    const show = matchesType && matchesQuery;
+    node.style.display = show ? '' : 'none';
+    if (show) visible += 1;
+  });
+  const count = document.getElementById('qeg-dag-count');
+  if (count) count.textContent = String(visible);
+}
+
 // Collapsible sections
 function toggleSection(id) {
   const content = document.getElementById('content-' + id);

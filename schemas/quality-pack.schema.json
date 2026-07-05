@@ -26,7 +26,8 @@
         "rules",
         "policy",
         "exports",
-        "recommendedCommands"
+        "recommendedCommands",
+        "distribution"
       ],
       "additionalProperties": false,
       "properties": {
@@ -128,7 +129,20 @@
           }
         },
         "exports": { "type": "array", "items": { "type": "string" } },
-        "recommendedCommands": { "type": "array", "items": { "type": "string" } }
+        "recommendedCommands": { "type": "array", "items": { "type": "string" } },
+        "distribution": {
+          "type": "object",
+          "required": ["sampleRepo", "expectedArtifacts"],
+          "additionalProperties": false,
+          "properties": {
+            "sampleRepo": { "type": "string", "minLength": 1 },
+            "expectedArtifacts": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
       }
     }
   }

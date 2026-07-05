@@ -140,6 +140,57 @@ function writeReleaseEvidence(dir: string): void {
     findings: [],
     unsupported_claims: [],
   });
+
+  writeJson(path.join(dir, "pr-review.json"), {
+    ...header,
+    artifact: "pr-review",
+    schema: "pr-review@v1",
+    completeness: "complete",
+    status: "needs_review",
+    markdown: { path: "pr-review.md", generated: true },
+    sections: {
+      blockReasons: [],
+      acceptableReasons: [],
+      additionalTests: [],
+      specDiffs: [],
+      artifactLinks: [],
+    },
+    summary: {
+      blockReasons: 0,
+      acceptableReasons: 0,
+      additionalTests: 0,
+      specDiffs: 0,
+      artifactLinks: 0,
+      findings: 2,
+      critical: 0,
+      high: 1,
+      reviewerCandidates: 0,
+    },
+  });
+  writeFileSync(path.join(dir, "pr-review.md"), "## code-to-gate PR Review\n", "utf8");
+  writeJson(path.join(dir, "hosted-static-report.json"), {
+    ...header,
+    artifact: "hosted-static-report",
+    schema: "hosted-static-report@v1",
+    completeness: "complete",
+    target: "github-pages",
+    publicUrl: "https://example.github.io/repo/",
+    html: {
+      path: "public/index.html",
+      hashSha256: "b".repeat(64),
+      sizeBytes: 128,
+      singleFile: true,
+      externalAssets: [],
+    },
+    sourceArtifacts: [],
+    security: {
+      selfContained: true,
+      externalNetworkRequired: false,
+      inlineAssets: true,
+    },
+    compatibleHosts: ["github-pages", "artifact-preview", "generic-static"],
+    generated_by: "ctg-viewer-hosted-v1",
+  });
 }
 
 describe("release-pack CLI", () => {
@@ -193,13 +244,18 @@ describe("release-pack CLI", () => {
         expect.objectContaining({ id: "qeg", present: true, hashSha256: expect.stringMatching(/^[a-f0-9]{64}$/) }),
         expect.objectContaining({ id: "ci-url", present: true }),
         expect.objectContaining({ id: "findings", present: true }),
+        expect.objectContaining({ id: "pr-review-comment", present: true }),
+        expect.objectContaining({ id: "hosted-static-report", present: true }),
       ])
     );
     expect(html).toContain("https://github.com/example/repo/actions/runs/123");
+    expect(html).toContain("https://example.github.io/repo/");
     expect(html).toContain("Release Summary");
     expect(zipEntries.has("release-pack.json")).toBe(true);
     expect(zipEntries.has("release-pack.html")).toBe(true);
     expect(zipEntries.has("artifacts/qeg-code-to-gate.json")).toBe(true);
+    expect(zipEntries.has("artifacts/pr-review.md")).toBe(true);
+    expect(zipEntries.has("artifacts/hosted-static-report.json")).toBe(true);
   });
 
   it("returns READINESS_NOT_CLEAR and records missing required evidence", async () => {

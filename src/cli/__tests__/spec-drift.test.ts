@@ -96,6 +96,31 @@ function writeSpecSurface(
   for (const schemaFile of schemaFiles) {
     writeFixtureFile(repoRoot, path.join("schemas", schemaFile), "{}\n");
   }
+
+  writeFixtureFile(
+    repoRoot,
+    ".github/workflows/code-to-gate-pr.yml",
+    [
+      "permissions:",
+      "  contents: read",
+      "  pull-requests: write",
+      "  checks: write",
+      "  security-events: write",
+      "steps:",
+      "  - run: node ./dist/cli.js test-plan --from .qh --out .qh",
+      "  - run: node ./dist/cli.js export evidence-dag --from .qh --out .qh/evidence-dag.json",
+      "  - run: node ./dist/cli.js export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json",
+      "  - run: node ./dist/cli.js pr-review --from .qh --out .qh",
+      "  - run: node ./dist/cli.js schema validate .qh/pr-review.json",
+      "  - uses: ./.github/actions/pr-comment",
+      "  - run: exit $SPEC_DRIFT_EXIT",
+    ].join("\n")
+  );
+  writeFixtureFile(
+    repoRoot,
+    ".github/actions/pr-comment/action.yml",
+    ["name: PR comment", "description: requires pull-requests: write", "inputs:", "  pr-review.md:", "  pr-review.json:"].join("\n")
+  );
 }
 
 describe("spec-drift CLI", () => {

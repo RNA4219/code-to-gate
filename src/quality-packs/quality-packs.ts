@@ -58,7 +58,8 @@ function rulesProfile(ruleIds: string[]): Record<string, boolean> {
 }
 
 function pack(
-  definition: Omit<QualityPackDefinition, "policy"> & {
+  definition: Omit<QualityPackDefinition, "policy" | "distribution"> & {
+    distribution?: QualityPackDefinition["distribution"];
     policy: Omit<QualityPackDefinition["policy"], "blocking"> & {
       blocking: {
         severity?: Partial<Record<Severity, boolean>>;
@@ -70,6 +71,10 @@ function pack(
 ): QualityPackDefinition {
   return {
     ...definition,
+    distribution: definition.distribution ?? {
+      sampleRepo: `fixtures/quality-packs/${definition.id}`,
+      expectedArtifacts: definition.exports.map((target) => target === "sarif" ? "results.sarif" : `${target}.json`),
+    },
     policy: {
       ...definition.policy,
       blocking: {

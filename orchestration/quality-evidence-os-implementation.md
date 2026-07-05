@@ -356,3 +356,75 @@ Commands:
 - `npx vitest run src/plugin/__tests__/marketplace.test.ts src/cli/__tests__/plugin-marketplace.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-07 PR Review App Mode
+
+Objective: `pr-review@v1` を GitHub Actions comment step だけでなく常設GitHub App/Botからも利用できる安定contractにする。
+
+Status: planned
+
+Requirements:
+
+- App/Bot contract は repository、pull request、commit sha、artifact URL、comment marker、permission要求を記録する。
+- `pr-review.md` の content hash と run id で既存コメント更新を識別できる。
+- Actions実装とApp実装が同じ `pr-review.json` / `pr-review.md` を入力にできる。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/pr-review.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-09 Spec Drift Surface Expansion
+
+Objective: workflow YAML と PR comment action/template を spec-drift の監視対象に追加し、QEG/PR証跡経路の欠落を検出する。
+
+Status: in_progress
+
+Requirements:
+
+- `.github/workflows/code-to-gate-pr.yml` が test-plan、evidence-dag、QEG、pr-review、schema validation、PR comment action を含むことを検査する。
+- `.github/actions/pr-comment/action.yml` が `pr-review.md` を優先して投稿することを検査する。
+- spec-drift failure 時も PR review evidence を生成する workflow 構造を検査する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/spec-drift.test.ts --reporter=dot`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-10 Evidence Backlinks and Release Pack Standardization
+
+Objective: PRコメント行から根拠artifactへ逆引きできる Evidence DAG edge と、release pack 標準同梱を実装する。
+
+Status: in_progress
+
+Requirements:
+
+- `evidence-dag@v1` は `pr-comment-line` node と `cites_artifact` edge を出せる。
+- `release-pack` は `pr-review.json`、`pr-review.md`、`hosted-static-report.json` を標準同梱する。
+- hosted report URL を manifest summary と HTML に表示する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/export.test.ts src/cli/__tests__/release-pack.test.ts --reporter=dot`
+- `npm run build`
+
+## Task Seed QEOS-P2-08 Pack Distribution, Doctor Permission, Manual Draft, Viewer Search, SLO
+
+Objective: Quality Pack配布単位、Actions権限doctor、oracle gap手動テスト草案、Evidence DAG検索、Historical SLOを追加する。
+
+Status: in_progress
+
+Requirements:
+
+- `quality-pack@v1` は sample repo と expected artifacts を持つ。
+- `doctor@v1` は workflow permissions を診断する。
+- `test-plan@v1.oracleGaps[]` は `manualTestDraft` を持つ。
+- viewer は Evidence DAG 検索/filter を持つ。
+- `historical-comparison@v1` は optional quality SLO summary を持つ。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/pack.test.ts src/cli/__tests__/doctor.test.ts src/cli/__tests__/test-plan.test.ts src/viewer/__tests__/report-viewer.test.ts src/historical/__tests__/comparison.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`

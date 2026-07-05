@@ -63,9 +63,13 @@ describe("pack CLI", () => {
       pack: {
         id: "security-basic",
         maturity: "stable",
+        distribution: {
+          sampleRepo: "fixtures/quality-packs/security-basic",
+        },
       },
     });
     expect(artifact.pack.rules.block).toContain("HARDCODED_SECRET");
+    expect(artifact.pack.distribution.expectedArtifacts).toContain("findings.json");
   });
 
   it("exports a policy YAML for readiness", async () => {

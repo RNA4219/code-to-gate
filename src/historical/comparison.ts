@@ -14,6 +14,7 @@ import {
   RiskTrendPoint,
   HistoricalSummaryReport,
   RunReference,
+  QualitySloSummary,
 } from "./types.js";
 import {
   Finding,
@@ -384,6 +385,48 @@ export function compareReadiness(
   };
 }
 
+function buildQualitySloSummary(
+  findingsComparison: FindingsComparisonResult,
+  readinessComparison?: ReadinessComparisonResult
+): QualitySloSummary {
+  const criticalIncrease = findingsComparison.summary.bySeverity.critical.new - findingsComparison.summary.bySeverity.critical.resolved;
+  const highIncrease = findingsComparison.summary.bySeverity.high.new - findingsComparison.summary.bySeverity.high.resolved;
+  const criticalOrHighIncrease = Math.max(0, criticalIncrease + highIncrease);
+  const blockerRegressions = findingsComparison.regressions.filter((finding) =>
+    finding.severity === "critical" || finding.severity === "high"
+  ).length;
+  const readinessDegraded = readinessComparison?.statusDegraded ?? false;
+  const indicators: QualitySloSummary["indicators"] = [
+    {
+      id: "blocker-regressions",
+      status: blockerRegressions > 0 ? "fail" : "pass",
+      summary: `${blockerRegressions} high/critical regression(s) detected.`,
+    },
+    {
+      id: "critical-high-increase",
+      status: criticalOrHighIncrease > 0 ? "warn" : "pass",
+      summary: `${criticalOrHighIncrease} net new critical/high finding(s).`,
+    },
+    {
+      id: "readiness-degraded",
+      status: readinessDegraded ? "fail" : "pass",
+      summary: readinessDegraded ? "Readiness status degraded from previous run." : "Readiness status did not degrade.",
+    },
+  ];
+
+  return {
+    status: indicators.some((indicator) => indicator.status === "fail")
+      ? "breached"
+      : indicators.some((indicator) => indicator.status === "warn")
+        ? "at_risk"
+        : "met",
+    blockerRegressions,
+    criticalOrHighIncrease,
+    readinessDegraded,
+    indicators,
+  };
+}
+
 /**
  * Generate historical summary report
  */
@@ -399,6 +442,7 @@ export function generateHistoricalReport(
   const runId = `historical-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
 
   const riskTrends = analyzeRiskTrends(findingsComparison, readinessComparison, trendHistory);
+  const qualitySlo = buildQualitySloSummary(findingsComparison, readinessComparison);
 
   // Generate recommendations
   const recommendations = generateRecommendations(
@@ -431,6 +475,7 @@ export function generateHistoricalReport(
     risksComparison,
     readinessComparison,
     riskTrends,
+    qualitySlo,
     recommendations,
     generated_by: "ctg-historical-v1",
   };

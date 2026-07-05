@@ -168,11 +168,25 @@ function createManualEntrypointItem(index: number, entrypointPath: string, sourc
 }
 
 function createOracleGap(index: number, sourcePath: string): TestPlanOracleGap {
+  const title = `Manual regression check for ${sourcePath}`;
   return {
     id: `oracle-gap-${String(index).padStart(3, "0")}`,
     sourcePath,
     reason: "No related automated test was found for this changed source file.",
     suggestedManualTest: `Define expected behavior for ${sourcePath} and add a focused regression or manual black-box check.`,
+    manualTestDraft: {
+      title,
+      objective: `Verify the externally observable behavior affected by ${sourcePath}.`,
+      steps: [
+        "Open the user-facing workflow or API path that exercises the changed source file.",
+        "Run the primary successful path with representative input.",
+        "Run one boundary or negative input that could expose the changed behavior.",
+        "Record the observed result and attach any relevant logs, screenshots, or response payloads.",
+      ],
+      expectedResult: "Behavior matches the documented requirement and no new error, data loss, or confusing user-facing state is observed.",
+      priority: "high",
+      sourcePath,
+    },
     evidence: [{ path: "diff-analysis.json", detail: "changed file has no matching test path" }],
   };
 }

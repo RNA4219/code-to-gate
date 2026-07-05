@@ -1118,6 +1118,10 @@ describe("schema coverage integration", () => {
             },
             exports: ["qeg-code-to-gate"],
             recommendedCommands: ["code-to-gate analyze . --out .qh"],
+            distribution: {
+              sampleRepo: "fixtures/quality-packs/security-basic",
+              expectedArtifacts: ["qeg-code-to-gate.json"],
+            },
           },
         })
       );
