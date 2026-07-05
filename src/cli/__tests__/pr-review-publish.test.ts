@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { generateKeyPairSync } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -60,6 +61,11 @@ function writeReviewArtifacts(dir: string): void {
   );
 }
 
+function createTestPrivateKey(): string {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  return privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+}
+
 describe("pr-review-publish CLI", () => {
   let tempRoot: string;
 
@@ -118,6 +124,14 @@ describe("pr-review-publish CLI", () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
+        json: () => Promise.resolve({
+          resources: {
+            core: { limit: 5000, remaining: 4990, reset: 1783239999, used: 10 },
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve([
           {
             id: 123,
@@ -144,12 +158,67 @@ describe("pr-review-publish CLI", () => {
 
     const health = JSON.parse(readFileSync(path.join(artifactDir, "github-app-health.json"), "utf8"));
     expect(exitCode).toBe(EXIT.OK);
-    expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(mockFetch.mock.calls[1][1].method).toBe("PATCH");
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(mockFetch.mock.calls[2][1].method).toBe("PATCH");
     expect(health.status).toBe("posted");
     expect(health.authMode).toBe("github-token");
     expect(health.pullRequest.commitSha).toBe("1234567890abcdef");
+    expect(health.rateLimit).toMatchObject({ checked: true, resource: "core", remaining: 4990 });
     expect(health.publish).toMatchObject({ action: "updated", commentId: 123 });
+  });
+
+  it("records GitHub App permissions in health evidence", async () => {
+    vi.stubEnv("GITHUB_APP_ID", "12345");
+    vi.stubEnv("GITHUB_APP_KEY", createTestPrivateKey());
+    vi.stubEnv("GITHUB_APP_INSTALLATION_ID", "67890");
+    const artifactDir = path.join(tempRoot, "artifacts");
+    writeReviewArtifacts(artifactDir);
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          token: "installation-token",
+          permissions: { pull_requests: "write", checks: "write", contents: "read" },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          resources: {
+            core: { limit: 15000, remaining: 14995, reset: 1783239999, used: 5 },
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: 456 }),
+      });
+
+    const exitCode = await prReviewPublishCommand([
+      "--from",
+      artifactDir,
+      "--repo",
+      "owner/repo",
+      "--pull",
+      "42",
+      "--quiet",
+    ], { VERSION, EXIT, getOption });
+
+    const health = JSON.parse(readFileSync(path.join(artifactDir, "github-app-health.json"), "utf8"));
+    expect(exitCode).toBe(EXIT.OK);
+    expect(health.authMode).toBe("github-app");
+    expect(health.permissions).toMatchObject({
+      checked: true,
+      source: "github-app-token",
+      missing: [],
+    });
+    expect(health.permissions.granted).toContain("pull_requests: write");
+    expect(health.rateLimit).toMatchObject({ checked: true, limit: 15000, remaining: 14995 });
+    expect(health.publish).toMatchObject({ action: "created", commentId: 456 });
   });
 
   it("writes failed health evidence when authentication is missing", async () => {

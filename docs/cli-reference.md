@@ -950,7 +950,7 @@ code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
-| `github-app-health.json` | `github-app-health@v1` artifact with auth mode, source markdown hash, target PR, commit SHA, artifact URL, comment action, and publish status |
+| `github-app-health.json` | `github-app-health@v1` artifact with auth mode, source markdown hash, target PR, commit SHA, artifact URL, permission summary, rate limit summary, comment action, and publish status |
 
 **Example:**
 ```bash

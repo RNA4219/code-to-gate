@@ -432,3 +432,219 @@ Commands:
 - `npx vitest run src/cli/__tests__/pack.test.ts src/cli/__tests__/doctor.test.ts src/cli/__tests__/test-plan.test.ts src/viewer/__tests__/report-viewer.test.ts src/historical/__tests__/comparison.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-11 Evidence Query Language
+
+Objective: artifact directory を横断して finding / artifact / baseline / SLO を軽量queryで抽出できる `evidence-query@v1` を実装する。
+
+Status: planned
+
+Requirements:
+
+- `code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>]` を追加する。
+- 初期構文は `finding where severity >= high`、`artifact where schema = findings@v1`、`baseline where expired = true` を扱う。
+- query結果は source artifact hash と matched item locator を保持する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/query.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-12 Evidence Redaction Profile
+
+Objective: public/private/regulated profile により artifact と human surface の情報量を切り替える。
+
+Status: planned
+
+Requirements:
+
+- redaction profile contract を `redaction-profile@v1` として定義する。
+- viewer、release-pack、PR review、query output が profile と redaction summary を保持できる。
+- regulated profile は signer、retention、approval binding の欠落を warning 以上にする。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/redaction-profile.test.ts src/viewer/__tests__/report-viewer.test.ts src/cli/__tests__/release-pack.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-13 Gate Explainability Snapshot
+
+Objective: gate failure から、通過に必要な変更候補を機械可読に出す。
+
+Status: planned
+
+Requirements:
+
+- `gate-explainability@v1` schema と `code-to-gate explain-gate --from <artifact-dir>` を追加する。
+- failed condition、blocking finding、manual evidence候補、baseline更新候補、severity再評価候補を出す。
+- PR review と release-pack に explainability summary を表示する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/explain-gate.test.ts src/cli/__tests__/pr-review.test.ts src/cli/__tests__/release-pack.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-14 Community Rule Quality Score
+
+Objective: rule/plugin のfixture coverage、FP review、evidence completeness、schema compatibility、runtime cost を採点する。
+
+Status: planned
+
+Requirements:
+
+- `rule-quality-score@v1` schema と `code-to-gate rule score <rule-or-plugin>` を追加する。
+- plugin marketplace は score がある場合に entry へ品質指標を接続する。
+- score artifact は算出式と入力evidenceを保持する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/rule-score.test.ts src/plugin/__tests__/marketplace.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-15 Self-Auditing Drift Budget
+
+Objective: spec-drift の累積・再発・許容量を budget として追跡し、release branchで超過をblockする。
+
+Status: planned
+
+Requirements:
+
+- `drift-budget@v1` schema と `code-to-gate drift-budget --from <history-dir|artifact-dir>` を追加する。
+- failed/warning count、再発check、許容budget、branch policy を保持する。
+- PR review は budget 超過時に修正対象を表示する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/drift-budget.test.ts src/cli/__tests__/pr-review.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-16 Evidence Provenance Index
+
+Objective: human surface から元artifact/hash/source idへ戻れる `evidence-provenance-index@v1` を生成する。
+
+Status: planned
+
+Requirements:
+
+- `code-to-gate export provenance-index --from <artifact-dir>` を追加する。
+- PR comment、viewer section、release-pack HTML、SARIF annotation の locator を index 化する。
+- entry は surface、locator、artifactPath、artifactHash、sourceId、line/anchor を持つ。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/export.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-17 App-Native Review Queue
+
+Objective: GitHub App/Bot が SLO逸脱、baseline expiry、manual oracle gap、spec drift recurrence を queue item として管理できる。
+
+Status: planned
+
+Requirements:
+
+- `review-queue@v1` schema と `code-to-gate review-queue --from <artifact-dir>` を追加する。
+- item は owner、due date、status、dismissal reason、source artifact を持つ。
+- hosted service運用はcore外とし、coreはartifact生成とPR/check summary contractに限定する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/review-queue.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-18 Quality Pack Golden Repository Suite
+
+Objective: quality pack ごとに golden repo suite を実行し、検出力とfalse positiveを継続測定する。
+
+Status: planned
+
+Requirements:
+
+- `quality-pack-golden-suite@v1` schema と bundled pack の golden suite candidate を追加する。
+- pack id、sample/golden repo、expected artifacts、expected finding profile、FP/FN summary を保持する。
+- pack更新時の差分を release evidence として保存できる。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/pack.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-19 Baseline Debt Ledger
+
+Objective: baseline debt を owner/expiry/承認者/更新理由/残工数/再発防止メモ付きledgerとして管理する。
+
+Status: planned
+
+Requirements:
+
+- `baseline-debt-ledger@v1` schema と `code-to-gate baseline-ledger --from <artifact-dir>` を追加する。
+- ledger item は owner、expiry、approver、approval reason、refresh reason、estimated effort、prevention note を持つ。
+- expired debt は readiness、review queue、hosted portal に接続できる。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/baseline-ledger.test.ts src/cli/__tests__/readiness.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-20 Hosted Evidence Portal
+
+Objective: hosted viewer を複数run横断の静的evidence portalへ拡張する。
+
+Status: planned
+
+Requirements:
+
+- `code-to-gate viewer --portal --from <runs-dir>` と `hosted-evidence-portal@v1` manifest を追加する。
+- portal は複数run、historical SLO、release pack、manual-bb、PR review backlink を横断検索できる。
+- portal は外部network不要で redaction profile を尊重する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/viewer.test.ts src/viewer/__tests__/report-viewer.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P1-21 GitHub App Health Evidence
+
+Objective: GitHub App の token取得、権限、rate limit、comment更新結果を稼働診断artifactとして残す。
+
+Status: done
+
+Requirements:
+
+- `github-app-health@v1` に repository permission と rate limit summary を追加する。
+- `pr-review-publish` は投稿/更新/失敗時に health artifact を出力する。
+- `doctor` は静的workflow診断、health artifact は実App稼働診断を担う。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/pr-review-publish.test.ts src/github/__tests__/api-client.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P0-22 QEOS Acceptance Matrix Artifact
+
+Objective: QEOS要件、仕様acceptance、schema、CLI、テスト、CI gate の対応表を機械可読に出す。
+
+Status: planned
+
+Requirements:
+
+- `qeos-acceptance-matrix@v1` schema と `code-to-gate qeos matrix --from <repo-or-artifact-dir>` を追加する。
+- matrix は QEOS ID、requirement、spec acceptance、schema、CLI、test command、CI gate、status、evidence link を保持する。
+- missing evidence は `needs_evidence` として明示する。
+
+Commands:
+
+- `npx vitest run src/cli/__tests__/qeos-matrix.test.ts tests/integration/schema-coverage.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`

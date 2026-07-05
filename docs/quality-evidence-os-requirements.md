@@ -92,6 +92,18 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
 | QEOS-028 | Manual BB Drafts from Oracle Gaps | P1 | `oracleGaps` から手動ブラックボックステストケース草案を自動生成できる |
 | QEOS-029 | Evidence DAG Search and Filter | P2 | viewer は Evidence DAG node/edge を検索・filter できる |
 | QEOS-030 | Historical Quality SLO | P2 | historical comparison は品質SLO indicator を出し、regression だけでなくSLO逸脱を追跡できる |
+| QEOS-031 | Evidence Query Language | P2 | artifact directory を横断して finding / artifact / baseline / SLO を軽量queryで抽出できる |
+| QEOS-032 | Evidence Redaction Profile | P1 | public/private/regulated profile により artifact と human surface の情報量を切り替えられる |
+| QEOS-033 | Gate Explainability Snapshot | P1 | gate failure の理由だけでなく、通過に必要な変更候補を機械可読に出せる |
+| QEOS-034 | Community Rule Quality Score | P2 | rule/plugin の fixture coverage、FP review、evidence completeness、schema compatibility、runtime cost を採点できる |
+| QEOS-035 | Self-Auditing Drift Budget | P1 | spec-drift の累積・再発・許容量を budget として追跡し、release branch では超過をblockできる |
+| QEOS-036 | Evidence Provenance Index | P1 | PR comment、viewer、release-pack、SARIF annotation など人間向けsurfaceから元artifactへ逆引きできる |
+| QEOS-037 | App-Native Review Queue | P2 | GitHub App/Bot が SLO逸脱、baseline expiry、manual oracle gap をreview queue itemとして管理できる |
+| QEOS-038 | Quality Pack Golden Repository Suite | P2 | quality pack ごとに golden repo suite を実行し、検出力とfalse positiveを継続測定できる |
+| QEOS-039 | Baseline Debt Ledger | P1 | baseline debt を owner/expiry/承認者/更新理由/残工数/再発防止メモ付きledgerとして管理できる |
+| QEOS-040 | Hosted Evidence Portal | P2 | hosted viewer を複数run横断の静的evidence portalへ拡張できる |
+| QEOS-041 | GitHub App Health Evidence | P1 | GitHub App の token取得、権限、rate limit、comment更新結果を稼働診断artifactとして残せる |
+| QEOS-042 | QEOS Acceptance Matrix Artifact | P0 | QEOS要件、仕様acceptance、schema、CLI、テスト、CI gate の対応表を機械可読に出せる |
 
 ## 5. P0 完了条件
 
@@ -170,3 +182,6 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   (`actions/upload-artifact`) を診断。
 - QEOS-030: `historical-comparison.qualitySlo` が high findings増加率、
   spec drift再発率、未解消baseline期限超過年齢を optional indicator として保持。
+- QEOS-041: `github-app-health@v1` が GitHub App token response の
+  repository permission、rate limit summary、comment publish action を保持し、
+  `pr-review-publish` の実App稼働診断として出力される。

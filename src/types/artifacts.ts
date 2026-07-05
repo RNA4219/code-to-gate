@@ -963,6 +963,17 @@ export interface GitHubAppHealthArtifact extends ArtifactHeader {
   permissions: {
     required: string[];
     checked: boolean;
+    granted?: string[];
+    missing?: string[];
+    source?: "github-app-token" | "github-token" | "not-available";
+  };
+  rateLimit?: {
+    checked: boolean;
+    resource: string;
+    limit: number;
+    remaining: number;
+    reset: number;
+    used: number;
   };
   error?: string;
   generated_by: "ctg-pr-review-publish-v1";

@@ -32,6 +32,21 @@ export interface GitHubClientConfig extends GitHubAuthConfig {
   baseUrl?: string;
 }
 
+export type GitHubPermissionMap = Record<string, string>;
+
+export interface GitHubAuthDiagnostics {
+  appInstallationId?: number;
+  appPermissions?: GitHubPermissionMap;
+}
+
+export interface GitHubRateLimit {
+  limit: number;
+  remaining: number;
+  reset: number;
+  used: number;
+  resource: string;
+}
+
 /**
  * GitHub API client for code-to-gate integration
  */
@@ -40,6 +55,8 @@ export class GitHubApiClient {
   private repo: string;
   private baseUrl: string;
   private authToken: string | null = null;
+  private appInstallationId: number | undefined;
+  private appPermissions: GitHubPermissionMap | undefined;
 
   constructor(config: GitHubClientConfig) {
     this.owner = config.owner;
@@ -69,7 +86,9 @@ export class GitHubApiClient {
     const jwt = createGitHubAppJwt(app.appId, app.privateKey);
     const installationId = app.installationId ?? await this.resolveInstallationId(jwt);
     const token = await this.createInstallationToken(jwt, installationId);
-    this.authToken = token;
+    this.appInstallationId = installationId;
+    this.authToken = token.token;
+    this.appPermissions = token.permissions;
   }
 
   private async resolveInstallationId(jwt: string): Promise<number> {
@@ -97,7 +116,7 @@ export class GitHubApiClient {
     return parsed.id;
   }
 
-  private async createInstallationToken(jwt: string, installationId: number): Promise<string> {
+  private async createInstallationToken(jwt: string, installationId: number): Promise<{ token: string; permissions?: GitHubPermissionMap }> {
     const response = await fetch(`${this.baseUrl}/app/installations/${installationId}/access_tokens`, {
       method: "POST",
       headers: {
@@ -115,11 +134,11 @@ export class GitHubApiClient {
       );
     }
 
-    const parsed = await response.json() as { token?: string };
+    const parsed = await response.json() as { token?: string; permissions?: GitHubPermissionMap };
     if (typeof parsed.token !== "string" || parsed.token.length === 0) {
       throw new GitHubApiError("GitHub App installation token response did not include a token.", parsed);
     }
-    return parsed.token;
+    return { token: parsed.token, permissions: parsed.permissions };
   }
 
   /**
@@ -168,6 +187,34 @@ export class GitHubApiClient {
     }
 
     return response.json() as Promise<T>;
+  }
+
+  getAuthDiagnostics(): GitHubAuthDiagnostics {
+    return {
+      appInstallationId: this.appInstallationId,
+      appPermissions: this.appPermissions,
+    };
+  }
+
+  async getRateLimit(): Promise<GitHubRateLimit> {
+    const response = await this.request<{
+      resources?: {
+        core?: {
+          limit?: number;
+          remaining?: number;
+          reset?: number;
+          used?: number;
+        };
+      };
+    }>("GET", "/rate_limit");
+    const core = response.resources?.core;
+    return {
+      limit: typeof core?.limit === "number" ? core.limit : 0,
+      remaining: typeof core?.remaining === "number" ? core.remaining : 0,
+      reset: typeof core?.reset === "number" ? core.reset : 0,
+      used: typeof core?.used === "number" ? core.used : 0,
+      resource: "core",
+    };
   }
 
   /**

@@ -449,3 +449,77 @@ P2 Historical Quality SLO の初期 acceptance は次の通り。
 - `historical-comparison@v1` は optional `qualitySlo` summary を持てる。
 - SLO indicator は blocker regression、high/critical増加、high findings増加率、readiness低下、spec drift再発率、未解消baseline期限超過年齢を追跡する。
 - viewer は SLO status を Historical tab に表示する。
+
+## 追加拡張 acceptance QEOS-031..042
+
+P2 Evidence Query Language の初期 acceptance は次の通り。
+
+- `code-to-gate query <expression> --from <artifact-dir>` は既存artifactを横断して決定的に結果を返す。
+- 初期構文は `finding where <field> <op> <value>`、`artifact where <field> <op> <value>`、`baseline where <field> <op> <value>` を扱う。
+- query結果は `evidence-query@v1` artifact として、query、matched items、source artifact hash、result count を保持する。
+
+P1 Evidence Redaction Profile の初期 acceptance は次の通り。
+
+- redaction profile は `public`、`private`、`regulated` を持つ。
+- `public` は path/hash/count 中心、`private` はexcerpt/detail許可、`regulated` は signer/retention/approval binding を要求する。
+- viewer、release-pack、PR review、query artifact は profile を受け取り、出力に `redactionProfile` と redaction summary を記録する。
+
+P1 Gate Explainability Snapshot の初期 acceptance は次の通り。
+
+- `gate-explainability@v1` は failed condition、blocking finding、必要なmanual evidence、baseline更新候補、severity再評価候補を列挙する。
+- snapshot は release-readiness と findings から deterministic に生成され、LLM判断を要求しない。
+- PR review と release-pack は gate explainability summary を表示できる。
+
+P2 Community Rule Quality Score の初期 acceptance は次の通り。
+
+- `rule-quality-score@v1` は rule/plugin 単位で fixture coverage、false-positive review status、evidence completeness、schema compatibility、runtime cost を採点する。
+- plugin marketplace は score がある場合、entry に品質指標として表示する。
+- score の入力と算出式はartifact内に保持し、コミュニティレビューで再計算できる。
+
+P1 Self-Auditing Drift Budget の初期 acceptance は次の通り。
+
+- `drift-budget@v1` は spec-drift の failed/warning count、再発check、許容budget、branch policy を保持する。
+- release branch では budget 超過を block、通常PRでは PR review に修正対象を表示する。
+- budget は RUNBOOK / Task Seed / CI workflow の status drift を追跡できる。
+
+P1 Evidence Provenance Index の初期 acceptance は次の通り。
+
+- `evidence-provenance-index@v1` は PR comment、viewer section、release-pack HTML、SARIF annotation から artifact/hash/source id へ戻る逆引きを保持する。
+- index は `evidence-dag` の node/edge を補完し、外部BotやIDE拡張が同じ索引を使える。
+- 各 provenance entry は surface、locator、artifactPath、artifactHash、sourceId、line/anchor を持つ。
+
+P2 App-Native Review Queue の初期 acceptance は次の通り。
+
+- `review-queue@v1` は SLO逸脱、baseline expiry、manual oracle gap、spec drift recurrence を queue item として保持する。
+- queue item は owner、due date、status、dismissal reason、source artifact を持つ。
+- GitHub App/Bot は queue item からPR comment/check summaryを生成できるが、hosted service運用はcore外とする。
+
+P2 Quality Pack Golden Repository Suite の初期 acceptance は次の通り。
+
+- `quality-pack-golden-suite@v1` は pack id、sample/golden repo、expected artifacts、expected finding profile、FP/FN summary を持つ。
+- bundled quality pack は最低1件の golden suite candidate を宣言できる。
+- pack更新時に golden suite の差分を release evidence として保存できる。
+
+P1 Baseline Debt Ledger の初期 acceptance は次の通り。
+
+- `baseline-debt-ledger@v1` は baseline debt item の owner、expiry、approver、approval reason、refresh reason、estimated effort、prevention note を保持する。
+- expired debt は readiness、review queue、hosted portal に表示できる。
+- ledger は既存 `release-readiness.baseline` と後方互換に接続し、既存consumerを壊さない。
+
+P2 Hosted Evidence Portal の初期 acceptance は次の通り。
+
+- `code-to-gate viewer --portal` は複数run、historical SLO、release pack、manual-bb、PR review backlink を横断できる静的HTMLを生成する。
+- portal manifest は `hosted-evidence-portal@v1` として run index、artifact hashes、search index、public URL を持つ。
+- portal は外部network不要で閲覧でき、redaction profile を尊重する。
+
+P1 GitHub App Health Evidence の初期 acceptance は次の通り。
+
+- `github-app-health@v1` は installation token 取得、repository permission、rate limit、comment marker 更新結果を保持できる。
+- `pr-review-publish` は投稿/更新/失敗時に health artifact を出力する。
+- `doctor` は静的workflow診断、health artifact は実App稼働診断を担う。
+
+P0 QEOS Acceptance Matrix Artifact の初期 acceptance は次の通り。
+
+- `qeos-acceptance-matrix@v1` は QEOS ID、requirement、spec acceptance、schema、CLI、test command、CI gate、status、evidence link を保持する。
+- `code-to-gate qeos matrix --from <repo-or-artifact-dir>` は仕様とTask Seedからmatrixを生成できる。
+- matrix は完了宣言前の監査に使え、missing evidence を `needs_evidence` として明示する。

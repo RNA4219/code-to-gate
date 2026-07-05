@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { createGitHubClientFromEnv } from "../github/api-client.js";
+import { createGitHubClientFromEnv, type GitHubApiClient, type GitHubRateLimit } from "../github/api-client.js";
 import type { GitHubAppHealthArtifact } from "../types/artifacts.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
@@ -95,6 +95,53 @@ function readOptionalReviewJson(fromDir: string): { path?: string; runId?: strin
   }
 }
 
+const REQUIRED_GITHUB_PERMISSIONS = ["pull-requests: write"] as const;
+
+function summarizePermissions(
+  client: GitHubApiClient | null
+): GitHubAppHealthArtifact["permissions"] {
+  const base = { required: [...REQUIRED_GITHUB_PERMISSIONS], checked: false };
+  if (!client) {
+    return { ...base, source: "not-available" };
+  }
+  if (authMode() === "github-token") {
+    return { ...base, source: "github-token" };
+  }
+  const permissions = client.getAuthDiagnostics().appPermissions;
+  if (!permissions) {
+    return { ...base, source: "not-available" };
+  }
+  const granted = Object.entries(permissions).map(([name, level]) => `${name}: ${level}`);
+  const missing = REQUIRED_GITHUB_PERMISSIONS.filter((required) => {
+    const [name, level] = required.split(":").map((part) => part.trim());
+    const githubAppName = name.replace(/-/g, "_");
+    return permissions[name] !== level && permissions[githubAppName] !== level;
+  });
+  return {
+    required: [...REQUIRED_GITHUB_PERMISSIONS],
+    checked: true,
+    granted,
+    missing,
+    source: "github-app-token",
+  };
+}
+
+async function readRateLimit(client: GitHubApiClient): Promise<GitHubAppHealthArtifact["rateLimit"]> {
+  try {
+    const rateLimit: GitHubRateLimit = await client.getRateLimit();
+    return {
+      checked: true,
+      resource: rateLimit.resource,
+      limit: rateLimit.limit,
+      remaining: rateLimit.remaining,
+      reset: rateLimit.reset,
+      used: rateLimit.used,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 function createHealthArtifact(params: {
   version: string;
   generatedAt: string;
@@ -110,6 +157,8 @@ function createHealthArtifact(params: {
   artifactUrl?: string;
   status: GitHubAppHealthArtifact["status"];
   action: GitHubAppHealthArtifact["publish"]["action"];
+  permissions?: GitHubAppHealthArtifact["permissions"];
+  rateLimit?: GitHubAppHealthArtifact["rateLimit"];
   commentId?: number;
   error?: string;
 }): GitHubAppHealthArtifact {
@@ -145,9 +194,12 @@ function createHealthArtifact(params: {
       marker: "code-to-gate PR Review",
     },
     permissions: {
-      required: ["pull-requests: write"],
+      required: [...REQUIRED_GITHUB_PERMISSIONS],
       checked: false,
+      source: "not-available",
+      ...params.permissions,
     },
+    rateLimit: params.rateLimit,
     error: params.error,
     generated_by: "ctg-pr-review-publish-v1",
   };
@@ -221,6 +273,7 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
       artifactUrl,
       status: "dry_run",
       action: "skipped",
+      permissions: summarizePermissions(null),
     });
     writeHealthArtifact(healthPath, artifact);
     emitCliSummary(args, {
@@ -240,6 +293,8 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
     if (!client) {
       throw new Error("missing GitHub authentication: set GITHUB_TOKEN or GITHUB_APP_ID and GITHUB_APP_KEY");
     }
+    const permissions = summarizePermissions(client);
+    const rateLimit = await readRateLimit(client);
 
     const existingCommentId = await client.findExistingComment(pullNumber);
     let commentId: number;
@@ -268,6 +323,8 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
       artifactUrl,
       status: "posted",
       action,
+      permissions,
+      rateLimit,
       commentId,
     });
     writeHealthArtifact(healthPath, artifact);
@@ -298,6 +355,7 @@ export async function prReviewPublishCommand(args: string[], options: PrReviewPu
       artifactUrl,
       status: "failed",
       action: "failed",
+      permissions: summarizePermissions(null),
       error: message,
     });
     writeHealthArtifact(healthPath, artifact);
