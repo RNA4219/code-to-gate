@@ -287,3 +287,13 @@ P1 Importer Expansion の初期 acceptance は次の通り。
   を upstream tool として許容する。
 - 既存 `semgrep` / `eslint` importer の出力 schema と rule ID prefix は
   後方互換を維持する。
+
+P2 Historical Quality Trend の初期 acceptance は次の通り。
+
+- `code-to-gate historical --current <dir> --previous <dir> --history <dir>`
+  は `historical-comparison.json` を生成できる。
+- `historical-comparison.json` は `historical-comparison@v1` schema に合格する。
+- artifact は new/resolved/unchanged/modified/regression finding、readiness delta、
+  risk trend、timeline history points を含む。
+- `viewer --from <dir>` は `historical-comparison.json` がある場合に Historical tab
+  と timeline bars を表示できる。

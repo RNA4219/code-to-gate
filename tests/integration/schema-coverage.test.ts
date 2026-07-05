@@ -138,6 +138,14 @@ describe("schema coverage integration", () => {
       expect(result.stdout).toContain("schema ok");
     });
 
+    it("validates historical-comparison schema", () => {
+      const schemaFile = schemaPath("historical-comparison");
+      const result = runCli(["schema", "validate", schemaFile]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("schema ok");
+    });
+
     it("validates spec-drift schema", () => {
       const schemaFile = schemaPath("spec-drift");
       const result = runCli(["schema", "validate", schemaFile]);
@@ -235,6 +243,7 @@ describe("schema coverage integration", () => {
         "release-pack.schema.json",
         "release-readiness.schema.json",
         "evidence-dag.schema.json",
+        "historical-comparison.schema.json",
         "spec-drift.schema.json",
         "doctor.schema.json",
         "diff-analysis.schema.json",
@@ -448,7 +457,7 @@ describe("schema coverage integration", () => {
     });
 
     it("validates findings with all upstream tools", () => {
-      const upstreamTools = ["native", "semgrep", "eslint", "sonarqube", "tsc", "coverage", "test"];
+      const upstreamTools = ["native", "semgrep", "eslint", "sarif", "codeql", "sonarqube", "tsc", "coverage", "test"];
 
       const allToolsPath = path.join(tempDir, "all-tools.json");
       writeFileSync(
@@ -608,6 +617,70 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalEvidenceDagPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal historical-comparison artifact", () => {
+      const minimalHistoricalPath = path.join(tempDir, "minimal-historical-comparison.json");
+      writeFileSync(
+        minimalHistoricalPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "historical-test-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "historical-comparison",
+          schema: "historical-comparison@v1",
+          completeness: "complete",
+          currentRun: {
+            run_id: "current-run",
+            generated_at: "2024-01-02T00:00:00Z",
+            artifact_dir: ".qh/current",
+          },
+          previousRun: {
+            run_id: "previous-run",
+            generated_at: "2024-01-01T00:00:00Z",
+            artifact_dir: ".qh/previous",
+          },
+          findingsComparison: {
+            new: [],
+            resolved: [],
+            unchanged: [],
+            modified: [],
+            regressions: [],
+            summary: {
+              totalCurrent: 0,
+              totalPrevious: 0,
+              newCount: 0,
+              resolvedCount: 0,
+              unchangedCount: 0,
+              modifiedCount: 0,
+              regressionCount: 0,
+              bySeverity: {
+                critical: { new: 0, resolved: 0, unchanged: 0 },
+                high: { new: 0, resolved: 0, unchanged: 0 },
+                medium: { new: 0, resolved: 0, unchanged: 0 },
+                low: { new: 0, resolved: 0, unchanged: 0 },
+              },
+              byCategory: {},
+            },
+          },
+          riskTrends: {
+            trendDirection: "stable",
+            trendScore: 0,
+            criticalTrend: "stable",
+            highTrend: "stable",
+            riskScoreChange: 0,
+            historyPoints: [],
+          },
+          recommendations: ["Quality trend is stable."],
+          generated_by: "ctg-historical-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalHistoricalPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

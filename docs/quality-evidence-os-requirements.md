@@ -110,3 +110,5 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   external tool results の normalized `findings@v1` 変換。
 - QEOS-018: `ai-generated-code` Quality Pack による AI生成コード向け
   validation/testing/maintainability/compatibility risk review mode。
+- QEOS-019: `code-to-gate historical` と viewer Historical tab による
+  readiness/finding trend と regression の時系列表示。

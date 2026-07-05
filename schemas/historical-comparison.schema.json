@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/historical-comparison.schema.json",
+  "title": "HistoricalComparisonArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": [
+    "artifact",
+    "schema",
+    "completeness",
+    "currentRun",
+    "previousRun",
+    "findingsComparison",
+    "riskTrends",
+    "recommendations",
+    "generated_by"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string" },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "historical-comparison" },
+    "schema": { "const": "historical-comparison@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "currentRun": { "$ref": "#/$defs/runReference" },
+    "previousRun": { "$ref": "#/$defs/runReference" },
+    "findingsComparison": { "$ref": "#/$defs/findingsComparison" },
+    "risksComparison": { "$ref": "#/$defs/risksComparison" },
+    "readinessComparison": { "$ref": "#/$defs/readinessComparison" },
+    "riskTrends": { "$ref": "#/$defs/riskTrends" },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "generated_by": { "const": "ctg-historical-v1" }
+  },
+  "$defs": {
+    "runReference": {
+      "type": "object",
+      "required": ["run_id", "generated_at", "artifact_dir"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string" },
+        "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+        "artifact_dir": { "type": "string" },
+        "repo_revision": { "type": "string" },
+        "branch": { "type": "string" }
+      }
+    },
+    "findingComparison": {
+      "type": "object",
+      "required": ["findingId", "ruleId", "status", "path", "severity", "category", "matchedOn"],
+      "additionalProperties": false,
+      "properties": {
+        "findingId": { "type": "string" },
+        "ruleId": { "type": "string" },
+        "status": { "enum": ["new", "resolved", "unchanged", "modified"] },
+        "currentFinding": { "type": "object" },
+        "previousFinding": { "type": "object" },
+        "path": { "type": "string" },
+        "severity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+        "category": { "enum": ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"] },
+        "matchedOn": { "enum": ["fingerprint", "ruleId_path", "ruleId_symbol", "fuzzy_match", "manual"] },
+        "regression": { "type": "boolean" }
+      }
+    },
+    "changeCounts": {
+      "type": "object",
+      "required": ["new", "resolved", "unchanged"],
+      "additionalProperties": false,
+      "properties": {
+        "new": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "unchanged": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findingsComparison": {
+      "type": "object",
+      "required": ["new", "resolved", "unchanged", "modified", "regressions", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "new": { "type": "array", "items": { "$ref": "#/$defs/findingComparison" } },
+        "resolved": { "type": "array", "items": { "$ref": "#/$defs/findingComparison" } },
+        "unchanged": { "type": "array", "items": { "$ref": "#/$defs/findingComparison" } },
+        "modified": { "type": "array", "items": { "$ref": "#/$defs/findingComparison" } },
+        "regressions": { "type": "array", "items": { "$ref": "#/$defs/findingComparison" } },
+        "summary": {
+          "type": "object",
+          "required": [
+            "totalCurrent",
+            "totalPrevious",
+            "newCount",
+            "resolvedCount",
+            "unchangedCount",
+            "modifiedCount",
+            "regressionCount",
+            "bySeverity",
+            "byCategory"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "totalCurrent": { "type": "integer", "minimum": 0 },
+            "totalPrevious": { "type": "integer", "minimum": 0 },
+            "newCount": { "type": "integer", "minimum": 0 },
+            "resolvedCount": { "type": "integer", "minimum": 0 },
+            "unchangedCount": { "type": "integer", "minimum": 0 },
+            "modifiedCount": { "type": "integer", "minimum": 0 },
+            "regressionCount": { "type": "integer", "minimum": 0 },
+            "bySeverity": {
+              "type": "object",
+              "required": ["critical", "high", "medium", "low"],
+              "additionalProperties": false,
+              "properties": {
+                "critical": { "$ref": "#/$defs/changeCounts" },
+                "high": { "$ref": "#/$defs/changeCounts" },
+                "medium": { "$ref": "#/$defs/changeCounts" },
+                "low": { "$ref": "#/$defs/changeCounts" }
+              }
+            },
+            "byCategory": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/changeCounts" }
+            }
+          }
+        }
+      }
+    },
+    "riskComparison": {
+      "type": "object",
+      "required": ["riskId", "title", "status", "severity", "likelihood", "matchedOn"],
+      "additionalProperties": false,
+      "properties": {
+        "riskId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "enum": ["new", "resolved", "unchanged", "evolved"] },
+        "currentRisk": { "type": "object" },
+        "previousRisk": { "type": "object" },
+        "severity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+        "likelihood": { "enum": ["low", "medium", "high", "unknown"] },
+        "matchedOn": { "enum": ["title_similarity", "source_findings", "manual"] }
+      }
+    },
+    "risksComparison": {
+      "type": "object",
+      "required": ["new", "resolved", "unchanged", "evolved", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "new": { "type": "array", "items": { "$ref": "#/$defs/riskComparison" } },
+        "resolved": { "type": "array", "items": { "$ref": "#/$defs/riskComparison" } },
+        "unchanged": { "type": "array", "items": { "$ref": "#/$defs/riskComparison" } },
+        "evolved": { "type": "array", "items": { "$ref": "#/$defs/riskComparison" } },
+        "summary": {
+          "type": "object",
+          "required": ["totalCurrent", "totalPrevious", "newCount", "resolvedCount", "unchangedCount", "evolvedCount"],
+          "additionalProperties": false,
+          "properties": {
+            "totalCurrent": { "type": "integer", "minimum": 0 },
+            "totalPrevious": { "type": "integer", "minimum": 0 },
+            "newCount": { "type": "integer", "minimum": 0 },
+            "resolvedCount": { "type": "integer", "minimum": 0 },
+            "unchangedCount": { "type": "integer", "minimum": 0 },
+            "evolvedCount": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "metricDelta": {
+      "type": "object",
+      "required": ["current", "previous", "change"],
+      "additionalProperties": false,
+      "properties": {
+        "current": { "type": "integer", "minimum": 0 },
+        "previous": { "type": "integer", "minimum": 0 },
+        "change": { "type": "integer" }
+      }
+    },
+    "readinessComparison": {
+      "type": "object",
+      "required": ["currentStatus", "previousStatus", "statusChanged", "statusImproved", "statusDegraded", "metricsComparison"],
+      "additionalProperties": false,
+      "properties": {
+        "currentStatus": { "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"] },
+        "previousStatus": { "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"] },
+        "statusChanged": { "type": "boolean" },
+        "statusImproved": { "type": "boolean" },
+        "statusDegraded": { "type": "boolean" },
+        "metricsComparison": {
+          "type": "object",
+          "required": ["criticalFindings", "highFindings", "mediumFindings", "lowFindings", "riskCount", "testSeedCount"],
+          "additionalProperties": false,
+          "properties": {
+            "criticalFindings": { "$ref": "#/$defs/metricDelta" },
+            "highFindings": { "$ref": "#/$defs/metricDelta" },
+            "mediumFindings": { "$ref": "#/$defs/metricDelta" },
+            "lowFindings": { "$ref": "#/$defs/metricDelta" },
+            "riskCount": { "$ref": "#/$defs/metricDelta" },
+            "testSeedCount": { "$ref": "#/$defs/metricDelta" }
+          }
+        }
+      }
+    },
+    "trendPoint": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "generated_at",
+        "criticalFindings",
+        "highFindings",
+        "mediumFindings",
+        "lowFindings",
+        "totalFindings",
+        "riskCount",
+        "readinessStatus"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string" },
+        "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+        "criticalFindings": { "type": "integer", "minimum": 0 },
+        "highFindings": { "type": "integer", "minimum": 0 },
+        "mediumFindings": { "type": "integer", "minimum": 0 },
+        "lowFindings": { "type": "integer", "minimum": 0 },
+        "totalFindings": { "type": "integer", "minimum": 0 },
+        "riskCount": { "type": "integer", "minimum": 0 },
+        "readinessStatus": { "enum": ["passed", "passed_with_risk", "needs_review", "blocked_input", "failed"] }
+      }
+    },
+    "riskTrends": {
+      "type": "object",
+      "required": ["trendDirection", "trendScore", "criticalTrend", "highTrend", "riskScoreChange"],
+      "additionalProperties": false,
+      "properties": {
+        "trendDirection": { "enum": ["improving", "stable", "degrading", "unknown"] },
+        "trendScore": { "type": "number" },
+        "criticalTrend": { "enum": ["increasing", "stable", "decreasing"] },
+        "highTrend": { "enum": ["increasing", "stable", "decreasing"] },
+        "riskScoreChange": { "type": "number" },
+        "periodDays": { "type": "number", "minimum": 0 },
+        "historyPoints": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/trendPoint" }
+        }
+      }
+    }
+  }
+}

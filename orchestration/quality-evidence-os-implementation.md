@@ -181,7 +181,6 @@ Commands:
 - QEOS-011 Schema Evolution
 - QEOS-015 Ownership / Module Risk
 - QEOS-017 Plugin Marketplace
-- QEOS-019 Historical Quality Trend
 - QEOS-020 Hosted Static Report
 
 ## Task Seed QEOS-P1-06 Policy DSL
@@ -242,5 +241,24 @@ Requirements:
 Commands:
 
 - `npx vitest run src/cli/__tests__/pack.test.ts --reporter=dot`
+- `npm run build`
+- `npm run quality:spec-drift`
+
+## Task Seed QEOS-P2-04 Historical Quality Trend
+
+Objective: 各 run の findings/readiness/risk trend を `historical-comparison.json` と viewer Historical tab に出し、単発 gate から継続改善に接続する。
+
+Status: done
+
+Requirements:
+
+- `code-to-gate historical --current <dir> --previous <dir> --history <dir>` で時系列 trend を含む artifact を生成できる。
+- `historical-comparison.json` は `historical-comparison@v1` schema に合格する。
+- schema validator は `historical-comparison.schema.json` を preload し、validate-all optional artifact として扱う。
+- viewer は `historical-comparison.json` を検出して Historical tab と timeline bars を表示できる。
+
+Commands:
+
+- `npx vitest run src/historical/__tests__/comparison.test.ts tests/integration/schema-coverage.test.ts src/viewer/__tests__/report-viewer.test.ts --reporter=dot`
 - `npm run build`
 - `npm run quality:spec-drift`

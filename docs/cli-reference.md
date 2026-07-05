@@ -527,6 +527,19 @@ code-to-gate historical --current <dir> --previous <dir> [--out <file>] [--histo
 | `--out <file>` | stdout/default path | Historical comparison output |
 | `--history <dir>` | none | Directory containing multiple historical runs |
 
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `historical-comparison.json` | New/resolved/regressed findings, readiness delta, risk trend, and timeline history points |
+
+**Example:**
+```bash
+code-to-gate historical --current .qh/current --previous .qh/previous --history .qh/runs \
+  --out .qh/current/historical-comparison.json
+code-to-gate schema validate .qh/current/historical-comparison.json
+code-to-gate viewer --from .qh/current --out .qh/current/report.html
+```
+
 ---
 
 ### spec-drift
