@@ -25,6 +25,7 @@ export const SCHEMA_VERSIONS = {
   gateExplainability: "gate-explainability@v1",
   ruleQualityScore: "rule-quality-score@v1",
   driftBudget: "drift-budget@v1",
+  evidenceProvenanceIndex: "evidence-provenance-index@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -53,6 +54,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   gateExplainability: "gate-explainability@v1",
   ruleQualityScore: "rule-quality-score@v1",
   driftBudget: "drift-budget@v1",
+  evidenceProvenanceIndex: "evidence-provenance-index@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -711,6 +713,46 @@ export interface DriftBudgetArtifact extends ArtifactHeader {
     exceeded: number;
   };
   generated_by: "ctg-drift-budget-v1";
+}
+
+// === Evidence Provenance Index ===
+
+export type EvidenceProvenanceSurface =
+  | "pr-comment"
+  | "viewer"
+  | "release-pack"
+  | "sarif";
+
+export interface EvidenceProvenanceEntry {
+  id: string;
+  surface: EvidenceProvenanceSurface;
+  locator: string;
+  artifactPath: string;
+  artifactHash: string;
+  sourceId: string;
+  line?: number;
+  anchor?: string;
+}
+
+export interface EvidenceProvenanceIndexArtifact extends ArtifactHeader {
+  artifact: "evidence-provenance-index";
+  schema: "evidence-provenance-index@v1";
+  completeness: Completeness;
+  entries: EvidenceProvenanceEntry[];
+  sourceArtifacts: Array<{
+    path: string;
+    hashSha256: string;
+    schema?: string;
+  }>;
+  summary: {
+    entries: number;
+    prComment: number;
+    viewer: number;
+    releasePack: number;
+    sarif: number;
+    sourceArtifacts: number;
+  };
+  generated_by: "ctg-evidence-provenance-index-v1";
 }
 
 // === Doctor ===

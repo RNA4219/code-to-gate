@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/evidence-provenance-index.schema.json",
+  "title": "EvidenceProvenanceIndexArtifact",
+  "allOf": [{ "$ref": "./shared-defs.schema.json#/$defs/artifactHeader" }],
+  "required": ["artifact", "schema", "completeness", "entries", "sourceArtifacts", "summary", "generated_by"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "$ref": "./shared-defs.schema.json#/$defs/version" },
+    "generated_at": { "$ref": "./shared-defs.schema.json#/$defs/isoDateTime" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo": { "$ref": "./shared-defs.schema.json#/$defs/repoRef" },
+    "tool": { "$ref": "./shared-defs.schema.json#/$defs/toolRef" },
+    "artifact": { "const": "evidence-provenance-index" },
+    "schema": { "const": "evidence-provenance-index@v1" },
+    "completeness": { "$ref": "./shared-defs.schema.json#/$defs/completeness" },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sourceArtifact" }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["entries", "prComment", "viewer", "releasePack", "sarif", "sourceArtifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "entries": { "type": "integer", "minimum": 0 },
+        "prComment": { "type": "integer", "minimum": 0 },
+        "viewer": { "type": "integer", "minimum": 0 },
+        "releasePack": { "type": "integer", "minimum": 0 },
+        "sarif": { "type": "integer", "minimum": 0 },
+        "sourceArtifacts": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "generated_by": { "const": "ctg-evidence-provenance-index-v1" }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["id", "surface", "locator", "artifactPath", "artifactHash", "sourceId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "surface": { "enum": ["pr-comment", "viewer", "release-pack", "sarif"] },
+        "locator": { "type": "string", "minLength": 1 },
+        "artifactPath": { "type": "string", "minLength": 1 },
+        "artifactHash": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+        "sourceId": { "type": "string", "minLength": 1 },
+        "line": { "type": "integer", "minimum": 1 },
+        "anchor": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "required": ["path", "hashSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "hashSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "schema": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

@@ -89,6 +89,7 @@ function getExpectedOutputFile(target: string): string {
     "workflow-evidence": "workflow.json",
     "sarif": "results.sarif",
     "evidence-dag": "evidence-dag.json",
+    "provenance-index": "evidence-provenance-index.json",
   };
   return v1Files[target] || "";
 }
@@ -135,6 +136,86 @@ describe("export CLI", () => {
           expect(output.producer).toBe("code-to-gate");
         }
       }
+    });
+  });
+
+  describe("provenance-index export", () => {
+    it("indexes human surfaces back to source artifacts", async () => {
+      const finding = createFinding({ id: "finding-001", evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10 }] });
+      writeFindings(tempOutDir, [finding]);
+      writeFileSync(path.join(tempOutDir, "viewer-report.html"), "<!doctype html><div id=\"finding-finding-001\"></div>", "utf8");
+      writeFileSync(path.join(tempOutDir, "pr-review.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "pr-review-run",
+        repo: { root: "/test/repo" },
+        tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+        artifact: "pr-review",
+        schema: "pr-review@v1",
+        completeness: "complete",
+        status: "needs_review",
+        markdown: { path: "pr-review.md", generated: true },
+        sections: {
+          blockReasons: [{
+            id: "block-finding-001",
+            title: "Finding blocks release",
+            detail: "High finding requires review.",
+            severity: "high",
+            sourceArtifact: "findings.json",
+            sourceIds: ["finding-001"],
+            evidence: [{ path: "findings.json", detail: "findings[0]" }],
+          }],
+          acceptableReasons: [],
+          additionalTests: [],
+          specDiffs: [],
+          artifactLinks: [],
+        },
+        summary: { blockReasons: 1, acceptableReasons: 0, additionalTests: 0, specDiffs: 0, artifactLinks: 0, findings: 1, critical: 0, high: 1, reviewerCandidates: 0 },
+      }), "utf8");
+      writeFileSync(path.join(tempOutDir, "release-pack.json"), JSON.stringify({
+        version: "ctg/v1",
+        generated_at: "2026-07-05T00:00:00Z",
+        run_id: "release-pack-run",
+        repo: { root: "/test/repo" },
+        tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+        artifact: "release-pack",
+        schema: "release-pack@v1",
+        completeness: "complete",
+        status: "ready",
+        ci: {},
+        entries: [{
+          id: "findings",
+          role: "findings",
+          label: "Findings",
+          kind: "required",
+          present: true,
+          sourcePath: "findings.json",
+          packPath: "artifacts/findings.json",
+        }],
+        outputs: { manifest: ".qh/release-pack.json", html: ".qh/release-pack/release-pack.html", zip: ".qh/release-pack.zip" },
+        summary: { requiredEvidence: 1, presentRequiredEvidence: 1, missingRequiredEvidence: 0, includedArtifacts: 1, findings: 1, qegSchemaChecks: 0, manualTestCandidates: 0, changedFiles: 0 },
+      }), "utf8");
+      writeFileSync(path.join(tempOutDir, "results.sarif"), JSON.stringify({
+        version: "2.1.0",
+        runs: [{
+          results: [{
+            ruleId: "TEST_RULE",
+            partialFingerprints: { findingId: "finding-001" },
+            locations: [{ physicalLocation: { artifactLocation: { uri: "src/test.ts" }, region: { startLine: 10 } } }],
+          }],
+        }],
+      }), "utf8");
+
+      const { exitCode, output } = await runExport("provenance-index", tempOutDir);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(output.artifact).toBe("evidence-provenance-index");
+      expect(output.schema).toBe("evidence-provenance-index@v1");
+      expect(output.summary.entries).toBeGreaterThanOrEqual(4);
+      expect(output.entries.map((entry: { surface: string }) => entry.surface)).toEqual(
+        expect.arrayContaining(["pr-comment", "viewer", "release-pack", "sarif"])
+      );
+      expect(output.entries.some((entry: { sourceId: string }) => entry.sourceId === "finding-001")).toBe(true);
     });
   });
 

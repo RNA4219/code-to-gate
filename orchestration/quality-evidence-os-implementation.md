@@ -527,7 +527,7 @@ Commands:
 
 Objective: human surface から元artifact/hash/source idへ戻れる `evidence-provenance-index@v1` を生成する。
 
-Status: planned
+Status: done
 
 Requirements:
 

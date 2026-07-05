@@ -52,6 +52,7 @@ The v1 schema freeze establishes the following guarantees:
 | redaction-profile | `redaction-profile@v1` | `redaction-profile@v1` | Stable |
 | gate-explainability | `gate-explainability@v1` | `gate-explainability@v1` | Stable |
 | drift-budget | `drift-budget@v1` | `drift-budget@v1` | Stable |
+| evidence-provenance-index | `evidence-provenance-index@v1` | `evidence-provenance-index@v1` | Stable |
 | qeos-acceptance-matrix | `qeos-acceptance-matrix@v1` | `qeos-acceptance-matrix@v1` | Stable |
 | audit | `audit@v1` | `audit@v1` | Stable |
 | normalized-repo-graph | `normalized-repo-graph@v1` | `normalized-repo-graph@v1` | Stable |
@@ -172,6 +173,7 @@ schemas/
   redaction-profile.schema.json # Redaction profile contract
   gate-explainability.schema.json # Gate failure explanation and action candidates
   drift-budget.schema.json     # Spec drift budget and branch policy evidence
+  evidence-provenance-index.schema.json # Human surface to artifact/source reverse index
   plugin-manifest.json         # Plugin manifest
   integrations/
     state-gate-evidence.schema.json

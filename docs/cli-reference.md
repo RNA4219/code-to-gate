@@ -447,7 +447,7 @@ code-to-gate export <target> --from <dir> --out <file>
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate`, `evidence-dag` |
+| `<target>` | Yes | Export target: `gatefield`, `state-gate`, `manual-bb`, `workflow-evidence`, `sarif`, `qeg-code-to-gate`, `evidence-dag`, `provenance-index` |
 
 **Options:**
 | Option | Default | Description |
@@ -465,6 +465,7 @@ code-to-gate export <target> --from <dir> --out <file>
 | `sarif` | GitHub Code Scanning / SARIF consumers | SARIF 2.1.0 findings export |
 | `qeg-code-to-gate` | quality-evidence-graph | Evidence-only export for QEG processing |
 | `evidence-dag` | code-to-gate / QEG / PR reviewer surfaces | Cross-artifact DAG linking requirements, rules, findings, artifacts, manual evidence, CI runs, and verdicts |
+| `provenance-index` | PR review, hosted viewer, release evidence, SARIF consumers | Reverse index from human surfaces to source artifact/hash/source ID locators |
 
 **Example:**
 ```bash
@@ -488,6 +489,9 @@ code-to-gate export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json
 
 # Export cross-artifact evidence DAG
 code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
+
+# Export human-surface provenance index
+code-to-gate export provenance-index --from .qh --out .qh/evidence-provenance-index.json
 ```
 
 **Exit Codes:**

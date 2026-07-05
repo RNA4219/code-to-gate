@@ -280,6 +280,7 @@ describe("schema coverage integration", () => {
         "redaction-profile.schema.json",
         "gate-explainability.schema.json",
         "drift-budget.schema.json",
+        "evidence-provenance-index.schema.json",
         "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
@@ -1589,6 +1590,48 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalDriftBudgetPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal evidence-provenance-index artifact", () => {
+      const minimalProvenancePath = path.join(tempDir, "minimal-evidence-provenance-index.json");
+      writeFileSync(
+        minimalProvenancePath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "evidence-provenance-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "evidence-provenance-index",
+          schema: "evidence-provenance-index@v1",
+          completeness: "complete",
+          entries: [
+            {
+              id: "prov-001",
+              surface: "pr-comment",
+              locator: "pr-review.md#blocking-reasons",
+              artifactPath: ".qh/pr-review.json",
+              artifactHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              sourceId: "finding-001",
+              line: 10,
+              anchor: "blocking-reasons",
+            },
+          ],
+          sourceArtifacts: [
+            {
+              path: ".qh/pr-review.json",
+              hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              schema: "pr-review@v1",
+            },
+          ],
+          summary: { entries: 1, prComment: 1, viewer: 0, releasePack: 0, sarif: 0, sourceArtifacts: 1 },
+          generated_by: "ctg-evidence-provenance-index-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalProvenancePath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

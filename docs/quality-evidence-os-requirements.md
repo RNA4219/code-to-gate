@@ -203,6 +203,10 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   spec-drift の failed/warning count、再発check、許容budget、branch policy を持つ
   `drift-budget@v1` を出力する。通常PRではPR reviewに修正対象を表示し、
   release branch policy では budget 超過を block する。
+- QEOS-036: `code-to-gate export provenance-index --from <artifact-dir>` が
+  PR comment、viewer section、release-pack HTML、SARIF annotation の locator から
+  artifact path、artifact hash、source id、line/anchor へ戻る
+  `evidence-provenance-index@v1` を出力する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。
