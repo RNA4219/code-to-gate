@@ -47,6 +47,7 @@ const DOC_ARTIFACT_SCHEMA_MAP: Record<string, string | undefined> = {
   "evidence-query.json": "evidence-query.schema.json",
   "redaction-profile.json": "redaction-profile.schema.json",
   "gate-explainability.json": "gate-explainability.schema.json",
+  "drift-budget.json": "drift-budget.schema.json",
   "qeos-acceptance-matrix.json": "qeos-acceptance-matrix.schema.json",
   "schema-migration.json": "schema-migration.schema.json",
   "ownership-risk.json": "ownership-risk.schema.json",

@@ -25,6 +25,7 @@ import { prReviewPublishCommand } from "./cli/pr-review-publish.js";
 import { queryCommand } from "./cli/query.js";
 import { qeosCommand } from "./cli/qeos.js";
 import { explainGateCommand } from "./cli/explain-gate.js";
+import { driftBudgetCommand } from "./cli/drift-budget.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -60,6 +61,7 @@ Usage:
   code-to-gate ownership --from <artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate query <expression> --from <artifact-dir> [--out <file-or-dir>] [--redaction-profile <profile>] [--quiet]
   code-to-gate explain-gate --from <artifact-dir> [--out <file-or-dir>] [--quiet]
+  code-to-gate drift-budget --from <history-dir|artifact-dir> [--out <file-or-dir>] [--failed-budget <n>] [--warning-budget <n>] [--recurrence-budget <n>] [--branch <name>] [--release-branch] [--quiet]
   code-to-gate qeos matrix --from <repo-or-artifact-dir> [--out <file-or-dir>] [--quiet]
   code-to-gate pr-review --from <artifact-dir> [--out <file-or-dir>] [--comment-file <file>] [--artifact-url <url>] [--redaction-profile <profile>] [--quiet]
   code-to-gate pr-review-publish --from <artifact-dir> --repo <owner/repo> --pull <number> [--out <file-or-dir>] [--commit-sha <sha>] [--artifact-url <url>] [--dry-run] [--quiet]
@@ -232,6 +234,10 @@ async function main(): Promise<number> {
 
     if (command === "explain-gate") {
       return await explainGateCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "drift-budget") {
+      return await driftBudgetCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "qeos") {

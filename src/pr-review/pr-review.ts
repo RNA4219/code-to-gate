@@ -5,6 +5,7 @@ import path from "node:path";
 import type {
   FindingsArtifact,
   GateExplainabilityArtifact,
+  DriftBudgetArtifact,
   OwnershipRiskArtifact,
   PrReviewArtifact,
   PrReviewArtifactLink,
@@ -51,6 +52,7 @@ const ARTIFACT_SPECS: ArtifactSpec[] = [
   { id: "findings", label: "Findings", artifact: "findings", file: "findings.json", role: "findings" },
   { id: "test-plan", label: "Auto test plan", artifact: "test-plan", file: "test-plan.json", role: "tests" },
   { id: "spec-drift", label: "Spec drift", artifact: "spec-drift", file: "spec-drift.json", role: "spec" },
+  { id: "drift-budget", label: "Drift budget", artifact: "drift-budget", file: "drift-budget.json", role: "spec" },
   { id: "ownership-risk", label: "Ownership risk", artifact: "ownership-risk", file: "ownership-risk.json", role: "ownership" },
   { id: "release-pack", label: "Release evidence pack", artifact: "release-pack", file: "release-pack.json", role: "release" },
   { id: "evidence-dag", label: "Evidence DAG", artifact: "evidence-dag", file: "evidence-dag.json", role: "qeg" },
@@ -228,6 +230,7 @@ function buildBlockReasons(
   fromDir: string,
   readiness: ReleaseReadinessArtifact | null,
   specDrift: SpecDriftArtifact | null,
+  driftBudget: DriftBudgetArtifact | null,
   ownership: OwnershipRiskArtifact | null,
   releasePack: ReleasePackArtifact | null
 ): PrReviewItem[] {
@@ -285,6 +288,21 @@ function buildBlockReasons(
         sourceIds: [drift.sourceCheckId],
         evidencePath: drift.evidence[0]?.path ?? relativeToCwd(artifactPath(fromDir, "spec-drift.json")),
         evidenceDetail: drift.evidence[0]?.detail ?? "spec-drift finding",
+      }));
+    }
+  }
+
+  if (driftBudget?.status === "exceeded" && driftBudget.branchPolicy.blockOnExceeded) {
+    for (const exceeded of driftBudget.exceeded) {
+      reasons.push(item({
+        id: `drift-budget-${exceeded.metric}`,
+        title: `Drift budget exceeded: ${exceeded.metric}`,
+        detail: `${exceeded.metric} is ${exceeded.actual}, budget is ${exceeded.budget}.`,
+        severity: exceeded.severity,
+        sourceArtifact: "drift-budget.json",
+        sourceIds: exceeded.sourceIds,
+        evidencePath: relativeToCwd(artifactPath(fromDir, "drift-budget.json")),
+        evidenceDetail: "drift-budget.exceeded",
       }));
     }
   }
@@ -507,6 +525,32 @@ function buildGateExplainabilitySummary(
   });
 }
 
+function buildDriftBudgetSummary(fromDir: string, driftBudget: DriftBudgetArtifact | null): PrReviewItem | undefined {
+  if (!driftBudget) {
+    return undefined;
+  }
+
+  const exceeded = driftBudget.exceeded
+    .map((entry) => `${entry.metric} ${entry.actual}/${entry.budget}`)
+    .join(", ");
+  const detail = driftBudget.status === "exceeded"
+    ? `Budget exceeded: ${exceeded}. Recurring checks: ${driftBudget.recurrence.recurringChecks.map((check) => check.id).join(", ") || "none"}.`
+    : `Within budget: failed ${driftBudget.current.failed}/${driftBudget.budget.failed}, warnings ${driftBudget.current.warnings}/${driftBudget.budget.warnings}, recurring checks ${driftBudget.recurrence.count}/${driftBudget.budget.recurringChecks}.`;
+
+  return item({
+    id: "drift-budget-summary",
+    title: `Drift budget is ${driftBudget.status}`,
+    detail,
+    severity: driftBudget.status === "exceeded"
+      ? (driftBudget.branchPolicy.blockOnExceeded ? "critical" : "medium")
+      : "info",
+    sourceArtifact: "drift-budget.json",
+    sourceIds: driftBudget.exceeded.flatMap((entry) => entry.sourceIds),
+    evidencePath: relativeToCwd(artifactPath(fromDir, "drift-budget.json")),
+    evidenceDetail: "drift-budget.summary",
+  });
+}
+
 function reviewStatus(
   readiness: ReleaseReadinessArtifact | null,
   specDrift: SpecDriftArtifact | null,
@@ -562,6 +606,9 @@ function generateMarkdown(artifact: PrReviewArtifact): string {
   const gateExplainability = artifact.sections.gateExplainabilitySummary
     ? renderItems([artifact.sections.gateExplainabilitySummary], "No gate explainability summary is available.")
     : "- No gate explainability summary is available.\n";
+  const driftBudget = artifact.sections.driftBudgetSummary
+    ? renderItems([artifact.sections.driftBudgetSummary], "No drift budget summary is available.")
+    : "- No drift budget summary is available.\n";
 
   return `## code-to-gate PR Review
 
@@ -581,6 +628,9 @@ ${renderItems(artifact.sections.additionalTests, "No additional test recommendat
 
 ### Spec Drift
 ${renderItems(artifact.sections.specDiffs, "No spec drift was found or no spec-drift artifact was provided.")}
+
+### Drift Budget
+${driftBudget}
 
 ### Evidence Links
 ${renderArtifactLinks(artifact.sections.artifactLinks)}
@@ -610,15 +660,17 @@ export function createPrReview(options: PrReviewOptions): PrReviewResult {
   const ownership = readOptionalJson<OwnershipRiskArtifact>(fromDir, "ownership-risk.json");
   const releasePack = readOptionalJson<ReleasePackArtifact>(fromDir, "release-pack.json");
   const gateExplainability = readOptionalJson<GateExplainabilityArtifact>(fromDir, "gate-explainability.json");
+  const driftBudget = readOptionalJson<DriftBudgetArtifact>(fromDir, "drift-budget.json");
   const header = headerFromInputs(fromDir, readiness, findings, specDrift);
 
-  const blockReasons = buildBlockReasons(fromDir, readiness, specDrift, ownership, releasePack);
+  const blockReasons = buildBlockReasons(fromDir, readiness, specDrift, driftBudget, ownership, releasePack);
   const acceptableReasons = buildAcceptableReasons(fromDir, readiness, findings, specDrift, ownership, releasePack);
   const additionalTests = buildAdditionalTests(fromDir, testPlan);
   const specDiffs = buildSpecDiffs(fromDir, specDrift);
   const artifactLinks = buildArtifactLinks(fromDir, options.artifactUrl);
   const baselineSummary = buildBaselineSummary(fromDir, readiness);
   const gateExplainabilitySummary = buildGateExplainabilitySummary(fromDir, gateExplainability);
+  const driftBudgetSummary = buildDriftBudgetSummary(fromDir, driftBudget);
   const status = reviewStatus(readiness, specDrift, blockReasons, findings, testPlan);
 
   const generatedAt = (options.now ?? new Date()).toISOString();
@@ -648,6 +700,7 @@ export function createPrReview(options: PrReviewOptions): PrReviewResult {
       artifactLinks,
       ...(baselineSummary ? { baselineSummary } : {}),
       ...(gateExplainabilitySummary ? { gateExplainabilitySummary } : {}),
+      ...(driftBudgetSummary ? { driftBudgetSummary } : {}),
     },
     summary: {
       blockReasons: blockReasons.length,
@@ -661,6 +714,7 @@ export function createPrReview(options: PrReviewOptions): PrReviewResult {
       high: countSeverity(findings, "high") || readiness?.counts.high || 0,
       reviewerCandidates: ownership?.reviewerCandidates.length ?? 0,
       gateExplainabilityActions: gateExplainability?.summary.requiredActions,
+      driftBudgetExceeded: driftBudget?.summary.exceeded,
     },
   };
 

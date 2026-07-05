@@ -15,6 +15,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [viewer](#viewer)
    - [historical](#historical)
    - [spec-drift](#spec-drift)
+   - [drift-budget](#drift-budget)
    - [rule](#rule)
    - [pack](#pack)
    - [doctor](#doctor)
@@ -60,6 +61,7 @@ These options apply to all commands:
 | `readiness` | Evaluate existing analysis artifacts against policy. Requires `--from <artifact-dir>`. | `release-readiness.json` |
 | `export` | Transform existing artifacts for downstream tools and evidence graph consumers. | Target-specific JSON/SARIF, `evidence-dag.json` |
 | `spec-drift` | Compare public docs, CLI help, schema registration, and schema coverage tests. | `spec-drift.json` |
+| `drift-budget` | Track failed, warning, and recurring spec-drift checks against branch policy budgets. | `drift-budget.json` |
 | `rule` | Scaffold custom TypeScript rules with fixture-based tests and local manifest schema. | `.ctg/rules/<id>/` |
 | `pack` | List packaged quality profiles, emit their contracts, and export policy YAML. | `quality-pack.json`, `.ctg/policy.yaml` |
 | `doctor` | Diagnose local/CI readiness for code-to-gate workflows. | `doctor.json` |
@@ -939,6 +941,51 @@ code-to-gate schema validate .qh/gate-explainability.json
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | OK | Gate explainability artifact was generated |
+| 2 | USAGE_ERROR | Missing input artifact, missing artifact directory, or invalid arguments |
+
+---
+
+### drift-budget
+
+Track spec drift failures, warnings, and recurring checks against explicit
+budgets. A normal PR can exceed budget and still return `OK` so reviewers see
+the repair targets in `pr-review`; release branches return `READINESS_NOT_CLEAR`
+when `--release-branch` is set and any budget is exceeded.
+
+**Usage:**
+```bash
+code-to-gate drift-budget --from <history-dir|artifact-dir> [--out <file-or-dir>] [--failed-budget <n>] [--warning-budget <n>] [--recurrence-budget <n>] [--branch <name>] [--release-branch] [--quiet]
+```
+
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--from <history-dir|artifact-dir>` | `.qh` | Directory containing `spec-drift.json`, or a history directory whose child directories each contain `spec-drift.json`. |
+| `--out <file-or-dir>` | `<from>/drift-budget.json` | Output file or directory. |
+| `--failed-budget <n>` | `0` | Allowed failed check count for the current spec-drift artifact. |
+| `--warning-budget <n>` | `0` | Allowed warning check count for the current spec-drift artifact. |
+| `--recurrence-budget <n>` | `0` | Allowed recurring failed/warning check count across history. |
+| `--branch <name>` | unset | Branch name recorded in branch policy evidence. |
+| `--release-branch` | false | Treat exceeded budget as release-blocking. |
+| `--quiet` | false | Suppress stdout JSON summary. |
+
+**Output:**
+| Artifact | Description |
+|----------|-------------|
+| `drift-budget.json` | `drift-budget@v1` artifact with current failed/warning counts, recurring checks, budget, branch policy, exceeded metrics, and source artifact hashes |
+
+**Example:**
+```bash
+code-to-gate drift-budget --from .qh-history --out .qh --failed-budget 0 --warning-budget 1 --recurrence-budget 0
+code-to-gate drift-budget --from .qh --out .qh --release-branch --branch release/v1.0.0
+code-to-gate schema validate .qh/drift-budget.json
+```
+
+**Exit Codes:**
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | OK | Drift budget artifact was generated, or exceeded only in non-blocking PR policy |
+| 1 | READINESS_NOT_CLEAR | Budget was exceeded with `--release-branch` |
 | 2 | USAGE_ERROR | Missing input artifact, missing artifact directory, or invalid arguments |
 
 ---

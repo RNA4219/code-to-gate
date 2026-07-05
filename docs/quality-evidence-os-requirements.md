@@ -199,6 +199,10 @@ QEG export を生成できる。一方で、OSSとして導入されるには次
   重み付きで採点し、算出式と入力evidence hash を持つ `rule-quality-score@v1` を出力する。
   plugin marketplace は plugin directory に score artifact がある場合に entry の
   `qualityScore` へ接続する。
+- QEOS-035: `code-to-gate drift-budget --from <history-dir|artifact-dir>` が
+  spec-drift の failed/warning count、再発check、許容budget、branch policy を持つ
+  `drift-budget@v1` を出力する。通常PRではPR reviewに修正対象を表示し、
+  release branch policy では budget 超過を block する。
 - QEOS-041: `github-app-health@v1` が GitHub App token response の
   repository permission、rate limit summary、comment publish action を保持し、
   `pr-review-publish` の実App稼働診断として出力される。

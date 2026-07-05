@@ -24,6 +24,7 @@ export const SCHEMA_VERSIONS = {
   redactionProfile: "redaction-profile@v1",
   gateExplainability: "gate-explainability@v1",
   ruleQualityScore: "rule-quality-score@v1",
+  driftBudget: "drift-budget@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -51,6 +52,7 @@ export const SCHEMA_VERSIONS_V1ALPHA1 = {
   redactionProfile: "redaction-profile@v1",
   gateExplainability: "gate-explainability@v1",
   ruleQualityScore: "rule-quality-score@v1",
+  driftBudget: "drift-budget@v1",
   qeosAcceptanceMatrix: "qeos-acceptance-matrix@v1",
   schemaMigration: "schema-migration@v1",
   ownershipRisk: "ownership-risk@v1",
@@ -657,6 +659,60 @@ export interface SpecDriftArtifact extends ArtifactHeader {
   };
 }
 
+// === Drift Budget ===
+
+export interface DriftBudgetArtifact extends ArtifactHeader {
+  artifact: "drift-budget";
+  schema: "drift-budget@v1";
+  completeness: Completeness;
+  status: "within_budget" | "exceeded";
+  current: {
+    sourceArtifact: string;
+    failed: number;
+    warnings: number;
+    findings: number;
+  };
+  recurrence: {
+    recurringChecks: Array<{
+      id: string;
+      occurrences: number;
+      statuses: Array<"fail" | "warning">;
+      sourceArtifacts: string[];
+    }>;
+    count: number;
+  };
+  budget: {
+    failed: number;
+    warnings: number;
+    recurringChecks: number;
+  };
+  branchPolicy: {
+    branch?: string;
+    releaseBranch: boolean;
+    blockOnExceeded: boolean;
+  };
+  exceeded: Array<{
+    metric: "failed" | "warnings" | "recurringChecks";
+    actual: number;
+    budget: number;
+    severity: "medium" | "high" | "critical";
+    sourceIds: string[];
+  }>;
+  sourceArtifacts: Array<{
+    path: string;
+    hashSha256: string;
+    generatedAt?: string;
+  }>;
+  summary: {
+    status: "within_budget" | "exceeded";
+    failed: number;
+    warnings: number;
+    recurringChecks: number;
+    exceeded: number;
+  };
+  generated_by: "ctg-drift-budget-v1";
+}
+
 // === Doctor ===
 
 export type DoctorCheckStatus = "pass" | "warn" | "fail" | "skip";
@@ -931,6 +987,7 @@ export interface PrReviewArtifact extends ArtifactHeader {
     artifactLinks: PrReviewArtifactLink[];
     baselineSummary?: PrReviewItem;
     gateExplainabilitySummary?: PrReviewItem;
+    driftBudgetSummary?: PrReviewItem;
   };
   summary: {
     blockReasons: number;
@@ -944,6 +1001,7 @@ export interface PrReviewArtifact extends ArtifactHeader {
     high: number;
     reviewerCandidates: number;
     gateExplainabilityActions?: number;
+    driftBudgetExceeded?: number;
   };
 }
 

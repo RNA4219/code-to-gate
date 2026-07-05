@@ -66,7 +66,8 @@
           "items": { "$ref": "#/$defs/artifactLink" }
         },
         "baselineSummary": { "$ref": "#/$defs/reviewItem" },
-        "gateExplainabilitySummary": { "$ref": "#/$defs/reviewItem" }
+        "gateExplainabilitySummary": { "$ref": "#/$defs/reviewItem" },
+        "driftBudgetSummary": { "$ref": "#/$defs/reviewItem" }
       }
     },
     "summary": {
@@ -94,7 +95,8 @@
         "critical": { "type": "integer", "minimum": 0 },
         "high": { "type": "integer", "minimum": 0 },
         "reviewerCandidates": { "type": "integer", "minimum": 0 },
-        "gateExplainabilityActions": { "type": "integer", "minimum": 0 }
+        "gateExplainabilityActions": { "type": "integer", "minimum": 0 },
+        "driftBudgetExceeded": { "type": "integer", "minimum": 0 }
       }
     }
   },

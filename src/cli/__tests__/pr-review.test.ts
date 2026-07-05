@@ -120,6 +120,49 @@ function writeReadiness(dir: string, status: "passed" | "blocked_input"): void {
   }
 }
 
+function writeDriftBudget(dir: string, blockOnExceeded: boolean): void {
+  const header = {
+    version: "ctg/v1",
+    generated_at: "2026-07-05T00:00:00Z",
+    run_id: "drift-budget-run",
+    repo: { root: "." },
+    tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+  };
+  writeJson(path.join(dir, "drift-budget.json"), {
+    ...header,
+    artifact: "drift-budget",
+    schema: "drift-budget@v1",
+    completeness: "complete",
+    status: "exceeded",
+    current: { sourceArtifact: ".qh/spec-drift.json", failed: 1, warnings: 0, findings: 1 },
+    recurrence: {
+      recurringChecks: [{
+        id: "schema.public-schemas.registered",
+        occurrences: 2,
+        statuses: ["fail"],
+        sourceArtifacts: [".qh/run-1/spec-drift.json", ".qh/run-2/spec-drift.json"],
+      }],
+      count: 1,
+    },
+    budget: { failed: 0, warnings: 0, recurringChecks: 0 },
+    branchPolicy: { branch: blockOnExceeded ? "release/v1.0.0" : "feature/qeos", releaseBranch: blockOnExceeded, blockOnExceeded },
+    exceeded: [{
+      metric: "failed",
+      actual: 1,
+      budget: 0,
+      severity: blockOnExceeded ? "critical" : "high",
+      sourceIds: ["schema.public-schemas.registered"],
+    }],
+    sourceArtifacts: [{
+      path: ".qh/spec-drift.json",
+      hashSha256: "a".repeat(64),
+      generatedAt: "2026-07-05T00:00:00Z",
+    }],
+    summary: { status: "exceeded", failed: 1, warnings: 0, recurringChecks: 1, exceeded: 1 },
+    generated_by: "ctg-drift-budget-v1",
+  });
+}
+
 describe("pr-review CLI", () => {
   let tempRoot: string;
 
@@ -187,6 +230,31 @@ describe("pr-review CLI", () => {
     expect(artifact.status).toBe("pass");
     expect(artifact.markdown.path.replace(/\\/g, "/")).toContain("comment.md");
     expect(readFileSync(commentFile, "utf8")).toContain("https://example.com/report.html");
+  });
+
+  it("shows drift budget fix targets without blocking normal PR branches", async () => {
+    const artifactDir = path.join(tempRoot, "artifacts");
+    const outDir = path.join(tempRoot, "out");
+    writeReadiness(artifactDir, "passed");
+    writeDriftBudget(artifactDir, false);
+
+    const exitCode = await prReviewCommand([
+      "--from",
+      artifactDir,
+      "--out",
+      outDir,
+      "--quiet",
+    ], { VERSION, EXIT, getOption });
+
+    const artifact = JSON.parse(readFileSync(path.join(outDir, "pr-review.json"), "utf8"));
+    const markdown = readFileSync(path.join(outDir, "pr-review.md"), "utf8");
+
+    expect(exitCode).toBe(EXIT.OK);
+    expect(artifact.status).toBe("pass");
+    expect(artifact.sections.driftBudgetSummary.detail).toContain("Budget exceeded");
+    expect(artifact.summary.driftBudgetExceeded).toBe(1);
+    expect(markdown).toContain("### Drift Budget");
+    expect(markdown).toContain("schema.public-schemas.registered");
   });
 
   it("rejects unknown options", async () => {

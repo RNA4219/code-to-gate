@@ -279,6 +279,7 @@ describe("schema coverage integration", () => {
         "evidence-query.schema.json",
         "redaction-profile.schema.json",
         "gate-explainability.schema.json",
+        "drift-budget.schema.json",
         "qeos-acceptance-matrix.schema.json",
         "schema-migration.schema.json",
         "ownership-risk.schema.json",
@@ -1529,6 +1530,65 @@ describe("schema coverage integration", () => {
       );
 
       const result = runCli(["schema", "validate", minimalQeosMatrixPath]);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("artifact ok");
+    });
+
+    it("validates minimal drift-budget artifact", () => {
+      const minimalDriftBudgetPath = path.join(tempDir, "minimal-drift-budget.json");
+      writeFileSync(
+        minimalDriftBudgetPath,
+        JSON.stringify({
+          version: "ctg/v1",
+          generated_at: "2024-01-01T00:00:00Z",
+          run_id: "drift-budget-run",
+          repo: { root: "." },
+          tool: { name: "code-to-gate", version: "0.1.0", plugin_versions: [] },
+          artifact: "drift-budget",
+          schema: "drift-budget@v1",
+          completeness: "complete",
+          status: "exceeded",
+          current: {
+            sourceArtifact: ".qh/spec-drift.json",
+            failed: 1,
+            warnings: 0,
+            findings: 1,
+          },
+          recurrence: {
+            recurringChecks: [
+              {
+                id: "schema.public-schemas.registered",
+                occurrences: 2,
+                statuses: ["fail"],
+                sourceArtifacts: [".qh/run-1/spec-drift.json", ".qh/run-2/spec-drift.json"],
+              },
+            ],
+            count: 1,
+          },
+          budget: { failed: 0, warnings: 0, recurringChecks: 0 },
+          branchPolicy: { branch: "release/v1.0.0", releaseBranch: true, blockOnExceeded: true },
+          exceeded: [
+            {
+              metric: "failed",
+              actual: 1,
+              budget: 0,
+              severity: "critical",
+              sourceIds: ["schema.public-schemas.registered"],
+            },
+          ],
+          sourceArtifacts: [
+            {
+              path: ".qh/spec-drift.json",
+              hashSha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              generatedAt: "2024-01-01T00:00:00Z",
+            },
+          ],
+          summary: { status: "exceeded", failed: 1, warnings: 0, recurringChecks: 1, exceeded: 1 },
+          generated_by: "ctg-drift-budget-v1",
+        })
+      );
+
+      const result = runCli(["schema", "validate", minimalDriftBudgetPath]);
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain("artifact ok");
     });

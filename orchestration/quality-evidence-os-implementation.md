@@ -509,7 +509,7 @@ Commands:
 
 Objective: spec-drift の累積・再発・許容量を budget として追跡し、release branchで超過をblockする。
 
-Status: planned
+Status: done
 
 Requirements:
 
