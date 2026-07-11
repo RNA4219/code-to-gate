@@ -48,6 +48,50 @@ describe("PluginRunner", () => {
       expect(runner.executePlugins).toBeDefined();
       expect(runner.healthCheck).toBeDefined();
     });
+
+    it("preserves the programmatic none default and supports mode switches", () => {
+      const runner = new PluginRunnerImpl();
+      expect(runner.getSandboxMode()).toBe("none");
+      runner.setSandboxMode("docker");
+      expect(runner.getSandboxMode()).toBe("docker");
+      runner.setSandboxMode("process");
+      expect(runner.getSandboxMode()).toBe("process");
+      expect(createPluginRunner(undefined)).toBeDefined();
+    });
+
+    it("delegates initialize, execute, and shutdown in docker mode", async () => {
+      const runner = new PluginRunnerImpl("docker");
+      const internal = runner as unknown as {
+        dockerRunner: {
+          initialize: ReturnType<typeof vi.fn>;
+          executePlugin: ReturnType<typeof vi.fn>;
+          shutdown: ReturnType<typeof vi.fn>;
+        };
+      };
+      internal.dockerRunner.initialize = vi.fn().mockResolvedValue(undefined);
+      internal.dockerRunner.executePlugin = vi.fn().mockResolvedValue({
+        pluginId: "docker-plugin@0.1.0",
+        pluginName: "docker-plugin",
+        status: "success",
+        duration: 1,
+      });
+      internal.dockerRunner.shutdown = vi.fn().mockResolvedValue(undefined);
+      const manifest = createDefaultManifest("docker-plugin");
+      const entry: PluginRegistryEntry = {
+        manifest,
+        path: TEST_DIR,
+        loaded: true,
+        enabled: true,
+      };
+
+      await runner.initialize({});
+      await expect(runner.executePlugin(entry, createPluginInput({ files: [] })))
+        .resolves.toMatchObject({ status: "success" });
+      await runner.shutdown();
+      expect(internal.dockerRunner.initialize).toHaveBeenCalledOnce();
+      expect(internal.dockerRunner.executePlugin).toHaveBeenCalledOnce();
+      expect(internal.dockerRunner.shutdown).toHaveBeenCalledOnce();
+    });
   });
 
   describe("initialize", () => {
@@ -82,6 +126,41 @@ describe("PluginRunner", () => {
 
       // Hook registered and unregistered successfully
       expect(true).toBe(true);
+    });
+
+    it("runs hooks and isolates hook callback failures", async () => {
+      const runner = new PluginRunnerImpl();
+      await runner.initialize({ workDir: TEST_DIR, validateOutput: false });
+      const pluginDir = path.join(TEST_DIR, "hook-plugin");
+      await fs.mkdir(pluginDir, { recursive: true });
+      const scriptPath = path.join(pluginDir, "index.js");
+      await fs.writeFile(
+        scriptPath,
+        `console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", findings: [] }));`
+      );
+      const manifest = createDefaultManifest("hook-plugin");
+      manifest.entry.command = ["node", scriptPath];
+      const entry: PluginRegistryEntry = {
+        manifest,
+        path: pluginDir,
+        loaded: true,
+        enabled: true,
+      };
+      const before = vi.fn();
+      const failing = vi.fn().mockRejectedValue(new Error("hook failed"));
+      const after = vi.fn();
+      runner.registerHook("before_execute", before);
+      runner.registerHook("before_execute", failing);
+      runner.registerHook("after_execute", after);
+
+      await expect(runner.executePlugin(entry, createPluginInput({ files: [] })))
+        .resolves.toMatchObject({ status: "success" });
+      expect(before).toHaveBeenCalledOnce();
+      expect(failing).toHaveBeenCalledOnce();
+      expect(after).toHaveBeenCalledOnce();
+      runner.unregisterHook("before_execute", before);
+      runner.unregisterHook("on_error", before);
+      await runner.shutdown();
     });
   });
 
@@ -169,6 +248,68 @@ console.log(JSON.stringify(output));
 
       expect(result.healthy).toBe(false);
       expect(result.issues?.some(i => i.includes("capabilities"))).toBe(true);
+    });
+
+    it("reports inaccessible scripts and previous failed/timeout executions", async () => {
+      const runner = new PluginRunnerImpl();
+      const manifest = createDefaultManifest("unhealthy-plugin");
+      manifest.entry.command = ["node", path.join(TEST_DIR, "missing.js")];
+      const failedEntry: PluginRegistryEntry = {
+        manifest,
+        path: TEST_DIR,
+        loaded: true,
+        enabled: true,
+        lastExecution: {
+          pluginId: "unhealthy-plugin@0.1.0",
+          pluginName: "unhealthy-plugin",
+          status: "failed",
+          error: { code: "FAILED", message: "previous failure" },
+          duration: 1,
+        },
+      };
+      const failed = await runner.healthCheck(failedEntry);
+      expect(failed.issues).toEqual(expect.arrayContaining([
+        expect.stringContaining("not accessible"),
+        "Last execution failed: previous failure",
+      ]));
+
+      failedEntry.lastExecution = {
+        ...failedEntry.lastExecution,
+        status: "timeout",
+      };
+      const timeout = await runner.healthCheck(failedEntry);
+      expect(timeout.issues).toContain("Last execution timed out");
+    });
+  });
+
+  describe("executePlugins", () => {
+    it("uses bounded batches in parallel mode and supports sequential mode", async () => {
+      const entries = ["one", "two", "three"].map((name) => ({
+        manifest: createDefaultManifest(name),
+        path: TEST_DIR,
+        loaded: true,
+        enabled: true,
+      }));
+      const input = createPluginInput({ files: [] });
+      const parallel = new PluginRunnerImpl();
+      await parallel.initialize({ parallel: true, maxConcurrent: 2 });
+      vi.spyOn(parallel, "executePlugin").mockImplementation(async (item) => ({
+        pluginId: `${item.manifest.name}@${item.manifest.version}`,
+        pluginName: item.manifest.name,
+        status: "success",
+        duration: 1,
+      }));
+      await expect(parallel.executePlugins(entries, input)).resolves.toHaveLength(3);
+
+      const sequential = new PluginRunnerImpl();
+      await sequential.initialize({ parallel: false });
+      vi.spyOn(sequential, "executePlugin").mockImplementation(async (item) => ({
+        pluginId: `${item.manifest.name}@${item.manifest.version}`,
+        pluginName: item.manifest.name,
+        status: "success",
+        duration: 1,
+      }));
+      await expect(sequential.executePlugins(entries, input)).resolves.toHaveLength(3);
     });
   });
 
@@ -310,6 +451,56 @@ describe("getFailedPlugins", () => {
 });
 
 describe("PluginRunner Integration", () => {
+  it("validates schema, rejects secret leaks, and accepts partial output", async () => {
+    const runner = new PluginRunnerImpl();
+    await runner.initialize({
+      workDir: TEST_DIR,
+      validateOutput: true,
+      retry: 0,
+      redactionPatterns: ["password"],
+    });
+    const pluginDir = path.join(TEST_DIR, "validation-branches");
+    await fs.mkdir(pluginDir, { recursive: true });
+    const scriptPath = path.join(pluginDir, "index.js");
+    const manifest = createDefaultManifest("validation-branches");
+    manifest.entry.command = ["node", scriptPath];
+    manifest.entry.retry = 0;
+    const entry: PluginRegistryEntry = {
+      manifest,
+      path: pluginDir,
+      loaded: true,
+      enabled: true,
+    };
+    const input = createPluginInput({ files: [] });
+
+    await fs.writeFile(
+      scriptPath,
+      `console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", unexpected: true }));`
+    );
+    await expect(runner.executePlugin(entry, input)).resolves.toMatchObject({
+      status: "invalid_output",
+      error: { code: "SCHEMA_INVALID" },
+    });
+
+    await fs.writeFile(
+      scriptPath,
+      `console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", findings: [], metadata: { note: "PASSWORD=secret" } }));`
+    );
+    await expect(runner.executePlugin(entry, input)).resolves.toMatchObject({
+      status: "failed",
+      error: { code: "SECRET_LEAK" },
+    });
+
+    await fs.writeFile(
+      scriptPath,
+      `console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", findings: [], errors: [{ code: "PARTIAL", message: "partial" }] }));`
+    );
+    await expect(runner.executePlugin(entry, input)).resolves.toMatchObject({
+      status: "partial",
+    });
+    await runner.shutdown();
+  });
+
   it("should execute a simple echo plugin", async () => {
     const runner = new PluginRunnerImpl();
     await runner.initialize({ workDir: TEST_DIR, validateOutput: false });
@@ -354,23 +545,27 @@ console.log(JSON.stringify(output));
 
   it("should handle plugin timeout", async () => {
     const runner = new PluginRunnerImpl();
-    await runner.initialize({ workDir: TEST_DIR, retry: 0 });
+    await runner.initialize({ workDir: TEST_DIR, retry: 1 });
 
-    // Create a plugin that hangs
+    // Create a plugin that would write a sentinel after the timeout if its process survives.
     const pluginDir = path.join(TEST_DIR, "timeout-plugin");
     await fs.mkdir(pluginDir, { recursive: true });
     const scriptPath = path.join(pluginDir, "index.js");
+    const sentinelPath = path.join(pluginDir, "survived-timeout.txt");
+    await fs.rm(sentinelPath, { force: true });
 
     await fs.writeFile(scriptPath, `
-// This plugin intentionally hangs
 import { setTimeout as sleep } from 'timers/promises';
-await sleep(5000);
+import { writeFile } from 'node:fs/promises';
+await sleep(10000);
+await writeFile(${JSON.stringify(sentinelPath)}, 'process survived timeout');
 console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", findings: [] }));
 `);
 
     const manifest = createDefaultManifest("timeout-plugin");
     manifest.entry.command = ["node", scriptPath];
     manifest.entry.timeout = 1; // 1 second timeout
+    manifest.entry.retry = 1;
 
     const entry: PluginRegistryEntry = {
       manifest,
@@ -385,9 +580,17 @@ console.log(JSON.stringify({ version: "${PLUGIN_OUTPUT_VERSION}", findings: [] }
 
     expect(result.status).toBe("timeout");
     expect(result.error?.code).toBe("TIMEOUT");
+    expect(result.retryCount).toBe(2);
+    const runningProcesses = (
+      runner as unknown as { runningProcesses: Map<string, unknown> }
+    ).runningProcesses;
+    expect(runningProcesses.size).toBe(0);
+
+    await new Promise((resolve) => setTimeout(resolve, 9000));
+    await expect(fs.access(sentinelPath)).rejects.toThrow();
 
     await runner.shutdown();
-  }, 10000);
+  }, 30000);
 
   it("should handle invalid output", async () => {
     const runner = new PluginRunnerImpl();

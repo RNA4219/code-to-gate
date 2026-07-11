@@ -106,6 +106,7 @@ export function buildPluginExecutionCommand(
     return [
       "node",
       containerScriptPath,
+      ...originalCmd.slice(2),
       "--input",
       `${config.ioMountPath}/input.json`,
       "--output",

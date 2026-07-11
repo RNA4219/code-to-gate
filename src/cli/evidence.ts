@@ -21,6 +21,7 @@ import {
   BundleValidationResult,
   EvidenceBundleMetadata,
 } from "../evidence/evidence-types.js";
+import { UnsafeZipEntryError } from "../evidence/safe-extraction.js";
 
 export interface EvidenceCommandOptions {
   VERSION: string;
@@ -312,6 +313,9 @@ async function listCommand(
     return options.EXIT.OK;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
+    if (error instanceof UnsafeZipEntryError) {
+      return options.EXIT.SCHEMA_FAILED;
+    }
     return options.EXIT.INTERNAL_ERROR;
   }
 }
@@ -366,6 +370,9 @@ async function extractCommand(
     return options.EXIT.OK;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
+    if (error instanceof UnsafeZipEntryError) {
+      return options.EXIT.SCHEMA_FAILED;
+    }
     return options.EXIT.INTERNAL_ERROR;
   }
 }

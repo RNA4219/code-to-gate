@@ -3,7 +3,7 @@
  * Helper functions for executing Docker commands
  */
 
-import { exec } from "child_process";
+import { execFile } from "node:child_process";
 
 const DOCKER_PROBE_TIMEOUT_MS = Number(process.env.CTG_DOCKER_PROBE_TIMEOUT_MS ?? "1000");
 const DOCKER_STOP_TIMEOUT_MS = Number(process.env.CTG_DOCKER_STOP_TIMEOUT_MS ?? "1500");
@@ -15,17 +15,17 @@ export async function execDockerCommand(
   cmd: string[],
   timeoutMs: number
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`TIMEOUT: Command exceeded ${timeoutMs}ms`));
-    }, timeoutMs);
+  const [executable, ...args] = cmd;
+  if (!executable) {
+    throw new Error("Docker command must include an executable");
+  }
 
-    exec(
-      cmd.join(" "),
-      { timeout: timeoutMs },
+  return new Promise((resolve) => {
+    execFile(
+      executable,
+      args,
+      { timeout: timeoutMs, windowsHide: true, maxBuffer: 10 * 1024 * 1024 },
       (error, stdout, stderr) => {
-        clearTimeout(timeoutId);
-
         if (error) {
           // Check if it's a timeout
           if (error.killed) {
@@ -38,7 +38,7 @@ export async function execDockerCommand(
             resolve({
               stdout,
               stderr,
-              exitCode: error.code ?? 1,
+              exitCode: typeof error.code === "number" ? error.code : 1,
             });
           }
         } else {

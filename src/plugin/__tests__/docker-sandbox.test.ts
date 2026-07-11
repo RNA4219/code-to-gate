@@ -27,6 +27,7 @@ import {
   DEFAULT_ENV_VAR_FILTER,
 } from "../sandbox-config.js";
 import { buildDockerRunCommand } from "../docker-command-builder.js";
+import { execDockerCommand } from "../docker-exec-utils.js";
 import { createDefaultManifest, PLUGIN_OUTPUT_VERSION } from "../plugin-schema.js";
 import type { PluginRegistryEntry, SandboxConfig, PluginInput } from "../types.js";
 import * as fs from "fs/promises";
@@ -206,6 +207,7 @@ describe("SandboxConfig", () => {
       expect(flags.some(f => f.includes("seccomp"))).toBe(true);
       expect(flags.some(f => f.includes("cap-drop"))).toBe(true);
       expect(flags.some(f => f.includes("no-new-privileges"))).toBe(true);
+      expect(flags).toContain("ALL");
     });
 
     it("should include capability add flags", () => {
@@ -214,7 +216,8 @@ describe("SandboxConfig", () => {
         addCapabilities: ["NET_ADMIN"],
       };
       const flags = buildDockerSecurityFlags(options);
-      expect(flags.some(f => f.includes("cap-add=NET_ADMIN"))).toBe(true);
+      expect(flags).toContain("--cap-add");
+      expect(flags).toContain("NET_ADMIN");
     });
   });
 
@@ -277,14 +280,27 @@ describe("SandboxConfig", () => {
       );
 
       const flags = toDockerVolumeFlags(mounts);
-      expect(flags.length).toBe(mounts.length);
-      expect(flags.every(f => f.startsWith("-v"))).toBe(true);
+      expect(flags.length).toBe(mounts.length * 2);
+      expect(flags.filter(f => f === "-v")).toHaveLength(mounts.length);
     });
 
     it("should include mount mode in flags", () => {
       const mounts = [{ hostPath: "/a", containerPath: "/b", mode: "ro" as const }];
       const flags = toDockerVolumeFlags(mounts);
-      expect(flags[0]).toBe("-v /a:/b:ro");
+      expect(flags).toEqual(["-v", "/a:/b:ro"]);
+    });
+  });
+
+  describe("shell-free Docker argv", () => {
+    it("passes shell metacharacters as a single argument", async () => {
+      const marker = "value; echo should-not-run";
+      const result = await execDockerCommand(
+        [process.execPath, "-e", "process.stdout.write(process.argv[1])", marker],
+        5000
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe(marker);
     });
   });
 

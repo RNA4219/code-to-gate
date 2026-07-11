@@ -171,23 +171,23 @@ export function buildDockerSecurityFlags(options: DockerSecurityOptions): string
   const flags: string[] = [];
 
   if (options.seccompProfile !== "unconfined") {
-    flags.push(`--security-opt seccomp=${options.seccompProfile}`);
+    flags.push("--security-opt", `seccomp=${options.seccompProfile}`);
   }
 
   if (options.dropCapabilities) {
-    flags.push("--cap-drop=ALL");
+    flags.push("--cap-drop", "ALL");
   }
 
   for (const cap of options.addCapabilities) {
-    flags.push(`--cap-add=${cap}`);
+    flags.push("--cap-add", cap);
   }
 
   if (options.noNewPrivileges) {
-    flags.push("--security-opt no-new-privileges=true");
+    flags.push("--security-opt", "no-new-privileges=true");
   }
 
   if (options.appArmorProfile !== "unconfined") {
-    flags.push(`--security-opt apparmor=${options.appArmorProfile}`);
+    flags.push("--security-opt", `apparmor=${options.appArmorProfile}`);
   }
 
   return flags;
@@ -263,7 +263,10 @@ export function buildVolumeMounts(
  * Convert volume mounts to Docker flags
  */
 export function toDockerVolumeFlags(mounts: VolumeMount[]): string[] {
-  return mounts.map(m => `-v ${m.hostPath}:${m.containerPath}:${m.mode}`);
+  return mounts.flatMap((mount) => [
+    "-v",
+    `${mount.hostPath}:${mount.containerPath}:${mount.mode}`,
+  ]);
 }
 
 /**

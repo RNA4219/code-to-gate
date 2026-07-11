@@ -36,6 +36,8 @@ import {
   OPTIONAL_ARTIFACTS,
   ArtifactType,
 } from "../evidence-types.js";
+import { createZipEntry, createZipFile } from "../zip-utils.js";
+import { prepareSafeZipEntries, UNSAFE_ZIP_ENTRY_CODE } from "../safe-extraction.js";
 
 const TEST_DIR = path.join(process.cwd(), ".test-temp", "bundle-test");
 const TEST_OUTPUT_DIR = path.join(TEST_DIR, "output");
@@ -99,6 +101,12 @@ describe("Evidence Bundle Builder", () => {
       mkdirSync(TEST_DIR, { recursive: true });
       mkdirSync(TEST_OUTPUT_DIR, { recursive: true });
     }
+  });
+
+  it("rejects an empty ZIP entry name before resolving output paths", () => {
+    const entries = new Map([["", Buffer.from("malicious")]]);
+
+    expect(() => prepareSafeZipEntries(entries, TEST_OUTPUT_DIR)).toThrow(UNSAFE_ZIP_ENTRY_CODE);
   });
 
   describe("ID and hash generation", () => {
@@ -337,6 +345,57 @@ describe("Evidence Bundle Builder", () => {
       // Missing bundle throws
       await expect(extractBundleContents("/nonexistent.zip", extractDir)).rejects.toThrow();
     });
+
+    it.each([
+      "../escaped.json",
+      "..\\escaped.json",
+      "/absolute.json",
+      "C:\\absolute.json",
+      "\\\\server\\share\\escaped.json",
+    ])("rejects unsafe entry %s before writing files", async (entryName) => {
+      const bundlePath = getBundlePath("unsafe-entry");
+      const extractDir = path.join(TEST_OUTPUT_DIR, "unsafe-extract");
+      const metadata = Buffer.from(JSON.stringify({ bundle_id: "unsafe-test" }), "utf8");
+      const zip = createZipFile([
+        createZipEntry("metadata.json", metadata),
+        createZipEntry(entryName, Buffer.from("unsafe", "utf8")),
+      ]);
+      writeFileSync(bundlePath, zip);
+
+      await expect(extractBundleContents(bundlePath, extractDir)).rejects.toThrow("UNSAFE_ZIP_ENTRY");
+      expect(existsSync(extractDir)).toBe(false);
+    });
+
+    it("rejects entries that normalize to the same destination", async () => {
+      const bundlePath = getBundlePath("duplicate-entry");
+      const extractDir = path.join(TEST_OUTPUT_DIR, "duplicate-extract");
+      const metadata = Buffer.from(JSON.stringify({ bundle_id: "duplicate-test" }), "utf8");
+      const zip = createZipFile([
+        createZipEntry("metadata.json", metadata),
+        createZipEntry("nested/file.json", Buffer.from("one", "utf8")),
+        createZipEntry("nested\\file.json", Buffer.from("two", "utf8")),
+      ]);
+      writeFileSync(bundlePath, zip);
+
+      await expect(extractBundleContents(bundlePath, extractDir)).rejects.toThrow("UNSAFE_ZIP_ENTRY");
+      expect(existsSync(extractDir)).toBe(false);
+    });
+
+    it("extracts safe nested entries", async () => {
+      const bundlePath = getBundlePath("nested-entry");
+      const extractDir = path.join(TEST_OUTPUT_DIR, "nested-extract");
+      const metadata = Buffer.from(JSON.stringify({ bundle_id: "nested-test" }), "utf8");
+      const zip = createZipFile([
+        createZipEntry("metadata.json", metadata),
+        createZipEntry("nested/file.json", Buffer.from("safe", "utf8")),
+      ]);
+      writeFileSync(bundlePath, zip);
+
+      const result = await extractBundleContents(bundlePath, extractDir);
+
+      expect(result.metadata.bundle_id).toBe("nested-test");
+      expect(existsSync(path.join(extractDir, "nested", "file.json"))).toBe(true);
+    });
   });
 
   describe("edge cases", () => {
@@ -392,5 +451,101 @@ describe("Evidence Bundle Builder", () => {
         expect(artifact.hash_valid).toBe(true);
       }
     });
+  });
+});
+
+describe("Evidence Bundle validation edge cases", () => {
+  beforeEach(() => {
+    mkdirSync(TEST_DIR, { recursive: true });
+    mkdirSync(TEST_OUTPUT_DIR, { recursive: true });
+  });
+
+  it("handles missing, malformed, and incomplete bundles", async () => {
+    await expect(validateEvidenceBundle({
+      bundlePath: path.join(TEST_DIR, "missing.zip"),
+    })).resolves.toMatchObject({
+      valid: false,
+      errors: [{ code: "BUNDLE_NOT_FOUND" }],
+    });
+
+    const noMetadata = path.join(TEST_OUTPUT_DIR, "no-metadata.zip");
+    writeFileSync(noMetadata, createZipFile([
+      createZipEntry("findings.json", Buffer.from("{}")),
+    ]));
+    await expect(validateEvidenceBundle({ bundlePath: noMetadata }))
+      .resolves.toMatchObject({ valid: false, errors: [{ code: "MISSING_METADATA" }] });
+
+    const badMetadata = path.join(TEST_OUTPUT_DIR, "bad-metadata.zip");
+    writeFileSync(badMetadata, createZipFile([
+      createZipEntry("metadata.json", Buffer.from("{invalid")),
+    ]));
+    await expect(validateEvidenceBundle({ bundlePath: badMetadata }))
+      .resolves.toMatchObject({ valid: false, errors: [{ code: "METADATA_PARSE_ERROR" }] });
+
+    const incomplete = path.join(TEST_OUTPUT_DIR, "incomplete.zip");
+    writeFileSync(incomplete, createZipFile([
+      createZipEntry("metadata.json", Buffer.from(JSON.stringify({
+        contents: [{ name: "findings.json", type: "findings", hash_sha256: "sha256:wrong" }],
+      }))),
+      createZipEntry("findings.json", Buffer.from("{")),
+    ]));
+    const result = await validateEvidenceBundle({ bundlePath: incomplete });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((error) => error.code === "MISSING_REQUIRED_ARTIFACT")).toBe(true);
+    expect(result.artifact_results.some((item) => item.errors.some(
+      (error) => error.code === "HASH_MISMATCH" || error.code === "PARSE_ERROR"
+    ))).toBe(true);
+  });
+
+  it("rejects unsafe entries during validation before artifact processing", async () => {
+    const bundle = path.join(TEST_OUTPUT_DIR, "unsafe-validation.zip");
+    writeFileSync(bundle, createZipFile([
+      createZipEntry("metadata.json", Buffer.from(JSON.stringify({ contents: [] }))),
+      createZipEntry("../escape.txt", Buffer.from("unsafe")),
+    ]));
+
+    await expect(validateEvidenceBundle({ bundlePath: bundle })).resolves.toMatchObject({
+      valid: false,
+      errors: [{ code: "UNSAFE_ZIP_ENTRY" }],
+    });
+  });
+
+  it("covers schema, YAML, signature, and strict warning branches", async () => {
+    const bundle = path.join(TEST_OUTPUT_DIR, "edge-cases.zip");
+    writeFileSync(bundle, createZipFile([
+      createZipEntry("metadata.json", Buffer.from(JSON.stringify({
+        signature: { algorithm: "sha256" },
+        contents: [
+          { name: "findings.json", type: "findings", hash_sha256: "sha256:wrong" },
+          { name: "risk-register.yaml", type: "risk-register", hash_sha256: "sha256:wrong" },
+          { name: "note.txt", type: "metadata", hash_sha256: "sha256:wrong" },
+        ],
+      }))),
+      createZipEntry("findings.json", Buffer.from("{}")),
+      createZipEntry("risk-register.yaml", Buffer.alloc(0)),
+      createZipEntry("note.txt", Buffer.from("note")),
+      createZipEntry("signature.json", Buffer.from(JSON.stringify({ algorithm: "sha512" }))),
+    ]));
+    const relaxed = await validateEvidenceBundle({ bundlePath: bundle });
+    expect(relaxed.warnings.some((warning) => warning.code === "SIGNATURE_ALGORITHM_MISMATCH")).toBe(true);
+    expect(relaxed.artifact_results.some((item) => item.errors.some(
+      (error) => error.code === "EMPTY_YAML"
+    ))).toBe(true);
+    const strict = await validateEvidenceBundle({ bundlePath: bundle, strict: true, validateSchemas: true });
+    expect(strict.valid).toBe(false);
+    expect(strict.warnings).toEqual([]);
+    expect(strict.errors.length).toBeGreaterThan(0);
+
+    const missingSignature = path.join(TEST_OUTPUT_DIR, "missing-signature.zip");
+    writeFileSync(missingSignature, createZipFile([
+      createZipEntry("metadata.json", Buffer.from(JSON.stringify({
+        signature: { algorithm: "sha256" },
+        contents: [],
+      }))),
+    ]));
+    const signatureResult = await validateEvidenceBundle({ bundlePath: missingSignature });
+    expect(signatureResult.warnings.some(
+      (warning) => warning.code === "SIGNATURE_FILE_MISSING"
+    )).toBe(true);
   });
 });

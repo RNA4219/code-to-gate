@@ -175,7 +175,7 @@ export function compareFindings(
   const regressions = detectRegressions(
     newFindings,
     resolvedFindings,
-    unchangedFindings,
+    [...unchangedFindings, ...modifiedFindings],
     regressionConfig
   );
 

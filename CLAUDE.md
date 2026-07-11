@@ -50,6 +50,15 @@ npm run release:public
 | `src/historical/` | Baseline comparison |
 | `src/core/database-analyzer.ts` | Optional SQL/database migration analysis |
 
+### Security Boundaries
+
+- `evidence extract` preflights every ZIP entry and rejects paths outside the
+  requested output directory with `UNSAFE_ZIP_ENTRY`.
+- Docker commands must use shell-free argument arrays.
+- `plugin-sandbox run` requires explicit `--sandbox docker|none`; direct host
+  execution is never selected implicitly.
+- Timed-out plugin process trees must be stopped before a retry starts.
+
 ### Data Flow
 
 ```

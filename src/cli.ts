@@ -87,7 +87,7 @@ Usage:
     Commands: status, run, build-image
     status:      Check Docker availability and sandbox status
     run:         Execute a plugin in sandbox mode
-                 <plugin-path> --input <file> [--sandbox docker] [--timeout <s>]
+                 <plugin-path> --input <file> --sandbox <docker|none> [--timeout <s>]
     build-image: Build the Docker image for plugin execution
   code-to-gate assurance inspect <repo> --from <artifact-dir> [--out <file>] [--min-confidence <0..1>] [--include-low-confidence]
 

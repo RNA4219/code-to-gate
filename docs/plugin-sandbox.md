@@ -125,11 +125,16 @@ code-to-gate plugin-sandbox run ./my-plugin \
 Options:
 - `--input <file>`: Input JSON file
 - `--output <file>`: Output file (default: stdout)
-- `--sandbox <mode>`: Sandbox mode (none, docker)
+- `--sandbox <mode>`: Required sandbox mode (`docker` or `none`)
 - `--timeout <s>`: Execution timeout in seconds
 - `--memory <MB>`: Memory limit in MB
 - `--cpu <fraction>`: CPU limit
 - `--verbose`: Show detailed information
+
+`--sandbox` has no implicit default. Omitting it or passing an unsupported value
+returns usage exit code `2`. `--sandbox none` is an explicit lower-trust choice:
+the plugin runs directly on the host and can access the host process
+environment, so the CLI prints a warning before execution.
 
 ### Build Docker Image
 
@@ -294,6 +299,7 @@ Or use an existing image:
 ```bash
 code-to-gate plugin-sandbox run ./my-plugin \
   --input input.json \
+  --sandbox docker \
   --docker-image node:20-alpine
 ```
 

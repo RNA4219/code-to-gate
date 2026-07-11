@@ -224,6 +224,9 @@ jobs:
           sarif_file: .qh/results.sarif
           category: code-to-gate-release
 
+      - name: Verify packed npm package
+        run: npm run test:package
+
       - name: Generate release evidence
         run: |
           npm run package:integrity

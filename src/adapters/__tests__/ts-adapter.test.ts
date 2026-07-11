@@ -128,8 +128,8 @@ describe('ts-adapter', () => {
     });
 
     it('extracts method call relations separately from class symbol', () => {
-      const filePath = path.join(demoShopTsDir, 'src/domain/cart.ts');
-      const result = parseTypeScriptFile(filePath, demoShopTsDir, 'file:cart');
+      const filePath = path.join(demoShopTsDir, 'src/services/order-processor.ts');
+      const result = parseTypeScriptFile(filePath, demoShopTsDir, 'file:order-processor');
 
       const methods = result.symbols.filter(s => s.kind === 'method');
       const methodWithCall = methods.find(method =>

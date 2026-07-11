@@ -1421,7 +1421,7 @@ Check and run plugin execution in an isolated sandbox.
 **Usage:**
 ```bash
 code-to-gate plugin-sandbox status
-code-to-gate plugin-sandbox run <plugin-path> --input <file> [--sandbox docker] [--timeout <s>]
+code-to-gate plugin-sandbox run <plugin-path> --input <file> --sandbox <docker|none> [--timeout <s>]
 code-to-gate plugin-sandbox build-image
 ```
 
@@ -1431,6 +1431,11 @@ code-to-gate plugin-sandbox build-image
 | `status` | Check Docker availability and sandbox status |
 | `run` | Execute a plugin with an input artifact |
 | `build-image` | Build the Docker image used for plugin execution |
+
+`--sandbox` is required. Missing or unsupported values return usage exit code
+`2`. Use `docker` for isolated execution. `none` runs the plugin directly on
+the host, prints a warning to stderr, and should be limited to explicitly
+approved local development.
 
 ---
 

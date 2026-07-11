@@ -534,6 +534,14 @@ describe("file-utils", () => {
       const files = walkDir(tempTestDir);
       expect(files.some((f) => f.includes(".test-temp-smoke"))).toBe(false);
     });
+
+    it("ignores downloaded real-repo fixtures", () => {
+      mkdirSync(path.join(tempTestDir, ".real-repo-temp"), { recursive: true });
+      writeFileSync(path.join(tempTestDir, ".real-repo-temp", "file.ts"), "test", "utf8");
+
+      const files = walkDir(tempTestDir);
+      expect(files.some((f) => f.includes(".real-repo-temp"))).toBe(false);
+    });
   });
 
   describe("isTargetFile", () => {
@@ -868,6 +876,10 @@ describe("file-utils", () => {
 
     it("contains .test-temp", () => {
       expect(DEFAULT_IGNORED_DIRS.has(".test-temp")).toBe(true);
+    });
+
+    it("contains .real-repo-temp", () => {
+      expect(DEFAULT_IGNORED_DIRS.has(".real-repo-temp")).toBe(true);
     });
 
     it("contains htmlcov", () => {

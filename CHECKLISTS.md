@@ -69,6 +69,9 @@ code-to-gate運用時のチェックリスト集。
 - PR に `type:*` および `semver:*` ラベルを付与済み
 - Security Review Checklist に沿って準備→実装→レビューの各フェーズを完了
 - `npm run release:validate` が通ること（build + smoke + pack dry-run）
+- `npm run test:package` がfresh build→pack→隔離install→CLI/rule-sdk smokeまで通ること
+- `plugin-sandbox run` がsandbox未指定/不正値をexit 2で拒否し、Docker実行がshell-free argvであること
+- Evidence bundleのtraversal/absolute/UNC/重複正規化entryが書き込み前に拒否されること
 - 配布物へ `LICENSE` を同梱済み
 - Release Approval Record（`docs/releases/RA-YYYYMMDD-XX.md`）を作成済み
 - ロールバック準備完了（前回安定版確認、戻し先Gitタグ特定）

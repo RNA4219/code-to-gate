@@ -33,7 +33,10 @@ interface SarifResult {
 function readOptionalJson<T>(filePath: string): T | null {
   if (!existsSync(filePath)) return null;
   try {
-    return JSON.parse(readFileSync(filePath, "utf8")) as T;
+    const parsed = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as T
+      : null;
   } catch {
     return null;
   }

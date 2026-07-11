@@ -13,7 +13,7 @@ No unreleased changes yet.
 
 ---
 
-## [1.5.0] - 2026-06-17 - SQL Database Analysis Release
+## [1.5.0] - 2026-07-12 - Security and SQL Database Analysis Release
 
 ### Added
 
@@ -25,12 +25,28 @@ No unreleased changes yet.
 - `assurance inspect` diff analysis and QEG assurance evidence export.
 - Precision evaluation suite for diff semantic findings.
 
+### Security
+
+- Reject evidence bundle entries that escape the extraction directory, including
+  Windows-style traversal, absolute paths, and normalized destination collisions.
+- Execute Docker commands with argument arrays instead of shell-concatenated
+  command strings.
+- Terminate timed-out plugin process trees before retrying execution.
+
 ### Changed
 
 - Database findings now flow through risk, test seed, SARIF, and readiness inputs.
 - Database artifacts redact credential-like values and preserve partial-analysis diagnostics.
 - Split diff semantic rules into focused modules while preserving the public API.
 - Extended QEG evidence with assurance findings without transferring release decision ownership.
+- `plugin-sandbox run` now requires an explicit `--sandbox docker|none`; missing
+  or invalid values return usage exit code `2`, and `none` emits a host-execution warning.
+- npm package, coverage, macOS, and pinned QEG checks are enforced as release gates.
+
+### Fixed
+
+- Include `dist/redaction/` in the npm package so the installed CLI can start.
+- Generate `coverage-summary.json` and enforce the documented 80% thresholds in Vitest.
 
 ---
 

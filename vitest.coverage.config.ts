@@ -6,12 +6,18 @@ export default defineConfig({
     environment: 'node',
     include: [
       'src/__tests__/smoke/**/*.test.ts',
+      'src/__tests__/plugin/**/*.test.ts',
+      'src/__tests__/cli-all.test.ts',
+      'src/__tests__/evaluation.test.ts',
+      'src/__tests__/rules-all.test.ts',
       'src/cli/__tests__/**/*.test.ts',
       'src/config/__tests__/**/*.test.ts',
       'src/evaluation/__tests__/**/*.test.ts',
       'src/reporters/__tests__/**/*.test.ts',
       'src/rules/__tests__/**/*.test.ts',
       'src/suppression/__tests__/**/*.test.ts',
+      'src/plugin/__tests__/**/*.test.ts',
+      'src/evidence/__tests__/**/*.test.ts',
     ],
     exclude: ['node_modules/**', 'dist/**', 'coverage/**', '.qh*/**', '.test-temp/**', 'fixtures/**/node_modules/**'],
     pool: 'threads',
@@ -22,13 +28,12 @@ export default defineConfig({
     hookTimeout: 120000,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/cli/**/*.ts', 'src/config/**/*.ts', 'src/evaluation/**/*.ts', 'src/reporters/**/*.ts', 'src/rules/**/*.ts', 'src/suppression/**/*.ts'],
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      include: ['src/cli/**/*.ts', 'src/config/**/*.ts', 'src/evaluation/**/*.ts', 'src/reporters/**/*.ts', 'src/rules/**/*.ts', 'src/suppression/**/*.ts', 'src/plugin/**/*.ts', 'src/evidence/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',
         'src/**/__tests__/**/*.ts',
         'src/cli/llm-health.ts',
-        'src/cli/plugin-sandbox.ts',
         'src/cli/viewer.ts',
         'src/config/config-loader.ts',
         'src/config/config-schema.ts',
@@ -40,10 +45,10 @@ export default defineConfig({
         'src/suppression/index.ts',
       ],
       thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 70,
-        statements: 70
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80
       }
     }
   },

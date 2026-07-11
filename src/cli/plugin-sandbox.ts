@@ -7,7 +7,6 @@ import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import {
   createPluginLoader,
   createPluginRunner,
-  parseSandboxMode,
   validateSandboxConfig,
   DEFAULT_SANDBOX_CONFIG,
   isDockerSandboxAvailable,
@@ -15,13 +14,44 @@ import {
 import type { PluginRegistryEntry, SandboxConfig } from "../plugin/index.js";
 import * as path from "path";
 import * as fs from "fs/promises";
-import { exec } from "child_process";
 import * as os from "os";
+import {
+  buildDockerImage as buildDockerImageUtil,
+  checkDockerImageExists,
+  checkDockerVersion,
+  getDockerSystemMemory,
+} from "../plugin/docker-exec-utils.js";
 
 interface PluginOptions {
   VERSION: string;
   EXIT: typeof EXIT;
   getOption: typeof getOption;
+  dependencies?: Partial<PluginSandboxDependencies>;
+}
+
+interface PluginSandboxDependencies {
+  createPluginLoader: typeof createPluginLoader;
+  createPluginRunner: typeof createPluginRunner;
+  validateSandboxConfig: typeof validateSandboxConfig;
+  isDockerSandboxAvailable: typeof isDockerSandboxAvailable;
+  buildDockerImage: typeof buildDockerImageUtil;
+  checkDockerImageExists: typeof checkDockerImageExists;
+  checkDockerVersion: typeof checkDockerVersion;
+  getDockerSystemMemory: typeof getDockerSystemMemory;
+}
+
+function dependencies(options: PluginOptions): PluginSandboxDependencies {
+  return {
+    createPluginLoader,
+    createPluginRunner,
+    validateSandboxConfig,
+    isDockerSandboxAvailable,
+    buildDockerImage: buildDockerImageUtil,
+    checkDockerImageExists,
+    checkDockerVersion,
+    getDockerSystemMemory,
+    ...options.dependencies,
+  };
 }
 
 /**
@@ -62,7 +92,7 @@ Manage and execute plugins in isolated Docker containers.
 
 Usage:
   code-to-gate plugin-sandbox status [--docker-image <image>]
-  code-to-gate plugin-sandbox run <plugin-path> --input <file> [--output <file>] [--sandbox <mode>]
+  code-to-gate plugin-sandbox run <plugin-path> --input <file> --sandbox <docker|none> [--output <file>]
   code-to-gate plugin-sandbox build-image [--docker-image <image>]
 
 Subcommands:
@@ -74,11 +104,11 @@ Options:
   --docker-image   Docker image to use for sandbox (default: code-to-gate-plugin-runner:latest)
   --input          Input JSON file for plugin execution
   --output         Output file for plugin result (default: stdout)
-  --sandbox        Sandbox mode: none, docker (default: docker)
+  --sandbox        Sandbox mode: none, docker (required)
   --timeout        Execution timeout in seconds (default: 60)
   --memory         Memory limit in MB (default: 512)
   --cpu            CPU limit as fraction (default: 0.5)
-  --no-network     Disable network access (default: true)
+  --allow-network  Allow network access (default: blocked)
   --verbose        Show detailed execution information
   --help, -h       Show this help
 
@@ -97,12 +127,13 @@ Examples:
  * Sandbox status command
  */
 async function sandboxStatusCommand(args: string[], options: PluginOptions): Promise<number> {
+  const deps = dependencies(options);
   const dockerImage = options.getOption(args, "--docker-image") ?? DEFAULT_SANDBOX_CONFIG.dockerImage;
 
   console.log("Checking Docker sandbox status...\n");
 
   // Check Docker availability
-  const dockerAvailable = await isDockerSandboxAvailable();
+  const dockerAvailable = await deps.isDockerSandboxAvailable();
 
   if (!dockerAvailable) {
     console.log("Docker: NOT AVAILABLE");
@@ -113,66 +144,25 @@ async function sandboxStatusCommand(args: string[], options: PluginOptions): Pro
 
   console.log("Docker: AVAILABLE");
 
-  // Check Docker version
-  try {
-    const versionResult = await new Promise<string>((resolve) => {
-      exec("docker --version", (_error: Error | null, stdout: string) => {
-        resolve(stdout.trim());
-      });
-    });
-    console.log(`  Version: ${versionResult}`);
-  } catch {
-    console.log("  Version: Unable to determine");
-  }
+  const dockerVersion = await deps.checkDockerVersion();
+  console.log(`  Version: ${dockerVersion.version ?? "Unable to determine"}`);
 
-  // Check Docker daemon
-  try {
-    await new Promise<void>((resolve, reject) => {
-      exec("docker info", { timeout: 5000 }, (error: Error | null) => {
-        if (error) reject(error);
-        else resolve();
-      });
-    });
-    console.log("  Daemon: Running");
-  } catch {
+  const availableMemoryMB = await deps.getDockerSystemMemory();
+  if (availableMemoryMB === undefined) {
     console.log("  Daemon: NOT RUNNING");
     console.log("  - Start Docker daemon before using sandbox mode");
     return options.EXIT.USAGE_ERROR;
   }
+  console.log("  Daemon: Running");
 
-  // Check image availability
-  try {
-    const inspectResult = await new Promise<boolean>((resolve) => {
-      exec(`docker image inspect ${dockerImage}`, (error: Error | null) => {
-        resolve(!error);
-      });
-    });
-
-    if (inspectResult) {
-      console.log(`Image ${dockerImage}: AVAILABLE`);
-    } else {
-      console.log(`Image ${dockerImage}: NOT FOUND`);
-      console.log("  - Run 'code-to-gate plugin-sandbox build-image' to create the image");
-    }
-  } catch {
-    console.log(`Image ${dockerImage}: Unable to check`);
+  const imageExists = await deps.checkDockerImageExists(dockerImage);
+  if (imageExists) {
+    console.log(`Image ${dockerImage}: AVAILABLE`);
+  } else {
+    console.log(`Image ${dockerImage}: NOT FOUND`);
+    console.log("  - Run 'code-to-gate plugin-sandbox build-image' to create the image");
   }
-
-  // Check system resources
-  try {
-    const infoResult = await new Promise<string>((resolve) => {
-      exec("docker system info --format '{{.MemTotal}}'", (_error: Error | null, stdout: string) => {
-        resolve(stdout.trim());
-      });
-    });
-    const memTotal = parseInt(infoResult, 10);
-    if (!isNaN(memTotal)) {
-      const memMB = Math.floor(memTotal / (1024 * 1024));
-      console.log(`Available Memory: ${memMB} MB`);
-    }
-  } catch {
-    console.log("Available Memory: Unable to determine");
-  }
+  console.log(`Available Memory: ${availableMemoryMB} MB`);
 
   console.log("\nSandbox Configuration:");
   console.log(`  Default Timeout: ${DEFAULT_SANDBOX_CONFIG.timeout} seconds`);
@@ -188,10 +178,11 @@ async function sandboxStatusCommand(args: string[], options: PluginOptions): Pro
  * Sandbox run command
  */
 async function sandboxRunCommand(args: string[], options: PluginOptions): Promise<number> {
+  const deps = dependencies(options);
   const pluginPath = args[0];
   const inputFile = options.getOption(args, "--input");
   const outputFile = options.getOption(args, "--output");
-  const sandboxMode = parseSandboxMode(options.getOption(args, "--sandbox"));
+  const sandboxValue = options.getOption(args, "--sandbox");
   const timeout = parseInt(options.getOption(args, "--timeout") ?? "60", 10);
   const memory = parseInt(options.getOption(args, "--memory") ?? "512", 10);
   const cpu = parseFloat(options.getOption(args, "--cpu") ?? "0.5");
@@ -207,6 +198,16 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
     console.error("Error: Input file required (--input <file>)");
     return options.EXIT.USAGE_ERROR;
   }
+
+  if (!sandboxValue) {
+    console.error("Error: Sandbox mode required (--sandbox docker|none)");
+    return options.EXIT.USAGE_ERROR;
+  }
+  if (sandboxValue !== "docker" && sandboxValue !== "none") {
+    console.error(`Error: Invalid sandbox mode: ${sandboxValue}. Expected docker or none.`);
+    return options.EXIT.USAGE_ERROR;
+  }
+  const sandboxMode = sandboxValue;
 
   // Resolve paths
   const cwd = process.cwd();
@@ -239,7 +240,7 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
   };
 
   // Validate sandbox config
-  const validation = validateSandboxConfig(sandboxConfig);
+  const validation = deps.validateSandboxConfig(sandboxConfig);
   if (!validation.valid) {
     console.error("Error: Invalid sandbox configuration:");
     for (const error of validation.errors) {
@@ -250,12 +251,17 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
 
   // Check Docker availability for docker mode
   if (sandboxMode === "docker") {
-    const dockerAvailable = await isDockerSandboxAvailable();
+    const dockerAvailable = await deps.isDockerSandboxAvailable();
     if (!dockerAvailable) {
       console.error("Error: Docker is not available for sandbox mode");
       console.error("  - Install and start Docker, or use --sandbox none");
       return options.EXIT.USAGE_ERROR;
     }
+  }
+  if (sandboxMode === "none") {
+    console.error(
+      "Warning: --sandbox none executes plugin code directly on the host with access to the host environment."
+    );
   }
 
   if (verbose) {
@@ -268,7 +274,7 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
   }
 
   // Load plugin manifest
-  const loader = createPluginLoader();
+  const loader = deps.createPluginLoader();
   const loadResult = await loader.loadManifest(absolutePluginPath);
 
   if (loadResult.status !== "loaded") {
@@ -296,7 +302,7 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
   }
 
   // Create runner
-  const runner = createPluginRunner(sandboxMode, sandboxConfig);
+  const runner = deps.createPluginRunner(sandboxMode, sandboxConfig);
 
   // Read input
   const inputContent = await fs.readFile(absoluteInputPath, "utf-8");
@@ -364,11 +370,12 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
  * Build image command
  */
 async function buildImageCommand(args: string[], options: PluginOptions): Promise<number> {
+  const deps = dependencies(options);
   const dockerImage = options.getOption(args, "--docker-image") ?? DEFAULT_SANDBOX_CONFIG.dockerImage;
   const verbose = args.includes("--verbose");
 
   // Check Docker availability
-  const dockerAvailable = await isDockerSandboxAvailable();
+  const dockerAvailable = await deps.isDockerSandboxAvailable();
   if (!dockerAvailable) {
     console.error("Error: Docker is not available");
     return options.EXIT.USAGE_ERROR;
@@ -412,34 +419,12 @@ CMD ["-e", "const fs=require('fs');const input=JSON.parse(fs.readFileSync(0,'utf
     console.log(dockerfileContent);
   }
 
-  // Build image
-  console.log("Running docker build...");
-
   try {
-    await new Promise<void>((resolve, reject) => {
-      const buildProcess = exec(
-        `docker build -t ${dockerImage} ${dockerfileDir}`,
-        (error: Error | null, stdout: string, stderr: string) => {
-          if (verbose) {
-            console.log(stdout);
-            if (stderr) console.error(stderr);
-          }
-
-          if (error) {
-            reject(error);
-          } else {
-            resolve();
-          }
-        }
-      );
-
-      buildProcess.stdout?.on("data", (data: string) => {
-        if (!verbose) {
-          // Show minimal progress
-          console.log(data.toString().trim());
-        }
-      });
-    });
+    console.log("Running docker build...");
+    const built = await deps.buildDockerImage(dockerImage, dockerfileDir);
+    if (!built) {
+      throw new Error("docker build returned a non-zero exit code");
+    }
 
     // Cleanup
     await fs.rm(dockerfileDir, { recursive: true, force: true });

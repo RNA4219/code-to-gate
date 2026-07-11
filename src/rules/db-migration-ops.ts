@@ -206,10 +206,12 @@ function createNoTransactionSignalFinding(
 function createRollbackNotEvidencedFinding(
   filePath: string,
   migration: MigrationRef,
-  _context: RuleContext
+  context: RuleContext
 ): Finding {
   const startLine = migration.startLine || 1;
-  const endLine = startLine;
+  const content = context.getFileContent(filePath);
+  const fileLineCount = content ? content.split(/\r?\n/).length : startLine;
+  const endLine = Math.min(startLine + 10, fileLineCount);
 
   const opTypes = migration.operations.map((o) => o.type).join(", ");
 
@@ -227,7 +229,7 @@ function createRollbackNotEvidencedFinding(
       createEvidence(
         filePath,
         startLine,
-        endLine + 10,
+        endLine,
         "text",
         `Migration ${migration.name} lacks rollback method`
       ),

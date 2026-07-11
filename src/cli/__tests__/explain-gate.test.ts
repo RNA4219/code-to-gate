@@ -141,4 +141,27 @@ describe("explain-gate CLI", () => {
 
     expect(exitCode).toBe(EXIT.USAGE_ERROR);
   });
+
+  it("covers help, option validation, output paths, and malformed inputs", async () => {
+    const help = await explainGateCommand(["--help"], { VERSION, EXIT, getOption });
+    expect(help).toBe(EXIT.OK);
+    expect(await explainGateCommand(["--from"], { VERSION, EXIT, getOption }))
+      .toBe(EXIT.USAGE_ERROR);
+    expect(await explainGateCommand(["--unknown"], { VERSION, EXIT, getOption }))
+      .toBe(EXIT.USAGE_ERROR);
+    expect(await explainGateCommand(["unexpected"], { VERSION, EXIT, getOption }))
+      .toBe(EXIT.USAGE_ERROR);
+
+    writeGateInputs(tempRoot);
+    const outputFile = path.join(tempRoot, "nested", "explain.json");
+    expect(await explainGateCommand([
+      "--from", tempRoot, "--out", outputFile, "--quiet",
+    ], { VERSION, EXIT, getOption })).toBe(EXIT.OK);
+    expect(existsSync(outputFile)).toBe(true);
+
+    writeJson(path.join(tempRoot, "findings.json"), { invalid: true });
+    expect(await explainGateCommand([
+      "--from", tempRoot, "--out", path.join(tempRoot, "bad.json"),
+    ], { VERSION, EXIT, getOption })).toBe(EXIT.USAGE_ERROR);
+  });
 });

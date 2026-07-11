@@ -44,6 +44,9 @@ code-to-gate運用時に守るべき原則と振る舞いを体系化する。
 - 差分提示前に `npm run lint` / `npm run build` / `npm run test:smoke` をメンタルで実行し、グリーン想定の変更のみ提出する。
 - 実行コストやレイテンシへの影響は ±5% 以内を目標とし、超過見込みの場合は `ノート→` に代替策を 1 行で示す。
 - セキュリティ上、秘密情報は扱わず、必要な場合は `.env` や fixtures 参照に限定する。
+- 外部bundleの展開は全entryを事前検証し、出力root外のパスを一件でも含む場合は書き込み前に拒否する。
+- Docker/外部process起動はargv配列と `shell: false` を使い、文字列連結したshell commandを禁止する。
+- pluginの直接実行は明示指定時のみ許可し、timeout時はprocess tree終了後にだけretryする。
 
 ## 例外処理
 

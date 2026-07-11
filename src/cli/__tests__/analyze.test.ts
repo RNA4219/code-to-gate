@@ -546,7 +546,12 @@ describe("analyze CLI", () => {
     const defaultOutPath = path.join(process.cwd(), ".qh", "findings.json");
     expect(existsSync(defaultOutPath)).toBe(true);
     // Clean up
-    rmSync(path.join(process.cwd(), ".qh"), { recursive: true, force: true });
+    rmSync(path.join(process.cwd(), ".qh"), {
+      recursive: true,
+      force: true,
+      maxRetries: 3,
+      retryDelay: 100,
+    });
   });
 
   it("analysis-report.md contains repo path", async () => {

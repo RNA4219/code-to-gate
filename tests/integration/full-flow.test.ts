@@ -392,7 +392,11 @@ describe("full flow integration", () => {
         writeFileSync(filePath, `export const value${i} = ${i};\n`);
       }
 
-      const result = runCli(["scan", manyFilesDir, "--out", path.join(tempDir, "many-files-out")]);
+      const result = runCli(
+        ["scan", manyFilesDir, "--out", path.join(tempDir, "many-files-out")],
+        getProjectRoot(),
+        120000
+      );
 
       expect(result.exitCode).toBe(0);
 

@@ -9,8 +9,8 @@
  * 2. Fresh build
  * 3. npm pack
  * 4. npm install packed tgz in temp directory
- * 5. CLI execution (--version, analyze, diff) - ALL MUST PASS
- * 6. Verify dist/application and dist/utils exist
+ * 5. CLI execution (--version, --help, analyze, viewer, diff) - ALL MUST PASS
+ * 6. Verify required runtime directories and rule-sdk export
  * 7. Verify deleted files NOT included (domain-context.*)
  * 8. Cleanup tarball and temp directory (always)
  */
@@ -86,6 +86,7 @@ try {
   console.log("Step 5: Verify required directories...");
   const applicationDir = join(installedDir, "dist", "application");
   const utilsDir = join(installedDir, "dist", "utils");
+  const redactionDir = join(installedDir, "dist", "redaction");
 
   if (!existsSync(applicationDir)) {
     throw new Error("dist/application not found in package");
@@ -95,7 +96,12 @@ try {
   if (!existsSync(utilsDir)) {
     throw new Error("dist/utils not found in package");
   }
-  console.log("  ✓ dist/utils exists\n");
+  console.log("  ✓ dist/utils exists");
+
+  if (!existsSync(redactionDir)) {
+    throw new Error("dist/redaction not found in package");
+  }
+  console.log("  ✓ dist/redaction exists\n");
 
   // Step 6: Verify deleted files NOT included
   console.log("Step 6: Verify deleted files NOT included...");
@@ -127,6 +133,23 @@ try {
   }
   console.log(`    ✓ --version: ${pkgJson.version}`);
 
+  console.log("  Testing --help...");
+  const helpOutput = execSync(`node "${cliPath}" --help`, {
+    cwd: TEMP_DIR,
+    encoding: "utf8",
+  });
+  if (!helpOutput.includes("code-to-gate") || !helpOutput.includes("plugin-sandbox")) {
+    throw new Error("--help output is incomplete");
+  }
+  console.log("    ✓ --help: command list loaded");
+
+  console.log("  Testing rule-sdk import...");
+  execSync(
+    `node --input-type=module -e "const sdk = await import('@quality-harness/code-to-gate/rule-sdk'); if (typeof sdk.runRuleFixture !== 'function') process.exit(1)"`,
+    { cwd: TEMP_DIR, stdio: "inherit" }
+  );
+  console.log("    ✓ rule-sdk: import succeeded");
+
   // Step 8: CLI analyze (MUST PASS - no exceptions allowed)
   console.log("  Testing analyze (strict)...");
   const analyzeOutDir = join(TEMP_DIR, "analyze-out");
@@ -146,6 +169,18 @@ try {
     throw new Error("findings.json not created by analyze command");
   }
   console.log("    ✓ analyze: findings.json created");
+
+  console.log("  Testing viewer (strict)...");
+  const viewerPath = join(analyzeOutDir, "viewer-report.html");
+  execSync(`node "${cliPath}" viewer --from "${analyzeOutDir}" --out "${viewerPath}"`, {
+    cwd: TEMP_DIR,
+    encoding: "utf8",
+    timeout: 60000,
+  });
+  if (!existsSync(viewerPath)) {
+    throw new Error("viewer-report.html not created by viewer command");
+  }
+  console.log("    ✓ viewer: viewer-report.html created");
 
   // Step 9: CLI diff (MUST PASS - no exceptions allowed)
   console.log("  Testing diff (strict)...");

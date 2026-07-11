@@ -417,7 +417,7 @@ export class PluginRunnerImpl implements PluginRunner {
    */
   async shutdown(): Promise<void> {
     // Kill any running processes
-    killRunningProcesses(this.runningProcesses, this.logger);
+    await killRunningProcesses(this.runningProcesses, this.logger);
 
     // Clear hooks
     this.hooks.clear();

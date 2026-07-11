@@ -65,7 +65,7 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
   ) {
     this.workDir = workDir;
     this.allowedReadPaths = allowedReadPaths.map(p => this.normalizePath(p));
-    this.allowedWritePaths = [workDir];
+    this.allowedWritePaths = [this.normalizePath(workDir)];
     this.logger = logger;
   }
 
@@ -74,9 +74,7 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
   }
 
   async readFile(filePath: string): Promise<string> {
-    const normalized = this.normalizePath(filePath);
-
-    if (!this.isPathAllowed(normalized, "read")) {
+    if (!this.isPathAllowed(filePath, "read")) {
       throw new Error(`Path not allowed for reading: ${filePath}`);
     }
 
@@ -89,9 +87,7 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
   }
 
   async exists(filePath: string): Promise<boolean> {
-    const normalized = this.normalizePath(filePath);
-
-    if (!this.isPathAllowed(normalized, "read")) {
+    if (!this.isPathAllowed(filePath, "read")) {
       return false;
     }
 
@@ -105,9 +101,7 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
 
   async writeWorkFile(filename: string, content: string): Promise<string> {
     const fullPath = path.join(this.workDir, filename);
-    const normalized = this.normalizePath(fullPath);
-
-    if (!this.isPathAllowed(normalized, "write")) {
+    if (!this.isPathAllowed(fullPath, "write")) {
       throw new Error(`Path not allowed for writing: ${fullPath}`);
     }
 
@@ -124,6 +118,11 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
 
   async readWorkFile(filename: string): Promise<string | null> {
     const fullPath = path.join(this.workDir, filename);
+
+    if (!this.isPathAllowed(fullPath, "write")) {
+      this.logger.warn(`Rejected work file read outside work directory: ${filename}`);
+      return null;
+    }
 
     try {
       return await fs.readFile(fullPath, "utf-8");
@@ -144,6 +143,11 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
   async deleteWorkFile(filename: string): Promise<void> {
     const fullPath = path.join(this.workDir, filename);
 
+    if (!this.isPathAllowed(fullPath, "write")) {
+      this.logger.warn(`Rejected work file deletion outside work directory: ${filename}`);
+      return;
+    }
+
     try {
       await fs.unlink(fullPath);
       this.logger.debug(`Deleted work file: ${filename}`);
@@ -162,12 +166,17 @@ export class RestrictedPluginFileSystem implements PluginFileSystem {
 
   isPathAllowed(filePath: string, mode: "read" | "write"): boolean {
     const normalized = this.normalizePath(filePath);
+    const allowedPaths = mode === "read"
+      ? this.allowedReadPaths
+      : this.allowedWritePaths;
 
-    if (mode === "read") {
-      return this.allowedReadPaths.some(allowed => normalized.startsWith(allowed));
-    } else {
-      return this.allowedWritePaths.some(allowed => normalized.startsWith(allowed));
-    }
+    return allowedPaths.some((allowed) => {
+      const relative = path.posix.relative(allowed, normalized);
+      return relative === "" ||
+        (relative !== ".." &&
+          !relative.startsWith("../") &&
+          !path.posix.isAbsolute(relative));
+    });
   }
 }
 

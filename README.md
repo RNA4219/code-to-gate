@@ -13,7 +13,7 @@ to prioritize human review; the final release decision remains with the human
 or downstream approval gate.
 
 [![Package](https://img.shields.io/badge/package-1.5.0-blue)](CHANGELOG.md)
-[![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.4.2-yellow)](https://github.com/RNA4219/code-to-gate/releases)
+[![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.5.0-yellow)](https://github.com/RNA4219/code-to-gate/releases)
 [![npm](https://img.shields.io/badge/npm-not%20published-lightgrey)](https://www.npmjs.com/package/@quality-harness/code-to-gate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-20%2B-green)](https://nodejs.org/)
@@ -25,13 +25,12 @@ Language: English | [日本語](README_JA.md)
 | Channel | Status |
 |---------|--------|
 | `package.json` | `1.5.0` |
-| GitHub Release | `v1.4.2` latest published release |
+| GitHub Release | `v1.5.0` latest published release |
 | npm registry | Not published yet |
 
 See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
-`1.5.0` is the local package version prepared in this repository. Until a
-matching GitHub release and npm publication exist, treat the public release
-surface as `v1.4.2` plus GitHub/source installation.
+`1.5.0` is available as a GitHub Release. The npm package remains unpublished,
+so install from GitHub/source until npm publication is completed.
 
 ## Install
 

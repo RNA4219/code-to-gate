@@ -26,6 +26,7 @@ import {
   EvidenceRunContext,
   BundleSignature,
 } from "./evidence-types.js";
+import { prepareSafeZipEntries, UnsafeZipEntryError } from "./safe-extraction.js";
 
 const VERSION = "0.2.0";
 
@@ -594,6 +595,37 @@ export async function validateEvidenceBundle(options: BundleValidatorOptions): P
     };
   }
 
+  try {
+    // Validate every ZIP destination before trusting manifest entries. This is
+    // intentionally read-only; extraction performs the same check before any
+    // directory or file is created.
+    prepareSafeZipEntries(
+      entries,
+      path.join(path.dirname(path.resolve(options.bundlePath)), ".bundle-validation-root")
+    );
+  } catch (e) {
+    if (e instanceof UnsafeZipEntryError) {
+      errors.push({
+        code: e.code,
+        message: e.message,
+        artifact: e.entryName,
+      });
+      return {
+        valid: false,
+        errors,
+        warnings,
+        artifact_results: [],
+        summary: {
+          total_artifacts: 0,
+          valid_artifacts: 0,
+          invalid_artifacts: 0,
+          missing_artifacts: 0,
+        },
+      };
+    }
+    throw e;
+  }
+
   // Validate each artifact in manifest
   for (const manifest of metadata.contents) {
     const artifactResult: ArtifactValidationResult = {
@@ -806,31 +838,28 @@ export async function extractBundleContents(
     throw new Error(`Bundle file not found: ${bundlePath}`);
   }
 
-  // Create extract directory
-  if (!existsSync(extractDir)) {
-    mkdirSync(extractDir, { recursive: true });
-  }
-
   // Read and parse ZIP
   const zipData = readFileSync(bundlePath);
   const entries = parseZipFile(zipData);
 
-  // Extract all files
-  const extractedFiles: string[] = [];
-
-  for (const [name, data] of entries) {
-    const outputPath = path.join(extractDir, name);
-    writeFileSync(outputPath, data);
-    extractedFiles.push(outputPath);
-  }
-
-  // Parse metadata
+  // Validate metadata and every destination before writing any files.
   const metadataData = entries.get("metadata.json");
   if (!metadataData) {
     throw new Error("metadata.json not found in bundle");
   }
-
   const metadata: EvidenceBundleMetadata = JSON.parse(metadataData.toString("utf8"));
+  const preparedEntries = prepareSafeZipEntries(entries, extractDir);
+
+  if (!existsSync(extractDir)) {
+    mkdirSync(extractDir, { recursive: true });
+  }
+
+  const extractedFiles: string[] = [];
+  for (const entry of preparedEntries) {
+    mkdirSync(path.dirname(entry.outputPath), { recursive: true });
+    writeFileSync(entry.outputPath, entry.data);
+    extractedFiles.push(entry.outputPath);
+  }
 
   return { extractedFiles, metadata };
 }
@@ -856,6 +885,10 @@ export async function listBundleContents(bundlePath: string): Promise<{
   }
 
   const metadata: EvidenceBundleMetadata = JSON.parse(metadataData.toString("utf8"));
+  prepareSafeZipEntries(
+    entries,
+    path.join(path.dirname(path.resolve(bundlePath)), ".bundle-list-validation-root")
+  );
 
   return {
     metadata,
