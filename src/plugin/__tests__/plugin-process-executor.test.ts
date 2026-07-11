@@ -147,6 +147,32 @@ describe("plugin process executor", () => {
     )).rejects.toThrow("SPAWN_ERROR");
   });
 
+  it("executes a Node plugin when its command omits a script path", async () => {
+    const success = childProcess();
+    childMocks.spawn.mockImplementationOnce(() => {
+      queueMicrotask(() => {
+        success.stdout.write(JSON.stringify({
+          version: PLUGIN_OUTPUT_VERSION,
+          findings: [],
+        }));
+        success.stdout.end();
+        success.emit("close", 0);
+      });
+      return success;
+    });
+    const noScriptManifest = manifest();
+    noScriptManifest.entry.command = ["node"];
+
+    await expect(executePluginProcess(
+      noScriptManifest, "{}", 1000, logger, new Map()
+    )).resolves.toMatchObject({ version: PLUGIN_OUTPUT_VERSION });
+    expect(childMocks.spawn).toHaveBeenCalledWith(
+      "node",
+      [],
+      expect.objectContaining({ cwd: "." })
+    );
+  });
+
   it("terminates a timed out child and clears running processes before retry", async () => {
     const originalPlatform = process.platform;
     const timed = childProcess();
@@ -191,6 +217,15 @@ describe("plugin process executor", () => {
     await killRunningProcesses(processes, logger);
     expect(processes.size).toBe(0);
     expect(logger.info).toHaveBeenCalledWith("Killing running plugin: running");
+  });
+
+  it("does not signal a process that has already exited", async () => {
+    const exited = childProcess();
+    exited.exitCode = 0;
+
+    await killRunningProcesses(new Map([["exited", exited]]), logger);
+
+    expect(exited.kill).not.toHaveBeenCalled();
   });
 
   it("terminates a POSIX process group with TERM", async () => {
@@ -242,6 +277,22 @@ describe("plugin process executor", () => {
     } finally {
       Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
       processKill.mockRestore();
+    }
+  });
+
+  it("falls back to ChildProcess.kill when a POSIX child has no pid", async () => {
+    const originalPlatform = process.platform;
+    const timed = childProcess();
+    timed.pid = undefined as unknown as number;
+    childMocks.spawn.mockImplementationOnce(() => timed);
+    Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
+    try {
+      await expect(executePluginProcess(
+        manifest(), "{}", 5, logger, new Map()
+      )).rejects.toThrow("TIMEOUT");
+      expect(timed.kill).toHaveBeenCalledWith("SIGTERM");
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
     }
   });
 

@@ -109,6 +109,24 @@ describe("Evidence Bundle Builder", () => {
     expect(() => prepareSafeZipEntries(entries, TEST_OUTPUT_DIR)).toThrow(UNSAFE_ZIP_ENTRY_CODE);
   });
 
+  it("applies platform-appropriate case rules when checking ZIP entry collisions", () => {
+    const originalPlatform = process.platform;
+    const entries = new Map([
+      ["Report.json", Buffer.from("one")],
+      ["report.json", Buffer.from("two")],
+    ]);
+
+    try {
+      Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+      expect(() => prepareSafeZipEntries(entries, TEST_OUTPUT_DIR)).toThrow(UNSAFE_ZIP_ENTRY_CODE);
+
+      Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
+      expect(prepareSafeZipEntries(entries, TEST_OUTPUT_DIR)).toHaveLength(2);
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+    }
+  });
+
   describe("ID and hash generation", () => {
     it("generates unique bundle IDs based on run_id and timestamp", () => {
       const id1 = generateBundleId("run-001", new Date().toISOString());
