@@ -25,15 +25,25 @@ const FIXTURES_DIR = join(ROOT, "fixtures", "demo-shop-ts");
 const DIST_DIR = join(ROOT, "dist");
 const NPM_CACHE_DIR = join(ROOT, ".qh", "npm-cache");
 const NPM_ENV = { ...process.env, npm_config_cache: NPM_CACHE_DIR };
+const REMOVE_DIRECTORY_OPTIONS = {
+  recursive: true,
+  force: true,
+  maxRetries: 3,
+  retryDelay: 100,
+};
 
 let tgzPath = null;
+
+function removeDirectory(target) {
+  rmSync(target, REMOVE_DIRECTORY_OPTIONS);
+}
 
 function cleanup() {
   // Always cleanup tarball and temp directory
   if (tgzPath && existsSync(tgzPath)) {
     rmSync(tgzPath, { force: true });
   }
-  rmSync(TEMP_DIR, { recursive: true, force: true });
+  removeDirectory(TEMP_DIR);
 }
 
 console.log("=== Package Smoke Test (Strict) ===\n");
@@ -41,7 +51,7 @@ console.log("=== Package Smoke Test (Strict) ===\n");
 try {
   // Step 1: Clean dist directory
   console.log("Step 1: Clean dist directory...");
-  rmSync(DIST_DIR, { recursive: true, force: true });
+  removeDirectory(DIST_DIR);
   console.log("  ✓ dist removed\n");
 
   // Step 2: Fresh build
@@ -52,7 +62,7 @@ try {
 
   // Step 3: npm pack
   console.log("Step 3: npm pack...");
-  rmSync(TEMP_DIR, { recursive: true, force: true });
+  removeDirectory(TEMP_DIR);
   mkdirSync(TEMP_DIR, { recursive: true });
 
   const packOutput = execSync("npm pack", { cwd: ROOT, encoding: "utf8", env: NPM_ENV });
@@ -153,7 +163,7 @@ try {
   // Step 8: CLI analyze (MUST PASS - no exceptions allowed)
   console.log("  Testing analyze (strict)...");
   const analyzeOutDir = join(TEMP_DIR, "analyze-out");
-  rmSync(analyzeOutDir, { recursive: true, force: true });
+  removeDirectory(analyzeOutDir);
   mkdirSync(analyzeOutDir, { recursive: true });
 
   // Execute analyze and check exit code
@@ -185,7 +195,7 @@ try {
   // Step 9: CLI diff (MUST PASS - no exceptions allowed)
   console.log("  Testing diff (strict)...");
   const diffOutDir = join(TEMP_DIR, "diff-out");
-  rmSync(diffOutDir, { recursive: true, force: true });
+  removeDirectory(diffOutDir);
   mkdirSync(diffOutDir, { recursive: true });
 
   // Use git refs from demo-shop-ts (HEAD vs HEAD~1)
