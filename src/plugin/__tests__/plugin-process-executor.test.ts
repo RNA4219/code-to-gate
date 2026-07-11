@@ -148,6 +148,7 @@ describe("plugin process executor", () => {
   });
 
   it("terminates a timed out child and clears running processes before retry", async () => {
+    const originalPlatform = process.platform;
     const timed = childProcess();
     childMocks.spawn.mockImplementation(() => timed);
     childMocks.execFile.mockImplementation(
@@ -160,16 +161,21 @@ describe("plugin process executor", () => {
     const processes = new Map<string, EventEmitter>();
     const timeoutManifest = manifest();
     timeoutManifest.entry.timeout = 1;
-    await expect(executePluginProcess(
-      timeoutManifest, "{}", 5, logger, processes
-    )).rejects.toThrow("TIMEOUT");
-    expect(processes.size).toBe(0);
-    expect(childMocks.execFile).toHaveBeenCalledWith(
-      "taskkill",
-      ["/pid", "12345", "/T", "/F"],
-      expect.any(Object),
-      expect.any(Function)
-    );
+    Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+    try {
+      await expect(executePluginProcess(
+        timeoutManifest, "{}", 5, logger, processes
+      )).rejects.toThrow("TIMEOUT");
+      expect(processes.size).toBe(0);
+      expect(childMocks.execFile).toHaveBeenCalledWith(
+        "taskkill",
+        ["/pid", "12345", "/T", "/F"],
+        expect.any(Object),
+        expect.any(Function)
+      );
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+    }
   });
 
   it("waits for killRunningProcesses and clears the registry", async () => {
@@ -240,6 +246,7 @@ describe("plugin process executor", () => {
   });
 
   it("falls back to ChildProcess.kill when taskkill does not close the child", async () => {
+    const originalPlatform = process.platform;
     const timed = childProcess();
     childMocks.spawn.mockImplementationOnce(() => timed);
     childMocks.execFile.mockImplementation(
@@ -247,9 +254,14 @@ describe("plugin process executor", () => {
         callback();
       }
     );
-    await expect(executePluginProcess(
-      manifest(), "{}", 5, logger, new Map()
-    )).rejects.toThrow("TIMEOUT");
-    expect(timed.kill).toHaveBeenCalledWith("SIGKILL");
+    Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+    try {
+      await expect(executePluginProcess(
+        manifest(), "{}", 5, logger, new Map()
+      )).rejects.toThrow("TIMEOUT");
+      expect(timed.kill).toHaveBeenCalledWith("SIGKILL");
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
+    }
   });
 });
