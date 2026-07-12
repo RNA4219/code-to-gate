@@ -12,7 +12,7 @@ describe("CLI exit-code helpers", () => {
   it("exposes stable version and numeric exit codes", () => {
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
     expect(Object.values(EXIT)).toEqual([
-      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
     ]);
   });
 

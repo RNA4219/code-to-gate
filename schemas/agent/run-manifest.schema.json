@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/run-manifest.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "protocol",
+    "tool",
+    "run_id",
+    "request_id",
+    "fingerprint",
+    "input_digest",
+    "action",
+    "status",
+    "created_at",
+    "updated_at",
+    "negotiated",
+    "resolved_execution",
+    "attempts",
+    "completeness",
+    "summary",
+    "artifacts",
+    "next_actions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctg-run-manifest@v1"
+    },
+    "protocol": {
+      "const": "ctg-agent/1.0"
+    },
+    "tool": {
+      "$ref": "#/$defs/tool"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24,64}$"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "input_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "running",
+        "succeeded",
+        "partial",
+        "failed",
+        "timed_out",
+        "cancelled"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "parent_run_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24,64}$"
+    },
+    "negotiated": {
+      "$ref": "#/$defs/negotiated"
+    },
+    "resolved_execution": {
+      "$ref": "#/$defs/resolved_execution"
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attempt"
+      }
+    },
+    "completeness": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "summary": {
+      "type": "object"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/next_action"
+      }
+    },
+    "deterministic_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "final_exit_code": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "reason_code": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "code-to-gate"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "negotiated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "schema_majors"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "ctg-agent/1.0"
+        },
+        "schema_majors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "resolved_execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeout_ms",
+        "total_timeout_ms",
+        "retry",
+        "partial"
+      ],
+      "properties": {
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_attempts",
+            "backoff_ms",
+            "max_backoff_ms",
+            "retry_on"
+          ],
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "backoff_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_backoff_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "retry_on": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "partial": {
+          "enum": [
+            "allow",
+            "reject"
+          ]
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt",
+        "status",
+        "started_at",
+        "finished_at",
+        "exit_code",
+        "reason_code"
+      ],
+      "properties": {
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "running",
+            "succeeded",
+            "partial",
+            "failed",
+            "timed_out",
+            "cancelled"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "exit_code": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stdout_ref": {
+          "$ref": "#/$defs/artifact"
+        },
+        "stderr_ref": {
+          "$ref": "#/$defs/artifact"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "next_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "action",
+        "reason_code",
+        "priority",
+        "required",
+        "preconditions",
+        "request",
+        "expected_outputs"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "preconditions": {
+          "type": "object"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "request_id",
+            "action",
+            "input"
+          ],
+          "properties": {
+            "schema": {
+              "const": "ctg-agent-request@v1"
+            },
+            "request_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "object"
+            }
+          }
+        },
+        "expected_outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

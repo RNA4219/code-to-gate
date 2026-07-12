@@ -165,3 +165,19 @@ CI では次を標準出力に 1 行 JSON で出せる。
 ```
 
 human-readable log は stderr に出す。machine-readable output と混ぜない。
+
+## 6. Agent protocol
+
+`code-to-gate agent` always returns one `ctg-agent-response@v1` JSON object on stdout. The numeric exit code and `exit.reason_code` are both part of the contract.
+
+| Code | Symbol | Meaning |
+|---:|---|---|
+| 12 | `PARTIAL_SUCCESS` | Terminal run has incomplete outputs |
+| 13 | `EXECUTION_TIMEOUT` | Attempt or total run timeout elapsed |
+| 14 | `RETRY_EXHAUSTED` | Retry policy exhausted after a retryable failure |
+| 15 | `RESUME_CONFLICT` | Request fingerprint or resume checkpoint differs |
+| 16 | `PROTOCOL_UNSUPPORTED` | No mutually supported protocol/schema/capability |
+| 17 | `RUN_BUSY` | Equivalent request is already running |
+| 18 | `EXECUTION_CANCELLED` | Run was cancelled before completion |
+
+Agent runs persist an append-oriented manifest under `.qh/runs/<run-id>/`. A repeated request with the same fingerprint returns `status: "reused"`; a changed request with the same `request_id` fails closed. `next_actions` are declarative requests and are never auto-executed.

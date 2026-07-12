@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/request.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "request_id", "action", "input"],
+  "properties": {
+    "schema": { "const": "ctg-agent-request@v1" },
+    "request_id": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,160}$" },
+    "accept": { "type": "object", "additionalProperties": false, "properties": { "protocols": { "type": "array", "items": { "type": "string" } }, "schema_majors": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "integer", "minimum": 1 } } }, "required_capabilities": { "type": "array", "items": { "type": "string" } } } },
+    "action": { "type": "string", "minLength": 1 },
+    "input": { "type": "object" },
+    "execution": { "$ref": "#/$defs/execution" },
+    "resume_from": { "type": "string", "pattern": "^[a-f0-9]{24,64}$" }
+  },
+  "$defs": { "execution": { "type": "object", "additionalProperties": false, "properties": { "timeout_ms": { "type": "integer", "minimum": 1 }, "total_timeout_ms": { "type": "integer", "minimum": 1 }, "retry": { "type": "object", "additionalProperties": false, "properties": { "max_attempts": { "type": "integer", "minimum": 1, "maximum": 5 }, "backoff_ms": { "type": "integer", "minimum": 0 }, "max_backoff_ms": { "type": "integer", "minimum": 0 }, "retry_on": { "type": "array", "items": { "type": "string" } } } }, "partial": { "enum": ["allow", "reject"] } } } }
+}

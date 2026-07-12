@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/query-input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "expression",
+    "from"
+  ],
+  "properties": {
+    "expression": {
+      "type": "string",
+      "minLength": 1
+    },
+    "from": {
+      "type": "string",
+      "minLength": 1
+    },
+    "out": {
+      "type": "string",
+      "minLength": 1
+    },
+    "redaction_profile": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -15,7 +15,7 @@
  * 8. Cleanup tarball and temp directory (always)
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -25,6 +25,9 @@ const FIXTURES_DIR = join(ROOT, "fixtures", "demo-shop-ts");
 const DIST_DIR = join(ROOT, "dist");
 const NPM_CACHE_DIR = join(ROOT, ".qh", "npm-cache");
 const NPM_ENV = { ...process.env, npm_config_cache: NPM_CACHE_DIR };
+const NPM_EXECUTABLE = process.env.npm_execpath ? process.execPath : process.platform === "win32" ? "npm.cmd" : "npm";
+const NPM_PREFIX_ARGS = process.env.npm_execpath ? [process.env.npm_execpath] : [];
+function runNpm(args, options) { return execFileSync(NPM_EXECUTABLE, [...NPM_PREFIX_ARGS, ...args], options); }
 const REMOVE_DIRECTORY_OPTIONS = {
   recursive: true,
   force: true,
@@ -57,7 +60,7 @@ try {
   // Step 2: Fresh build
   console.log("Step 2: Fresh build...");
   mkdirSync(NPM_CACHE_DIR, { recursive: true });
-  execSync("npm run build", { cwd: ROOT, stdio: "inherit", env: NPM_ENV });
+  runNpm(["run", "build"], { cwd: ROOT, stdio: "inherit", env: NPM_ENV });
   console.log("  ✓ Build complete\n");
 
   // Step 3: npm pack
@@ -65,7 +68,7 @@ try {
   removeDirectory(TEMP_DIR);
   mkdirSync(TEMP_DIR, { recursive: true });
 
-  const packOutput = execSync("npm pack", { cwd: ROOT, encoding: "utf8", env: NPM_ENV });
+  const packOutput = runNpm(["pack"], { cwd: ROOT, encoding: "utf8", env: NPM_ENV });
   const tgzFile = packOutput.trim();
   tgzPath = join(ROOT, tgzFile);
 
@@ -84,7 +87,7 @@ try {
   };
   writeFileSync(join(TEMP_DIR, "package.json"), JSON.stringify(tempPackageJson, null, 2));
 
-  execSync(`npm install "${tgzPath}"`, { cwd: TEMP_DIR, stdio: "inherit", env: NPM_ENV });
+  runNpm(["install", tgzPath], { cwd: TEMP_DIR, stdio: "inherit", env: NPM_ENV });
 
   const installedDir = join(TEMP_DIR, "node_modules", "@quality-harness", "code-to-gate");
   if (!existsSync(installedDir)) {
@@ -132,34 +135,43 @@ try {
   console.log("Step 7: CLI execution...");
   console.log("  Testing --version...");
   const cliPath = join(installedDir, "dist", "cli.js");
-  const versionOutput = execSync(`node "${cliPath}" --version`, {
+  const versionOutput = execFileSync(process.execPath, [cliPath, "--version"], {
     cwd: TEMP_DIR,
     encoding: "utf8",
-  });
-
-  const pkgJson = JSON.parse(readFileSync(join(installedDir, "package.json"), "utf8"));
+  });  const pkgJson = JSON.parse(readFileSync(join(installedDir, "package.json"), "utf8"));
   if (!versionOutput.includes(pkgJson.version)) {
     throw new Error(`--version output does not match package version: ${versionOutput}`);
   }
   console.log(`    ✓ --version: ${pkgJson.version}`);
 
   console.log("  Testing --help...");
-  const helpOutput = execSync(`node "${cliPath}" --help`, {
+  const helpOutput = execFileSync(process.execPath, [cliPath, "--help"], {
     cwd: TEMP_DIR,
     encoding: "utf8",
-  });
-  if (!helpOutput.includes("code-to-gate") || !helpOutput.includes("plugin-sandbox")) {
+  });  if (!helpOutput.includes("code-to-gate") || !helpOutput.includes("plugin-sandbox")) {
     throw new Error("--help output is incomplete");
   }
   console.log("    ✓ --help: command list loaded");
 
   console.log("  Testing rule-sdk import...");
-  execSync(
-    `node --input-type=module -e "const sdk = await import('@quality-harness/code-to-gate/rule-sdk'); if (typeof sdk.runRuleFixture !== 'function') process.exit(1)"`,
-    { cwd: TEMP_DIR, stdio: "inherit" }
-  );
-  console.log("    ✓ rule-sdk: import succeeded");
+  execFileSync(process.execPath, ["--input-type=module", "-e", "const sdk = await import('@quality-harness/code-to-gate/rule-sdk'); if (typeof sdk.runRuleFixture !== 'function') process.exit(1)"],
+    { cwd: TEMP_DIR, stdio: "inherit" },
+  );  console.log("    ✓ rule-sdk: import succeeded");
 
+  console.log("  Testing agent capabilities...");
+  const capabilities = JSON.parse(execFileSync(process.execPath, [cliPath, "agent", "capabilities", "--profile", "compact"], { cwd: TEMP_DIR, encoding: "utf8" }));  if (capabilities.data?.schema !== "ctg-agent-capabilities@v1" || !Array.isArray(capabilities.data.operations) || !Array.isArray(capabilities.data.schemas) || capabilities.data.schemas.some((schema) => typeof schema.digest_sha256 !== "string")) {
+    throw new Error("agent capabilities contract is invalid");
+  }
+  console.log("    ✓ agent capabilities: structured response loaded");
+
+  console.log("  Testing agent idempotent run...");
+  const agentRequestPath = join(TEMP_DIR, "agent-request.json");
+  const agentOutputDir = join(TEMP_DIR, "agent-out");
+  writeFileSync(agentRequestPath, JSON.stringify({ schema: "ctg-agent-request@v1", request_id: "package-smoke-agent", action: "doctor", input: { out: agentOutputDir } }));
+  const agentRun1 = JSON.parse(execFileSync(process.execPath, [cliPath, "agent", "run", "--request", agentRequestPath], { cwd: TEMP_DIR, encoding: "utf8" }));
+  const agentRun2 = JSON.parse(execFileSync(process.execPath, [cliPath, "agent", "run", "--request", agentRequestPath], { cwd: TEMP_DIR, encoding: "utf8" }));  if (agentRun1.status !== "succeeded" || agentRun1.exit?.code !== 0) throw new Error("agent run did not succeed");
+  if (agentRun2.status !== "reused" || agentRun2.run?.run_id !== agentRun1.run?.run_id) throw new Error("agent run was not idempotently reused");
+  console.log("    ✓ agent run: manifest and reuse contract passed");
   // Step 8: CLI analyze (MUST PASS - no exceptions allowed)
   console.log("  Testing analyze (strict)...");
   const analyzeOutDir = join(TEMP_DIR, "analyze-out");
@@ -167,13 +179,11 @@ try {
   mkdirSync(analyzeOutDir, { recursive: true });
 
   // Execute analyze and check exit code
-  const analyzeResult = execSync(`node "${cliPath}" analyze "${FIXTURES_DIR}" --out "${analyzeOutDir}"`, {
+  const analyzeResult = execFileSync(process.execPath, [cliPath, "analyze", FIXTURES_DIR, "--out", analyzeOutDir], {
     cwd: TEMP_DIR,
     encoding: "utf8",
     timeout: 60000,
-  });
-
-  // Verify findings.json exists
+  });  // Verify findings.json exists
   const findingsPath = join(analyzeOutDir, "findings.json");
   if (!existsSync(findingsPath)) {
     throw new Error("findings.json not created by analyze command");
@@ -182,12 +192,11 @@ try {
 
   console.log("  Testing viewer (strict)...");
   const viewerPath = join(analyzeOutDir, "viewer-report.html");
-  execSync(`node "${cliPath}" viewer --from "${analyzeOutDir}" --out "${viewerPath}"`, {
+  execFileSync(process.execPath, [cliPath, "viewer", "--from", analyzeOutDir, "--out", viewerPath], {
     cwd: TEMP_DIR,
     encoding: "utf8",
     timeout: 60000,
-  });
-  if (!existsSync(viewerPath)) {
+  });  if (!existsSync(viewerPath)) {
     throw new Error("viewer-report.html not created by viewer command");
   }
   console.log("    ✓ viewer: viewer-report.html created");
@@ -199,16 +208,11 @@ try {
   mkdirSync(diffOutDir, { recursive: true });
 
   // Use git refs from demo-shop-ts (HEAD vs HEAD~1)
-  const diffResult = execSync(
-    `node "${cliPath}" diff "${FIXTURES_DIR}" --base HEAD~1 --head HEAD --out "${diffOutDir}"`,
-    {
-      cwd: FIXTURES_DIR, // Run inside fixture directory for git context
-      encoding: "utf8",
-      timeout: 60000,
-    }
-  );
-
-  // Verify diff-analysis.json exists
+  const diffResult = execFileSync(process.execPath, [cliPath, "diff", FIXTURES_DIR, "--base", "HEAD~1", "--head", "HEAD", "--out", diffOutDir], {
+    cwd: FIXTURES_DIR, // Run inside fixture directory for git context
+    encoding: "utf8",
+    timeout: 60000,
+  });  // Verify diff-analysis.json exists
   const diffAnalysisPath = join(diffOutDir, "diff-analysis.json");
 
   if (!existsSync(diffAnalysisPath)) {

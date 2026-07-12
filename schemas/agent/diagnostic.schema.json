@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/diagnostic.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "code", "message"],
+  "properties": { "schema": { "const": "ctg-diagnostic@v1" }, "status": { "enum": ["error", "warning", "info"] }, "code": { "type": "string" }, "message": { "type": "string" }, "command": { "type": "string" }, "exit_code": { "type": "integer" } }
+}

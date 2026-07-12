@@ -220,32 +220,14 @@ Upload the following artifacts:
 
 ---
 
-## Rollback Procedure (If Issues Found)
+## Rollback Procedure (Immutable Releases)
 
-### Quick Rollback
+Published tags and release assets are immutable. Do not delete, move, force-push, or overwrite a published release.
 
-```bash
-# Delete GitHub release
-gh release delete vX.Y.Z-alpha.N
-
-# Delete git tag
-git push --delete origin vX.Y.Z-alpha.N
-git tag -d vX.Y.Z-alpha.N
-
-# Revert release commit
-git revert <commit-sha>
-```
-
-### Full Rollback
-
-1. Delete GitHub release
-2. Delete git tag (local and remote)
-3. Revert version changes in package.json
-4. Revert CHANGELOG changes
-5. Create hotfix if needed
-
----
-
+1. Mark the affected version as withdrawn in the incident record.
+2. Publish a new patch version from a validated commit.
+3. Deprecate the affected npm version if it was published.
+4. Attach the incident and replacement manifest to the new release.
 ## Release Naming Convention
 
 | Type | Format | Example | Stability |

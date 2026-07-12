@@ -79,6 +79,18 @@ const SCHEMA_DIR = path.resolve(
   "schemas"
 );
 
+const AGENT_SCHEMA_FILES: Record<string, string> = {
+  "ctg-agent-capabilities@v1": "capabilities.schema.json",
+  "ctg-agent-request@v1": "request.schema.json",
+  "ctg-resume-request@v1": "resume-request.schema.json",
+  "ctg-run-manifest@v1": "run-manifest.schema.json",
+  "ctg-agent-response@v1": "response.schema.json",
+  "ctg-agent-query@v1": "query.schema.json",
+  "ctg-diagnostic@v1": "diagnostic.schema.json",
+  "ctg-release-manifest@v1": "release-manifest.schema.json",
+  "ctg-agent-determinism@v1": "determinism.schema.json",
+};
+
 function readJson(filePath: string): unknown {
   const content = readFileSync(filePath, "utf8");
   if (filePath.endsWith(".yaml") || filePath.endsWith(".yml")) {
@@ -103,6 +115,12 @@ function schemaForArtifact(data: unknown): string | null {
   }
 
   const obj = data as Record<string, unknown>;
+
+  // Check machine-readable agent protocol schema identifiers
+  if (typeof obj.schema === "string" && AGENT_SCHEMA_FILES[obj.schema]) {
+    const agentSchemaPath = path.join(SCHEMA_DIR, "agent", AGENT_SCHEMA_FILES[obj.schema]);
+    if (existsSync(agentSchemaPath)) return agentSchemaPath;
+  }
 
   // Check for artifact field
   if (obj.artifact && typeof obj.artifact === "string") {

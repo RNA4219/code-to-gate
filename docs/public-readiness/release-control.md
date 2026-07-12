@@ -45,31 +45,22 @@ npm publish --access public
 
 ---
 
-## Rollback Procedure
+## Rollback Procedure (Immutable Releases)
 
-### Within 72 Hours (npm unpublish)
-
-```bash
-# Check package versions
-npm view @quality-harness/code-to-gate versions
-
-# Unpublish specific version
-npm unpublish @quality-harness/code-to-gate@<version>
-
-# Or unpublish entire package (72h window only)
-npm unpublish @quality-harness/code-to-gate --force
-```
-
-### After 72 Hours (npm deprecate)
+Published npm versions are not unpublished as a normal rollback. Record the incident, publish a patched version, and deprecate the affected version:
 
 ```bash
-# Deprecate specific version
 npm deprecate @quality-harness/code-to-gate@<version> "Critical bug found, use <fixed-version>"
-
-# Deprecate all versions
-npm deprecate @quality-harness/code-to-gate "Package deprecated, use alternative"
 ```
 
+GitHub tags and release assets are immutable; never delete, force-update, or overwrite them. The replacement release must have a new semver tag and a new integrity manifest.
+## Immutable version handling
+
+Published npm versions are not unpublished as a normal rollback. Publish a patched version and deprecate the affected version:
+
+```bash
+npm deprecate @quality-harness/code-to-gate@<version> "Critical bug found, use <fixed-version>"
+```
 ### Emergency Rollback
 
 1. Identify affected version

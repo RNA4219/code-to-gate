@@ -13,15 +13,15 @@ permissions:
 
 jobs:
   lint-typecheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: .node-version
           cache: 'npm'
 
       - name: Install dependencies
@@ -34,15 +34,15 @@ jobs:
         run: npx tsc --noEmit
 
   package-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: .node-version
           cache: 'npm'
 
       - name: Install dependencies
@@ -52,15 +52,15 @@ jobs:
         run: npm run test:package
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: .node-version
           cache: 'npm'
 
       - name: Install dependencies
@@ -78,22 +78,22 @@ jobs:
           jq '.total' coverage/coverage-summary.json
 
       - name: Upload coverage evidence
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ctg-coverage-${{ github.sha }}
           path: coverage/coverage-summary.json
           retention-days: 30
 
   contract-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: .node-version
           cache: 'npm'
 
       - name: Install dependencies
@@ -148,15 +148,15 @@ jobs:
           fi
 
   macos-compatibility:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: .node-version
           cache: 'npm'
 
       - name: Install dependencies
@@ -196,17 +196,17 @@ jobs:
           echo "macOS fixture verification complete"
 
   analyze:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: .node-version
           cache: 'npm'
 
       - name: Install dependencies
@@ -357,7 +357,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout QEG runtime
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           repository: RNA4219/quality-evidence-graph
           ref: 0835903963d973a9b2095cc301014326c850d494
@@ -409,7 +409,7 @@ jobs:
           head_sha: ${{ github.event.pull_request.head.sha }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ctg-pr-artifacts-${{ github.sha }}
           path: .qh/
@@ -428,9 +428,112 @@ jobs:
           echo "QEG evidence and PR review artifacts were generated under .qh and uploaded with the PR artifacts."
           exit 1
 
+  agent-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Capability contract
+        run: |
+          node ./dist/cli.js agent capabilities --profile compact > .agent-capabilities.json
+          jq -e '.data.schema == "ctg-agent-capabilities@v1" and (.data.operations | length) > 0' .agent-capabilities.json
+      - name: Idempotent agent run contract
+        shell: bash
+        run: |
+          request='{"schema":"ctg-agent-request@v1","request_id":"ci-agent-contract","action":"doctor","input":{"out":".qh-agent-contract"}}'
+          printf '%s' "$request" | node ./dist/cli.js agent run --request - > .agent-run-1.json
+          printf '%s' "$request" | node ./dist/cli.js agent run --request - > .agent-run-2.json
+          jq -e '.status == "succeeded" and .exit.code == 0' .agent-run-1.json
+          run_id=$(jq -r '.run.run_id' .agent-run-1.json)
+          jq -e --arg run "$run_id" '.status == "reused" and .run.run_id == $run' .agent-run-2.json
+  windows-compatibility:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build and package smoke
+        run: npm run test:package
+      - name: Agent capabilities
+        run: node ./dist/cli.js agent capabilities --profile compact
+  agent-determinism:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate deterministic capability evidence
+        run: npm run test:determinism
+      - name: Upload deterministic evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ctg-agent-determinism-${{ matrix.os }}
+          path: .qh/agent-determinism.json
+          retention-days: 30
+
+  agent-determinism-check:
+    runs-on: ubuntu-24.04
+    needs: [agent-determinism]
+    if: always()
+    steps:
+      - name: Download deterministic evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: ctg-agent-determinism-*
+          path: .qh/agent-determinism
+      - name: Compare capability digests
+        shell: bash
+        run: |
+          if [ "${{ needs.agent-determinism.result }}" != "success" ]; then
+            echo "::error::OS determinism matrix failed"
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import { readdirSync, readFileSync, statSync } from "node:fs";
+          import path from "node:path";
+          const root = ".qh/agent-determinism";
+          const files = [];
+          const walk = (dir) => {
+            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+              const file = path.join(dir, entry.name);
+              if (entry.isDirectory()) walk(file);
+              else if (entry.name === "agent-determinism.json") files.push(file);
+            }
+          };
+          walk(root);
+          if (files.length !== 3) throw new Error(`expected 3 OS evidence files, got ${files.length}`);
+          const digests = files.map((file) => JSON.parse(readFileSync(file, "utf8")).capabilities_digest_sha256);
+          if (new Set(digests).size !== 1) throw new Error(`capability digest mismatch: ${digests.join(", ")}`);
+          console.log(`OS determinism verified: ${digests[0]}`);
+          NODE
   status-check:
-    runs-on: ubuntu-latest
-    needs: [analyze, contract-tests, lint-typecheck, coverage, package-smoke, macos-compatibility]
+    runs-on: ubuntu-24.04
+    needs: [analyze, contract-tests, lint-typecheck, coverage, package-smoke, macos-compatibility, agent-contract, windows-compatibility, agent-determinism-check]
     if: always()
     steps:
       - name: Check all required jobs
@@ -451,8 +554,17 @@ jobs:
           if [ "${{ needs.package-smoke.result }}" != "success" ]; then
             failed_jobs="$failed_jobs package-smoke"
           fi
+          if [ "${{ needs.windows-compatibility.result }}" != "success" ]; then
+            failed_jobs="$failed_jobs windows-compatibility"
+          fi
+          if [ "${{ needs.agent-contract.result }}" != "success" ]; then
+            failed_jobs="$failed_jobs agent-contract"
+          fi
           if [ "${{ needs.macos-compatibility.result }}" != "success" ]; then
             failed_jobs="$failed_jobs macos-compatibility"
+          fi
+          if [ "${{ needs.agent-determinism-check.result }}" != "success" ]; then
+            failed_jobs="$failed_jobs agent-determinism-check"
           fi
           if [ -n "$failed_jobs" ]; then
             echo "::error::Jobs failed: $failed_jobs - blocking PR"

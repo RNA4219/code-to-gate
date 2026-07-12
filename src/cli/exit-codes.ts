@@ -21,6 +21,13 @@ export interface ExitCodes {
   INTEGRATION_EXPORT_FAILED: number;
   INTERNAL_ERROR: number;
   ASSURANCE_FAILED: number;
+  PARTIAL_SUCCESS: number;
+  EXECUTION_TIMEOUT: number;
+  RETRY_EXHAUSTED: number;
+  RESUME_CONFLICT: number;
+  PROTOCOL_UNSUPPORTED: number;
+  RUN_BUSY: number;
+  EXECUTION_CANCELLED: number;
 }
 
 export const EXIT: ExitCodes = {
@@ -36,74 +43,43 @@ export const EXIT: ExitCodes = {
   INTEGRATION_EXPORT_FAILED: 9,
   INTERNAL_ERROR: 10,
   ASSURANCE_FAILED: 11,
+  PARTIAL_SUCCESS: 12,
+  EXECUTION_TIMEOUT: 13,
+  RETRY_EXHAUSTED: 14,
+  RESUME_CONFLICT: 15,
+  PROTOCOL_UNSUPPORTED: 16,
+  RUN_BUSY: 17,
+  EXECUTION_CANCELLED: 18,
 };
 
-// Re-export getOption for backward compatibility
 export { getOption };
 
-/**
- * VERSION from package.json
- */
 export const VERSION = pkg.version;
 
-/**
- * Cache mode options
- */
 export type CacheMode = "enabled" | "disabled" | "force";
 
-/**
- * Parse cache mode from CLI argument
- */
 export function parseCacheMode(value: string | undefined): CacheMode {
-  if (!value || value === "enabled") {
-    return "enabled";
-  }
-  if (value === "disabled") {
-    return "disabled";
-  }
-  if (value === "force") {
-    return "force";
-  }
-  // Invalid value, default to enabled
+  if (!value || value === "enabled") return "enabled";
+  if (value === "disabled") return "disabled";
+  if (value === "force") return "force";
   return "enabled";
 }
 
-/**
- * Parse parallel workers count from CLI argument
- */
 export function parseParallelWorkers(value: string | undefined): number {
-  if (!value) {
-    return 4; // Default
-  }
+  if (!value) return 4;
   const num = parseInt(value, 10);
-  if (isNaN(num) || num < 1) {
-    return 4;
-  }
-  return Math.min(num, 16); // Cap at 16 workers
+  if (isNaN(num) || num < 1) return 4;
+  return Math.min(num, 16);
 }
 
-/**
- * Check if verbose mode is enabled
- */
 export function isVerbose(args: string[]): boolean {
   return args.includes("--verbose") || args.includes("-v");
 }
 
-/**
- * Sandbox mode options for plugin execution
- */
 export type SandboxModeCli = "none" | "docker";
 
-/**
- * Parse sandbox mode from CLI argument
- */
 export function parseSandboxModeCli(value: string | undefined): SandboxModeCli {
-  if (!value || value === "none" || value === "disabled") {
-    return "none";
-  }
-  if (value === "docker") {
-    return "docker";
-  }
-  // Invalid value, default to none
+  if (!value || value === "none" || value === "disabled") return "none";
+  if (value === "docker") return "docker";
   return "none";
 }

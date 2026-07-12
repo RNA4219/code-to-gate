@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/capabilities.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "protocol",
+    "protocols",
+    "tool",
+    "operations",
+    "schemas"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctg-agent-capabilities@v1"
+    },
+    "protocol": {
+      "const": "ctg-agent/1.0"
+    },
+    "protocols": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "code-to-gate"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "input_schema",
+          "output_schema",
+          "side_effects",
+          "idempotent",
+          "supports",
+          "limits",
+          "required_capabilities",
+          "available"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "input_schema": {
+            "type": "string"
+          },
+          "output_schema": {
+            "type": "string"
+          },
+          "side_effects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "idempotent": {
+            "type": "boolean"
+          },
+          "supports": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "timeout",
+              "retry",
+              "resume",
+              "partial"
+            ],
+            "properties": {
+              "timeout": {
+                "type": "boolean"
+              },
+              "retry": {
+                "type": "boolean"
+              },
+              "resume": {
+                "type": "boolean"
+              },
+              "partial": {
+                "type": "boolean"
+              }
+            }
+          },
+          "limits": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "default_timeout_ms",
+              "max_timeout_ms"
+            ],
+            "properties": {
+              "default_timeout_ms": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "max_timeout_ms": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "required_capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "version",
+          "digest_sha256",
+          "ref"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "digest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "schema": {}
+        }
+      }
+    }
+  }
+}

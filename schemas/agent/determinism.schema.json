@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/determinism.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "capabilities_digest_sha256", "projection", "toolchain"],
+  "properties": {
+    "schema": { "const": "ctg-agent-determinism@v1" },
+    "capabilities_digest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "projection": { "type": "object" },
+    "toolchain": { "type": "object", "additionalProperties": false, "required": ["node", "package_manager"], "properties": { "node": { "type": "string", "minLength": 1 }, "package_manager": { "const": "npm@10.9.8" } } }
+  }
+}

@@ -1,3 +1,18 @@
+## Agent Protocol
+
+The `agent` namespace is the machine-readable execution surface. It never prompts and writes exactly one `ctg-agent-response@v1` JSON object to stdout.
+
+```text
+code-to-gate agent capabilities --profile compact|full
+code-to-gate agent run --request <file|->
+code-to-gate agent status --run <run-id>
+code-to-gate agent resume --request <file|->
+code-to-gate agent query --request <file|->
+```
+
+Requests use `ctg-agent-request@v1` (or `ctg-resume-request@v1`) and require a stable `request_id`, action, typed input, and optional execution policy. A repeated request with the same fingerprint returns `status: "reused"` and the existing run manifest. Protocol or schema incompatibility fails before execution.
+
+Run manifests are stored under `.qh/runs/<run-id>/run-manifest.json`. They record negotiated versions, attempts, timeout/retry policy, completeness, artifact digests, and declarative `next_actions`. Query views return compact summaries and evidence references by default; full artifact content requires an explicit query.
 # code-to-gate CLI Reference
 
 This document provides a complete reference for all `code-to-gate` CLI commands, options, exit codes, and output formats.
@@ -1577,6 +1592,13 @@ code-to-gate schema validate-all .qh/fixtures/demo-shop-ts
 | 9 | INTEGRATION_EXPORT_FAILED | Downstream export failed |
 | 10 | INTERNAL_ERROR | Unexpected internal error |
 | 11 | ASSURANCE_FAILED | Assurance inspection failed |
+| 12 | PARTIAL_SUCCESS | Operation completed with partial outputs |
+| 13 | EXECUTION_TIMEOUT | Execution exceeded its timeout |
+| 14 | RETRY_EXHAUSTED | Retry policy exhausted |
+| 15 | RESUME_CONFLICT | Resume or idempotency fingerprint conflicted |
+| 16 | PROTOCOL_UNSUPPORTED | No compatible agent protocol or capability |
+| 17 | RUN_BUSY | Equivalent run is already executing |
+| 18 | EXECUTION_CANCELLED | Execution was cancelled |
 
 ---
 

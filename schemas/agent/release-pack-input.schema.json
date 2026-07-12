@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/release-pack-input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "from": {
+      "type": "string",
+      "minLength": 1
+    },
+    "out": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ci_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "include_optional": {
+      "type": "boolean"
+    },
+    "allow_partial": {
+      "type": "boolean"
+    }
+  }
+}

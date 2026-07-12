@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/analyze-input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repo"
+  ],
+  "properties": {
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "out": {
+      "type": "string",
+      "minLength": 1
+    },
+    "emit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "llm_mode": {
+      "type": "string",
+      "minLength": 1
+    },
+    "llm_provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "require_llm": {
+      "type": "boolean"
+    },
+    "database_analysis": {
+      "type": "boolean"
+    }
+  }
+}

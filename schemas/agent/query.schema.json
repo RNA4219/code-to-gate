@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/query.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id"],
+  "properties": { "schema": { "const": "ctg-agent-query@v1" }, "request_id": { "type": "string" }, "run_id": { "type": "string", "pattern": "^[a-f0-9]{24,64}$" }, "view": { "enum": ["summary", "actions", "artifacts", "evidence", "diagnostics"] }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 }, "max_bytes": { "type": "integer", "minimum": 1 } }
+}

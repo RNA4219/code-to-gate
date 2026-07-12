@@ -317,7 +317,6 @@ Attach validation artifacts to the release:
 ```bash
 gh release upload vX.Y.Z-alpha.N \
   .qh-release-validation.yaml \
-  --clobber
 ```
 
 ### Step 8: Post-Release Verification
@@ -406,121 +405,12 @@ gate own final verdict, waiver, approval, and record retention.
 
 ---
 
-## Rollback Procedure
+## Rollback Procedure (Immutable Releases)
 
-### If Issues Found Before GitHub Release
+Published releases cannot be edited by replacing assets or moving tags. If an issue is found:
 
-```bash
-# Delete local tag
-git tag -d vX.Y.Z-alpha.N
-
-# Revert commit
-git revert HEAD
-
-# Fix issues and retry
-```
-
-### If Issues Found After GitHub Release
-
-```bash
-# Delete GitHub release
-gh release delete vX.Y.Z-alpha.N --yes
-
-# Delete remote tag
-git push --delete origin vX.Y.Z-alpha.N
-
-# Delete local tag
-git tag -d vX.Y.Z-alpha.N
-
-# Revert or create hotfix
-git revert <release-commit-sha>
-# Or create hotfix branch
-git checkout -b hotfix/vX.Y.Z-alpha.N-1 main
-```
-
-### Document Rollback
-
-Update CHANGELOG.md to note the withdrawn release:
-
-```markdown
-## [X.Y.Z-alpha.N] - YYYY-MM-DD -- WITHDRAWN
-
-Release withdrawn due to [issue description].
-```
-
----
-
-## Release Timeline
-
-### Alpha Release Cycle
-
-- Development: 1-2 weeks
-- Testing: 3-5 days
-- Release: After validation passes
-
-### Beta Release Cycle
-
-- Alpha feedback integration: 1-2 weeks
-- Stabilization: 3-7 days
-- Release: After 90% tests pass
-
-### Stable Release Cycle
-
-- Beta testing: 1-2 weeks
-- Final validation: 3-5 days
-- Release: After all tests pass
-
----
-
-## Release Communication
-
-### Internal Announcement
-
-Share release information:
-
-- Version number
-- Key changes
-- Known issues
-- Testing requirements
-
-### Issue Management
-
-- Close resolved issues
-- Update open issues with new information
-- Tag issues with release version
-
-### Documentation Updates
-
-- Update roadmap if needed
-- Update acceptance criteria status
-- Archive release artifacts
-
----
-
-## Appendix: Version History
-
-| Version | Date | Type | Notes |
-|---------|------|------|-------|
-| 0.2.0-alpha.1 | 2026-04-30 | Alpha | Core commands, artifact generation |
-| 0.1.0 | 2026-04-15 | Alpha | Initial structure |
-
----
-
-## Appendix: Validation Checklist Quick Reference
-
-```
-[X] Build successful
-[X] Tests passing (threshold met)
-[X] CLI commands work
-[X] Artifacts generated
-[X] Schema validation passes
-[X] Version updated
-[X] CHANGELOG updated
-[X] README updated
-[X] Distribution status updated
-[X] GitHub release version matches package version or mismatch is documented
-[X] npm publication state verified (`npm view` result recorded)
-[X] Package dry-run reviewed and `dist/cli.js` included
-```
-
-All checks must pass for stable release. Threshold-based passes acceptable for alpha/beta.
+1. Record the affected tag and release manifest as withdrawn.
+2. Do not delete or force-update the tag or release.
+3. Publish a new patch version from a validated commit.
+4. Deprecate the affected npm version and link the replacement release.
+5. Add the incident evidence to the new release manifest.

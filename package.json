@@ -3,6 +3,7 @@
   "version": "1.5.0",
   "description": "A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs",
   "type": "module",
+  "packageManager": "npm@10.9.8",
   "bin": {
     "code-to-gate": "dist/cli.js"
   },
@@ -19,6 +20,7 @@
     "dist/cli/",
     "dist/cli.js",
     "dist/cli.d.ts",
+    "dist/agent/",
     "dist/core/",
     "dist/adapters/",
     "dist/application/",
@@ -73,6 +75,7 @@
     "test:smoke": "vitest run src/__tests__/smoke --reporter verbose",
     "test:architecture": "vitest run src/__tests__/architecture/dependency-boundary.test.ts --maxWorkers=1 --reporter=dot",
     "test:package": "node scripts/package-smoke.mjs",
+    "test:determinism": "npm run build && node scripts/agent-determinism.mjs",
     "test:real-repo": "vitest run --config vitest.heavy.config.ts src/__tests__/real-repos --reporter verbose",
     "test:performance": "vitest run --config vitest.heavy.config.ts src/__tests__/performance --reporter verbose",
     "docs:stale": "node scripts/check-doc-review-due.mjs docs",
@@ -86,13 +89,15 @@
     "real-repo-test": "node ./dist/cli.js analyze ./fixtures/demo-ci-imports --out ./fixtures/demo-ci-imports/.qh",
     "fp-eval": "node ./dist/cli.js analyze ./fixtures/demo-shop-ts --out ./fixtures/demo-shop-ts/.qh --emit all",
     "release:prepare": "npm run build && npm run ctg -- analyze . --policy .ctg/policy.yaml --emit all --out .qh",
-    "release:validate": "npm run build && npm run lint && npm run typecheck && npm run ctg -- spec-drift . --out .qh-release && npm run test:smoke && npm run test:architecture && npm run test:package && npm audit --audit-level=high && npm run ctg -- analyze . --policy .ctg/policy.yaml --emit all --out .qh-release && npm run ctg -- readiness . --policy .ctg/policy.yaml --from .qh-release --out .qh-release && npm run ctg -- schema validate-all .qh-release --strict",
-    "release:public": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:package",
+    "release:immutable": "node scripts/release-immutable-check.mjs",
+    "release:manifest": "node scripts/release-manifest.mjs",
+    "release:validate": "npm run release:immutable && npm run build && npm run lint && npm run typecheck && npm run ctg -- spec-drift . --out .qh-release && npm run test:smoke && npm run test:architecture && npm run test:package && npm audit --audit-level=high && npm run ctg -- analyze . --policy .ctg/policy.yaml --emit all --out .qh-release && npm run ctg -- readiness . --policy .ctg/policy.yaml --from .qh-release --out .qh-release && npm run ctg -- schema validate-all .qh-release --strict",
+    "release:public": "npm run release:immutable && npm run lint && npm run typecheck && npm run test:smoke && npm run test:package",
     "release:public:quality": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:ci:stable && npm run test:coverage && npm run release:validate",
     "audit:deps": "npm audit --audit-level=high",
     "sbom:generate": "npm sbom --sbom-format cyclonedx --sbom-type application > sbom.json",
     "evidence:pack": "node -e \"console.log('Evidence artifacts:\\n- .qh/release-readiness.json\\n- .qh/findings.json\\n- .qh/audit.json\\n- .qh/results.sarif\\n- coverage/coverage-summary.json\\n- sbom.json\\n- npm pack --dry-run output')\"",
-    "prepublishOnly": "npm run build && npm run test:smoke && npm run test:package"
+    "prepublishOnly": "npm run release:immutable && npm run build && npm run test:smoke && npm run test:package"
   },
   "keywords": [
     "code-analysis",
@@ -124,7 +129,7 @@
     "ajv-formats": "^3.0.1",
     "fs-extra": "^11.3.4",
     "glob": "^13.0.6",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.3.0",
     "ts-morph": "^25.0.1",
     "web-tree-sitter": "^0.26.8"
   },

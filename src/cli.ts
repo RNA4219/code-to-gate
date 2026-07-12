@@ -23,6 +23,7 @@ import { pluginMarketplaceCommand } from "./cli/plugin-marketplace.js";
 import { prReviewCommand } from "./cli/pr-review.js";
 import { prReviewPublishCommand } from "./cli/pr-review-publish.js";
 import { queryCommand } from "./cli/query.js";
+import { agentCommand } from "./agent/engine.js";
 import { qeosCommand } from "./cli/qeos.js";
 import { explainGateCommand } from "./cli/explain-gate.js";
 import { driftBudgetCommand } from "./cli/drift-budget.js";
@@ -35,6 +36,11 @@ function printHelp(): void {
   console.log(`code-to-gate ${VERSION}
 
 Usage:
+  code-to-gate agent capabilities --profile compact|full
+  code-to-gate agent run --request <file|->
+  code-to-gate agent status --run <run-id>
+  code-to-gate agent resume --request <file|->
+  code-to-gate agent query --request <file|->
   code-to-gate schema validate <artifact-or-schema>
   code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]
   code-to-gate scan <repo> --out <dir> [--database-analysis]
@@ -170,6 +176,10 @@ async function main(): Promise<number> {
     if (command === "--version") {
       console.log(`code-to-gate ${VERSION}`);
       return EXIT.OK;
+    }
+
+    if (command === "agent") {
+      return await agentCommand(args, { VERSION, EXIT, getOption });
     }
 
     if (command === "schema") {

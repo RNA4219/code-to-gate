@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://code-to-gate.local/schemas/agent/response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "protocol",
+    "tool",
+    "status",
+    "exit"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ctg-agent-response@v1"
+    },
+    "protocol": {
+      "const": "ctg-agent/1.0"
+    },
+    "tool": {
+      "$ref": "#/$defs/tool"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{1,160}$"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "running",
+        "succeeded",
+        "partial",
+        "failed",
+        "timed_out",
+        "cancelled",
+        "reused"
+      ]
+    },
+    "exit": {
+      "$ref": "#/$defs/exit"
+    },
+    "run": {
+      "$ref": "#/$defs/run"
+    },
+    "data": {},
+    "summary": {
+      "type": "object"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/next_action"
+      }
+    }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "code-to-gate"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "exit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "symbol",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "manifest_ref"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{24,64}$"
+        },
+        "manifest_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delivery": {
+          "enum": [
+            "created",
+            "reused"
+          ]
+        }
+      }
+    },
+    "next_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "action",
+        "reason_code",
+        "priority",
+        "required",
+        "preconditions",
+        "request",
+        "expected_outputs"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "preconditions": {
+          "type": "object"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "request_id",
+            "action",
+            "input"
+          ],
+          "properties": {
+            "schema": {
+              "const": "ctg-agent-request@v1"
+            },
+            "request_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "object"
+            }
+          }
+        },
+        "expected_outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
