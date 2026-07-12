@@ -270,6 +270,56 @@ describe("schema-validate CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
+
+  it("resolves agent protocol schema identifiers", async () => {
+    const artifacts = {
+      capabilities: {
+        schema: "ctg-agent-capabilities@v1",
+        protocol: "ctg-agent/1.0",
+        protocols: ["ctg-agent/1.0"],
+        tool: { name: "code-to-gate", version: "1.5.0" },
+        operations: [],
+        schemas: [],
+      },
+      manifest: {
+        schema: "ctg-run-manifest@v1",
+        protocol: "ctg-agent/1.0",
+        tool: { name: "code-to-gate", version: "1.5.0" },
+        run_id: "0123456789abcdef0123456789abcdef",
+        request_id: "schema-test",
+        fingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        input_digest: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        action: "doctor",
+        status: "succeeded",
+        created_at: "2026-07-12T00:00:00.000Z",
+        updated_at: "2026-07-12T00:00:01.000Z",
+        negotiated: { protocol: "ctg-agent/1.0", schema_majors: {} },
+        resolved_execution: {
+          timeout_ms: 1000,
+          total_timeout_ms: 1000,
+          retry: { max_attempts: 1, backoff_ms: 0, max_backoff_ms: 0, retry_on: [] },
+          partial: "allow",
+        },
+        attempts: [],
+        completeness: "complete",
+        summary: {},
+        artifacts: [],
+        next_actions: [],
+      },
+      determinism: {
+        schema: "ctg-agent-determinism@v1",
+        capabilities_digest_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        projection: {},
+        toolchain: { node: "v22.23.1", package_manager: "npm@10.9.8" },
+      },
+    };
+    for (const [name, artifact] of Object.entries(artifacts)) {
+      const file = path.join(tempDir, "agent-" + name + ".json");
+      writeFileSync(file, JSON.stringify(artifact), "utf8");
+      expect(await schemaValidate(["validate", file])).toBe(EXIT.OK);
+    }
+  });
+
   it("handles artifact without artifact field", async () => {
     // Create an artifact without artifact field
     const noArtifactPath = path.join(tempDir, "no-artifact.json");
