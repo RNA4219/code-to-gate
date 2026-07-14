@@ -232,7 +232,7 @@ try {
   // Build an isolated two-commit repository so the test does not depend on checkout depth.
   prepareDiffFixture();
   const diffResult = execFileSync(process.execPath, [cliPath, "diff", DIFF_FIXTURE_DIR, "--base", "HEAD~1", "--head", "HEAD", "--out", diffOutDir], {
-    cwd: DIFF_FIXTURE_DIR
+    cwd: DIFF_FIXTURE_DIR,
     encoding: "utf8",
     timeout: 60000,
   });  // Verify diff-analysis.json exists
