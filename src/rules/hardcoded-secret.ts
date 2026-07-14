@@ -51,6 +51,14 @@ function isDescriptiveMetadataAssignment(name: string): boolean {
   return ["description", "summary", "title", "useCase", "recommendedAction", "narrative"].includes(name);
 }
 
+function isSecretVariableName(name: string): boolean {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return SECRET_VAR_NAMES.some(value => {
+    const candidate = value.replace(/[^a-z0-9]/g, "");
+    return normalized === candidate || normalized.startsWith(candidate) || normalized.endsWith(candidate);
+  });
+}
+
 function isSafeValue(value: string): boolean {
   const safeValues = ["changeme", "your_key_here", "replace_me", "xxx", "test", "example"];
   return safeValues.some(s => value.toLowerCase().includes(s)) ||
@@ -105,24 +113,22 @@ export const HARDCODED_SECRET_RULE: RulePlugin = {
           }
         }
 
-        // Check for secret variable assignments
-        if (SECRET_VAR_NAMES.some(v => line.toLowerCase().includes(v))) {
-          const match = line.match(/([A-Za-z_][A-Za-z0-9_]*)\s*[=:]\s*["']([^"']{16,})["']/);
-          if (match && !isSafeValue(match[2])) {
-            if (isDescriptiveMetadataAssignment(match[1])) continue;
+        // Check only assignments whose own variable name denotes a secret.
+        for (const match of line.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*[=:]\s*["']([^"']{16,})["']/g)) {
+          if (!isSecretVariableName(match[1]) || isSafeValue(match[2]) || isDescriptiveMetadataAssignment(match[1])) continue;
 
-            const excerpt = line.trim();
-            findings.push({
-              id: generateFindingId("HARDCODED_SECRET_VAR", file.path, lineNum + 1),
-              ruleId: "HARDCODED_SECRET",
-              severity: "high",
-              confidence: 0.7,
-              title: `Possible secret in variable: ${match[1]}`,
-              summary: `Variable "${match[1]}" may contain hardcoded secret`,
-              evidence: [createEvidence(file.path, lineNum + 1, lineNum + 1, "text", excerpt)],
-              category: "security",
-            });
-          }
+          const excerpt = line.trim();
+          findings.push({
+            id: generateFindingId("HARDCODED_SECRET_VAR", file.path, lineNum + 1),
+            ruleId: "HARDCODED_SECRET",
+            severity: "high",
+            confidence: 0.7,
+            title: `Possible secret in variable: ${match[1]}`,
+            summary: `Variable "${match[1]}" may contain hardcoded secret`,
+            evidence: [createEvidence(file.path, lineNum + 1, lineNum + 1, "text", excerpt)],
+            category: "security",
+          });
+          break;
         }
       }
     }
