@@ -96,6 +96,17 @@ function createBuffer(str) {
       expect(findings[0].title).toContain("new Buffer()");
     });
 
+    it("does not treat arrayBuffer() as the deprecated global Buffer()", () => {
+      const context = createMockContext([
+        {
+          path: "src/response.ts",
+          content: "const raw = new Uint8Array(await response.arrayBuffer());",
+        },
+      ]);
+
+      expect(DEPRECATED_API_USAGE_RULE.evaluate(context)).toHaveLength(0);
+    });
+
     it("should detect fs.exists", () => {
       const context = createMockContext([
         {

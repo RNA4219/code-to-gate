@@ -16,12 +16,13 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const TEMP_DIR = join(ROOT, ".test-temp", "package-smoke");
 const FIXTURES_DIR = join(ROOT, "fixtures", "demo-shop-ts");
+const DIFF_FIXTURE_DIR = join(TEMP_DIR, "diff-fixture");
 const DIST_DIR = join(ROOT, "dist");
 const NPM_CACHE_DIR = join(ROOT, ".qh", "npm-cache");
 const NPM_ENV = { ...process.env, npm_config_cache: NPM_CACHE_DIR };
@@ -39,6 +40,27 @@ let tgzPath = null;
 
 function removeDirectory(target) {
   rmSync(target, REMOVE_DIRECTORY_OPTIONS);
+}
+
+function runGit(args, cwd) {
+  execFileSync("git", args, { cwd, stdio: "ignore" });
+}
+
+function prepareDiffFixture() {
+  removeDirectory(DIFF_FIXTURE_DIR);
+  cpSync(FIXTURES_DIR, DIFF_FIXTURE_DIR, { recursive: true });
+  removeDirectory(join(DIFF_FIXTURE_DIR, ".git"));
+
+  writeFileSync(join(DIFF_FIXTURE_DIR, "package-smoke-baseline.txt"), "baseline\n");
+  runGit(["init", "--quiet"], DIFF_FIXTURE_DIR);
+  runGit(["config", "user.name", "code-to-gate package smoke"], DIFF_FIXTURE_DIR);
+  runGit(["config", "user.email", "package-smoke@code-to-gate.invalid"], DIFF_FIXTURE_DIR);
+  runGit(["add", "-f", "."], DIFF_FIXTURE_DIR);
+  runGit(["-c", "commit.gpgSign=false", "commit", "--quiet", "-m", "Create baseline fixture"], DIFF_FIXTURE_DIR);
+
+  writeFileSync(join(DIFF_FIXTURE_DIR, "package-smoke-change.ts"), "export const packageSmokeChange = true;\n");
+  runGit(["add", "-f", "package-smoke-change.ts"], DIFF_FIXTURE_DIR);
+  runGit(["-c", "commit.gpgSign=false", "commit", "--quiet", "-m", "Add diff fixture change"], DIFF_FIXTURE_DIR);
 }
 
 function cleanup() {
@@ -207,9 +229,10 @@ try {
   removeDirectory(diffOutDir);
   mkdirSync(diffOutDir, { recursive: true });
 
-  // Use git refs from demo-shop-ts (HEAD vs HEAD~1)
-  const diffResult = execFileSync(process.execPath, [cliPath, "diff", FIXTURES_DIR, "--base", "HEAD~1", "--head", "HEAD", "--out", diffOutDir], {
-    cwd: FIXTURES_DIR, // Run inside fixture directory for git context
+  // Build an isolated two-commit repository so the test does not depend on checkout depth.
+  prepareDiffFixture();
+  const diffResult = execFileSync(process.execPath, [cliPath, "diff", DIFF_FIXTURE_DIR, "--base", "HEAD~1", "--head", "HEAD", "--out", diffOutDir], {
+    cwd: DIFF_FIXTURE_DIR,
     encoding: "utf8",
     timeout: 60000,
   });  // Verify diff-analysis.json exists

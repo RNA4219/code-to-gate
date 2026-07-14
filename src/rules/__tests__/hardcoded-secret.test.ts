@@ -67,6 +67,16 @@ describe("HARDCODED_SECRET_RULE", () => {
     expect(findings).toHaveLength(0);
   });
 
+  it("ignores unrelated assignments on lines that only mention sensitive selectors or fixture IDs", () => {
+    const content = [
+      'await page.addStyleTag({ content: \'input[type="password"], input[name*="token"] { color: transparent }\' });',
+      'const run = configure({ actionCatalog: [{ id: "secret-candidate-value", inputProfileId: "protected-profile" }] });',
+    ].join("\n");
+    const findings = HARDCODED_SECRET_RULE.evaluate(createContext("src/runtime.ts", content));
+
+    expect(findings).toHaveLength(0);
+  });
+
   it("ignores the rule implementation itself", () => {
     const content = [
       'const SECRET_VAR_NAMES = ["password", "api_key"];',

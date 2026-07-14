@@ -43,7 +43,7 @@ const DEPRECATED_NODE_APIS = [
 
   // Buffer
   { pattern: /new\s+Buffer\s*\(/g, name: "new Buffer()", replacement: "Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe()" },
-  { pattern: /Buffer\(\s*\)/g, name: "Buffer()", replacement: "Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe()" },
+  { pattern: /(?<![\w$.])Buffer\(\s*\)/g, name: "Buffer()", replacement: "Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe()" },
 
   // path module
   { pattern: /path\.exists\s*\(/g, name: "path.exists", replacement: "fs.existsSync() or fs.accessSync()" },
