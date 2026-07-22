@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDefaultManifest } from "../plugin-schema.js";
 import {
   loadPluginExecutionPolicy,
+  locatePluginManifest,
   resolvePluginEntrypoint,
   validatePluginExecutionPolicy,
   verifyTrustedPlugin,
@@ -134,5 +135,103 @@ describe("plugin execution policy", () => {
       expect.stringContaining("max_findings"),
       expect.stringContaining("max_evidence_per_finding"),
     ]));
+  });
+
+  it("rejects malformed policy shapes and duplicate identities", () => {
+    expect(validatePluginExecutionPolicy(null)).toEqual({
+      valid: false,
+      errors: ["policy must be an object"],
+    });
+
+    const wrongShape = validatePluginExecutionPolicy({
+      schema: "wrong",
+      trusted_plugins: "not-an-array",
+      process: [],
+    });
+    expect(wrongShape.errors).toEqual(expect.arrayContaining([
+      expect.stringContaining("schema must be"),
+      "trusted_plugins must be an array",
+      "process must be an object",
+    ]));
+
+    const validDigest = `sha256:${"a".repeat(64)}`;
+    const malformed = validatePluginExecutionPolicy({
+      schema: "ctg/plugin-execution-policy/v1",
+      trusted_plugins: [
+        null,
+        { name: "", version: "", manifest_sha256: "bad", entrypoint_sha256: "bad" },
+        { name: "duplicate", version: "1.0.0", manifest_sha256: validDigest, entrypoint_sha256: validDigest },
+        { name: "duplicate", version: "1.0.0", manifest_sha256: validDigest, entrypoint_sha256: validDigest },
+      ],
+      process: {
+        allowed_env_vars: ["1INVALID", "NODE_PATH"],
+        timeout_seconds: 0,
+        max_stdout_bytes: 1.5,
+        max_stderr_bytes: -1,
+        max_findings: 1001,
+        max_evidence_per_finding: null,
+        node_permission_model: "yes",
+      },
+    });
+    expect(malformed.valid).toBe(false);
+    expect(malformed.errors).toEqual(expect.arrayContaining([
+      "trusted_plugins[0] must be an object",
+      "trusted plugin name is required",
+      "trusted plugin version is required",
+      "trusted plugin manifest_sha256 is invalid",
+      "trusted plugin entrypoint_sha256 is invalid",
+      "duplicate trusted plugin identity: duplicate@1.0.0",
+      "allowed_env_vars contains an invalid name",
+      "allowed_env_vars contains forbidden variable NODE_PATH",
+      "node_permission_model must be boolean",
+    ]));
+
+    const envNotArray = validatePluginExecutionPolicy({
+      schema: "ctg/plugin-execution-policy/v1",
+      trusted_plugins: [],
+      process: { allowed_env_vars: "PATH" },
+    });
+    expect(envNotArray.errors).toContain("allowed_env_vars must be an array");
+    expect(validatePluginExecutionPolicy({
+      schema: "ctg/plugin-execution-policy/v1",
+      trusted_plugins: [],
+    })).toEqual({ valid: true, errors: [] });
+  });
+
+  it("reports missing policy files and applies secure default limits", () => {
+    expect(() => locatePluginManifest(path.join(root, "missing-plugin"))).toThrow(/manifest file is missing/);
+
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    manifest.entry.command = [];
+    expect(() => resolvePluginEntrypoint(pluginRoot, manifest)).toThrow(/entrypoint is missing/);
+    manifest.entry.command = ["missing.js"];
+    expect(() => resolvePluginEntrypoint(pluginRoot, manifest)).toThrow(/does not identify a file/);
+    manifest.entry.command = ["index.js"];
+    expect(resolvePluginEntrypoint(pluginRoot, manifest)).toBe(entrypointPath);
+
+    const defaulted = policy();
+    delete defaulted.process;
+    const verified = verifyTrustedPlugin(defaulted, pluginRoot, manifest);
+    expect(verified.process).toMatchObject({
+      allowed_env_vars: [],
+      timeout_seconds: 60,
+      max_stdout_bytes: 10 * 1024 * 1024,
+      max_stderr_bytes: 1024 * 1024,
+      max_findings: 1000,
+      max_evidence_per_finding: 10,
+      node_permission_model: true,
+    });
+
+    const trusted = policy();
+    writeFileSync(manifestPath, "{}\n", "utf8");
+    expect(() => verifyTrustedPlugin(trusted, pluginRoot, manifest)).toThrow(/manifest digest mismatch/);
+
+    const malformedPolicyPath = path.join(root, "malformed-policy.json");
+    writeFileSync(malformedPolicyPath, "{", "utf8");
+    expect(() => loadPluginExecutionPolicy(malformedPolicyPath)).toThrow(/cannot read plugin execution policy/);
+
+    const invalidPolicyPath = path.join(root, "invalid-policy.json");
+    writeFileSync(invalidPolicyPath, "{}", "utf8");
+    expect(() => loadPluginExecutionPolicy(invalidPolicyPath)).toThrow(/invalid plugin execution policy/);
   });
 });

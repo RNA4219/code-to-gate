@@ -43,7 +43,8 @@ if (mode === "prepare") {
       ? semgrep.results.map((result) => result?.check_id).filter(Boolean)
       : []
   );
-  if (!semgrepIds.has("ctg.javascript.no-eval")) {
+  const evalRuleIds = ["ctg.javascript.no-eval", "semgrep.ctg.javascript.no-eval"];
+  if (!evalRuleIds.some((ruleId) => semgrepIds.has(ruleId))) {
     fail("Semgrep did not detect the eval() golden fixture");
   }
 
