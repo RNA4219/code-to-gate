@@ -13,6 +13,25 @@ No unreleased changes yet.
 
 ---
 
+## [1.5.1] - 2026-07-22 - Security Gate Hardening Release
+
+### Added
+
+- Pinned Semgrep and Gitleaks security checks with reproducible toolchain metadata.
+- CycloneDX SBOM generation and golden regression fixtures for the security gate.
+
+### Security
+
+- Run dependency installation without lifecycle scripts in the security gate.
+- Verify scanner provenance and block high or critical npm audit findings.
+
+### Changed
+
+- Document the security gate, its update procedure, and local verification commands.
+- Synchronize the runtime, package, distribution status, and release metadata at `1.5.1`.
+
+---
+
 ## [1.5.0] - 2026-07-12 - Security and SQL Database Analysis Release
 
 ### Added
