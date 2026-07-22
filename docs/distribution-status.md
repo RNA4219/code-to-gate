@@ -2,8 +2,8 @@
 intent_id: DOC-DISTRIBUTION-STATUS-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-07-12
-next_review_due: 2026-08-12
+last_reviewed_at: 2026-07-22
+next_review_due: 2026-08-22
 ---
 
 # Distribution Status
@@ -15,8 +15,8 @@ npm publication status.
 
 | Channel | Current State | Notes |
 |---------|---------------|-------|
-| `package.json` | `1.5.0` | Release package version |
-| GitHub Release | `v1.5.0` | Published 2026-07-12 |
+| `package.json` | `1.5.1` | Release package version |
+| GitHub Release | `v1.5.1` | Published 2026-07-22 |
 | npm registry | Not published | `npm view @quality-harness/code-to-gate` returned `E404` on 2026-07-12 |
 | Recommended install | GitHub install | Use `npm install -g github:RNA4219/code-to-gate` until npm publish is complete |
 | Local npm auth | Not authenticated | `npm whoami` returns `ENEEDAUTH`; maintainer login is required before publish |
@@ -35,9 +35,9 @@ npm install -g @quality-harness/code-to-gate
 
 ## Release Alignment
 
-| Item | v1.5.0 Status |
+| Item | v1.5.1 Status |
 |------|---------------------------------------|
-| Git tag | `v1.5.0` created and pushed |
+| Git tag | `v1.5.1` created and pushed |
 | GitHub release | Published with notes based on `CHANGELOG.md` |
 | npm package | Pending `npm login` and `npm publish --access public` |
 | Package integrity | Passed before release; CI records the integrity artifact |
@@ -45,13 +45,13 @@ npm install -g @quality-harness/code-to-gate
 
 ## Release Notes Alignment
 
-`CHANGELOG.md` is the source for the published `v1.5.0` release notes. GitHub
-and source installation now provide `v1.5.0`; npm remains unavailable until a
+`CHANGELOG.md` is the source for the published `v1.5.1` release notes. GitHub
+and source installation now provide `v1.5.1`; npm remains unavailable until a
 maintainer publishes the package after authenticating to npm.
 
 ## Publication Evidence Policy
 
-No npm publication has been performed for `1.5.0`. If npm publication is
+No npm publication has been performed for `1.5.1`. If npm publication is
 performed, the release evidence bundle must include:
 
 - `npm whoami`

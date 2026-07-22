@@ -635,7 +635,7 @@ export function analyzeDatabaseAssetsAtRef(options: DatabaseAnalysisAtRefOptions
       },
       tool: {
         name: "code-to-gate",
-        version: "1.5.0",
+        version: "1.5.1",
         plugin_versions: [],
       },
       completeness: "partial",
