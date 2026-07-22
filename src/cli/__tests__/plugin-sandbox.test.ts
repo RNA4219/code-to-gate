@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pluginSandboxCommand } from "../plugin-sandbox.js";
@@ -6,7 +6,14 @@ import { EXIT, VERSION, getOption } from "../exit-codes.js";
 
 const TEST_DIR = path.join(process.cwd(), ".test-temp", "plugin-sandbox-cli");
 
+beforeEach(() => {
+  vi.stubEnv("CI", "");
+  vi.stubEnv("GITHUB_ACTIONS", "");
+  vi.stubEnv("CTG_RELEASE", "");
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   rmSync(TEST_DIR, { recursive: true, force: true });
 });

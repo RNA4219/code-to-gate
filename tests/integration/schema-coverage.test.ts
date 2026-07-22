@@ -269,6 +269,8 @@ describe("schema coverage integration", () => {
         "audit.schema.json",
         "shared-defs.schema.json",
         "invariants.schema.json",
+        "import-manifest.schema.json",
+        "plugin-execution-policy.schema.json",
         "test-seeds.schema.json",
         "test-plan.schema.json",
         "quality-pack.schema.json",
