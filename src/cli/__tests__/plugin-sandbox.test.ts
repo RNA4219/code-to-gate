@@ -19,7 +19,7 @@ describe("plugin-sandbox run CLI", () => {
     await expect(
       pluginSandboxCommand(["--help"], { VERSION, EXIT, getOption })
     ).resolves.toBe(EXIT.OK);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("--sandbox <docker|none>"));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("--sandbox <process|docker|none>"));
 
     await expect(
       pluginSandboxCommand(["unknown"], { VERSION, EXIT, getOption })
@@ -87,7 +87,7 @@ describe("plugin-sandbox run CLI", () => {
     expect(available.checkDockerImageExists).toHaveBeenCalledWith("image with spaces");
   });
 
-  it("requires an explicit sandbox mode", async () => {
+  it("defaults to Process mode before validating paths", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     const exitCode = await pluginSandboxCommand(
@@ -97,7 +97,7 @@ describe("plugin-sandbox run CLI", () => {
 
     expect(exitCode).toBe(EXIT.USAGE_ERROR);
     expect(error).toHaveBeenCalledWith(
-      "Error: Sandbox mode required (--sandbox docker|none)"
+      "Error: Plugin path does not exist: plugin"
     );
   });
 
@@ -111,7 +111,7 @@ describe("plugin-sandbox run CLI", () => {
 
     expect(exitCode).toBe(EXIT.USAGE_ERROR);
     expect(error).toHaveBeenCalledWith(
-      "Error: Invalid sandbox mode: docer. Expected docker or none."
+      "Error: Invalid sandbox mode: docer. Expected process, docker, or none."
     );
   });
 
@@ -210,6 +210,7 @@ describe("plugin-sandbox run CLI", () => {
         inputPath,
         "--sandbox",
         "none",
+        "--unsafe-allow-none",
       ], {
         VERSION,
         EXIT,
@@ -256,7 +257,7 @@ describe("plugin-sandbox run CLI", () => {
     vi.spyOn(console, "log").mockImplementation(() => undefined);
 
     const exitCode = await pluginSandboxCommand(
-      ["run", pluginDir, "--input", inputPath, "--sandbox", "none"],
+      ["run", pluginDir, "--input", inputPath, "--sandbox", "none", "--unsafe-allow-none"],
       { VERSION, EXIT, getOption }
     );
 
@@ -320,6 +321,7 @@ describe("plugin-sandbox run CLI", () => {
       inputPath,
       "--sandbox",
       "none",
+      "--unsafe-allow-none",
       "--verbose",
     ];
     await expect(
@@ -329,7 +331,7 @@ describe("plugin-sandbox run CLI", () => {
         getOption,
         dependencies,
       })
-    ).resolves.toBe(EXIT.OK);
+    ).resolves.toBe(EXIT.PARTIAL_SUCCESS);
     expect(existsSync(outputPath)).toBe(true);
     expect(JSON.parse(readFileSync(outputPath, "utf8")).errors[0].code).toBe("PARTIAL");
 

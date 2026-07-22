@@ -17,7 +17,19 @@ import path from "node:path";
 import type { NormalizedRepoGraph, RepoFile, RepoModule, RepoRef } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
 import type { ParserRegistry, ParserAdapterResult } from "../types/contracts.js";
-import { detectLanguage, detectRole, entrypointKind, isEntrypoint, isGeneratedVendoredOrMinifiedPath, walkDir } from "./file-utils.js";
+import {
+  DEFAULT_DIRECTORY_WALK_LIMITS,
+  detectLanguage,
+  detectRole,
+  entrypointKind,
+  isEntrypoint,
+  isGeneratedVendoredOrMinifiedPath,
+  resolveDirectoryWalkLimits,
+  walkDir,
+  walkDirBounded,
+  type BoundedDirectoryWalk,
+  type DirectoryWalkLimits,
+} from "./file-utils.js";
 import { sha256, toPosix } from "./path-utils.js";
 
 /**
@@ -28,6 +40,8 @@ export interface BuildGraphOptions {
   parserRegistry?: ParserRegistry;
   /** Explicitly request tree-sitter parsing (deprecated - registry handles this) */
   useTreeSitter?: boolean;
+  /** Fail-closed repository discovery and processing limits */
+  scanLimits?: Partial<DirectoryWalkLimits>;
 }
 
 // Parse cache for incremental processing
@@ -89,9 +103,9 @@ function detectPackageManager(repoRoot: string): RepoModule["packageManager"] {
   return "unknown";
 }
 
-function collectWorkspaceModules(repoRoot: string): RepoModule[] {
+function collectWorkspaceModules(repoRoot: string, discoveredFiles?: string[]): RepoModule[] {
   const packageManager = detectPackageManager(repoRoot);
-  return walkDir(repoRoot)
+  return (discoveredFiles ?? walkDir(repoRoot))
     .filter((file) => path.basename(file) === "package.json")
     .flatMap((packageFile): RepoModule[] => {
       try {
@@ -159,8 +173,19 @@ export function isGraphTargetFile(filePath: string): boolean {
   return /\.(ts|tsx|js|jsx|py|rb|go|rs|java|php|cs|cpp|cc|cxx|hpp|hxx|mjs|cjs|json|yaml|yml|md|txt)$/.test(filePath) && !isGeneratedVendoredOrMinifiedPath(filePath);
 }
 
+export function discoverGraphFilesBounded(
+  repoRoot: string,
+  limits: Partial<DirectoryWalkLimits> = {}
+): BoundedDirectoryWalk {
+  const discovery = walkDirBounded(repoRoot, limits);
+  return {
+    ...discovery,
+    files: discovery.files.filter(isGraphTargetFile),
+  };
+}
+
 export function discoverGraphFiles(repoRoot: string): string[] {
-  return walkDir(repoRoot).filter(isGraphTargetFile);
+  return discoverGraphFilesBounded(repoRoot).files;
 }
 
 export function addPartialGraphDiagnostic(graph: NormalizedRepoGraph): void {
@@ -172,7 +197,9 @@ export function addPartialGraphDiagnostic(graph: NormalizedRepoGraph): void {
     id: `diag:${graph.run_id}:partial-graph`,
     severity: "warning",
     code: "PARTIAL_GRAPH",
-    message: "Some files failed to parse, resulting in a partial graph",
+    message: graph.stats.scan?.reasons.length
+      ? "Repository scan is partial: " + graph.stats.scan.reasons.join(", ")
+      : "Some files failed to parse, resulting in a partial graph",
   });
 }
 
@@ -296,15 +323,34 @@ export function buildGraph(
     ? { useTreeSitter: options }
     : options ?? {};
 
-  const targetFiles = discoverGraphFiles(repoRoot);
-  const shouldUseGraphCache = process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+  const scanStartedAt = Date.now();
+  const scanLimits: DirectoryWalkLimits = resolveDirectoryWalkLimits({
+    ...DEFAULT_DIRECTORY_WALK_LIMITS,
+    ...normalizedOptions.scanLimits,
+  });
+  const discovery = discoverGraphFilesBounded(repoRoot, scanLimits);
+  const targetFiles = discovery.files;
+  const scanReasons = [...discovery.reasons];
+  const addScanReason = (reason: string) => {
+    if (scanReasons.length < 100 && !scanReasons.includes(reason)) {
+      scanReasons.push(reason);
+    }
+  };
+
+  const shouldUseGraphCache =
+    !discovery.partial &&
+    (process.env.NODE_ENV === "test" || process.env.VITEST === "true");
   const graphCacheKey = shouldUseGraphCache
     ? `${repoRoot}:${targetFiles
         .map((file) => {
-          const stat = statSync(file);
-          return `${file}:${stat.size}:${stat.mtimeMs}`;
+          try {
+            const stat = statSync(file);
+            return `${file}:${stat.size}:${stat.mtimeMs}`;
+          } catch {
+            return `${file}:missing`;
+          }
         })
-        .join("|")}:${normalizedOptions.useTreeSitter}`
+        .join("|")}:${normalizedOptions.useTreeSitter}:${JSON.stringify(scanLimits)}`
     : undefined;
 
   if (graphCacheKey) {
@@ -315,11 +361,48 @@ export function buildGraph(
   }
 
   const graph = createEmptyRepoGraph(repoRoot, toolVersion);
-  graph.modules = collectWorkspaceModules(repoRoot);
+  graph.stats.partial = discovery.partial;
+  graph.stats.scan = {
+    visitedFiles: discovery.visitedFiles,
+    acceptedFiles: 0,
+    acceptedBytes: discovery.acceptedBytes,
+    skippedFiles: discovery.skippedFiles,
+    limits: scanLimits,
+    reasons: scanReasons,
+  };
+  graph.modules = collectWorkspaceModules(repoRoot, targetFiles);
 
   for (const file of targetFiles) {
+    if (Date.now() - scanStartedAt >= scanLimits.deadlineMs) {
+      addScanReason("SCAN_DEADLINE_EXCEEDED");
+      graph.stats.partial = true;
+      break;
+    }
+
     const rel = toPosix(path.relative(repoRoot, file));
-    const body = readFileSync(file, "utf8");
+    let body: string;
+    try {
+      const stat = statSync(file);
+      if (stat.size > scanLimits.maxFileSizeBytes) {
+        graph.stats.scan.skippedFiles += 1;
+        addScanReason(`MAX_FILE_SIZE_EXCEEDED:${rel}`);
+        graph.stats.partial = true;
+        continue;
+      }
+      body = readFileSync(file, "utf8");
+      if (Buffer.byteLength(body) > scanLimits.maxFileSizeBytes) {
+        graph.stats.scan.skippedFiles += 1;
+        addScanReason(`MAX_FILE_SIZE_EXCEEDED:${rel}`);
+        graph.stats.partial = true;
+        continue;
+      }
+    } catch {
+      graph.stats.scan.skippedFiles += 1;
+      addScanReason(`FILE_READ_FAILED:${rel}`);
+      graph.stats.partial = true;
+      continue;
+    }
+
     const bodyHash = sha256(body);
     const language = detectLanguage(file);
     const role = detectRole(rel);
@@ -372,9 +455,12 @@ export function buildGraph(
     addGraphClassifications(graph, repoFile, body);
   }
 
+  graph.stats.scan.acceptedFiles = graph.files.length;
+  graph.stats.scan.reasons = scanReasons;
+  graph.stats.partial ||= scanReasons.length > 0;
   addPartialGraphDiagnostic(graph);
 
-  if (graphCacheKey) {
+  if (graphCacheKey && !graph.stats.partial) {
     graphCache.set(graphCacheKey, structuredClone(graph));
   }
 

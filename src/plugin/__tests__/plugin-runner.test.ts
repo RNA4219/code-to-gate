@@ -49,9 +49,9 @@ describe("PluginRunner", () => {
       expect(runner.healthCheck).toBeDefined();
     });
 
-    it("preserves the programmatic none default and supports mode switches", () => {
+    it("uses the policy-gated Process default and supports mode switches", () => {
       const runner = new PluginRunnerImpl();
-      expect(runner.getSandboxMode()).toBe("none");
+      expect(runner.getSandboxMode()).toBe("process");
       runner.setSandboxMode("docker");
       expect(runner.getSandboxMode()).toBe("docker");
       runner.setSandboxMode("process");

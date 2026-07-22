@@ -1,15 +1,18 @@
 # Plugin Sandbox Documentation
 
-This document describes the Docker-based sandbox execution environment for code-to-gate plugins.
+This document describes the fail-closed execution policy for code-to-gate plugins.
 
 ## Overview
 
-The plugin sandbox provides isolated execution for plugins using Docker containers. This ensures:
+Plugin execution defaults to permission-restricted Process mode. Process mode only accepts plugins whose manifest and entrypoint SHA-256 digests are bound by an execution policy. Docker mode is required for untrusted plugins and never falls back to host execution. The direct `none` mode is an explicit emergency escape hatch and is forbidden in CI and release contexts.
 
-- **Security**: Plugins run in isolated containers with limited resources
-- **Resource Control**: Memory, CPU, and timeout limits are enforced
-- **Network Isolation**: Plugins have no network access by default
-- **Filesystem Restriction**: Plugins can only access specified paths
+The sandbox enforces:
+
+- **Trust binding**: Process-mode plugins are identified by name, version, manifest digest, and entrypoint digest
+- **Resource control**: 60-second runtime, bounded stdout/stderr, finding count, and evidence count
+- **Network isolation**: Docker always uses `--network=none`
+- **Filesystem restriction**: Docker uses a read-only root; Node Process mode uses the permission model
+- **Environment isolation**: Only explicitly allowed variables are passed; `NODE_OPTIONS`, `NODE_PATH`, and `ELECTRON_RUN_AS_NODE` are denied
 
 ## Architecture
 
@@ -55,21 +58,27 @@ The plugin sandbox provides isolated execution for plugins using Docker containe
 
 | Mode | Description |
 |------|-------------|
-| `none` | Direct process execution (no isolation) |
-| `docker` | Execute plugins in isolated Docker containers |
+| `process` | Default. Node permission model plus digest-bound execution policy |
+| `docker` | Required for untrusted plugins; network-disabled and read-only |
+| `none` | Unsafe direct execution; requires `--unsafe-allow-none` and is rejected in CI/release |
 
 ### Default Configuration
 
 ```typescript
 const DEFAULT_SANDBOX_CONFIG = {
-  mode: "none",
-  timeout: 60,            // seconds
-  memoryLimit: 512,       // MB
-  cpuLimit: 0.5,          // fraction of CPU
-  networkAccess: false,   // blocked by default
+  mode: "process",
+  timeout: 60,
+  memoryLimit: 512,
+  cpuLimit: 0.5,
+  networkAccess: false,
   dockerImage: "code-to-gate-plugin-runner:latest",
   containerUser: "node",
   strictSecurity: true,
+  maxStdoutBytes: 10 * 1024 * 1024,
+  maxStderrBytes: 1 * 1024 * 1024,
+  maxFindings: 1000,
+  maxEvidencePerFinding: 10,
+  nodePermissionModel: true,
 };
 ```
 
@@ -80,13 +89,17 @@ const DEFAULT_SANDBOX_CONFIG = {
 | `timeout` | number | 60 | Maximum execution time in seconds |
 | `memoryLimit` | number | 512 | Memory limit in MB |
 | `cpuLimit` | number | 0.5 | CPU limit as fraction (0-4) |
-| `networkAccess` | boolean | false | Allow network access |
+| `networkAccess` | boolean | false | Must remain false for Docker execution |
 | `dockerImage` | string | "code-to-gate-plugin-runner:latest" | Docker image to use |
 | `containerUser` | string | "node" | User to run as in container |
-| `strictSecurity` | boolean | true | Enable strict security (seccomp, no-new-privileges) |
+| `strictSecurity` | boolean | true | Required for Docker execution |
 | `allowedReadPaths` | string[] | ["${repoRoot}"] | Paths plugin can read |
 | `allowedWritePaths` | string[] | ["${workDir}"] | Paths plugin can write |
 | `maxFileSizeMB` | number | 10 | Maximum file size for writes |
+| `maxStdoutBytes` | number | 10485760 | Hard stdout limit |
+| `maxStderrBytes` | number | 1048576 | Hard stderr limit |
+| `maxFindings` | number | 1000 | Maximum findings accepted from one plugin |
+| `maxEvidencePerFinding` | number | 10 | Maximum evidence references per finding |
 
 ## CLI Usage
 
@@ -125,16 +138,19 @@ code-to-gate plugin-sandbox run ./my-plugin \
 Options:
 - `--input <file>`: Input JSON file
 - `--output <file>`: Output file (default: stdout)
-- `--sandbox <mode>`: Required sandbox mode (`docker` or `none`)
-- `--timeout <s>`: Execution timeout in seconds
-- `--memory <MB>`: Memory limit in MB
-- `--cpu <fraction>`: CPU limit
+- `--sandbox <mode>`: `process` (default), `docker`, or `none`
+- `--execution-policy <file>`: Required for Process mode
+- `--unsafe-allow-none`: Required together with `--sandbox none`
+- `--timeout <s>`: Execution timeout in seconds, capped at 60
+- `--memory <MB>`: Docker memory limit in MB
+- `--cpu <fraction>`: Docker CPU limit
 - `--verbose`: Show detailed information
 
-`--sandbox` has no implicit default. Omitting it or passing an unsupported value
-returns usage exit code `2`. `--sandbox none` is an explicit lower-trust choice:
-the plugin runs directly on the host and can access the host process
-environment, so the CLI prints a warning before execution.
+Process mode rejects unknown or tampered plugins. The policy schema is
+`ctg/plugin-execution-policy/v1`; each trusted plugin entry binds its name,
+version, manifest SHA-256, and entrypoint SHA-256. Use Docker for plugins that
+cannot be placed on that allowlist. `none` mode is rejected when `CI`,
+`GITHUB_ACTIONS`, or `CTG_RELEASE` is set.
 
 ### Build Docker Image
 
@@ -154,18 +170,11 @@ By default, plugins run with `--network=none`, preventing any network access:
 docker run --network=none ...
 ```
 
-To allow network access (requires manifest declaration):
-
-```yaml
-security:
-  network: true
-```
-
-The command builder contract is tested in `src/plugin/__tests__/docker-sandbox.test.ts`: `networkAccess: false` must emit `--network=none`, and `networkAccess: true` is the only path that omits it.
+Docker network access cannot be enabled by plugin manifests or CLI input. Unsafe configuration is rejected, and the command builder still emits `--network=none` defensively.
 
 ### Docker Unavailable Fallback Policy
 
-If Docker is unavailable, `--sandbox docker` is a policy failure for sandbox-required execution and should return a plugin failure result rather than silently running the plugin directly. Users may explicitly choose `--sandbox none` for direct process execution, but this is a lower-trust mode and must be documented in the runbook or policy exception. CI/release gates that require private plugin isolation should fail closed when Docker sandbox status is unavailable.
+If Docker is unavailable, `--sandbox docker` returns a plugin failure and never falls back to Process or `none`. Trusted plugins may be run with Process mode and a valid execution policy. Direct execution requires both `--sandbox none` and `--unsafe-allow-none`, and remains unavailable in CI/release contexts.
 
 ### Memory Limits
 
@@ -256,13 +265,9 @@ Sensitive environment variables are blocked:
 
 ### Manifest Environment
 
-Custom environment from manifest:
-
-```yaml
-entry:
-  env:
-    CUSTOM_VAR: "value"
-```
+Manifest environment values are filtered through the execution policy allowlist.
+The full host environment is never inherited. Runtime-control variables such as
+`NODE_OPTIONS`, `NODE_PATH`, and `ELECTRON_RUN_AS_NODE` cannot be allowed.
 
 ## Docker Image
 
@@ -432,8 +437,8 @@ Error: Plugin execution timed out
 ```
 
 Solution:
-- Increase timeout in manifest: `entry.timeout: 120`
-- Use CLI option: `--timeout 120`
+- Keep the manifest and CLI timeout at or below the hard 60-second cap
+- Split large plugin work into bounded operations
 - Optimize plugin code for faster execution
 
 ### Memory Issues
@@ -449,13 +454,13 @@ Solution:
 
 ## Best Practices
 
-1. **Always use sandbox mode for production**: Prevent plugins from affecting host system
-2. **Set appropriate timeouts**: Balance between allowing completion and preventing hangs
-3. **Limit memory based on plugin needs**: Lower limits for simple plugins, higher for complex analysis
-4. **Declare security requirements**: Use manifest `security` section for explicit permissions
-5. **Test in sandbox before deployment**: Verify plugin works correctly in isolated environment
-6. **Handle errors gracefully**: Plugins should write meaningful error messages to output
-7. **Avoid network dependencies**: Design plugins to work without network access when possible
+1. **Use Docker for untrusted plugins**: Unknown code must not enter Process mode
+2. **Review digest changes**: Manifest or entrypoint hash changes require an explicit policy update
+3. **Keep hard caps**: Do not raise the 60-second, output, finding, or evidence limits
+4. **Keep Docker offline**: Plugins must not depend on network access
+5. **Treat `none` as break-glass only**: It is unavailable in CI/release and requires explicit acknowledgement
+6. **Handle partial results**: Limit violations produce partial or failed execution, never silent success
+7. **Rotate plugin trust deliberately**: Review name, version, and both digests together
 
 ## API Reference
 
@@ -497,6 +502,11 @@ interface SandboxConfig {
   dockerImage: string;
   containerUser: string;
   strictSecurity: boolean;
+  maxStdoutBytes: number;
+  maxStderrBytes: number;
+  maxFindings: number;
+  maxEvidencePerFinding: number;
+  nodePermissionModel: boolean;
 }
 ```
 

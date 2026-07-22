@@ -1,0 +1,29 @@
+{
+  "schema": "ctg/security-toolchain-lock/v1",
+  "generatedAt": "2026-07-22T00:00:00.000Z",
+  "tools": {
+    "semgrep": {
+      "version": "1.164.0",
+      "image": "semgrep/semgrep@sha256:207983631beecdbe7fa29196c7f4a7a5f29033933cdb76c687ce4a672e07618d",
+      "digest": "sha256:207983631beecdbe7fa29196c7f4a7a5f29033933cdb76c687ce4a672e07618d",
+      "platform": "linux/amd64",
+      "source": "https://hub.docker.com/v2/repositories/semgrep/semgrep/tags/1.164.0"
+    },
+    "gitleaks": {
+      "version": "8.30.1",
+      "archive": {
+        "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz",
+        "sha256": "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+      },
+      "checksums": {
+        "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt",
+        "sha256": "061476c21adaf5441516f96f185c1a4706a83cd6329b9b38762271b3d4a52fae"
+      }
+    },
+    "npm": {
+      "version": "10.9.8",
+      "auditLevel": "high",
+      "sbomFormat": "cyclonedx"
+    }
+  }
+}

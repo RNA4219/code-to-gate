@@ -90,10 +90,31 @@ interface SarifLog {
 interface TSCDiagnostic {
   file?: string;
   code: number | string;
-  message: string;
+  message?: unknown;
+  messageText?: unknown;
   start?: { line: number; character: number };
   end?: { line: number; character: number };
-  category?: number;
+  category?: number | string;
+}
+
+interface NpmAuditAdvisory {
+  title?: string;
+  url?: string;
+  severity?: string;
+  cwe?: string[];
+}
+
+interface NpmAuditVulnerability {
+  name?: string;
+  severity?: string;
+  isDirect?: boolean;
+  via?: Array<string | NpmAuditAdvisory>;
+  range?: string;
+  nodes?: string[];
+}
+
+interface NpmAuditResult {
+  vulnerabilities: Record<string, NpmAuditVulnerability>;
 }
 
 interface CoverageResult {
@@ -102,6 +123,10 @@ interface CoverageResult {
     functions: { total: number; covered: number };
     branches: { total: number; covered: number };
   }>;
+}
+
+function importedJson<T>(inputFile: string, input?: unknown): T {
+  return (input === undefined ? JSON.parse(readFileSync(inputFile, "utf8")) : input) as T;
 }
 
 /**
@@ -166,8 +191,21 @@ function mapSARIFSeverity(level: string | undefined, rule?: SarifRule, result?: 
 /**
  * Map TSC category to code-to-gate severity
  */
-export function mapTSCSeverity(category: number | undefined): Severity {
-  return category === 1 ? "high" : "medium";
+export function mapTSCSeverity(category: number | string | undefined): Severity {
+  return category === 1 || String(category).toLowerCase() === "error" ? "high" : "medium";
+}
+
+export function mapNpmAuditSeverity(severity: string | undefined): Severity {
+  switch ((severity ?? "").toLowerCase()) {
+    case "critical":
+      return "critical";
+    case "high":
+      return "high";
+    case "moderate":
+      return "medium";
+    default:
+      return "low";
+  }
 }
 
 /**
@@ -245,9 +283,8 @@ function sanitizeRuleIdForPrefix(ruleId: string): string {
 /**
  * Import ESLint results
  */
-export function importESLint(inputFile: string): Finding[] {
-  const content = readFileSync(inputFile, "utf8");
-  const results: ESLintResult[] = JSON.parse(content);
+export function importESLint(inputFile: string, input?: unknown): Finding[] {
+  const results = importedJson<ESLintResult[]>(inputFile, input);
   const findings: Finding[] = [];
 
   for (const result of results) {
@@ -282,9 +319,8 @@ export function importESLint(inputFile: string): Finding[] {
 /**
  * Import Semgrep results
  */
-export function importSemgrep(inputFile: string): Finding[] {
-  const content = readFileSync(inputFile, "utf8");
-  const result: SemgrepResult = JSON.parse(content);
+export function importSemgrep(inputFile: string, input?: unknown): Finding[] {
+  const result = importedJson<SemgrepResult>(inputFile, input);
   const findings: Finding[] = [];
 
   for (const finding of result.results) {
@@ -319,9 +355,8 @@ export function importSemgrep(inputFile: string): Finding[] {
  * Import SARIF 2.1.0 results. CodeQL is accepted through the same parser by
  * passing sourceTool="codeql".
  */
-export function importSARIF(inputFile: string, sourceTool: Extract<UpstreamTool, "sarif" | "codeql"> = "sarif"): Finding[] {
-  const content = readFileSync(inputFile, "utf8");
-  const log: SarifLog = JSON.parse(content);
+export function importSARIF(inputFile: string, sourceTool: Extract<UpstreamTool, "sarif" | "codeql"> = "sarif", input?: unknown): Finding[] {
+  const log = importedJson<SarifLog>(inputFile, input);
   const findings: Finding[] = [];
 
   for (const run of log.runs ?? []) {
@@ -332,10 +367,16 @@ export function importSARIF(inputFile: string, sourceTool: Extract<UpstreamTool,
       const rule = result.ruleIndex !== undefined ? rules[result.ruleIndex] : undefined;
       const ruleId = result.ruleId ?? rule?.id ?? "unknown-rule";
       const location = result.locations?.[0]?.physicalLocation;
-      const filePath = location?.artifactLocation?.uri ?? "unknown";
-      const line = location?.region?.startLine ?? 1;
-      const endLine = location?.region?.endLine ?? line;
-      const findingId = generateImportId(sourceTool, ruleId, filePath, line);
+      const filePath = location?.artifactLocation?.uri;
+      const line = location?.region?.startLine;
+      if (!filePath || !Number.isInteger(line) || (line as number) < 1) {
+        continue;
+      }
+      const trustedLine = line as number;
+      const endLine = Number.isInteger(location?.region?.endLine) && (location?.region?.endLine as number) >= trustedLine
+        ? location?.region?.endLine as number
+        : trustedLine;
+      const findingId = generateImportId(sourceTool, ruleId, filePath, trustedLine);
       const category = inferCategoryFromSarif(ruleId, rule, result);
       const tags = normalizeTags(rule?.properties?.tags, result.properties?.tags);
       const rawFingerprint = result.partialFingerprints?.primaryLocationLineHash
@@ -355,7 +396,7 @@ export function importSARIF(inputFile: string, sourceTool: Extract<UpstreamTool,
         evidence: [{
           id: generateImportEvidenceId(findingId, 0),
           path: filePath,
-          startLine: line,
+          startLine: trustedLine,
           endLine,
           kind: "external",
           externalRef: { tool: sourceTool, ruleId },
@@ -373,9 +414,23 @@ export function importSARIF(inputFile: string, sourceTool: Extract<UpstreamTool,
 /**
  * Import TypeScript compiler results
  */
-export function importTSC(inputFile: string): Finding[] {
-  const content = readFileSync(inputFile, "utf8");
-  const diagnostics: TSCDiagnostic[] = JSON.parse(content);
+function tscMessage(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const record = value as { messageText?: unknown; next?: unknown[] };
+    const head = tscMessage(record.messageText);
+    const tail = Array.isArray(record.next) ? record.next.map(tscMessage).filter(Boolean) : [];
+    return [head, ...tail].filter(Boolean).join(" ");
+  }
+  return "TypeScript compiler diagnostic";
+}
+
+export function importTSC(inputFile: string, input?: unknown): Finding[] {
+  const parsed = importedJson<TSCDiagnostic[] | { diagnostics?: TSCDiagnostic[] }>(inputFile, input);
+  const diagnostics = Array.isArray(parsed) ? parsed : parsed.diagnostics;
+  if (!Array.isArray(diagnostics)) {
+    throw new Error("TSC input must be an array or contain diagnostics");
+  }
   const findings: Finding[] = [];
 
   for (const diag of diagnostics) {
@@ -392,7 +447,7 @@ export function importTSC(inputFile: string): Finding[] {
       severity: mapTSCSeverity(diag.category),
       confidence: 0.95,
       title: `TypeScript Error TS${diag.code}`,
-      summary: diag.message,
+      summary: tscMessage(diag.message ?? diag.messageText),
       evidence: [{
         id: generateImportEvidenceId(findingId, 0),
         path: diag.file,
@@ -409,11 +464,63 @@ export function importTSC(inputFile: string): Finding[] {
 }
 
 /**
+ * Import npm audit v7+ JSON results.
+ */
+export function importNpmAudit(inputFile: string, evidencePath = "package-lock.json", input?: unknown): Finding[] {
+  const result = importedJson<NpmAuditResult>(inputFile, input);
+  if (!result.vulnerabilities || typeof result.vulnerabilities !== "object") {
+    throw new Error("npm audit input must contain vulnerabilities");
+  }
+
+  const findings: Finding[] = [];
+  for (const [packageName, vulnerability] of Object.entries(result.vulnerabilities)) {
+    const advisories = Array.isArray(vulnerability.via)
+      ? vulnerability.via.filter((item): item is NpmAuditAdvisory => typeof item === "object" && item !== null)
+      : [];
+    const severity = vulnerability.severity
+      ?? advisories.map((item) => item.severity).find((value): value is string => typeof value === "string");
+    const findingId = generateImportId("npm-audit", packageName, evidencePath, 1);
+    const advisoryTitles = advisories
+      .map((item) => item.title)
+      .filter((value): value is string => typeof value === "string" && value.length > 0);
+    const tags = new Set<string>([
+      vulnerability.isDirect ? "direct-dependency" : "transitive-dependency",
+      ...advisories.flatMap((item) => item.cwe ?? []),
+    ]);
+
+    findings.push({
+      id: findingId,
+      ruleId: `NPM_AUDIT_${sanitizeRuleIdForPrefix(packageName)}`,
+      category: "security",
+      severity: mapNpmAuditSeverity(severity),
+      confidence: 0.95,
+      title: `Vulnerable dependency: ${vulnerability.name ?? packageName}`,
+      summary: advisoryTitles.length > 0
+        ? advisoryTitles.join("; ")
+        : `npm audit reported ${severity ?? "unknown"} severity for ${packageName}${vulnerability.range ? ` (${vulnerability.range})` : ""}`,
+      evidence: [{
+        id: generateImportEvidenceId(findingId, 0),
+        path: evidencePath,
+        kind: "external",
+        externalRef: {
+          tool: "npm-audit",
+          ruleId: packageName,
+          ...(advisories[0]?.url ? { url: advisories[0].url } : {}),
+        },
+      }],
+      upstream: { tool: "npm-audit", ruleId: packageName },
+      tags: [...tags].sort(),
+    });
+  }
+
+  return findings;
+}
+
+/**
  * Import coverage results
  */
-export function importCoverage(inputFile: string): Finding[] {
-  const content = readFileSync(inputFile, "utf8");
-  const result: CoverageResult = JSON.parse(content);
+export function importCoverage(inputFile: string, input?: unknown): Finding[] {
+  const result = importedJson<CoverageResult>(inputFile, input);
   const findings: Finding[] = [];
 
   for (const [filePath, coverage] of Object.entries(result.coverageMap)) {
@@ -469,9 +576,8 @@ export function importCoverage(inputFile: string): Finding[] {
 /**
  * Import test results (generic format)
  */
-export function importTest(inputFile: string): Finding[] {
-  const content = readFileSync(inputFile, "utf8");
-  const results = JSON.parse(content);
+export function importTest(inputFile: string, input?: unknown): Finding[] {
+  const results = importedJson<unknown>(inputFile, input);
   const findings: Finding[] = [];
 
   if (Array.isArray(results)) {

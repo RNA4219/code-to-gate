@@ -130,6 +130,7 @@ readiness:
 | [Quickstart](docs/quickstart.md) | First run and CI setup |
 | [Distribution Status](docs/distribution-status.md) | Package, GitHub release, and npm publication state |
 | [CLI Reference](docs/cli-reference.md) | Commands, flags, output formats |
+| [Security Gate](docs/security-gate.md) | Pinned scanners, SBOM, audit, and CI evidence |
 | [Policy Guide](docs/policy-guide.md) | Gate policy configuration |
 | [Integrations](docs/integrations.md) | GitHub Actions and downstream exports |
 | [Plugin Development](docs/plugin-development.md) | Custom rule SDK |

@@ -257,6 +257,154 @@ export function walkDir(dir: string, ignoredDirs?: Set<string>): string[] {
   }
 }
 
+export interface DirectoryWalkLimits {
+  maxFiles: number;
+  maxDepth: number;
+  maxFileSizeBytes: number;
+  maxTotalBytes: number;
+  deadlineMs: number;
+}
+
+export interface BoundedDirectoryWalk {
+  files: string[];
+  partial: boolean;
+  reasons: string[];
+  visitedFiles: number;
+  acceptedBytes: number;
+  skippedFiles: number;
+}
+
+export const DEFAULT_DIRECTORY_WALK_LIMITS: DirectoryWalkLimits = {
+  maxFiles: 100_000,
+  maxDepth: 64,
+  maxFileSizeBytes: 10 * 1024 * 1024,
+  maxTotalBytes: 2 * 1024 * 1024 * 1024,
+  deadlineMs: 15 * 60 * 1000,
+};
+
+export function resolveDirectoryWalkLimits(
+  limitOverrides: Partial<DirectoryWalkLimits> = {}
+): DirectoryWalkLimits {
+  const configured = { ...DEFAULT_DIRECTORY_WALK_LIMITS, ...limitOverrides };
+  const failClosedInteger = (value: number): number =>
+    Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
+
+  return {
+    maxFiles: failClosedInteger(configured.maxFiles),
+    maxDepth: failClosedInteger(configured.maxDepth),
+    maxFileSizeBytes: failClosedInteger(configured.maxFileSizeBytes),
+    maxTotalBytes: failClosedInteger(configured.maxTotalBytes),
+    deadlineMs: failClosedInteger(configured.deadlineMs),
+  };
+}
+
+export function walkDirBounded(
+  dir: string,
+  limitOverrides: Partial<DirectoryWalkLimits> = {},
+  ignoredDirs?: Set<string>
+): BoundedDirectoryWalk {
+  const ignored = ignoredDirs ?? DEFAULT_IGNORED_DIRS;
+  const limits = resolveDirectoryWalkLimits(limitOverrides);
+  const files: string[] = [];
+  const reasons: string[] = [];
+  const startedAt = Date.now();
+  let visitedFiles = 0;
+  let acceptedBytes = 0;
+  let skippedFiles = 0;
+  let stopped = false;
+
+  const addReason = (reason: string) => {
+    if (reasons.length < 100 && !reasons.includes(reason)) reasons.push(reason);
+  };
+
+  const visit = (current: string, depth: number): void => {
+    if (stopped) return;
+    if (Date.now() - startedAt >= limits.deadlineMs) {
+      addReason("SCAN_DEADLINE_EXCEEDED");
+      stopped = true;
+      return;
+    }
+
+    let entries;
+    try {
+      entries = readdirSync(current, { withFileTypes: true })
+        .sort((left, right) => left.name.localeCompare(right.name));
+    } catch {
+      addReason("DIRECTORY_READ_FAILED:" + toPosix(path.relative(dir, current) || "."));
+      return;
+    }
+
+    for (const entry of entries) {
+      if (stopped) return;
+      if (Date.now() - startedAt >= limits.deadlineMs) {
+        addReason("SCAN_DEADLINE_EXCEEDED");
+        stopped = true;
+        return;
+      }
+      if (shouldIgnoreByName(entry.name, ignored)) continue;
+      const fullPath = path.join(current, entry.name);
+      const relative = toPosix(path.relative(dir, fullPath));
+
+      if (entry.isDirectory()) {
+        if (depth >= limits.maxDepth) {
+          skippedFiles += 1;
+          addReason("MAX_DEPTH_EXCEEDED:" + relative);
+        } else {
+          visit(fullPath, depth + 1);
+        }
+        continue;
+      }
+      if (!entry.isFile()) continue;
+
+      if (visitedFiles >= limits.maxFiles) {
+        skippedFiles += 1;
+        addReason("MAX_FILES_EXCEEDED");
+        stopped = true;
+        return;
+      }
+      visitedFiles += 1;
+
+      let size: number;
+      try {
+        size = statSync(fullPath).size;
+      } catch {
+        skippedFiles += 1;
+        addReason("FILE_STAT_FAILED:" + relative);
+        continue;
+      }
+      if (size > limits.maxFileSizeBytes) {
+        skippedFiles += 1;
+        addReason("MAX_FILE_SIZE_EXCEEDED:" + relative);
+        continue;
+      }
+      if (acceptedBytes + size > limits.maxTotalBytes) {
+        skippedFiles += 1;
+        addReason("MAX_TOTAL_BYTES_EXCEEDED");
+        stopped = true;
+        return;
+      }
+
+      acceptedBytes += size;
+      files.push(fullPath);
+    }
+  };
+
+  if (!existsSync(dir)) {
+    addReason("ROOT_NOT_FOUND");
+  } else {
+    visit(dir, 0);
+  }
+
+  return {
+    files,
+    partial: reasons.length > 0,
+    reasons,
+    visitedFiles,
+    acceptedBytes,
+    skippedFiles,
+  };
+}
+
 /**
  * Check if a file is a target file type for analysis
  * @param filePath - Path to the file

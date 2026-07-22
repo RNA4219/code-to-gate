@@ -3,7 +3,7 @@
  * Based on docs/product-spec-v1.md section 5
  */
 
-import type { Finding, Severity, FindingCategory, PolicyReadinessStatus } from "../types/artifacts.js";
+import type { Completeness, Finding, Severity, FindingCategory, PolicyReadinessStatus } from "../types/artifacts.js";
 import type { CtgPolicy, SuppressionEntry } from "./policy-loader.js";
 import { isSuppressed } from "./policy-loader.js";
 
@@ -23,6 +23,7 @@ export interface FailedCondition {
     | "count_threshold"
     | "low_confidence"
     | "suppressed_expired"
+    | "incomplete_input"
     | "dsl_block"
     | "dsl_hold";
   severity?: Severity;
@@ -38,6 +39,8 @@ export interface FailedCondition {
 export interface PolicyEvaluationContext {
   baselineNewOrWorsenedFindingIds?: string[];
   manualEvidenceFindingIds?: string[];
+  completeness?: Completeness;
+  incompleteReasons?: string[];
 }
 
 /**
@@ -194,6 +197,11 @@ function determineReadinessStatus(
     return "blocked_input";
   }
 
+  const incompleteInput = failedConditions.some((condition) => condition.type === "incomplete_input");
+  if (incompleteInput && !partialAllowed) {
+    return "blocked_input";
+  }
+
   // If count threshold exceeded, status is blocked_input
   const countThresholdFailed = failedConditions.some(c => c.type === "count_threshold");
   if (countThresholdFailed) {
@@ -216,6 +224,10 @@ function determineReadinessStatus(
   // If there are any findings but none blocked
   const hasAnyFindings = blockedFindings.length + lowConfidenceFindings.length > 0;
   if (hasAnyFindings && lowConfidenceFindings.length > 0) {
+    return "passed_with_risk";
+  }
+
+  if (incompleteInput) {
     return "passed_with_risk";
   }
 
@@ -424,6 +436,15 @@ export function evaluatePolicy(
   const nonSuppressedFindings = findings.filter(f => !suppressedFindings.includes(f));
   const countConditions = checkCountThreshold(nonSuppressedFindings, policy.blocking.countThreshold);
   failedConditions.push(...countConditions);
+
+  if (context.completeness === "partial") {
+    failedConditions.push({
+      type: "incomplete_input",
+      message: context.incompleteReasons?.length
+        ? "Input evidence is partial: " + context.incompleteReasons.join(", ")
+        : "Input evidence is partial",
+    });
+  }
 
   // Determine final status
   const partialAllowed = policy.partial?.allowPartial ?? false;

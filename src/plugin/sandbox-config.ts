@@ -62,6 +62,21 @@ export interface SandboxConfig {
   /** Maximum file size that can be written (MB) */
   maxFileSizeMB: number;
 
+  /** Maximum captured stdout/result size */
+  maxStdoutBytes: number;
+
+  /** Maximum captured stderr size */
+  maxStderrBytes: number;
+
+  /** Maximum findings accepted from one plugin execution */
+  maxFindings: number;
+
+  /** Maximum evidence records accepted per finding */
+  maxEvidencePerFinding: number;
+
+  /** Apply the Node.js Permission Model to Node Process plugins */
+  nodePermissionModel: boolean;
+
   /** Whether to enforce strict security (seccomp, no new privileges) */
   strictSecurity: boolean;
 
@@ -73,7 +88,7 @@ export interface SandboxConfig {
  * Default sandbox configuration
  */
 export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
-  mode: "none",
+  mode: "process",
   timeout: 60,
   memoryLimit: 512,
   cpuLimit: 0.5,
@@ -89,6 +104,11 @@ export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
   pluginMountPath: "/plugin/code",
   ioMountPath: "/plugin/io",
   maxFileSizeMB: 10,
+  maxStdoutBytes: 10 * 1024 * 1024,
+  maxStderrBytes: 1024 * 1024,
+  maxFindings: 1000,
+  maxEvidencePerFinding: 10,
+  nodePermissionModel: true,
   strictSecurity: true,
 };
 
@@ -384,7 +404,10 @@ export function createSandboxConfigFromManifest(
  * Parse sandbox mode from string
  */
 export function parseSandboxMode(value: string | undefined): SandboxMode {
-  if (!value || value === "none" || value === "disabled") {
+  if (!value) {
+    return "process";
+  }
+  if (value === "none" || value === "disabled") {
     return "none";
   }
   if (value === "docker") {
@@ -393,8 +416,8 @@ export function parseSandboxMode(value: string | undefined): SandboxMode {
   if (value === "process") {
     return "process";
   }
-  // Invalid value, default to none
-  return "none";
+  // Invalid values fail toward the policy-gated Process mode.
+  return "process";
 }
 
 /**
@@ -407,8 +430,21 @@ export function validateSandboxConfig(config: SandboxConfig): {
   const errors: string[] = [];
 
   // Validate timeout
-  if (config.timeout <= 0 || config.timeout > 3600) {
-    errors.push("Timeout must be between 1 and 3600 seconds");
+  if (config.timeout <= 0 || config.timeout > 60) {
+    errors.push("Timeout must be between 1 and 60 seconds");
+  }
+
+  if (config.maxStdoutBytes <= 0 || config.maxStdoutBytes > 10 * 1024 * 1024) {
+    errors.push("maxStdoutBytes must be between 1 and 10485760");
+  }
+  if (config.maxStderrBytes <= 0 || config.maxStderrBytes > 1024 * 1024) {
+    errors.push("maxStderrBytes must be between 1 and 1048576");
+  }
+  if (config.maxFindings <= 0 || config.maxFindings > 1000) {
+    errors.push("maxFindings must be between 1 and 1000");
+  }
+  if (config.maxEvidencePerFinding <= 0 || config.maxEvidencePerFinding > 10) {
+    errors.push("maxEvidencePerFinding must be between 1 and 10");
   }
 
   // Validate memory limit
@@ -419,6 +455,13 @@ export function validateSandboxConfig(config: SandboxConfig): {
   // Validate CPU limit
   if (config.cpuLimit <= 0 || config.cpuLimit > 4) {
     errors.push("CPU limit must be between 0.1 and 4 (fraction or multiplier)");
+  }
+
+  if (config.mode === "docker" && config.networkAccess) {
+    errors.push("Docker sandbox requires networkAccess=false");
+  }
+  if (config.mode === "docker" && config.strictSecurity === false) {
+    errors.push("Docker sandbox requires strictSecurity=true");
   }
 
   // Validate Docker image

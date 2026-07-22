@@ -131,6 +131,13 @@ describe("Rule Evaluator", () => {
       expect(artifact.unsupported_claims[0].reason).toBe("missing_evidence");
     });
 
+    it("marks a successfully analyzed repository complete even when no findings are produced", () => {
+      const artifact = evaluateRules(graph, contentContext, undefined, []);
+
+      expect(artifact.findings).toEqual([]);
+      expect(artifact.completeness).toBe("complete");
+    });
+
     it("marks findings partial when source graph is partial", () => {
       const artifact = evaluateRules(
         { ...graph, stats: { partial: true } },
@@ -141,6 +148,31 @@ describe("Rule Evaluator", () => {
 
       expect(artifact.findings).toHaveLength(1);
       expect(artifact.completeness).toBe("partial");
+    });
+
+    it("routes scan-limit truncation to unsupported claims", () => {
+      const artifact = evaluateRules(
+        {
+          ...graph,
+          stats: {
+            partial: true,
+            scan: { reasons: ["MAX_FILES_EXCEEDED"] },
+          },
+        },
+        contentContext,
+        undefined,
+        [testRule(testFinding({}))]
+      );
+
+      expect(artifact.completeness).toBe("partial");
+      expect(artifact.unsupported_claims).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            claim: "Repository scan covered all eligible files within the configured limits.",
+            sourceSection: "repo-graph:scan",
+          }),
+        ])
+      );
     });
 
     it("routes findings with missing evidence paths to unsupported_claims", () => {

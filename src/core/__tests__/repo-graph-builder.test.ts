@@ -65,6 +65,32 @@ describe("repo-graph-builder", () => {
     expect(graph.files.map((file) => file.path)).toEqual(["index.ts"]);
   });
 
+  it("marks the graph partial and records scan-limit evidence", () => {
+    tempRoot = mkdtempSync(path.join(tmpdir(), "ctg-repo-graph-limited-"));
+    writeFileSync(path.join(tempRoot, "a.ts"), "export const a = 1;\n", "utf8");
+    writeFileSync(path.join(tempRoot, "b.ts"), "export const b = 2;\n", "utf8");
+
+    const graph = buildGraph(tempRoot, "1.5.0", {
+      scanLimits: { maxFiles: 1 },
+    });
+
+    expect(graph.stats.partial).toBe(true);
+    expect(graph.stats.scan).toMatchObject({
+      visitedFiles: 1,
+      acceptedFiles: 1,
+      skippedFiles: 1,
+    });
+    expect(graph.stats.scan?.reasons).toContain("MAX_FILES_EXCEEDED");
+    expect(graph.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "PARTIAL_GRAPH",
+          message: expect.stringContaining("MAX_FILES_EXCEEDED"),
+        }),
+      ])
+    );
+  });
+
   it("records monorepo workspace modules and assigns files to the nearest package boundary", () => {
     const fixtureRoot = path.resolve(import.meta.dirname, "../../../fixtures/demo-monorepo");
     const graph = buildGraph(fixtureRoot, "1.5.0");

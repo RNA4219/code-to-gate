@@ -390,6 +390,33 @@ describe("policy-evaluator", () => {
       expect(result.failedConditions).toHaveLength(0);
       expect(result.passedFindings).toHaveLength(1);
     });
+    it("blocks partial input when allowPartial is false", () => {
+      const policy = createDefaultPolicy();
+      policy.partial = { allowPartial: false };
+
+      const result = evaluatePolicy([], policy, [], {
+        completeness: "partial",
+        incompleteReasons: ["IMPORT_PARTIAL:semgrep"],
+      });
+
+      expect(result.status).toBe("blocked_input");
+      expect(result.failedConditions).toContainEqual(expect.objectContaining({
+        type: "incomplete_input",
+      }));
+    });
+
+    it("never reports plain passed for partial input even when allowed", () => {
+      const policy = createDefaultPolicy();
+      policy.partial = { allowPartial: true };
+
+      const result = evaluatePolicy([], policy, [], {
+        completeness: "partial",
+        incompleteReasons: ["LEGACY_IMPORT_MANIFEST_MISSING:eslint"],
+      });
+
+      expect(result.status).toBe("passed_with_risk");
+      expect(result.failedConditions[0].message).toContain("LEGACY_IMPORT_MANIFEST_MISSING:eslint");
+    });
   });
 
   describe("getExitCode", () => {

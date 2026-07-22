@@ -95,6 +95,9 @@
     "release:public": "npm run release:immutable && npm run lint && npm run typecheck && npm run test:smoke && npm run test:package",
     "release:public:quality": "npm run lint && npm run typecheck && npm run test:smoke && npm run test:ci:stable && npm run test:coverage && npm run release:validate",
     "audit:deps": "npm audit --audit-level=high",
+    "security:toolchain:verify": "node scripts/verify-security-toolchain.mjs",
+    "security:golden:prepare": "node scripts/security-golden.mjs prepare .qh/security/golden",
+    "security:golden:verify": "node scripts/security-golden.mjs verify .qh/security/golden-semgrep.json .qh/security/golden-gitleaks.json",
     "sbom:generate": "npm sbom --sbom-format cyclonedx --sbom-type application > sbom.json",
     "evidence:pack": "node -e \"console.log('Evidence artifacts:\\n- .qh/release-readiness.json\\n- .qh/findings.json\\n- .qh/audit.json\\n- .qh/results.sarif\\n- coverage/coverage-summary.json\\n- sbom.json\\n- npm pack --dry-run output')\"",
     "prepublishOnly": "npm run release:immutable && npm run build && npm run test:smoke && npm run test:package"
