@@ -56,4 +56,14 @@ describe("security toolchain contract", () => {
     expect(semgrep.rules.every((rule) => rule.severity === "ERROR")).toBe(true);
     expect(goldenScript).not.toMatch(/ghp_[A-Za-z0-9]{36}/);
   });
+
+  it("limits historical secret suppressions to exact fingerprints", () => {
+    const fingerprints = read(".gitleaksignore").trim().split(/\r?\n/);
+
+    expect(fingerprints).toHaveLength(3);
+    expect(new Set(fingerprints).size).toBe(fingerprints.length);
+    for (const fingerprint of fingerprints) {
+      expect(fingerprint).toMatch(/^[0-9a-f]{40}:[^:\r\n]+:[a-z0-9-]+:\d+$/);
+    }
+  });
 });
