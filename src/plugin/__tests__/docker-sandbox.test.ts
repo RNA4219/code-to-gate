@@ -61,8 +61,8 @@ async function createTestInputFile(data: object): Promise<string> {
 
 describe("SandboxConfig", () => {
   describe("parseSandboxMode", () => {
-    it("should return 'none' for undefined value", () => {
-      expect(parseSandboxMode(undefined)).toBe("none");
+    it("should return 'process' for undefined value", () => {
+      expect(parseSandboxMode(undefined)).toBe("process");
     });
 
     it("should return 'none' for 'none' value", () => {
@@ -81,12 +81,12 @@ describe("SandboxConfig", () => {
       expect(parseSandboxMode("process")).toBe("process");
     });
 
-    it("should return 'none' for invalid value", () => {
-      expect(parseSandboxMode("invalid")).toBe("none");
+    it("should fail toward 'process' for invalid value", () => {
+      expect(parseSandboxMode("invalid")).toBe("process");
     });
 
-    it("should return 'none' for empty string", () => {
-      expect(parseSandboxMode("")).toBe("none");
+    it("should fail toward 'process' for empty string", () => {
+      expect(parseSandboxMode("")).toBe("process");
     });
   });
 
@@ -149,7 +149,7 @@ describe("SandboxConfig", () => {
     it("should accept valid custom config", () => {
       const config: SandboxConfig = {
         mode: "docker",
-        timeout: 120,
+        timeout: 60,
         memoryLimit: 1024,
         cpuLimit: 1.0,
         dockerImage: "my-image:latest",
@@ -430,9 +430,9 @@ describe("DockerSandboxRunner", () => {
       await expect(runner.initialize({})).rejects.toThrow("Invalid sandbox config");
     });
 
-    it("should accept custom timeout", async () => {
+    it("should accept the maximum custom timeout", async () => {
       const runner = createDockerSandboxRunner();
-      await runner.initialize({ timeout: 120 });
+      await runner.initialize({ timeout: 60 });
     });
   });
 
@@ -515,22 +515,27 @@ describe("DockerSandboxRunner", () => {
       );
 
       expect(command).toContain("--network=none");
+      expect(command).toContain("--read-only");
+      expect(command).toContain("--tmpfs");
+      expect(command).toContain("/tmp:rw,noexec,nosuid,size=16m");
     });
 
-    it("should omit --network=none only when network access is explicitly enabled", () => {
+    it("keeps --network=none even when an unsafe config reaches the command builder", () => {
       const manifest = createDefaultManifest("test-plugin");
       manifest.entry.command = ["node", "index.js"];
+      const unsafeConfig = { ...DEFAULT_SANDBOX_CONFIG, mode: "docker" as const, networkAccess: true };
 
       const command = buildDockerRunCommand(
         manifest,
-        { ...DEFAULT_SANDBOX_CONFIG, networkAccess: true },
+        unsafeConfig,
         "ctg-plugin-test",
         [],
         "/tmp/input.json",
         "/tmp/output.json"
       );
 
-      expect(command).not.toContain("--network=none");
+      expect(command).toContain("--network=none");
+      expect(validateSandboxConfig(unsafeConfig).valid).toBe(false);
     });
   });
 

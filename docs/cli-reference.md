@@ -121,6 +121,12 @@ code-to-gate scan <repo-path> --out <output-dir>
 
 Note: current CLI help does not expose `--lang`, `--languages`, `--ignore`, or `--exclude`; language detection and default exclusions are handled by the scanner.
 
+Repository discovery is bounded to 100,000 files, depth 64, 10 MiB per
+file, 2 GiB total accepted bytes, and 15 minutes. Exceeding a limit, a read
+failure, or deadline exhaustion marks `repo-graph.stats.partial`, records the
+limit and reason in `repo-graph.stats.scan`, and propagates incomplete input
+to findings/readiness instead of silently succeeding.
+
 **Default Exclusions:**
 
 The scanner automatically excludes these directories:
@@ -327,19 +333,22 @@ Import results from external analysis tools and convert to normalized findings.
 
 **Usage:**
 ```bash
-code-to-gate import <tool> <file> --out <output-dir>
+code-to-gate import <tool> <file> --out <output-dir> [--repo-root <dir>] [--max-input-mb <number>] [--producer-version <version>]
 ```
 
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<tool>` | Yes | Tool name: `semgrep`, `eslint`, `sarif`, `codeql`, `tsc`, `coverage`, `test` |
+| `<tool>` | Yes | Tool name: `semgrep`, `eslint`, `sarif`, `codeql`, `npm-audit`, `tsc`, `coverage`, `test` |
 | `<file>` | Yes | Path to the tool output file |
 
 **Options:**
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--out <dir>` | `.qh/imports` | Output directory for imported findings |
+| `--out <dir>` | `.qh/imports` | Output directory for imported findings and manifest |
+| `--repo-root <dir>` | current directory | Root used for path containment, source hashes, and exact Git revision |
+| `--max-input-mb <n>` | `50` | Maximum input size in MiB; hard cap is 1024 |
+| `--producer-version <v>` | unknown | Upstream producer version recorded in provenance |
 
 **Supported Tools:**
 | Tool | Input Format | Notes |
@@ -348,12 +357,16 @@ code-to-gate import <tool> <file> --out <output-dir>
 | `eslint` | JSON formatter output | Code quality and style findings |
 | `sarif` | SARIF 2.1.0 | Generic SARIF result import |
 | `codeql` | CodeQL SARIF 2.1.0 | CodeQL result import with SARIF severity metadata |
+| `npm-audit` | `npm audit --json` | Dependency advisories and affected package paths |
 | `tsc` | TypeScript diagnostics JSON | Type errors and warnings |
 | `coverage` | Istanbul/nyc coverage-summary.json | Coverage metrics and gaps |
 | `test` | Generic test result JSON | Failed tests as testing findings |
 
 **Output:**
-- `.qh/imports/<tool>-findings.json` - Normalized findings from the external tool
+- `.qh/imports/<tool>-findings.json` - Schema-validated normalized findings
+- `.qh/imports/<tool>-import-manifest.json` - Input/output SHA-256, producer metadata, exact repository revision, diagnostics, and completeness
+
+Both files are staged before replacement; existing outputs are backed up for rollback, and the manifest is committed last as the pair marker. Downstream `analyze --from-imports` revalidates the manifest, artifact hash, tool identity, repository revision, source-file hash, and finding IDs. Legacy manifest-less files remain readable but are marked partial.
 
 **Example:**
 ```bash
@@ -372,6 +385,10 @@ code-to-gate import tsc ./tsc-errors.json --out .qh/imports
 
 # Import coverage summary
 code-to-gate import coverage ./coverage-summary.json --out .qh/imports
+
+# Import npm audit with repository-bound provenance
+npm audit --json > npm-audit.json
+code-to-gate import npm-audit ./npm-audit.json --repo-root . --out .qh/imports
 ```
 
 **Exit Codes:**
@@ -379,7 +396,9 @@ code-to-gate import coverage ./coverage-summary.json --out .qh/imports
 |------|------|-------------|
 | 0 | OK | Import completed successfully |
 | 2 | USAGE_ERROR | Invalid arguments or tool name |
-| 8 | IMPORT_FAILED | Failed to parse or process input file |
+| 7 | SCHEMA_FAILED | Findings or import manifest failed schema validation |
+| 8 | IMPORT_FAILED | Failed to parse/process input, exceeded size limits, or violated path constraints |
+| 12 | PARTIAL_SUCCESS | Import succeeded with dropped or unsupported records; manifest records diagnostics |
 
 ---
 

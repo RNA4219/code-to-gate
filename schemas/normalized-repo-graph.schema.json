@@ -140,7 +140,35 @@
       "required": ["partial"],
       "additionalProperties": true,
       "properties": {
-        "partial": { "type": "boolean" }
+        "partial": { "type": "boolean" },
+        "scan": {
+          "type": "object",
+          "required": ["visitedFiles", "acceptedFiles", "acceptedBytes", "skippedFiles", "limits", "reasons"],
+          "additionalProperties": false,
+          "properties": {
+            "visitedFiles": { "type": "integer", "minimum": 0 },
+            "acceptedFiles": { "type": "integer", "minimum": 0 },
+            "acceptedBytes": { "type": "integer", "minimum": 0 },
+            "skippedFiles": { "type": "integer", "minimum": 0 },
+            "limits": {
+              "type": "object",
+              "required": ["maxFiles", "maxDepth", "maxFileSizeBytes", "maxTotalBytes", "deadlineMs"],
+              "additionalProperties": false,
+              "properties": {
+                "maxFiles": { "type": "integer", "minimum": 0 },
+                "maxDepth": { "type": "integer", "minimum": 0 },
+                "maxFileSizeBytes": { "type": "integer", "minimum": 0 },
+                "maxTotalBytes": { "type": "integer", "minimum": 0 },
+                "deadlineMs": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "reasons": {
+              "type": "array",
+              "maxItems": 100,
+              "items": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
       }
     }
   }

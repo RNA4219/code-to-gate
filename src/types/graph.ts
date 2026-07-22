@@ -131,6 +131,20 @@ export interface GraphDiagnostic {
 
 export interface GraphStats {
   partial: boolean;
+  scan?: {
+    visitedFiles: number;
+    acceptedFiles: number;
+    acceptedBytes: number;
+    skippedFiles: number;
+    limits: {
+      maxFiles: number;
+      maxDepth: number;
+      maxFileSizeBytes: number;
+      maxTotalBytes: number;
+      deadlineMs: number;
+    };
+    reasons: string[];
+  };
 }
 
 export interface RepoModule {

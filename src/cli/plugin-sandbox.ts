@@ -10,6 +10,8 @@ import {
   validateSandboxConfig,
   DEFAULT_SANDBOX_CONFIG,
   isDockerSandboxAvailable,
+  loadPluginExecutionPolicy,
+  verifyTrustedPlugin,
 } from "../plugin/index.js";
 import type { PluginRegistryEntry, SandboxConfig } from "../plugin/index.js";
 import * as path from "path";
@@ -92,7 +94,7 @@ Manage and execute plugins in isolated Docker containers.
 
 Usage:
   code-to-gate plugin-sandbox status [--docker-image <image>]
-  code-to-gate plugin-sandbox run <plugin-path> --input <file> --sandbox <docker|none> [--output <file>]
+  code-to-gate plugin-sandbox run <plugin-path> --input <file> [--sandbox <process|docker|none>] [--execution-policy <file>] [--unsafe-allow-none] [--output <file>]
   code-to-gate plugin-sandbox build-image [--docker-image <image>]
 
 Subcommands:
@@ -104,7 +106,9 @@ Options:
   --docker-image   Docker image to use for sandbox (default: code-to-gate-plugin-runner:latest)
   --input          Input JSON file for plugin execution
   --output         Output file for plugin result (default: stdout)
-  --sandbox        Sandbox mode: none, docker (required)
+  --sandbox        Sandbox mode: process (default), docker, or none
+  --execution-policy  Trusted plugin policy required for Process mode
+  --unsafe-allow-none Explicitly allow none outside CI/release only
   --timeout        Execution timeout in seconds (default: 60)
   --memory         Memory limit in MB (default: 512)
   --cpu            CPU limit as fraction (default: 0.5)
@@ -182,7 +186,9 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
   const pluginPath = args[0];
   const inputFile = options.getOption(args, "--input");
   const outputFile = options.getOption(args, "--output");
-  const sandboxValue = options.getOption(args, "--sandbox");
+  const sandboxValue = options.getOption(args, "--sandbox") ?? "process";
+  const executionPolicyFile = options.getOption(args, "--execution-policy");
+  const unsafeAllowNone = args.includes("--unsafe-allow-none");
   const timeout = parseInt(options.getOption(args, "--timeout") ?? "60", 10);
   const memory = parseInt(options.getOption(args, "--memory") ?? "512", 10);
   const cpu = parseFloat(options.getOption(args, "--cpu") ?? "0.5");
@@ -199,15 +205,18 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
     return options.EXIT.USAGE_ERROR;
   }
 
-  if (!sandboxValue) {
-    console.error("Error: Sandbox mode required (--sandbox docker|none)");
-    return options.EXIT.USAGE_ERROR;
-  }
-  if (sandboxValue !== "docker" && sandboxValue !== "none") {
-    console.error(`Error: Invalid sandbox mode: ${sandboxValue}. Expected docker or none.`);
+  if (sandboxValue !== "process" && sandboxValue !== "docker" && sandboxValue !== "none") {
+    console.error(`Error: Invalid sandbox mode: ${sandboxValue}. Expected process, docker, or none.`);
     return options.EXIT.USAGE_ERROR;
   }
   const sandboxMode = sandboxValue;
+  const protectedEnvironment = ["CI", "GITHUB_ACTIONS", "CTG_RELEASE"].some(
+    (name) => /^(1|true|yes)$/i.test(process.env[name] ?? "")
+  );
+  if (sandboxMode === "none" && (!unsafeAllowNone || protectedEnvironment)) {
+    console.error("Error: --sandbox none requires --unsafe-allow-none and is forbidden in CI/release");
+    return options.EXIT.USAGE_ERROR;
+  }
 
   // Resolve paths
   const cwd = process.cwd();
@@ -254,7 +263,7 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
     const dockerAvailable = await deps.isDockerSandboxAvailable();
     if (!dockerAvailable) {
       console.error("Error: Docker is not available for sandbox mode");
-      console.error("  - Install and start Docker, or use --sandbox none");
+      console.error("  - Process fallback is intentionally disabled");
       return options.EXIT.USAGE_ERROR;
     }
   }
@@ -288,6 +297,29 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
   }
 
   const manifest = loadResult.manifest!;
+
+  if (sandboxMode === "process") {
+    if (!executionPolicyFile) {
+      console.error("Error: Process mode requires --execution-policy <file>; untrusted plugins require Docker");
+      return options.EXIT.PLUGIN_FAILED;
+    }
+    try {
+      const policyPath = path.resolve(cwd, executionPolicyFile);
+      const policy = loadPluginExecutionPolicy(policyPath);
+      const verified = verifyTrustedPlugin(policy, absolutePluginPath, manifest);
+      sandboxConfig.timeout = Math.min(sandboxConfig.timeout, verified.process.timeout_seconds);
+      sandboxConfig.allowedEnvVars = verified.process.allowed_env_vars;
+      sandboxConfig.maxStdoutBytes = verified.process.max_stdout_bytes;
+      sandboxConfig.maxStderrBytes = verified.process.max_stderr_bytes;
+      sandboxConfig.maxFindings = verified.process.max_findings;
+      sandboxConfig.maxEvidencePerFinding = verified.process.max_evidence_per_finding;
+      sandboxConfig.nodePermissionModel = verified.process.node_permission_model;
+    } catch (error) {
+      console.error("Error: " + (error instanceof Error ? error.message : String(error)));
+      return options.EXIT.PLUGIN_FAILED;
+    }
+  }
+
   const entry: PluginRegistryEntry = {
     manifest,
     path: absolutePluginPath,
@@ -343,7 +375,7 @@ async function sandboxRunCommand(args: string[], options: PluginOptions): Promis
       for (const error of output.errors) {
         console.error(`  - ${error.code}: ${error.message}`);
       }
-      return options.EXIT.OK; // Partial success still returns OK
+      return options.EXIT.PARTIAL_SUCCESS;
     }
 
     return options.EXIT.OK;

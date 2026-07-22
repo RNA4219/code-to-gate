@@ -132,6 +132,25 @@ export {
   getFailedPlugins,
 } from "./plugin-runner.js";
 
+// === Plugin Execution Policy ===
+export {
+  PLUGIN_EXECUTION_POLICY_SCHEMA,
+  DEFAULT_PLUGIN_TIMEOUT_SECONDS,
+  DEFAULT_PLUGIN_STDOUT_BYTES,
+  DEFAULT_PLUGIN_STDERR_BYTES,
+  DEFAULT_PLUGIN_FINDINGS,
+  DEFAULT_PLUGIN_EVIDENCE_PER_FINDING,
+  loadPluginExecutionPolicy,
+  validatePluginExecutionPolicy,
+  verifyTrustedPlugin,
+  locatePluginManifest,
+  resolvePluginEntrypoint,
+  type PluginExecutionPolicy,
+  type PluginProcessPolicy,
+  type TrustedPluginBinding,
+  type VerifiedPluginExecution,
+} from "./plugin-execution-policy.js";
+
 // === Sandbox Configuration ===
 export {
   SandboxMode,

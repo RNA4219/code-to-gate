@@ -13,7 +13,9 @@ vi.mock("node:child_process", () => ({
 }));
 
 import {
+  buildPluginSpawnSpec,
   executePluginProcess,
+  filterPluginProcessEnv,
   killRunningProcesses,
 } from "../plugin-process-executor.js";
 import { createDefaultManifest } from "../plugin-schema.js";
@@ -314,5 +316,94 @@ describe("plugin process executor", () => {
     } finally {
       Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
     }
+  });
+});
+
+describe("plugin process hard limits", () => {
+  beforeEach(() => {
+    childMocks.spawn.mockReset();
+    childMocks.execFile.mockReset();
+    vi.clearAllMocks();
+  });
+
+  it("passes only the base and explicitly allowed environment variables", () => {
+    const previousAllowed = process.env.CTG_ALLOWED;
+    const previousSecret = process.env.SECRET_TOKEN;
+    process.env.CTG_ALLOWED = "host";
+    process.env.SECRET_TOKEN = "secret";
+    try {
+      const value = manifest();
+      value.entry.env = { CTG_ALLOWED: "manifest", SECRET_TOKEN: "manifest-secret" };
+      const env = filterPluginProcessEnv(value.entry.env, ["CTG_ALLOWED"]);
+      const spec = buildPluginSpawnSpec(value, { allowedEnvVars: ["CTG_ALLOWED"] });
+
+      expect(env.CTG_ALLOWED).toBe("manifest");
+      expect(env.SECRET_TOKEN).toBeUndefined();
+      expect(spec.env.CTG_ALLOWED).toBe("manifest");
+      expect(spec.env.SECRET_TOKEN).toBeUndefined();
+      expect(spec.env.NODE_OPTIONS).toBeUndefined();
+    } finally {
+      if (previousAllowed === undefined) delete process.env.CTG_ALLOWED;
+      else process.env.CTG_ALLOWED = previousAllowed;
+      if (previousSecret === undefined) delete process.env.SECRET_TOKEN;
+      else process.env.SECRET_TOKEN = previousSecret;
+    }
+  });
+
+  it("terminates output streams that exceed byte limits", async () => {
+    const stdoutChild = childProcess();
+    stdoutChild.pid = undefined as unknown as number;
+    childMocks.spawn.mockImplementationOnce(() => {
+      queueMicrotask(() => stdoutChild.stdout.write("123456"));
+      return stdoutChild;
+    });
+    await expect(executePluginProcess(
+      manifest(), "{}", 1000, logger, new Map(), { maxStdoutBytes: 5 }
+    )).rejects.toThrow("STDOUT_LIMIT_EXCEEDED");
+
+    const stderrChild = childProcess();
+    stderrChild.pid = undefined as unknown as number;
+    childMocks.spawn.mockImplementationOnce(() => {
+      queueMicrotask(() => stderrChild.stderr.write("123456"));
+      return stderrChild;
+    });
+    await expect(executePluginProcess(
+      manifest(), "{}", 1000, logger, new Map(), { maxStderrBytes: 5 }
+    )).rejects.toThrow("STDERR_LIMIT_EXCEEDED");
+  });
+
+  it("rejects excessive finding and evidence counts", async () => {
+    const findingsChild = childProcess();
+    childMocks.spawn.mockImplementationOnce(() => {
+      queueMicrotask(() => {
+        findingsChild.stdout.write(JSON.stringify({
+          version: PLUGIN_OUTPUT_VERSION,
+          findings: [
+            { id: "one", evidence: [] },
+            { id: "two", evidence: [] },
+          ],
+        }));
+        findingsChild.emit("close", 0);
+      });
+      return findingsChild;
+    });
+    await expect(executePluginProcess(
+      manifest(), "{}", 1000, logger, new Map(), { maxFindings: 1 }
+    )).rejects.toThrow("FINDING_LIMIT_EXCEEDED");
+
+    const evidenceChild = childProcess();
+    childMocks.spawn.mockImplementationOnce(() => {
+      queueMicrotask(() => {
+        evidenceChild.stdout.write(JSON.stringify({
+          version: PLUGIN_OUTPUT_VERSION,
+          findings: [{ id: "one", evidence: [{ id: "a" }, { id: "b" }] }],
+        }));
+        evidenceChild.emit("close", 0);
+      });
+      return evidenceChild;
+    });
+    await expect(executePluginProcess(
+      manifest(), "{}", 1000, logger, new Map(), { maxEvidencePerFinding: 1 }
+    )).rejects.toThrow("EVIDENCE_LIMIT_EXCEEDED");
   });
 });

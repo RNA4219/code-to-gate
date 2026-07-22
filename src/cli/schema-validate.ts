@@ -34,6 +34,32 @@ export interface SchemaValidationResult {
   errors?: string[];
 }
 
+export async function validateArtifactObject(
+  data: unknown,
+  artifactName: string = "artifact"
+): Promise<SchemaValidationResult> {
+  const schemaPath = schemaForArtifact(data);
+  if (!schemaPath) {
+    return { artifact: artifactName, status: "error", errors: ["no schema found"] };
+  }
+
+  const ajv = createAjv();
+  await loadSchemas(ajv);
+  const schema = readJson(schemaPath) as { $id?: string };
+  try {
+    const validate: ValidateFunction = ajv.getSchema(schema.$id || schemaPath) || ajv.compile(schema);
+    return validate(data)
+      ? { artifact: artifactName, status: "ok" }
+      : { artifact: artifactName, status: "error", errors: formatErrors(validate.errors) };
+  } catch (error) {
+    return {
+      artifact: artifactName,
+      status: "error",
+      errors: [`validation error: ${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
+}
+
 export async function validateArtifactFile(filePath: string): Promise<SchemaValidationResult> {
   if (!existsSync(filePath)) {
     return { artifact: path.basename(filePath), status: "error", errors: ["file not found"] };
@@ -50,26 +76,7 @@ export async function validateArtifactFile(filePath: string): Promise<SchemaVali
     };
   }
 
-  const schemaPath = schemaForArtifact(data);
-  if (!schemaPath) {
-    return { artifact: path.basename(filePath), status: "error", errors: ["no schema found"] };
-  }
-
-  const ajv = createAjv();
-  await loadSchemas(ajv);
-  const schema = readJson(schemaPath) as { $id?: string };
-  try {
-    const validate: ValidateFunction = ajv.getSchema(schema.$id || schemaPath) || ajv.compile(schema);
-    return validate(data)
-      ? { artifact: path.basename(filePath), status: "ok" }
-      : { artifact: path.basename(filePath), status: "error", errors: formatErrors(validate.errors) };
-  } catch (error) {
-    return {
-      artifact: path.basename(filePath),
-      status: "error",
-      errors: [`validation error: ${error instanceof Error ? error.message : String(error)}`],
-    };
-  }
+  return validateArtifactObject(data, path.basename(filePath));
 }
 
 const SCHEMA_DIR = path.resolve(
@@ -175,6 +182,8 @@ async function loadSchemas(ajv: InstanceType<typeof Ajv>): Promise<void> {
     "normalized-repo-graph.schema.json",
     "raw-findings.schema.json",
     "findings.schema.json",
+    "import-manifest.schema.json",
+    "plugin-execution-policy.schema.json",
     "risk-register.schema.json",
     "invariants.schema.json",
     "test-seeds.schema.json",

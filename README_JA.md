@@ -106,6 +106,7 @@ readiness:
 | [docs/quickstart.md](docs/quickstart.md) | 初回実行ガイド |
 | [docs/distribution-status.md](docs/distribution-status.md) | package / GitHub release / npm 公開状態 |
 | [docs/cli-reference.md](docs/cli-reference.md) | CLI 詳細 |
+| [docs/security-gate.md](docs/security-gate.md) | Scanner固定、SBOM、監査、CI証跡 |
 | [docs/policy-guide.md](docs/policy-guide.md) | Gate policy 設定 |
 | [docs/integrations.md](docs/integrations.md) | CI / 外部連携 |
 | [docs/plugin-development.md](docs/plugin-development.md) | Plugin 開発 |

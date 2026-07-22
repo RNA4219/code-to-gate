@@ -368,6 +368,8 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     const evalResult = evaluatePolicy(findingsForPolicy, policy, suppressions, {
       baselineNewOrWorsenedFindingIds: baselineResult?.summary.gatedFindingIds,
       manualEvidenceFindingIds,
+      completeness: findings.completeness,
+      incompleteReasons: findings.unsupported_claims.map((claim) => claim.id),
     });
     const intakeAssessment = absoluteIntakePath ? assessIntakeArtifact(absoluteIntakePath) : undefined;
     const readinessStatus = mergeReadinessStatus(evalResult.status, intakeAssessment);

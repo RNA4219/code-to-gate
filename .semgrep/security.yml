@@ -1,0 +1,22 @@
+rules:
+  - id: ctg.javascript.no-eval
+    message: Avoid eval(); untrusted input can become arbitrary code execution.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern: eval(...)
+
+  - id: ctg.javascript.no-function-constructor
+    message: Avoid the Function constructor; it evaluates strings as code.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern: new Function(...)
+
+  - id: ctg.javascript.no-disabled-tls-verification
+    message: TLS certificate verification must not be disabled.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern-either:
+      - pattern: |
+          $CLIENT.request({..., rejectUnauthorized: false, ...}, ...)
+      - pattern: |
+          $CLIENT.get({..., rejectUnauthorized: false, ...}, ...)

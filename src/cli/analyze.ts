@@ -10,11 +10,11 @@ import { createParserRegistry } from "../adapters/parser-registry.js";
 import { CORE_RULES, DATABASE_RULES } from "../rules/index.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
+import { consumeImportArtifacts } from "./import-consumer.js";
 
 import {
   EmitFormat,
   AuditOutputArtifact,
-  FindingsArtifact,
 } from "../types/artifacts.js";
 import {
   CtgPolicy,
@@ -431,25 +431,27 @@ Provide concise, actionable findings.`,
       llmProviderName
     );
 
-    // Load imported findings if --from-imports is specified (P1-04)
+    // Load imported findings through the provenance-verifying consumer.
+    const incompleteReasons = findings.completeness === "partial"
+      ? findings.unsupported_claims.map((claim) => claim.id)
+      : [];
     if (fromImports) {
       const importsDir = nodePathService.join(absoluteOutDir, "imports");
-      if (nodeFileAccess.exists(importsDir)) {
-        const importFiles = ["eslint-findings.json", "semgrep-findings.json", "tsc-findings.json", "coverage-findings.json", "test-findings.json"];
-        for (const importFile of importFiles) {
-          const importPath = nodePathService.join(importsDir, importFile);
-          if (nodeFileAccess.exists(importPath)) {
-            const importedContent = nodeFileAccess.readFile(importPath);
-            if (importedContent) {
-              try {
-                const importedData = JSON.parse(importedContent) as FindingsArtifact;
-                findings.findings.push(...importedData.findings);
-              } catch {
-                console.error(`Warning: Failed to load import file: ${importFile}`);
-              }
-            }
-          }
-        }
+      const consumed = await consumeImportArtifacts(
+        importsDir,
+        repoRoot,
+        findings.findings.map((finding) => finding.id)
+      );
+      findings.findings.push(...consumed.findings);
+      if (consumed.completeness === "partial") {
+        findings.completeness = "partial";
+        incompleteReasons.push(...consumed.incompleteReasons);
+        findings.unsupported_claims.push({
+          id: "imports-partial",
+          claim: "All imported findings have a current, verified provenance manifest.",
+          reason: "missing_evidence",
+          sourceSection: "imports",
+        });
       }
     }
 
@@ -482,7 +484,12 @@ Provide concise, actionable findings.`,
     }
 
     // Evaluate policy using shared evaluator (unified with readiness)
-    const evalResult = policy ? evaluatePolicy(findings.findings, policy, suppressions) : undefined;
+    const evalResult = policy
+      ? evaluatePolicy(findings.findings, policy, suppressions, {
+        completeness: findings.completeness,
+        incompleteReasons: [...new Set(incompleteReasons)].sort(),
+      })
+      : undefined;
     const readinessStatus = evalResult?.status ?? "passed";
     const finalExitCode = evalResult ? getExitCode(readinessStatus) : options.EXIT.OK;
 

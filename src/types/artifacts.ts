@@ -150,6 +150,7 @@ export type UpstreamTool =
   | "eslint"
   | "sarif"
   | "codeql"
+  | "npm-audit"
   | "sonarqube"
   | "tsc"
   | "coverage"
@@ -188,6 +189,38 @@ export interface FindingsArtifact extends ArtifactHeader {
   completeness: Completeness;
   findings: Finding[];
   unsupported_claims: UnsupportedClaim[];
+}
+
+export interface ImportDiagnostic {
+  code: string;
+  message: string;
+  record_index?: number;
+}
+
+export interface ImportManifestArtifact extends ArtifactHeader {
+  artifact: "import-manifest";
+  schema: "import-manifest@v1";
+  completeness: Completeness;
+  source: {
+    tool: Exclude<UpstreamTool, "native">;
+    format: string;
+    path: string;
+    path_kind: "repo_relative" | "external_redacted";
+    sha256: `sha256:${string}`;
+    size_bytes: number;
+    producer: { name: string; version: string };
+    format_version?: string;
+    repository_revision?: string;
+  };
+  normalized: {
+    path: string;
+    sha256: `sha256:${string}`;
+    size_bytes: number;
+    schema: "findings@v1";
+  };
+  summary: { seen: number; accepted: number; dropped: number; errors: number };
+  diagnostics: ImportDiagnostic[];
+  generated_by: "ctg-import/v1";
 }
 
 // === Risk Register ===
@@ -1588,7 +1621,23 @@ export interface NormalizedRepoGraph extends ArtifactHeader {
   configs: unknown[];
   entrypoints: unknown[];
   diagnostics: unknown[];
-  stats: { partial: boolean };
+  stats: {
+    partial: boolean;
+    scan?: {
+      visitedFiles: number;
+      acceptedFiles: number;
+      acceptedBytes: number;
+      skippedFiles: number;
+      limits: {
+        maxFiles: number;
+        maxDepth: number;
+        maxFileSizeBytes: number;
+        maxTotalBytes: number;
+        deadlineMs: number;
+      };
+      reasons: string[];
+    };
+  };
 }
 
 // === Policy ===

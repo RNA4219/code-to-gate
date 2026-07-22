@@ -189,7 +189,12 @@ export function evaluateRules(
     run_id: string;
     generated_at: string;
     repo: { root: string; dirty?: boolean; revision?: string; branch?: string; base_ref?: string; head_ref?: string };
-    stats: { partial: boolean };
+    stats: {
+      partial: boolean;
+      scan?: {
+        reasons: string[];
+      };
+    };
   },
   applicationContext: ApplicationContext,
   policyId?: string,
@@ -204,6 +209,15 @@ export function evaluateRules(
   const allFindings: Finding[] = [];
   const unsupported_claims: UnsupportedClaim[] = [];
   let unsupportedClaimIndex = 0;
+
+  if (graph.stats.scan?.reasons.length) {
+    unsupported_claims.push({
+      id: generateUnsupportedClaimId("repository-scan", unsupportedClaimIndex++),
+      claim: "Repository scan covered all eligible files within the configured limits.",
+      reason: "missing_evidence",
+      sourceSection: "repo-graph:scan",
+    });
+  }
 
   // Create simple graph for rule context
   const simpleGraph: SimpleGraph = {
@@ -301,11 +315,19 @@ export function evaluateRules(
     }
   }
 
+  const analyzableLanguages = new Set([
+    "ts", "tsx", "js", "jsx", "py", "rb", "go", "rs", "java", "php", "cs", "cpp",
+  ]);
+  const hasAnalyzableFiles = graph.files.some((file) => analyzableLanguages.has(file.language));
+
   return {
     ...header,
     artifact: "findings",
     schema: "findings@v1",
-    completeness: graph.stats.partial || allFindings.length === 0 ? "partial" : "complete",
+    completeness:
+      graph.stats.partial || !hasAnalyzableFiles || unsupported_claims.length > 0
+        ? "partial"
+        : "complete",
     findings: allFindings,
     unsupported_claims,
   };

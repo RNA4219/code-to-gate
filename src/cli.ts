@@ -46,8 +46,8 @@ Usage:
   code-to-gate scan <repo> --out <dir> [--database-analysis]
   code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--debug-llm-trace] [--database-analysis]
   code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
-  code-to-gate import <tool> <input-file> --out <dir>
-    Tools: eslint, semgrep, sarif, codeql, tsc, coverage, test
+  code-to-gate import <tool> <input-file> --out <dir> [--repo-root <dir>] [--max-input-mb <number>] [--producer-version <version>]
+    Tools: eslint, semgrep, sarif, codeql, npm-audit, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, hate-qeg-bundle, qeg-gate-input, evidence-dag, provenance-index
@@ -123,7 +123,7 @@ Options:
   --format <format>  Machine output format for supported commands (json)
   --quiet            Suppress success summary on stdout; diagnostics still use stderr
   --database-analysis Enable SQL and migration risk analysis
-  --plugin-sandbox   Sandbox mode for plugin execution: none, docker (default: none)
+  --plugin-sandbox   Sandbox mode for plugin execution: process, docker, none (default: process)
   --verbose          Show detailed progress and timing information
   --title <title>    Report title for viewer
   --dark             Enable dark mode for viewer
@@ -160,8 +160,9 @@ Local LLM Providers:
   deterministic - Built-in deterministic fallback (always available)
 
 Plugin Sandbox:
-  none         - Direct process execution (no isolation)
-  docker       - Execute plugins in isolated Docker containers`);
+  process      - Permission-restricted host process; requires a digest-bound execution policy
+  docker       - Network-disabled, read-only Docker isolation; no host fallback
+  none         - Unsafe direct execution; requires --unsafe-allow-none and is forbidden in CI/release`);
 }
 
 async function main(): Promise<number> {

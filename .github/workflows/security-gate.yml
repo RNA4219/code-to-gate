@@ -1,0 +1,162 @@
+name: code-to-gate Security Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Verify locked security toolchain
+        run: node scripts/verify-security-toolchain.mjs
+
+      - name: Use locked npm and install without lifecycle scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          NPM_VERSION="$(jq -r '.tools.npm.version' security/toolchain-lock.json)"
+          if [ "$(npm --version)" != "$NPM_VERSION" ]; then
+            npm install --global "npm@$NPM_VERSION"
+          fi
+          test "$(npm --version)" = "$NPM_VERSION"
+          npm ci --ignore-scripts
+
+      - name: Install verified Gitleaks binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .security-tools
+          GITLEAKS_VERSION="$(jq -r '.tools.gitleaks.version' security/toolchain-lock.json)"
+          GITLEAKS_URL="$(jq -r '.tools.gitleaks.archive.url' security/toolchain-lock.json)"
+          GITLEAKS_SHA="$(jq -r '.tools.gitleaks.archive.sha256' security/toolchain-lock.json)"
+          CHECKSUMS_URL="$(jq -r '.tools.gitleaks.checksums.url' security/toolchain-lock.json)"
+          CHECKSUMS_SHA="$(jq -r '.tools.gitleaks.checksums.sha256' security/toolchain-lock.json)"
+
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3             "$GITLEAKS_URL" --output .security-tools/gitleaks.tar.gz
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3             "$CHECKSUMS_URL" --output .security-tools/gitleaks.checksums.txt
+
+          echo "$GITLEAKS_SHA  .security-tools/gitleaks.tar.gz" | sha256sum --check --strict
+          echo "$CHECKSUMS_SHA  .security-tools/gitleaks.checksums.txt" | sha256sum --check --strict
+          grep -F "$GITLEAKS_SHA" .security-tools/gitleaks.checksums.txt
+          tar -xzf .security-tools/gitleaks.tar.gz -C .security-tools gitleaks
+          test "$(.security-tools/gitleaks version)" = "$GITLEAKS_VERSION"
+
+      - name: Run npm audit and generate CycloneDX SBOM
+        id: dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .qh/security
+          AUDIT_LEVEL="$(jq -r '.tools.npm.auditLevel' security/toolchain-lock.json)"
+          set +e
+          npm audit --audit-level="$AUDIT_LEVEL" --json > .qh/security/npm-audit.json
+          AUDIT_EXIT=$?
+          set -e
+          echo "$AUDIT_EXIT" > .qh/security/npm-audit.exit
+          test -s .qh/security/npm-audit.json
+          jq -e '.metadata.vulnerabilities != null' .qh/security/npm-audit.json
+
+          npm sbom --sbom-format cyclonedx --sbom-type application > .qh/security/sbom.cdx.json
+          jq -e '.bomFormat == "CycloneDX" and (.specVersion | type == "string") and (.components | type == "array")'             .qh/security/sbom.cdx.json
+
+      - name: Run Semgrep with a digest-pinned offline container
+        id: semgrep
+        shell: bash
+        run: |
+          set -euo pipefail
+          SEMGREP_IMAGE="$(jq -r '.tools.semgrep.image' security/toolchain-lock.json)"
+          set +e
+          docker run --rm             --platform linux/amd64             --network none             --read-only             --cap-drop ALL             --security-opt no-new-privileges             --pids-limit 256             --memory 2g             --cpus 2             --tmpfs /tmp:rw,noexec,nosuid,size=128m             --env HOME=/tmp             --volume "$PWD:/src:ro"             --workdir /src             "$SEMGREP_IMAGE"             semgrep scan               --config .semgrep/security.yml               --metrics=off               --error               --jobs 2               --timeout 30               --max-memory 1500               --exclude .qh               --exclude .security-tools               --json . > .qh/security/semgrep.json
+          SEMGREP_EXIT=$?
+          set -e
+          echo "$SEMGREP_EXIT" > .qh/security/semgrep.exit
+          test -s .qh/security/semgrep.json
+          jq -e '.results | type == "array"' .qh/security/semgrep.json
+
+      - name: Run Gitleaks across repository history
+        id: gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          .security-tools/gitleaks git             --redact=100             --no-banner             --report-format json             --report-path .qh/security/gitleaks.json             --exit-code 13
+          GITLEAKS_EXIT=$?
+          set -e
+          echo "$GITLEAKS_EXIT" > .qh/security/gitleaks.exit
+          if [ ! -s .qh/security/gitleaks.json ]; then
+            echo '[]' > .qh/security/gitleaks.json
+          fi
+          jq -e 'type == "array"' .qh/security/gitleaks.json
+
+      - name: Run security golden regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/security-golden.mjs prepare .qh/security/golden
+          SEMGREP_IMAGE="$(jq -r '.tools.semgrep.image' security/toolchain-lock.json)"
+
+          set +e
+          docker run --rm             --platform linux/amd64             --network none             --read-only             --cap-drop ALL             --security-opt no-new-privileges             --pids-limit 128             --memory 1g             --cpus 1             --tmpfs /tmp:rw,noexec,nosuid,size=64m             --env HOME=/tmp             --volume "$PWD:/src:ro"             --workdir /src             "$SEMGREP_IMAGE"             semgrep scan               --config .semgrep/security.yml               --metrics=off               --error               --no-git-ignore               --json .qh/security/golden > .qh/security/golden-semgrep.json
+          GOLDEN_SEMGREP_EXIT=$?
+
+          .security-tools/gitleaks dir .qh/security/golden             --redact=100             --no-banner             --report-format json             --report-path .qh/security/golden-gitleaks.json             --exit-code 13
+          GOLDEN_GITLEAKS_EXIT=$?
+          set -e
+
+          test "$GOLDEN_SEMGREP_EXIT" -eq 1
+          test "$GOLDEN_GITLEAKS_EXIT" -eq 13
+          node scripts/security-golden.mjs verify             .qh/security/golden-semgrep.json             .qh/security/golden-gitleaks.json
+
+      - name: Upload security evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ctg-security-evidence-${{ github.sha }}
+          path: |
+            .qh/security/npm-audit.json
+            .qh/security/npm-audit.exit
+            .qh/security/sbom.cdx.json
+            .qh/security/semgrep.json
+            .qh/security/semgrep.exit
+            .qh/security/gitleaks.json
+            .qh/security/gitleaks.exit
+            .qh/security/golden-semgrep.json
+            .qh/security/golden-gitleaks.json
+            security/toolchain-lock.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Enforce security gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat .qh/security/npm-audit.exit)" -eq 0
+          test "$(cat .qh/security/semgrep.exit)" -eq 0
+          test "$(cat .qh/security/gitleaks.exit)" -eq 0
+          echo "Security gate passed: npm audit, Semgrep, Gitleaks, CycloneDX SBOM, and golden regression."

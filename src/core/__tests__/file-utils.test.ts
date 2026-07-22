@@ -7,6 +7,7 @@ import {
   detectLanguage,
   detectRole,
   walkDir,
+  walkDirBounded,
   isTargetFile,
   isEntrypoint,
   entrypointKind,
@@ -834,6 +835,68 @@ describe("file-utils", () => {
     it("returns unknown for other extensions", () => {
       expect(detectTestFramework("test.swift")).toBe("unknown");
       expect(detectTestFramework("test.kt")).toBe("unknown");
+    });
+  });
+
+  describe("walkDirBounded", () => {
+    it("stops at the file-count limit and reports a partial scan", () => {
+      const root = path.join(tempTestDir, "bounded-file-count");
+      mkdirSync(root, { recursive: true });
+      writeFileSync(path.join(root, "a.ts"), "a", "utf8");
+      writeFileSync(path.join(root, "b.ts"), "b", "utf8");
+
+      const result = walkDirBounded(root, { maxFiles: 1 });
+
+      expect(result.files).toHaveLength(1);
+      expect(result.partial).toBe(true);
+      expect(result.reasons).toContain("MAX_FILES_EXCEEDED");
+    });
+
+    it("skips oversized files and reports the affected path", () => {
+      const root = path.join(tempTestDir, "bounded-file-size");
+      mkdirSync(root, { recursive: true });
+      writeFileSync(path.join(root, "large.ts"), "123456", "utf8");
+
+      const result = walkDirBounded(root, { maxFileSizeBytes: 5 });
+
+      expect(result.files).toEqual([]);
+      expect(result.partial).toBe(true);
+      expect(result.reasons).toContain("MAX_FILE_SIZE_EXCEEDED:large.ts");
+    });
+
+    it("stops before the total-byte limit is exceeded", () => {
+      const root = path.join(tempTestDir, "bounded-total-size");
+      mkdirSync(root, { recursive: true });
+      writeFileSync(path.join(root, "a.ts"), "1234", "utf8");
+      writeFileSync(path.join(root, "b.ts"), "5678", "utf8");
+
+      const result = walkDirBounded(root, { maxTotalBytes: 5 });
+
+      expect(result.files.map((file) => path.basename(file))).toEqual(["a.ts"]);
+      expect(result.acceptedBytes).toBe(4);
+      expect(result.reasons).toContain("MAX_TOTAL_BYTES_EXCEEDED");
+    });
+
+    it("does not descend beyond the configured depth", () => {
+      const root = path.join(tempTestDir, "bounded-depth");
+      mkdirSync(path.join(root, "nested"), { recursive: true });
+      writeFileSync(path.join(root, "nested", "deep.ts"), "deep", "utf8");
+
+      const result = walkDirBounded(root, { maxDepth: 0 });
+
+      expect(result.files).toEqual([]);
+      expect(result.reasons).toContain("MAX_DEPTH_EXCEEDED:nested");
+    });
+
+    it("honors an already-expired deadline", () => {
+      const root = path.join(tempTestDir, "bounded-deadline");
+      mkdirSync(root, { recursive: true });
+      writeFileSync(path.join(root, "index.ts"), "source", "utf8");
+
+      const result = walkDirBounded(root, { deadlineMs: 0 });
+
+      expect(result.files).toEqual([]);
+      expect(result.reasons).toContain("SCAN_DEADLINE_EXCEEDED");
     });
   });
 

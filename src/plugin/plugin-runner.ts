@@ -44,7 +44,7 @@ export class PluginRunnerImpl implements PluginRunner {
   private sandboxConfig: SandboxConfig;
   private dockerRunner: DockerSandboxRunner | null;
 
-  constructor(sandboxMode: SandboxMode = "none", sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG) {
+  constructor(sandboxMode: SandboxMode = "process", sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG) {
     this.config = {
       timeout: PLUGIN_CONSTANTS.DEFAULT_TIMEOUT,
       retry: PLUGIN_CONSTANTS.DEFAULT_RETRY,
@@ -136,10 +136,11 @@ export class PluginRunnerImpl implements PluginRunner {
     await this.runHooks("before_execute", entry, context);
 
     // Get timeout for this plugin
-    const timeout = this.timeoutOverrides.get(pluginName) ??
+    const requestedTimeout = this.timeoutOverrides.get(pluginName) ??
       manifest.entry.timeout ??
       this.config.timeout ??
       PLUGIN_CONSTANTS.DEFAULT_TIMEOUT;
+    const timeout = Math.min(requestedTimeout, this.sandboxConfig.timeout, 60);
 
     const maxRetry = manifest.entry.retry ?? this.config.retry ?? PLUGIN_CONSTANTS.DEFAULT_RETRY;
     let retryCount = 0;
@@ -156,7 +157,17 @@ export class PluginRunnerImpl implements PluginRunner {
           inputJson,
           timeout * 1000,
           this.logger,
-          this.runningProcesses
+          this.runningProcesses,
+          {
+            pluginRoot: entry.path,
+            workDir: this.config.workDir,
+            allowedEnvVars: this.sandboxConfig.allowedEnvVars,
+            maxStdoutBytes: this.sandboxConfig.maxStdoutBytes,
+            maxStderrBytes: this.sandboxConfig.maxStderrBytes,
+            maxFindings: this.sandboxConfig.maxFindings,
+            maxEvidencePerFinding: this.sandboxConfig.maxEvidencePerFinding,
+            nodePermissionModel: this.sandboxMode === "process" && this.sandboxConfig.nodePermissionModel,
+          }
         );
 
         // Validate output
@@ -436,7 +447,7 @@ export function createPluginRunner(
   sandboxMode?: SandboxMode,
   sandboxConfig?: SandboxConfig
 ): PluginRunner {
-  const mode = sandboxMode ?? "none";
+  const mode = sandboxMode ?? "process";
   const config = sandboxConfig ?? DEFAULT_SANDBOX_CONFIG;
   return new PluginRunnerImpl(mode, config);
 }

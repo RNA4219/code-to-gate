@@ -32,10 +32,8 @@ export function buildDockerRunCommand(
   // Container name
   cmd.push("--name", containerName);
 
-  // Network isolation (unless explicitly allowed)
-  if (!config.networkAccess) {
-    cmd.push("--network=none");
-  }
+  // Network isolation is mandatory for plugin containers.
+  cmd.push("--network=none");
 
   // Memory limit
   const resources = toDockerResourceLimits(config);
@@ -52,6 +50,8 @@ export function buildDockerRunCommand(
   // Security options
   const securityOptions = getDockerSecurityOptions(config);
   cmd.push(...buildDockerSecurityFlags(securityOptions));
+  cmd.push("--read-only");
+  cmd.push("--tmpfs", "/tmp:rw,noexec,nosuid,size=16m");
 
   // Volume mounts
   cmd.push(...toDockerVolumeFlags(mounts));
