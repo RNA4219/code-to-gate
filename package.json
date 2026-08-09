@@ -132,7 +132,7 @@
     "ajv-formats": "^3.0.1",
     "fs-extra": "^11.3.4",
     "glob": "^13.0.6",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.1",
     "ts-morph": "^25.0.1",
     "web-tree-sitter": "^0.26.8"
   },
