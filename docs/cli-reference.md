@@ -137,6 +137,8 @@ The scanner automatically excludes these directories:
 - `coverage` - Coverage reports
 - `.cache` - Cache files
 - `__pycache__` - Python cache
+- `.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `.uv-cache` - Python tool caches
+- `local-output` - Repository-local generated evidence output
 - `.svn`, `.hg` - Other VCS metadata
 
 **Output:**
@@ -503,7 +505,7 @@ code-to-gate export <target> --from <dir> --out <file>
 | `sarif` | GitHub Code Scanning / SARIF consumers | SARIF 2.1.0 findings export |
 | `qeg-code-to-gate` | quality-evidence-graph | Evidence-only export for QEG processing |
 | `hate-qeg-bundle` | HATE / quality-evidence-graph | HATE-compatible optional evidence bundle in QEG bundle shape |
-| `qeg-gate-input` | quality-evidence-graph | QEG fixture directory containing `gate-input.json` for QEG `validate` / `gate` |
+| `qeg-gate-input` | quality-evidence-graph | QEG 0.2 pre-release fixture directory containing `gate-input.json`; expected verdict follows code-to-gate readiness and no release approval is synthesized |
 | `evidence-dag` | code-to-gate / QEG / PR reviewer surfaces | Cross-artifact DAG linking requirements, rules, findings, artifacts, manual evidence, CI runs, and verdicts |
 | `provenance-index` | PR review, hosted viewer, release evidence, SARIF consumers | Reverse index from human surfaces to source artifact/hash/source ID locators |
 
@@ -526,6 +528,10 @@ code-to-gate export workflow-evidence --from .qh --out .qh/workflow-evidence.jso
 
 # Export SARIF
 code-to-gate export sarif --from .qh --out .qh/results.sarif
+
+# Export only security-relevant findings for GitHub Code Scanning
+# Includes auth, payment, validation, data, and security categories.
+code-to-gate export sarif --scope security --from .qh --out .qh/security-results.sarif
 
 # Export for quality-evidence-graph
 code-to-gate export qeg-code-to-gate --from .qh --out .qh/qeg-code-to-gate.json

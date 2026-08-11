@@ -27,6 +27,10 @@ export const DEFAULT_IGNORED_DIRS = new Set([
   "coverage",
   ".cache",
   "__pycache__",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".mypy_cache",
+  ".uv-cache",
   ".svn",
   ".hg",
   // Python virtual environments
@@ -42,6 +46,8 @@ export const DEFAULT_IGNORED_DIRS = new Set([
   // Coverage report directories (pytest-cov, jest)
   "htmlcov",
   ".nyc_output",
+  // Repository-local generated evidence and scratch outputs
+  "local-output",
   // Build artifacts
   "build",
   "out",

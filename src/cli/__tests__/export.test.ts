@@ -209,9 +209,36 @@ describe("export CLI", () => {
       const expectedVerdict = JSON.parse(readFileSync(path.join(outDir, "expected-gate-verdict.json"), "utf8"));
 
       expect(exitCode).toBe(EXIT.OK);
+      expect(gateInput.metadata.qegVersion).toBe("0.2");
+      expect(gateInput.graph.metadata.qegVersion).toBe("0.2");
+      expect(gateInput.evidencePackage.phase).toBe("pre_release_review");
+      expect(gateInput.evidencePackage.approvalEvidence).toEqual([]);
+      expect(gateInput.evidencePackage.qegOutputs.qegBundle.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(existsSync(path.join(outDir, "qeg-bundle.json"))).toBe(true);
+      expect(existsSync(path.join(outDir, "placement-plan.json"))).toBe(true);
+      expect(existsSync(path.join(outDir, "producer-gate-expectation.json"))).toBe(true);
+      expect(existsSync(path.join(outDir, "pre-release-quality-record.json"))).toBe(true);
       expect(gateInput.metadata.producerChecks[0].readinessStatus).toBe("passed");
       expect(gateInput.graph.nodes.some((node: { id: string }) => node.id === "ctg:finding-debt-summary")).toBe(true);
       expect(expectedVerdict.expectedVerdict).toBe("go");
+    });
+
+    it("maps blocked readiness to a source-backed QEG no-go risk", async () => {
+      writeFindings(tempOutDir, []);
+      writeReadiness(tempOutDir, "blocked_input");
+
+      const outDir = path.join(tempOutDir, "qeg-gate-blocked");
+      const exitCode = await exportCommand(["qeg-gate-input", "--from", tempOutDir, "--out", outDir], { VERSION, EXIT, getOption });
+      const gateInput = JSON.parse(readFileSync(path.join(outDir, "gate-input.json"), "utf8"));
+      const expectedVerdict = JSON.parse(readFileSync(path.join(outDir, "expected-gate-verdict.json"), "utf8"));
+      const readinessRisk = gateInput.graph.nodes.find((node: { id: string }) => node.id === "ctg:risk-readiness");
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(readinessRisk).toMatchObject({ kind: "risk", severity: "high", evidenceGap: 1 });
+      expect(readinessRisk.traceability.sourceRefs[0].path).toBe("release-readiness.json");
+      expect(expectedVerdict.expectedVerdict).toBe("no_go");
+      expect(expectedVerdict.expectedExitCode).toBe(2);
+      expect(expectedVerdict.expectedBlockers[0].riskIds).toEqual(["ctg:risk-readiness"]);
     });
   });
 
@@ -584,6 +611,52 @@ describe("export CLI", () => {
       expect(levels.includes("error")).toBe(true); // critical
       expect(levels.includes("warning")).toBe(true); // medium
       expect(levels.includes("note")).toBe(true); // low
+    });
+
+    it("keeps the full SARIF by default and limits the security scope to security-relevant categories", async () => {
+      writeFindings(tempOutDir, [
+        createFinding({ id: "auth", ruleId: "AUTH_RULE", category: "auth" }),
+        createFinding({ id: "payment", ruleId: "PAYMENT_RULE", category: "payment" }),
+        createFinding({ id: "validation", ruleId: "VALIDATION_RULE", category: "validation" }),
+        createFinding({ id: "data", ruleId: "DATA_RULE", category: "data" }),
+        createFinding({ id: "security", ruleId: "SECURITY_RULE", category: "security" }),
+        createFinding({ id: "maintainability", ruleId: "MAINTAINABILITY_RULE", category: "maintainability" }),
+        createFinding({ id: "testing", ruleId: "TESTING_RULE", category: "testing" }),
+      ]);
+
+      const allSarifPath = path.join(tempOutDir, "all-results.sarif");
+      const securitySarifPath = path.join(tempOutDir, "security-results.sarif");
+      const allExitCode = await exportCommand(
+        ["sarif", "--from", tempOutDir, "--out", allSarifPath],
+        { VERSION, EXIT, getOption }
+      );
+      const securityExitCode = await exportCommand(
+        ["sarif", "--scope", "security", "--from", tempOutDir, "--out", securitySarifPath],
+        { VERSION, EXIT, getOption }
+      );
+      const allSarif = JSON.parse(readFileSync(allSarifPath, "utf8"));
+      const securitySarif = JSON.parse(readFileSync(securitySarifPath, "utf8"));
+
+      expect(allExitCode).toBe(EXIT.OK);
+      expect(securityExitCode).toBe(EXIT.OK);
+      expect(allSarif.runs[0].results).toHaveLength(7);
+      expect(securitySarif.runs[0].results.map((result: { ruleId: string }) => result.ruleId)).toEqual([
+        "AUTH_RULE", "PAYMENT_RULE", "VALIDATION_RULE", "DATA_RULE", "SECURITY_RULE",
+      ]);
+      expect(securitySarif.runs[0].tool.driver.rules.map((rule: { id: string }) => rule.id)).toEqual([
+        "AUTH_RULE", "PAYMENT_RULE", "VALIDATION_RULE", "DATA_RULE", "SECURITY_RULE",
+      ]);
+    });
+
+    it("rejects an unsupported SARIF scope", async () => {
+      writeFindings(tempOutDir, [createFinding()]);
+
+      const exitCode = await exportCommand(
+        ["sarif", "--scope", "all", "--from", tempOutDir],
+        { VERSION, EXIT, getOption }
+      );
+
+      expect(exitCode).toBe(EXIT.USAGE_ERROR);
     });
   });
 

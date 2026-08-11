@@ -223,14 +223,19 @@ jobs:
       - name: Export SARIF
         run: node ./dist/cli.js export sarif --from .qh --out .qh/results.sarif
 
+      - name: Export security SARIF
+        run: node ./dist/cli.js export sarif --scope security --from .qh --out .qh/security-results.sarif
+
       - name: Validate SARIF 2.1.0
         run: |
-          node --input-type=module -e 'import { readFileSync } from "node:fs"; const sarif = JSON.parse(readFileSync(".qh/results.sarif", "utf8")); if (sarif.version !== "2.1.0") throw new Error(`Invalid SARIF version: ${sarif.version}`); if (!String(sarif["$schema"] || "").includes("sarif-schema-2.1.0")) throw new Error("Invalid SARIF schema"); if (!Array.isArray(sarif.runs)) throw new Error("SARIF runs must be an array");'
+          for sarif_file in .qh/results.sarif .qh/security-results.sarif; do
+            node --input-type=module -e 'import { readFileSync } from "node:fs"; const sarif = JSON.parse(readFileSync(process.argv[1], "utf8")); if (sarif.version !== "2.1.0") throw new Error(`Invalid SARIF version: ${sarif.version}`); if (!String(sarif["$schema"] || "").includes("sarif-schema-2.1.0")) throw new Error("Invalid SARIF schema"); if (!Array.isArray(sarif.runs)) throw new Error("SARIF runs must be an array");' "$sarif_file"
+          done
 
       - name: Upload SARIF to code scanning
         uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
-          sarif_file: .qh/results.sarif
+          sarif_file: .qh/security-results.sarif
           category: code-to-gate-release
 
       - name: Verify packed npm package

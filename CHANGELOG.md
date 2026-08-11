@@ -9,7 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No unreleased changes yet.
+- Fixed `qeg-gate-input` to emit the QEG 0.2 wire contract, stop synthesizing
+  release approval evidence, and map non-passing readiness to source-backed
+  conditional/no-go expectations. Generated QEG output references now point to
+  real hash-backed pre-release artifacts instead of missing future outputs.
+- Excluded common Python tool caches and repository-local generated output
+  directories from bounded repository discovery so ignored runtime evidence
+  does not incorrectly downgrade source analysis to partial.
+- Updated vulnerable transitive dependencies so `npm audit` reports no known
+  vulnerabilities.
+- Added `export sarif --scope security` and limited GitHub Code Scanning uploads
+  to security-relevant categories while retaining the full SARIF artifact.
 
 ---
 
