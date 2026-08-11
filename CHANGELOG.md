@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Excluded common Python tool caches and repository-local generated output
   directories from bounded repository discovery so ignored runtime evidence
   does not incorrectly downgrade source analysis to partial.
-- Updated vulnerable transitive dependencies so `npm audit` reports no known
-  vulnerabilities.
+- Updated vulnerable direct and transitive dependencies in the root package and
+  demo fixtures so their audited installs report no known vulnerabilities.
 - Added `export sarif --scope security` and limited GitHub Code Scanning uploads
   to security-relevant categories while retaining the full SARIF artifact.
 
