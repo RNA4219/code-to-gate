@@ -184,6 +184,9 @@ jobs:
             fi
           done
 
+      - name: Verify real repo harness control flow (macOS)
+        run: bash scripts/real-repo-test-contract.sh
+
       - name: Verify analyze and readiness on fixture (macOS)
         run: |
           # Extended fixture verification on macOS

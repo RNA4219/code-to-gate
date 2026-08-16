@@ -28,6 +28,13 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 TEMP_DIR="${PROJECT_ROOT}/.real-repo-temp"
 RESULTS_DIR="${PROJECT_ROOT}/.real-repo-results"
 CTG_CLI="${PROJECT_ROOT}/dist/cli.js"
+POLICY_FILE="${PROJECT_ROOT}/fixtures/policies/strict.yaml"
+
+# Functions report expected test failures through these variables while still
+# returning success to Bash's global `set -e` handling. Unexpected harness
+# failures continue to stop the script.
+SCHEMA_FAILURES=0
+REPO_TEST_EXIT=1
 
 # Colors for output
 RED='\033[0;31m'
@@ -106,6 +113,11 @@ check_cli() {
         log_info "Run 'npm run build' first"
         exit 1
     fi
+
+    if [[ ! -f "$POLICY_FILE" ]]; then
+        log_fail "Policy not found at $POLICY_FILE"
+        exit 1
+    fi
 }
 
 count_files() {
@@ -138,18 +150,11 @@ validate_exit_code() {
     fi
 }
 
-run_allowing_expected_failure() {
-    set +e
-    "$@"
-    local exit_code=$?
-    set -e
-    return "$exit_code"
-}
-
 run_schema_validation() {
     local output_dir="$1"
     local repo="$2"
     local failures=0
+    local exit_code=0
 
     log_info "Running schema validation for $repo..."
 
@@ -157,11 +162,10 @@ run_schema_validation() {
     for artifact in "repo-graph.json" "findings.json" "risk-register.yaml" "test-seeds.json" "release-readiness.json" "audit.json"; do
         local artifact_path="${output_dir}/${artifact}"
         if [[ -f "$artifact_path" ]]; then
-            node "$CTG_CLI" schema validate "$artifact_path" 2>/dev/null
-            local exit_code=$?
-            if [[ $exit_code -eq 0 ]]; then
+            if node "$CTG_CLI" schema validate "$artifact_path" 2>/dev/null; then
                 log_success "Schema validation: $artifact"
             else
+                exit_code=$?
                 log_fail "Schema validation: $artifact (exit code $exit_code)"
                 failures=$((failures + 1))
             fi
@@ -170,7 +174,8 @@ run_schema_validation() {
         fi
     done
 
-    return $failures
+    SCHEMA_FAILURES="$failures"
+    return 0
 }
 
 clone_repo() {
@@ -201,6 +206,7 @@ test_repo() {
     local repo_name="$1"
     local repo_config="$2"
     local expected_exit
+    REPO_TEST_EXIT=1
     expected_exit="$(get_expected_exit "$repo_name")"
 
     IFS='|' read -r repo_url repo_type repo_desc <<< "$repo_config"
@@ -214,7 +220,9 @@ test_repo() {
     log_info "========================================"
 
     # Clone repository
-    clone_repo "$repo_name" "$repo_url" "$repo_dir" || return 1
+    if ! clone_repo "$repo_name" "$repo_url" "$repo_dir"; then
+        return 0
+    fi
 
     # Prepare test directory (handle special cases)
     local test_dir="$repo_dir"
@@ -246,8 +254,12 @@ test_repo() {
     mkdir -p "$scan_output"
 
     local start_time=$(date +%s)
-    run_allowing_expected_failure node "$CTG_CLI" scan "$test_dir" --out "$scan_output" 2>&1
-    local scan_exit=$?
+    local scan_exit=0
+    if node "$CTG_CLI" scan "$test_dir" --out "$scan_output" 2>&1; then
+        scan_exit=0
+    else
+        scan_exit=$?
+    fi
     local end_time=$(date +%s)
     local scan_duration=$((end_time - start_time))
 
@@ -272,15 +284,21 @@ test_repo() {
     mkdir -p "$analyze_output"
 
     start_time=$(date +%s)
-    run_allowing_expected_failure node "$CTG_CLI" analyze "$test_dir" --emit all --out "$analyze_output" --llm-mode none 2>&1
-    local analyze_exit=$?
+    local analyze_exit=0
+    if node "$CTG_CLI" analyze "$test_dir" --emit all --out "$analyze_output" --llm-mode local-only --llm-provider deterministic 2>&1; then
+        analyze_exit=0
+    else
+        analyze_exit=$?
+    fi
     end_time=$(date +%s)
     local analyze_duration=$((end_time - start_time))
 
     log_info "Analyze duration: ${analyze_duration}s"
 
-    validate_exit_code "$analyze_exit" "$expected_exit" "$repo_name"
-    local analyze_valid=$?
+    local analyze_valid=0
+    if ! validate_exit_code "$analyze_exit" "$expected_exit" "$repo_name"; then
+        analyze_valid=1
+    fi
 
     # Test 3: Readiness
     log_info "--- Test: readiness ---"
@@ -288,20 +306,26 @@ test_repo() {
     mkdir -p "$readiness_output"
 
     start_time=$(date +%s)
-    run_allowing_expected_failure node "$CTG_CLI" readiness "$test_dir" --out "$readiness_output" --llm-mode none 2>&1
-    local readiness_exit=$?
+    local readiness_exit=0
+    if node "$CTG_CLI" readiness "$test_dir" --policy "$POLICY_FILE" --from "$analyze_output" --out "$readiness_output" 2>&1; then
+        readiness_exit=0
+    else
+        readiness_exit=$?
+    fi
     end_time=$(date +%s)
     local readiness_duration=$((end_time - start_time))
 
     log_info "Readiness duration: ${readiness_duration}s"
 
-    validate_exit_code "$readiness_exit" "$expected_exit" "$repo_name"
-    local readiness_valid=$?
+    local readiness_valid=0
+    if ! validate_exit_code "$readiness_exit" "$expected_exit" "$repo_name"; then
+        readiness_valid=1
+    fi
 
     # Test 4: Schema Validation
     log_info "--- Test: schema validation ---"
     run_schema_validation "$analyze_output" "$repo_name"
-    local schema_valid=$?
+    local schema_valid="$SCHEMA_FAILURES"
 
     if [[ $schema_valid -eq 0 ]]; then
         log_success "All schema validations passed"
@@ -377,7 +401,13 @@ EOF
 
     log_info "Results written to: $results_file"
 
-    return $([[ $passed -eq $total_tests ]] && echo 0 || echo 1)
+    if [[ $passed -eq $total_tests ]]; then
+        REPO_TEST_EXIT=0
+    else
+        REPO_TEST_EXIT=1
+    fi
+
+    return 0
 }
 
 # Main execution
@@ -416,7 +446,7 @@ main() {
         local repo_config
         repo_config="$(get_repo_config "$repo_name")"
         test_repo "$repo_name" "$repo_config"
-        if [[ $? -eq 0 ]]; then
+        if [[ $REPO_TEST_EXIT -eq 0 ]]; then
             total_passed=$((total_passed + 1))
         else
             total_failed=$((total_failed + 1))
