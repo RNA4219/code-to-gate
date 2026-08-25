@@ -221,7 +221,6 @@ describe("policy-evaluator", () => {
     it("should check count thresholds", () => {
       const policy = createDefaultPolicy();
       policy.blocking.severity.critical = false;
-      policy.blocking.severity.high = false;
       policy.blocking.countThreshold = {
         criticalMax: 0,
         highMax: 2,
@@ -238,6 +237,38 @@ describe("policy-evaluator", () => {
 
       expect(result.failedConditions.some(c => c.type === "count_threshold")).toBe(true);
       expect(result.status).toBe("blocked_input");
+    });
+
+    it("does not apply a count threshold to a non-blocking severity", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.medium = false;
+      policy.blocking.category.maintainability = false;
+      policy.blocking.countThreshold = { mediumMax: 20 };
+      const findings = Array.from({ length: 21 }, (_, index) =>
+        createMockFinding(`f${index}`, "LARGE_MODULE", "medium", "maintainability", 0.9)
+      );
+
+      const result = evaluatePolicy(findings, policy);
+
+      expect(result.failedConditions.some(condition => condition.type === "count_threshold")).toBe(false);
+      expect(result.status).toBe("passed");
+    });
+
+    it("excludes baseline-carried findings from count thresholds", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.high = undefined;
+      policy.blocking.category.auth = false;
+      policy.blocking.countThreshold = { highMax: 0 };
+      const findings = [
+        createMockFinding("known-high", "RULE_001", "high", "auth", 0.9),
+      ];
+
+      const result = evaluatePolicy(findings, policy, [], {
+        baselineNewOrWorsenedFindingIds: [],
+      });
+
+      expect(result.failedConditions.some(condition => condition.type === "count_threshold")).toBe(false);
+      expect(result.status).toBe("passed");
     });
 
     it("should generate correct severity counts in summary", () => {

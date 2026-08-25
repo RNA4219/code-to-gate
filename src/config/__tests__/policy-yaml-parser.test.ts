@@ -51,6 +51,11 @@ describe("policy YAML parser", () => {
       "  fail_on_critical: true",
       "  fail_on_high: false",
       "  warn_only: false",
+      "rule_options:",
+      "  LARGE_MODULE:",
+      "    max_lines: 1200",
+      "    max_functions: 45",
+      "    max_size_kb: 125.5",
       "dsl:",
       "  rules:",
       "    - id: rule-one",
@@ -72,6 +77,11 @@ describe("policy YAML parser", () => {
     expect(parsed.llm?.mode).toBe("local-only");
     expect(parsed.baseline?.newFindingsBlock).toBe(true);
     expect(parsed.exit?.failOnCritical).toBe(true);
+    expect(parsed.ruleOptions?.LARGE_MODULE).toEqual({
+      maxLines: 1200,
+      maxFunctions: 45,
+      maxSizeKB: 125.5,
+    });
     expect(parsed.dsl?.rules).toHaveLength(1);
     expect(mergeWithDefaults(parsed).policyId).toBe("custom");
   });
@@ -82,6 +92,7 @@ describe("policy YAML parser", () => {
     expect(parseYamlPolicy("version:\npolicy_id:").version).toBeDefined();
     const merged = mergeWithDefaults({});
     expect(merged.blocking).toBeDefined();
+    expect(merged.blocking.countThreshold).toBeUndefined();
     expect(merged.dsl.rules).toEqual([]);
   });
 

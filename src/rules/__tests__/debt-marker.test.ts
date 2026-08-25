@@ -67,6 +67,22 @@ describe("DEBT_MARKER_RULE", () => {
     expect(findings).toHaveLength(0);
   });
 
+  it("does not treat comment delimiters inside literals as comments", () => {
+    const content = [
+      'await page.route("**/*", async (route) => {',
+      "  return /replace[-_ ]?me|todo|example-token|<[^>]+>/i.test(value);",
+      "});",
+      "const message = `status ${value} // TODO shown to the user`;",
+      "// FIXME: replace the legacy fallback",
+    ].join("\n");
+    const files = [createMockFile("src/towerScenarioE2E.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/towerScenarioE2E.ts", content]])));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].title).toContain("FIXME");
+    expect(findings[0].evidence[0]?.startLine).toBe(5);
+  });
+
   it("ignores accepted compatibility workaround explanations", () => {
     const content = [
       "import Ajv from 'ajv';",

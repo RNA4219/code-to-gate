@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { LARGE_MODULE_RULE } from "../large-module.js";
 import type { RuleContext, SimpleGraph, RepoFile } from "../index.js";
 import type { Finding } from "../../types/artifacts.js";
+import type { RuleOptionsConfig } from "../../types/rule-options.js";
 
 // Helper to create a mock file
 function createMockFile(
@@ -29,7 +30,11 @@ function createMockFile(
 }
 
 // Helper to create a mock context
-function createMockContext(files: RepoFile[], contents: Map<string, string>): RuleContext {
+function createMockContext(
+  files: RepoFile[],
+  contents: Map<string, string>,
+  ruleOptions?: RuleOptionsConfig
+): RuleContext {
   return {
     graph: {
       files,
@@ -38,6 +43,7 @@ function createMockContext(files: RepoFile[], contents: Map<string, string>): Ru
       repo: { root: "/test/repo" },
       stats: { partial: false },
     },
+    ruleOptions,
     getFileContent(path: string): string | null {
       return contents.get(path) ?? null;
     },
@@ -306,6 +312,43 @@ describe("LARGE_MODULE_RULE", () => {
 
     expect(findings.length).toBeGreaterThan(0);
     expect(findings.some((f) => f.title.includes("too many functions"))).toBe(true);
+  });
+
+  it("does not count control-flow blocks as class methods", () => {
+    const content = [
+      "export function onlyFunction(values: boolean[]) {",
+      ...Array.from({ length: 25 }, (_, index) =>
+        `  if (values[${index}]) { values[${index}] = false; }`
+      ),
+      "}",
+    ].join("\n");
+    const files = [createMockFile("src/control-flow.ts", content)];
+    const context = createMockContext(files, new Map([["src/control-flow.ts", content]]));
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
+  });
+
+  it("uses LARGE_MODULE thresholds supplied through rule options", () => {
+    const content = [
+      generateLargeContent(600),
+      ...Array.from({ length: 25 }, (_, index) =>
+        `export const configured${index} = () => ${index};`
+      ),
+    ].join("\n");
+    const files = [createMockFile("src/configured.ts", content)];
+    const context = createMockContext(
+      files,
+      new Map([["src/configured.ts", content]]),
+      {
+        LARGE_MODULE: {
+          maxLines: 700,
+          maxFunctions: 30,
+          maxSizeKB: 100,
+        },
+      }
+    );
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
   });
 
   it("should detect patterns across multiple files", () => {

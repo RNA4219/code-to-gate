@@ -6,6 +6,7 @@
 
 import type { RulePlugin, RuleContext, Finding } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
+import { ts } from "ts-morph";
 
 interface CommentLine {
   line: number;
@@ -112,7 +113,62 @@ function extractCommentLines(content: string, language: string): CommentLine[] {
     return extractHashComments(content);
   }
 
+  if (["ts", "tsx", "js", "jsx"].includes(language)) {
+    return extractTypeScriptCommentLines(content, language);
+  }
+
   return extractSlashComments(content);
+}
+
+function extractTypeScriptCommentLines(content: string, language: string): CommentLine[] {
+  const scriptKind = language === "tsx"
+    ? ts.ScriptKind.TSX
+    : language === "jsx"
+      ? ts.ScriptKind.JSX
+      : language === "js"
+        ? ts.ScriptKind.JS
+        : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(
+    `comments.${language}`,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind
+  );
+  const ranges = new Map<string, ts.CommentRange>();
+
+  const addRanges = (candidates: readonly ts.CommentRange[] | undefined): void => {
+    for (const range of candidates ?? []) {
+      ranges.set(`${range.pos}:${range.end}`, range);
+    }
+  };
+
+  const visit = (node: ts.Node): void => {
+    addRanges(ts.getLeadingCommentRanges(content, node.getFullStart()));
+    addRanges(ts.getTrailingCommentRanges(content, node.getEnd()));
+    for (const child of node.getChildren(sourceFile)) {
+      visit(child);
+    }
+  };
+  visit(sourceFile);
+
+  const comments: CommentLine[] = [];
+  for (const range of [...ranges.values()].sort((left, right) => left.pos - right.pos)) {
+    const startLine = sourceFile.getLineAndCharacterOfPosition(range.pos).line + 1;
+    const raw = content.slice(range.pos, range.end);
+    if (range.kind === ts.SyntaxKind.SingleLineCommentTrivia) {
+      comments.push({ line: startLine, text: raw.slice(2) });
+      continue;
+    }
+
+    const blockText = raw.slice(2, -2);
+    const lines = blockText.split(/\r\n|\r|\n/);
+    for (let offset = 0; offset < lines.length; offset++) {
+      comments.push({ line: startLine + offset, text: lines[offset] });
+    }
+  }
+
+  return comments;
 }
 
 function extractHashComments(content: string): CommentLine[] {

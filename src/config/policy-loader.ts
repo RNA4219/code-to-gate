@@ -50,6 +50,7 @@ export {
   PolicyDslWhen,
   CtgPolicy,
 } from "./policy-types.js";
+export type { LargeModuleRuleOptions, RuleOptionsConfig } from "../types/rule-options.js";
 
 /**
  * Validate policy version
@@ -85,6 +86,20 @@ export function validatePolicy(policy: CtgPolicy): { valid: boolean; errors: str
   if (policy.llm?.minConfidence !== undefined) {
     if (policy.llm.minConfidence < 0 || policy.llm.minConfidence > 1) {
       errors.push(`Invalid LLM min_confidence: ${policy.llm.minConfidence}. Must be between 0 and 1`);
+    }
+  }
+
+  const largeModuleOptions = policy.ruleOptions?.LARGE_MODULE;
+  if (largeModuleOptions) {
+    const thresholds = [
+      ["max_lines", largeModuleOptions.maxLines],
+      ["max_functions", largeModuleOptions.maxFunctions],
+      ["max_size_kb", largeModuleOptions.maxSizeKB],
+    ] as const;
+    for (const [name, value] of thresholds) {
+      if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
+        errors.push(`Invalid LARGE_MODULE ${name}: ${value}. Must be a non-negative number`);
+      }
     }
   }
 

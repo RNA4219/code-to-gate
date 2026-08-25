@@ -5,6 +5,7 @@
  */
 
 import type { RepoFile, Finding, EvidenceRef, FindingCategory, Severity, UpstreamTool } from "../types/artifacts.js";
+import type { RuleOptionsConfig } from "../types/rule-options.js";
 import { createRuleEvidence, hashExcerpt } from "../core/evidence-utils.js";
 
 // Re-export types for rule implementations
@@ -29,6 +30,7 @@ export interface SimpleGraph {
  */
 export interface RuleContext {
   graph: SimpleGraph;
+  ruleOptions?: RuleOptionsConfig;
   getFileContent(path: string): string | null;
 }
 

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed rule precision for literal-aware debt comments, secret assignment binding,
+  router-anchored rate-limit checks, SQL keyword boundaries, and AST-based
+  JavaScript/TypeScript function counts. `fs.existsSync` is no longer reported
+  as deprecated, and `Buffer()` no longer matches `ArrayBuffer` variants.
+- Added policy-backed `LARGE_MODULE` thresholds and made count thresholds apply
+  only to effective, non-suppressed, non-baselined findings at severities that
+  are explicitly blocking. Explicit policies no longer inherit undeclared count
+  caps from the built-in default policy.
 - Fixed `qeg-gate-input` to emit the QEG 0.2 wire contract, stop synthesizing
   release approval evidence, and map non-passing readiness to source-backed
   conditional/no-go expectations. Generated QEG output references now point to

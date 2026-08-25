@@ -45,7 +45,7 @@ export const RAW_SQL_RULE: RulePlugin = {
         // Client input appended into SQL fragments
         /\+\s*(?:req|request|ctx|context|event|params|body|data)\s*(?:\.\s*\w+|\[['"]\w+['"]])/gi,
         // Template literals with SQL and interpolation
-        /`(?:SELECT|INSERT|UPDATE|DELETE)[^`]*\$\{[^}]+\}/gi,
+        /`(?:SELECT|INSERT|UPDATE|DELETE)\b[^`]*\$\{[^}]+\}/gi,
         // Python f-strings with SQL
         /f["'](?:SELECT|INSERT|UPDATE|DELETE)\s+[^"']*["']/gi,
         // Python format strings

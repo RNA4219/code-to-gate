@@ -2,8 +2,8 @@
 intent_id: DOC-POLICY-GUIDE-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-06-17
-next_review_due: 2026-07-17
+last_reviewed_at: 2026-08-25
+next_review_due: 2026-09-25
 ---
 
 # Policy Guide
@@ -38,10 +38,31 @@ should use `ctg/v1`.
 | `blocking.severity.<level>` | Blocks when an effective finding has the selected severity. |
 | `blocking.category.<category>` | Blocks when an effective finding belongs to the selected category. |
 | `blocking.rules.<RULE_ID>` | Blocks on specific rules such as `DB_DROP_TABLE`. |
+| `blocking.count_threshold.<level>_max` | Blocks when effective findings exceed an explicitly configured limit for a blocking severity. |
 
 Supported severities are `critical`, `high`, `medium`, `low`, and `info`.
 Common categories include `auth`, `payment`, `data`, `security`,
 `validation`, `testing`, and `maintainability`.
+
+Count thresholds are optional in an explicit policy. They are not inherited from
+the built-in default policy when `count_threshold` is omitted, and a threshold is
+ignored when the matching `blocking.severity` value is `false`. Suppressed and
+baseline-carried findings do not consume the count budget.
+
+## Rule Analysis Options
+
+Use `rule_options` to tune supported analysis rules without changing their
+defaults for other repositories. `LARGE_MODULE` supports all three size limits:
+
+```yaml
+rule_options:
+  LARGE_MODULE:
+    max_lines: 1500
+    max_functions: 60
+    max_size_kb: 150
+```
+
+Omitted values retain the defaults of 500 lines, 20 functions, and 50 KB.
 
 ## Policy DSL
 

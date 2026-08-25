@@ -12,10 +12,10 @@ import { createEvidence, generateFindingId } from "./index.js";
 // Route patterns by language
 const ROUTE_PATTERNS_BY_LANG: Record<string, RegExp[]> = {
   ts: [
-    /\.(?:get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/g,
+    /\b(?:app|router|server|api|fastify|express|[A-Za-z_$][\w$]*(?:App|Router|Server))\s*\.\s*(?:get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/g,
   ],
   js: [
-    /\.(?:get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/g,
+    /\b(?:app|router|server|api|fastify|express|[A-Za-z_$][\w$]*(?:App|Router|Server))\s*\.\s*(?:get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/g,
   ],
   py: [
     /@(?:app|router)\.(?:get|post|put|delete)\s*\(\s*["']([^"']+)["']/g,
@@ -72,9 +72,6 @@ export const MISSING_RATE_LIMIT_RULE: RulePlugin = {
 
   evaluate(context: RuleContext): Finding[] {
     const findings: Finding[] = [];
-    const lang = getLanguage(context.graph.files[0]?.path || "ts");
-    const _routePatterns = ROUTE_PATTERNS_BY_LANG[lang] || ROUTE_PATTERNS_BY_LANG.ts;
-    const _rateLimitPatterns = RATE_LIMIT_BY_LANG[lang] || RATE_LIMIT_BY_LANG.ts;
 
     for (const file of context.graph.files) {
       if (file.role !== "source") continue;

@@ -9,11 +9,25 @@
 
 import type { RulePlugin, RuleContext, Finding, EvidenceRef } from "./index.js";
 import { createEvidence, generateFindingId } from "./index.js";
+import { ts } from "ts-morph";
 
 // Default thresholds (configurable via policy)
 const DEFAULT_MAX_LINES = 500;
 const DEFAULT_MAX_FUNCTIONS = 20;
 const DEFAULT_MAX_SIZE_KB = 50; // 50KB
+
+const EXCLUDED_METHOD_NAMES = new Set([
+  "constructor",
+  "ngOnInit",
+  "componentDidMount",
+  "render",
+]);
+
+function resolveThreshold(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) && value >= 0
+    ? value
+    : fallback;
+}
 
 function isTypeContractModule(path: string, content: string): boolean {
   if (!/src[\\/]+types[\\/]/.test(path)) return false;
@@ -42,10 +56,10 @@ export const LARGE_MODULE_RULE: RulePlugin = {
   evaluate(context: RuleContext): Finding[] {
     const findings: Finding[] = [];
 
-    // Thresholds (could be overridden by policy in future)
-    const maxLines = DEFAULT_MAX_LINES;
-    const maxFunctions = DEFAULT_MAX_FUNCTIONS;
-    const maxSizeKB = DEFAULT_MAX_SIZE_KB;
+    const configured = context.ruleOptions?.LARGE_MODULE;
+    const maxLines = resolveThreshold(configured?.maxLines, DEFAULT_MAX_LINES);
+    const maxFunctions = resolveThreshold(configured?.maxFunctions, DEFAULT_MAX_FUNCTIONS);
+    const maxSizeKB = resolveThreshold(configured?.maxSizeKB, DEFAULT_MAX_SIZE_KB);
 
     for (const file of context.graph.files) {
       // Skip non-source files and generated files
@@ -194,7 +208,7 @@ export const LARGE_MODULE_RULE: RulePlugin = {
  * Count function definitions in source code
  */
 function countFunctions(content: string, language: string): number {
-  let count = 0;
+  let count: number;
 
   if (language === "py" || language === "rb" || language === "go" || language === "rs" || language === "java" || language === "php") {
     const defMatches = language === "py"
@@ -210,26 +224,57 @@ function countFunctions(content: string, language: string): number {
               : content.match(/^\s*(?:public|private|protected)?\s*(?:static\s+)?function\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/gm);
     count = defMatches ? defMatches.length : 0;
   } else {
-    // JavaScript/TypeScript patterns
-    // function declarations
-    const funcDeclMatches = content.match(/(?:export\s+)?(?:async\s+)?function\s+\w+/g);
-    count += funcDeclMatches ? funcDeclMatches.length : 0;
-
-    // Arrow functions assigned to variables (exported)
-    const arrowFuncMatches = content.match(/(?:export\s+)?(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?\([^)]*\)\s*=>/g);
-    count += arrowFuncMatches ? arrowFuncMatches.length : 0;
-
-    // Class methods (public/private)
-    const classMethodMatches = content.match(/(?:public|private|protected|static)?\s*(?:async\s+)?\w+\s*\([^)]*\)\s*\{/g);
-    // Filter out constructor and lifecycle hooks that are often necessary
-    const filteredMethods = classMethodMatches?.filter(
-      (m) => !m.includes("constructor") &&
-             !m.includes("ngOnInit") &&
-             !m.includes("componentDidMount") &&
-             !m.includes("render")
-    ) || [];
-    count += filteredMethods.length;
+    count = countTypeScriptFunctions(content, language);
   }
 
   return count;
+}
+
+function countTypeScriptFunctions(content: string, language: string): number {
+  const scriptKind = language === "tsx"
+    ? ts.ScriptKind.TSX
+    : language === "jsx"
+      ? ts.ScriptKind.JSX
+      : language === "js"
+        ? ts.ScriptKind.JS
+        : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(
+    `module.${language}`,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind
+  );
+  let count = 0;
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isFunctionDeclaration(node) && node.body) {
+      count += 1;
+    } else if (
+      (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
+      isFunctionInitializer(node)
+    ) {
+      count += 1;
+    } else if (ts.isMethodDeclaration(node) && node.body) {
+      const name = node.name.getText(sourceFile).replace(/^["']|["']$/g, "");
+      if (!EXCLUDED_METHOD_NAMES.has(name)) {
+        count += 1;
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return count;
+}
+
+function isFunctionInitializer(node: ts.ArrowFunction | ts.FunctionExpression): boolean {
+  const parent = node.parent;
+  return (
+    (ts.isVariableDeclaration(parent) && parent.initializer === node) ||
+    (ts.isPropertyAssignment(parent) && parent.initializer === node) ||
+    (ts.isPropertyDeclaration(parent) && parent.initializer === node) ||
+    (ts.isExportAssignment(parent) && parent.expression === node)
+  );
 }
