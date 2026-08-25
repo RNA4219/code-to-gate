@@ -12,7 +12,7 @@ import type { RuleOptionsConfig } from "../../types/rule-options.js";
 function createMockFile(
   path: string,
   content: string,
-  language: "ts" | "js" | "py" = "ts",
+  language: "ts" | "tsx" | "js" | "jsx" | "py" = "ts",
   role: "source" | "test" = "source",
   lineCount?: number
 ): RepoFile {
@@ -349,6 +349,80 @@ describe("LARGE_MODULE_RULE", () => {
     );
 
     expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
+  });
+
+  it.each([
+    ["jsx", "src/Functions.jsx"],
+    ["tsx", "src/Functions.tsx"],
+  ] as const)("counts function initializers in %s modules", (language, path) => {
+    const content = Array.from(
+      { length: 21 },
+      (_, index) => `export const component${index} = () => <div>${index}</div>;`
+    ).join("\n");
+    const files = [createMockFile(path, content, language)];
+    const context = createMockContext(files, new Map([[path, content]]));
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings.some(finding => finding.title.includes("too many functions"))).toBe(true);
+  });
+
+  it("counts object, class-property, and default-export function initializers", () => {
+    const objectFunctions = Array.from(
+      { length: 10 },
+      (_, index) => `  object${index}: () => ${index},`
+    );
+    const classFunctions = Array.from(
+      { length: 10 },
+      (_, index) => `  classProperty${index} = function () { return ${index}; };`
+    );
+    const content = [
+      "const handlers = {",
+      ...objectFunctions,
+      "};",
+      "class HandlerSet {",
+      ...classFunctions,
+      "}",
+      "export default () => handlers;",
+    ].join("\n");
+    const path = "src/function-initializers.ts";
+    const files = [createMockFile(path, content)];
+    const context = createMockContext(files, new Map([[path, content]]));
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings.some(finding => finding.title.includes("too many functions"))).toBe(true);
+  });
+
+  it("does not count excluded lifecycle methods", () => {
+    const content = [
+      ...Array.from({ length: 20 }, (_, index) =>
+        `export const function${index} = () => ${index};`
+      ),
+      "class View {",
+      "  render() { return null; }",
+      "}",
+    ].join("\n");
+    const path = "src/view.ts";
+    const files = [createMockFile(path, content)];
+    const context = createMockContext(files, new Map([[path, content]]));
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
+  });
+
+  it("falls back to defaults for invalid direct rule thresholds", () => {
+    const content = generateLargeContent(600);
+    const path = "src/invalid-thresholds.ts";
+    const files = [createMockFile(path, content)];
+    const context = createMockContext(files, new Map([[path, content]]), {
+      LARGE_MODULE: {
+        maxLines: -1,
+        maxFunctions: Number.NaN,
+        maxSizeKB: Number.POSITIVE_INFINITY,
+      },
+    });
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(1);
   });
 
   it("should detect patterns across multiple files", () => {

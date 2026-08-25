@@ -254,6 +254,31 @@ describe("policy-evaluator", () => {
       expect(result.status).toBe("passed");
     });
 
+    it.each([
+      ["medium", "mediumMax"],
+      ["low", "lowMax"],
+    ] as const)("applies the configured %s count threshold when that severity blocks", (severity, thresholdKey) => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity = {
+        critical: false,
+        high: false,
+        medium: false,
+        low: false,
+      };
+      policy.blocking.severity[severity] = true;
+      policy.blocking.countThreshold = { [thresholdKey]: 0 };
+      const finding = createMockFinding("threshold-finding", "RULE_001", severity, "maintainability", 0.9);
+
+      const result = evaluatePolicy([finding], policy);
+
+      expect(result.failedConditions).toContainEqual(expect.objectContaining({
+        type: "count_threshold",
+        severity,
+        count: 1,
+        threshold: 0,
+      }));
+    });
+
     it("excludes baseline-carried findings from count thresholds", () => {
       const policy = createDefaultPolicy();
       policy.blocking.severity.high = undefined;
@@ -269,6 +294,25 @@ describe("policy-evaluator", () => {
 
       expect(result.failedConditions.some(condition => condition.type === "count_threshold")).toBe(false);
       expect(result.status).toBe("passed");
+    });
+
+    it("keeps count thresholds on all findings when baseline blocking is disabled", () => {
+      const policy = createDefaultPolicy();
+      policy.blocking.severity.high = true;
+      policy.blocking.category.auth = false;
+      policy.blocking.countThreshold = { highMax: 0 };
+      policy.baseline = { enabled: true, newFindingsBlock: false };
+      const finding = createMockFinding("known-high", "RULE_001", "high", "auth", 0.9);
+
+      const result = evaluatePolicy([finding], policy, [], {
+        baselineNewOrWorsenedFindingIds: [],
+      });
+
+      expect(result.failedConditions).toContainEqual(expect.objectContaining({
+        type: "count_threshold",
+        severity: "high",
+        count: 1,
+      }));
     });
 
     it("should generate correct severity counts in summary", () => {

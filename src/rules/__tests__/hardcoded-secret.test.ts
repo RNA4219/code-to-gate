@@ -98,6 +98,12 @@ describe("HARDCODED_SECRET_RULE", () => {
     expect(findings[0].title).toContain("db_password");
   });
 
+  it("ignores a short alphabetic development password", () => {
+    const content = 'const password = "abcdefghijklmnop";';
+
+    expect(HARDCODED_SECRET_RULE.evaluate(createContext("src/config.ts", content))).toHaveLength(0);
+  });
+
   it("ignores the rule implementation itself", () => {
     const content = [
       'const SECRET_VAR_NAMES = ["password", "api_key"];',
