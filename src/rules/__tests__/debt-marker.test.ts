@@ -9,7 +9,7 @@ import type { RuleContext, RepoFile } from "../index.js";
 function createMockFile(
   path: string,
   content: string,
-  language: "ts" | "js" | "py" = "ts",
+  language: "ts" | "tsx" | "js" | "jsx" | "py" = "ts",
   role: RepoFile["role"] = "source"
 ): RepoFile {
   return {
@@ -65,6 +65,40 @@ describe("DEBT_MARKER_RULE", () => {
     const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/help.ts", content]])));
 
     expect(findings).toHaveLength(0);
+  });
+
+  it("does not treat comment delimiters inside literals as comments", () => {
+    const content = [
+      'await page.route("**/*", async (route) => {',
+      "  return /replace[-_ ]?me|todo|example-token|<[^>]+>/i.test(value);",
+      "});",
+      "const message = `status ${value} // TODO shown to the user`;",
+      "// FIXME: replace the legacy fallback",
+    ].join("\n");
+    const files = [createMockFile("src/towerScenarioE2E.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/towerScenarioE2E.ts", content]])));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].title).toContain("FIXME");
+    expect(findings[0].evidence[0]?.startLine).toBe(5);
+  });
+
+  it.each([
+    ["js", "src/router.js", "const glob = '**/*';"],
+    ["jsx", "src/Router.jsx", "export const Router = () => <div>{'**/*'}</div>;"],
+    ["tsx", "src/Router.tsx", "export const Router = () => <div>{'**/*'}</div>;"],
+  ] as const)("extracts only real comments from %s source", (language, path, sourceLine) => {
+    const content = [
+      sourceLine,
+      "const pattern = /todo|replace[-_ ]?me/i;",
+      "// TODO: replace the legacy router",
+    ].join("\n");
+    const files = [createMockFile(path, content, language)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([[path, content]])));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].title).toContain("TODO");
+    expect(findings[0].evidence[0]?.startLine).toBe(3);
   });
 
   it("ignores accepted compatibility workaround explanations", () => {

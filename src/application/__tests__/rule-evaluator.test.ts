@@ -138,6 +138,31 @@ describe("Rule Evaluator", () => {
       expect(artifact.completeness).toBe("complete");
     });
 
+    it("passes policy rule options to rule evaluation", () => {
+      const rule: RulePlugin = {
+        id: "OPTIONS_TEST",
+        name: "Options Test",
+        description: "test",
+        category: "maintainability",
+        defaultSeverity: "low",
+        defaultConfidence: 1,
+        evaluate: (context) => {
+          expect(context.ruleOptions?.LARGE_MODULE?.maxLines).toBe(900);
+          return [];
+        },
+      };
+
+      const artifact = evaluateRules(
+        graph,
+        contentContext,
+        undefined,
+        [rule],
+        { LARGE_MODULE: { maxLines: 900 } }
+      );
+
+      expect(artifact.completeness).toBe("complete");
+    });
+
     it("marks findings partial when source graph is partial", () => {
       const artifact = evaluateRules(
         { ...graph, stats: { partial: true } },

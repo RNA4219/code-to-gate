@@ -4,6 +4,7 @@
  */
 
 import type { FindingCategory, Severity } from "../types/artifacts.js";
+import type { RuleOptionsConfig } from "../types/rule-options.js";
 
 export const POLICY_VERSION = "ctg/v1";
 
@@ -189,6 +190,7 @@ export interface CtgPolicy {
   baseline?: BaselineConfig;
   exit?: ExitConfig;
   dsl?: PolicyDslConfig;
+  ruleOptions?: RuleOptionsConfig;
 }
 
 /**
@@ -234,15 +236,15 @@ export function createDefaultPolicy(): CtgPolicy {
     version: POLICY_VERSION,
     policyId: "default-policy",
     blocking: {
-      severity: DEFAULT_BLOCKING_SEVERITY,
-      category: DEFAULT_BLOCKING_CATEGORY,
+      severity: { ...DEFAULT_BLOCKING_SEVERITY },
+      category: { ...DEFAULT_BLOCKING_CATEGORY },
       countThreshold: {
         criticalMax: 0,
         highMax: 5,
         mediumMax: 20,
       },
     },
-    confidence: DEFAULT_CONFIDENCE,
+    confidence: { ...DEFAULT_CONFIDENCE },
     suppression: {
       file: ".ctg/suppressions.yaml",
       expiryWarningDays: 30,
@@ -271,6 +273,13 @@ export function createDefaultPolicy(): CtgPolicy {
     },
     dsl: {
       rules: [],
+    },
+    ruleOptions: {
+      LARGE_MODULE: {
+        maxLines: 500,
+        maxFunctions: 20,
+        maxSizeKB: 50,
+      },
     },
   };
 }

@@ -9,6 +9,7 @@
  */
 
 import type { Finding, FindingsArtifact, EvidenceRef, RepoFile, RepoRef, UnsupportedClaim } from "../types/artifacts.js";
+import type { RuleOptionsConfig } from "../types/rule-options.js";
 import type { RuleContext, RulePlugin, SimpleGraph } from "../rules/index.js";
 import { CORE_RULES } from "../rules/index.js";
 import { domainTagForFinding, falsePositiveReviewTags } from "../core/domain-context.js";
@@ -155,10 +156,12 @@ const fileContentCache: Map<string, string> = new Map();
 function createRuleContext(
   graph: SimpleGraph,
   repoRoot: string,
-  context: ApplicationContext
+  context: ApplicationContext,
+  ruleOptions?: RuleOptionsConfig
 ): RuleContext {
   return {
     graph,
+    ruleOptions,
     getFileContent: (filePath: string): string | null => {
       // Check cache first
       if (fileContentCache.has(filePath)) {
@@ -198,7 +201,8 @@ export function evaluateRules(
   },
   applicationContext: ApplicationContext,
   policyId?: string,
-  rules: RulePlugin[] = CORE_RULES
+  rules: RulePlugin[] = CORE_RULES,
+  ruleOptions?: RuleOptionsConfig
 ): FindingsArtifact {
   // Clear file content cache
   fileContentCache.clear();
@@ -229,7 +233,7 @@ export function evaluateRules(
   };
 
   // Create rule context
-  const context = createRuleContext(simpleGraph, repoRoot, applicationContext);
+  const context = createRuleContext(simpleGraph, repoRoot, applicationContext, ruleOptions);
 
   // Evaluate all rules
   let findingIndex = 0;

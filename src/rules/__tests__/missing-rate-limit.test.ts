@@ -105,4 +105,30 @@ app.get("/products/:id", showProduct);
 
     expect(findings).toEqual([]);
   });
+
+  it("does not interpret Map or API client lookups as route declarations", () => {
+    const context = createMockContext([
+      {
+        path: "src/readiness.ts",
+        content: [
+          "readinessChecks.get('VAddy scan authentication is configured');",
+          "appReadinessById.get('pickgo-vaddy-auth-smoke');",
+          "apiClient.get('/auth/login');",
+        ].join("\n"),
+      },
+    ]);
+
+    expect(MISSING_RATE_LIMIT_RULE.evaluate(context)).toEqual([]);
+  });
+
+  it("recognizes a named router alias", () => {
+    const context = createMockContext([
+      {
+        path: "src/routes/auth.ts",
+        content: "authRouter.post('/auth/login', loginHandler);",
+      },
+    ]);
+
+    expect(MISSING_RATE_LIMIT_RULE.evaluate(context)).toHaveLength(1);
+  });
 });

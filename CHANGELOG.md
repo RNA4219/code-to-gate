@@ -9,7 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-No unreleased changes yet.
+- Fixed rule precision for literal-aware debt comments, secret assignment binding,
+  router-anchored rate-limit checks, SQL keyword boundaries, and AST-based
+  JavaScript/TypeScript function counts. `fs.existsSync` is no longer reported
+  as deprecated, and `Buffer()` no longer matches `ArrayBuffer` variants.
+- Added policy-backed `LARGE_MODULE` thresholds and made count thresholds apply
+  only to effective, non-suppressed, non-baselined findings at severities that
+  are explicitly blocking. Explicit policies no longer inherit undeclared count
+  caps from the built-in default policy.
+- Fixed `qeg-gate-input` to emit the QEG 0.2 wire contract, stop synthesizing
+  release approval evidence, and map non-passing readiness to source-backed
+  conditional/no-go expectations. Generated QEG output references now point to
+  real hash-backed pre-release artifacts instead of missing future outputs.
+- Excluded common Python tool caches and repository-local generated output
+  directories from bounded repository discovery so ignored runtime evidence
+  does not incorrectly downgrade source analysis to partial.
+- Updated vulnerable direct and transitive dependencies in the root package and
+  demo fixtures so their audited installs report no known vulnerabilities.
+- Added `export sarif --scope security` and limited GitHub Code Scanning uploads
+  to security-relevant categories while retaining the full SARIF artifact.
 
 ---
 

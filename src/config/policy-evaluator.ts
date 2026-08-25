@@ -120,7 +120,8 @@ export function isRuleBlocked(ruleId: string, blockingRules: CtgPolicy["blocking
  */
 function checkCountThreshold(
   findings: Finding[],
-  countThreshold: CtgPolicy["blocking"]["countThreshold"]
+  countThreshold: CtgPolicy["blocking"]["countThreshold"],
+  blockingSeverity: CtgPolicy["blocking"]["severity"]
 ): FailedCondition[] {
   const conditions: FailedCondition[] = [];
 
@@ -139,7 +140,11 @@ function checkCountThreshold(
   }
 
   // Check thresholds
-  if (countThreshold.criticalMax !== undefined && severityCounts.critical > countThreshold.criticalMax) {
+  if (
+    blockingSeverity.critical !== false &&
+    countThreshold.criticalMax !== undefined &&
+    severityCounts.critical > countThreshold.criticalMax
+  ) {
     conditions.push({
       type: "count_threshold",
       severity: "critical",
@@ -149,7 +154,11 @@ function checkCountThreshold(
     });
   }
 
-  if (countThreshold.highMax !== undefined && severityCounts.high > countThreshold.highMax) {
+  if (
+    blockingSeverity.high !== false &&
+    countThreshold.highMax !== undefined &&
+    severityCounts.high > countThreshold.highMax
+  ) {
     conditions.push({
       type: "count_threshold",
       severity: "high",
@@ -159,7 +168,11 @@ function checkCountThreshold(
     });
   }
 
-  if (countThreshold.mediumMax !== undefined && severityCounts.medium > countThreshold.mediumMax) {
+  if (
+    blockingSeverity.medium !== false &&
+    countThreshold.mediumMax !== undefined &&
+    severityCounts.medium > countThreshold.mediumMax
+  ) {
     conditions.push({
       type: "count_threshold",
       severity: "medium",
@@ -169,7 +182,11 @@ function checkCountThreshold(
     });
   }
 
-  if (countThreshold.lowMax !== undefined && severityCounts.low > countThreshold.lowMax) {
+  if (
+    blockingSeverity.low !== false &&
+    countThreshold.lowMax !== undefined &&
+    severityCounts.low > countThreshold.lowMax
+  ) {
     conditions.push({
       type: "count_threshold",
       severity: "low",
@@ -432,9 +449,23 @@ export function evaluatePolicy(
     passedFindings.push(finding);
   }
 
-  // Check count thresholds (on non-suppressed findings)
-  const nonSuppressedFindings = findings.filter(f => !suppressedFindings.includes(f));
-  const countConditions = checkCountThreshold(nonSuppressedFindings, policy.blocking.countThreshold);
+  // Count only effective findings: suppressions and baseline-carried debt do not
+  // consume the threshold budget.
+  const suppressedFindingIds = new Set(suppressedFindings.map(finding => finding.id));
+  const baselineGatedFindingIds =
+    context.baselineNewOrWorsenedFindingIds !== undefined &&
+    policy.baseline?.newFindingsBlock !== false
+      ? new Set(context.baselineNewOrWorsenedFindingIds)
+      : undefined;
+  const thresholdFindings = findings.filter(finding =>
+    !suppressedFindingIds.has(finding.id) &&
+    (!baselineGatedFindingIds || baselineGatedFindingIds.has(finding.id))
+  );
+  const countConditions = checkCountThreshold(
+    thresholdFindings,
+    policy.blocking.countThreshold,
+    policy.blocking.severity
+  );
   failedConditions.push(...countConditions);
 
   if (context.completeness === "partial") {

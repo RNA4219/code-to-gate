@@ -426,7 +426,7 @@ Provide concise, actionable findings.`,
     const analysisGraph = useDatabaseAnalysis ? createDatabaseRuleGraph(graph, repoRoot) : graph;
     const rules = useDatabaseAnalysis ? [...CORE_RULES, ...DATABASE_RULES] : CORE_RULES;
     const findings = applyLlmEnrichment(
-      evaluateRules(analysisGraph, applicationContext, policy?.policyId, rules),
+      evaluateRules(analysisGraph, applicationContext, policy?.policyId, rules, policy?.ruleOptions),
       llmAnalysisResult,
       llmProviderName
     );

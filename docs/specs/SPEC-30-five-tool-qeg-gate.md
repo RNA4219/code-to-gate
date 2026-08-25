@@ -46,10 +46,17 @@ The generated fixture MUST include:
 - producer check metadata with `readinessStatus`.
 - source refs for code-to-gate policy, readiness, and exported evidence.
 - an evidence package with non-empty `sourceRefs`, retention, control roles,
-  and matching approval policy hashes.
+  and `pre_release_review` phase.
+- QEG wire contract `qegVersion: 0.2` in both envelope and graph metadata.
+- a source-backed risk and matching expected QEG verdict when readiness is not
+  `passed`.
+- hash-backed pre-release QEG bundle, placement plan, producer expectation, and
+  quality record files referenced by `evidencePackage.qegOutputs`.
 
 The generated fixture MUST NOT claim a final gate decision. It is an input to
-QEG.
+QEG. In particular, code-to-gate MUST NOT synthesize release approval evidence;
+approval is supplied by the authorized release workflow when the evidence
+package advances to `release_decision`.
 
 ### SPEC-30-R2: HATE Evidence Bundle Export
 

@@ -96,11 +96,26 @@ function createBuffer(str) {
       expect(findings[0].title).toContain("new Buffer()");
     });
 
-    it("does not treat arrayBuffer() as the deprecated global Buffer()", () => {
+    it("does not treat ArrayBuffer variants as the deprecated global Buffer()", () => {
       const context = createMockContext([
         {
           path: "src/response.ts",
-          content: "const raw = new Uint8Array(await response.arrayBuffer());",
+          content: [
+            "const raw = new Uint8Array(await response.arrayBuffer());",
+            "const direct = new ArrayBuffer(8);",
+            "const shared = new SharedArrayBuffer(8);",
+          ].join("\n"),
+        },
+      ]);
+
+      expect(DEPRECATED_API_USAGE_RULE.evaluate(context)).toHaveLength(0);
+    });
+
+    it("does not report fs.existsSync as deprecated", () => {
+      const context = createMockContext([
+        {
+          path: "src/files.ts",
+          content: "const present = fs.existsSync(filePath);",
         },
       ]);
 

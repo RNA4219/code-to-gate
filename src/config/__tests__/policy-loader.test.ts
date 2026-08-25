@@ -78,6 +78,27 @@ describe("policy-loader", () => {
       expect(policy.blocking.countThreshold?.highMax).toBe(5);
       expect(policy.blocking.countThreshold?.mediumMax).toBe(20);
     });
+
+    it("should have default LARGE_MODULE rule options", () => {
+      const policy = createDefaultPolicy();
+
+      expect(policy.ruleOptions?.LARGE_MODULE).toEqual({
+        maxLines: 500,
+        maxFunctions: 20,
+        maxSizeKB: 50,
+      });
+    });
+
+    it("should return independent default policy objects", () => {
+      const first = createDefaultPolicy();
+      first.blocking.severity.high = false;
+      first.confidence.minConfidence = 0.1;
+
+      const second = createDefaultPolicy();
+
+      expect(second.blocking.severity.high).toBe(true);
+      expect(second.confidence.minConfidence).toBe(0.6);
+    });
   });
 
   describe("isValidPolicyVersion", () => {
@@ -100,6 +121,18 @@ describe("policy-loader", () => {
 
       expect(result.valid).toBe(true);
       expect(result.errors.length).toBe(0);
+    });
+
+    it("should reject invalid LARGE_MODULE thresholds", () => {
+      const policy = createDefaultPolicy();
+      policy.ruleOptions!.LARGE_MODULE!.maxLines = -1;
+
+      const result = validatePolicy(policy);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toEqual([
+        expect.stringContaining("Invalid LARGE_MODULE max_lines"),
+      ]);
     });
 
     it("should detect invalid version", () => {
@@ -346,6 +379,7 @@ policy_id: minimal
       // Should have default blocking config
       expect(result.policy.blocking.severity.critical).toBe(true);
       expect(result.policy.blocking.category.auth).toBe(true);
+      expect(result.policy.blocking.countThreshold).toBeUndefined();
     });
   });
 

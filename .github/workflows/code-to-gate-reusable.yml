@@ -85,6 +85,9 @@ jobs:
       - name: Export SARIF
         run: node ./dist/cli.js export sarif --from "${{ inputs.artifact_dir }}" --out "${{ inputs.artifact_dir }}/results.sarif"
 
+      - name: Export security SARIF
+        run: node ./dist/cli.js export sarif --scope security --from "${{ inputs.artifact_dir }}" --out "${{ inputs.artifact_dir }}/security-results.sarif"
+
       - name: Export QEG evidence input
         run: |
           node ./dist/cli.js export qeg-code-to-gate --from "${{ inputs.artifact_dir }}" --out "${{ inputs.artifact_dir }}/qeg-code-to-gate.json"
@@ -93,7 +96,7 @@ jobs:
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
-          sarif_file: ${{ inputs.artifact_dir }}/results.sarif
+          sarif_file: ${{ inputs.artifact_dir }}/security-results.sarif
           category: code-to-gate-reusable
 
       - name: Upload code-to-gate artifacts

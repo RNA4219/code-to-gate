@@ -526,6 +526,20 @@ function calculateTotal(items) {
     expect(findings.length).toBe(0);
   });
 
+  it("does not treat words beginning with SQL verbs as SQL templates", () => {
+    const content = [
+      "const a = `selected case profile is invalid: ${current.case_id}`;",
+      "const b = `Selected mode: ${lane.selected_mode}`;",
+      "const c = `Updated at: ${timestamp}`;",
+      "const d = `deleted count: ${deletedCount}`;",
+      "const e = `inserted rows: ${insertedRows}`;",
+    ].join("\n");
+    const files = [createMockFile("src/messages.ts", content)];
+    const context = createMockContext(files, new Map([["src/messages.ts", content]]));
+
+    expect(RAW_SQL_RULE.evaluate(context)).toHaveLength(0);
+  });
+
   it("should not detect safe SQL with const variables", () => {
     const content = `
 const TABLE_NAME = "users";

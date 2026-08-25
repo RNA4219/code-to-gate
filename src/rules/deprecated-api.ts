@@ -31,7 +31,6 @@ const DEPRECATED_NODE_APIS = [
 
   // fs module
   { pattern: /fs\.exists\s*\(/g, name: "fs.exists", replacement: "fs.existsSync() or fs.stat()" },
-  { pattern: /fs\.existsSync\s*\(/g, name: "fs.existsSync", replacement: "fs.statSync() or fs.accessSync()" },
 
   // crypto module
   { pattern: /crypto\.createCredentials\s*\(/g, name: "crypto.createCredentials", replacement: "tls.createSecureContext()" },
@@ -43,7 +42,7 @@ const DEPRECATED_NODE_APIS = [
 
   // Buffer
   { pattern: /new\s+Buffer\s*\(/g, name: "new Buffer()", replacement: "Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe()" },
-  { pattern: /(?<![\w$.])Buffer\(\s*\)/g, name: "Buffer()", replacement: "Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe()" },
+  { pattern: /\bBuffer\(\s*\)/g, name: "Buffer()", replacement: "Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe()" },
 
   // path module
   { pattern: /path\.exists\s*\(/g, name: "path.exists", replacement: "fs.existsSync() or fs.accessSync()" },

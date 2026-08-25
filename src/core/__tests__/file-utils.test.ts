@@ -925,6 +925,14 @@ describe("file-utils", () => {
       expect(DEFAULT_IGNORED_DIRS.has(".cache")).toBe(true);
     });
 
+    it("contains Python tool caches and repository-local generated outputs", () => {
+      expect(DEFAULT_IGNORED_DIRS.has(".pytest_cache")).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has(".ruff_cache")).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has(".mypy_cache")).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has(".uv-cache")).toBe(true);
+      expect(DEFAULT_IGNORED_DIRS.has("local-output")).toBe(true);
+    });
+
     it("contains .venv", () => {
       expect(DEFAULT_IGNORED_DIRS.has(".venv")).toBe(true);
     });

@@ -6,12 +6,13 @@ import { describe, it, expect } from "vitest";
 import { LARGE_MODULE_RULE } from "../large-module.js";
 import type { RuleContext, SimpleGraph, RepoFile } from "../index.js";
 import type { Finding } from "../../types/artifacts.js";
+import type { RuleOptionsConfig } from "../../types/rule-options.js";
 
 // Helper to create a mock file
 function createMockFile(
   path: string,
   content: string,
-  language: "ts" | "js" | "py" = "ts",
+  language: "ts" | "tsx" | "js" | "jsx" | "py" = "ts",
   role: "source" | "test" = "source",
   lineCount?: number
 ): RepoFile {
@@ -29,7 +30,11 @@ function createMockFile(
 }
 
 // Helper to create a mock context
-function createMockContext(files: RepoFile[], contents: Map<string, string>): RuleContext {
+function createMockContext(
+  files: RepoFile[],
+  contents: Map<string, string>,
+  ruleOptions?: RuleOptionsConfig
+): RuleContext {
   return {
     graph: {
       files,
@@ -38,6 +43,7 @@ function createMockContext(files: RepoFile[], contents: Map<string, string>): Ru
       repo: { root: "/test/repo" },
       stats: { partial: false },
     },
+    ruleOptions,
     getFileContent(path: string): string | null {
       return contents.get(path) ?? null;
     },
@@ -306,6 +312,117 @@ describe("LARGE_MODULE_RULE", () => {
 
     expect(findings.length).toBeGreaterThan(0);
     expect(findings.some((f) => f.title.includes("too many functions"))).toBe(true);
+  });
+
+  it("does not count control-flow blocks as class methods", () => {
+    const content = [
+      "export function onlyFunction(values: boolean[]) {",
+      ...Array.from({ length: 25 }, (_, index) =>
+        `  if (values[${index}]) { values[${index}] = false; }`
+      ),
+      "}",
+    ].join("\n");
+    const files = [createMockFile("src/control-flow.ts", content)];
+    const context = createMockContext(files, new Map([["src/control-flow.ts", content]]));
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
+  });
+
+  it("uses LARGE_MODULE thresholds supplied through rule options", () => {
+    const content = [
+      generateLargeContent(600),
+      ...Array.from({ length: 25 }, (_, index) =>
+        `export const configured${index} = () => ${index};`
+      ),
+    ].join("\n");
+    const files = [createMockFile("src/configured.ts", content)];
+    const context = createMockContext(
+      files,
+      new Map([["src/configured.ts", content]]),
+      {
+        LARGE_MODULE: {
+          maxLines: 700,
+          maxFunctions: 30,
+          maxSizeKB: 100,
+        },
+      }
+    );
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
+  });
+
+  it.each([
+    ["jsx", "src/Functions.jsx"],
+    ["tsx", "src/Functions.tsx"],
+  ] as const)("counts function initializers in %s modules", (language, path) => {
+    const content = Array.from(
+      { length: 21 },
+      (_, index) => `export const component${index} = () => <div>${index}</div>;`
+    ).join("\n");
+    const files = [createMockFile(path, content, language)];
+    const context = createMockContext(files, new Map([[path, content]]));
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings.some(finding => finding.title.includes("too many functions"))).toBe(true);
+  });
+
+  it("counts object, class-property, and default-export function initializers", () => {
+    const objectFunctions = Array.from(
+      { length: 10 },
+      (_, index) => `  object${index}: () => ${index},`
+    );
+    const classFunctions = Array.from(
+      { length: 10 },
+      (_, index) => `  classProperty${index} = function () { return ${index}; };`
+    );
+    const content = [
+      "const handlers = {",
+      ...objectFunctions,
+      "};",
+      "class HandlerSet {",
+      ...classFunctions,
+      "}",
+      "export default () => handlers;",
+    ].join("\n");
+    const path = "src/function-initializers.ts";
+    const files = [createMockFile(path, content)];
+    const context = createMockContext(files, new Map([[path, content]]));
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings.some(finding => finding.title.includes("too many functions"))).toBe(true);
+  });
+
+  it("does not count excluded lifecycle methods", () => {
+    const content = [
+      ...Array.from({ length: 20 }, (_, index) =>
+        `export const function${index} = () => ${index};`
+      ),
+      "class View {",
+      "  render() { return null; }",
+      "}",
+    ].join("\n");
+    const path = "src/view.ts";
+    const files = [createMockFile(path, content)];
+    const context = createMockContext(files, new Map([[path, content]]));
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(0);
+  });
+
+  it("falls back to defaults for invalid direct rule thresholds", () => {
+    const content = generateLargeContent(600);
+    const path = "src/invalid-thresholds.ts";
+    const files = [createMockFile(path, content)];
+    const context = createMockContext(files, new Map([[path, content]]), {
+      LARGE_MODULE: {
+        maxLines: -1,
+        maxFunctions: Number.NaN,
+        maxSizeKB: Number.POSITIVE_INFINITY,
+      },
+    });
+
+    expect(LARGE_MODULE_RULE.evaluate(context)).toHaveLength(1);
   });
 
   it("should detect patterns across multiple files", () => {

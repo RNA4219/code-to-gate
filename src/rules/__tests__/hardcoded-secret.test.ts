@@ -77,6 +77,37 @@ describe("HARDCODED_SECRET_RULE", () => {
     expect(findings).toHaveLength(0);
   });
 
+  it("ignores selector metadata, contract placeholders, and environment variable names", () => {
+    const content = [
+      "const selectors = { password_selector: 'input[type=password]' };",
+      "const credentials = { password: 'contract-password' };",
+      "const baseline = { client_secret: 'baseline-placeholder' };",
+      "const envNames = { access_key: 'SRT_SHIPPER_PASSWORD' };",
+      "const contract = { api_key: 'SuperSecretAccessKeyForContract' };",
+    ].join("\n");
+    const findings = HARDCODED_SECRET_RULE.evaluate(createContext("src/runtime.ts", content));
+
+    expect(findings).toHaveLength(0);
+  });
+
+  it("still detects a credential-shaped variable with a non-placeholder value", () => {
+    const content = [
+      'const db_password = "',
+      "q9X-7rV2-pL4-8mN6",
+      '";',
+    ].join("");
+    const findings = HARDCODED_SECRET_RULE.evaluate(createContext("src/config.ts", content));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].title).toContain("db_password");
+  });
+
+  it("ignores a short alphabetic development password", () => {
+    const content = 'const password = "abcdefghijklmnop";';
+
+    expect(HARDCODED_SECRET_RULE.evaluate(createContext("src/config.ts", content))).toHaveLength(0);
+  });
+
   it("ignores the rule implementation itself", () => {
     const content = [
       'const SECRET_VAR_NAMES = ["password", "api_key"];',

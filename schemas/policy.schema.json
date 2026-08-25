@@ -140,6 +140,22 @@
         "warn_only": { "type": "boolean" }
       }
     },
+    "rule_options": {
+      "type": "object",
+      "description": "Rule-specific analysis thresholds",
+      "additionalProperties": false,
+      "properties": {
+        "LARGE_MODULE": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_lines": { "type": "integer", "minimum": 0 },
+            "max_functions": { "type": "integer", "minimum": 0 },
+            "max_size_kb": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
     "dsl": {
       "type": "object",
       "description": "Context-aware Policy DSL rules",

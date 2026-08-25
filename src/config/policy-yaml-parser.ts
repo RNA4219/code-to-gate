@@ -23,6 +23,7 @@ import {
   type PolicyDslBaseline,
   type PolicyDslManualEvidence,
 } from "./policy-types.js";
+import type { RuleOptionsConfig } from "../types/rule-options.js";
 
 function splitYamlKeyValue(line: string): [string, string] | undefined {
   const separatorIndex = line.indexOf(":");
@@ -48,6 +49,37 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 
 function scalarString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function numericValue(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return typeof value === "number" ? value : Number.NaN;
+}
+
+function parseRuleOptions(content: string): RuleOptionsConfig | undefined {
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(content, { schema: yaml.JSON_SCHEMA });
+  } catch {
+    return undefined;
+  }
+
+  const root = asRecord(parsed);
+  const ruleOptions = asRecord(root?.rule_options ?? root?.ruleOptions);
+  const largeModule = asRecord(ruleOptions?.LARGE_MODULE);
+  if (!largeModule) {
+    return undefined;
+  }
+
+  return {
+    LARGE_MODULE: {
+      maxLines: numericValue(largeModule.max_lines ?? largeModule.maxLines),
+      maxFunctions: numericValue(largeModule.max_functions ?? largeModule.maxFunctions),
+      maxSizeKB: numericValue(largeModule.max_size_kb ?? largeModule.maxSizeKB),
+    },
+  };
 }
 
 function parsePolicyDsl(content: string): PolicyDslConfig | undefined {
@@ -101,6 +133,10 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   const dsl = parsePolicyDsl(content);
   if (dsl) {
     result.dsl = dsl;
+  }
+  const ruleOptions = parseRuleOptions(content);
+  if (ruleOptions) {
+    result.ruleOptions = ruleOptions;
   }
   const lines = content.split("\n");
 
@@ -254,7 +290,9 @@ export function mergeWithDefaults(parsed: Partial<CtgPolicy>): CtgPolicy {
       severity: { ...defaults.blocking.severity, ...parsed.blocking?.severity },
       category: { ...defaults.blocking.category, ...parsed.blocking?.category },
       rules: { ...parsed.blocking?.rules },
-      countThreshold: { ...defaults.blocking.countThreshold, ...parsed.blocking?.countThreshold },
+      countThreshold: parsed.blocking?.countThreshold
+        ? { ...parsed.blocking.countThreshold }
+        : undefined,
     },
     confidence: { ...defaults.confidence, ...parsed.confidence },
     suppression: { ...defaults.suppression, ...parsed.suppression },
@@ -264,6 +302,12 @@ export function mergeWithDefaults(parsed: Partial<CtgPolicy>): CtgPolicy {
     exit: { ...defaults.exit, ...parsed.exit },
     dsl: {
       rules: parsed.dsl?.rules ?? defaults.dsl?.rules ?? [],
+    },
+    ruleOptions: {
+      LARGE_MODULE: {
+        ...defaults.ruleOptions?.LARGE_MODULE,
+        ...parsed.ruleOptions?.LARGE_MODULE,
+      },
     },
   };
 }

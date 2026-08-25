@@ -35,6 +35,15 @@ const EXCLUDE_PATTERNS = [
   /placeholder/i, /your[_-]?key/i, /replace[_-]?with/i, /changeme/i,
 ];
 
+const EXCLUDED_VALUE_PATTERNS = [
+  /(?:^|[-_])(?:test|fixture|example|sample|mock|fake|placeholder|dummy|contract|baseline)(?:[-_]|$)/i,
+  /(?:for)?contract$/i,
+  /your[_-]?(?:key|token|secret)/i,
+  /replace[_-]?(?:me|with)/i,
+  /change[_-]?me/i,
+  /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/,
+];
+
 function isTestOrFixture(path: string): boolean {
   return EXCLUDE_PATTERNS.some(p => p.test(path));
 }
@@ -55,13 +64,14 @@ function isSecretVariableName(name: string): boolean {
   const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   return SECRET_VAR_NAMES.some(value => {
     const candidate = value.replace(/[^a-z0-9]/g, "");
-    return normalized === candidate || normalized.startsWith(candidate) || normalized.endsWith(candidate);
+    return normalized === candidate || normalized.endsWith(candidate);
   });
 }
 
 function isSafeValue(value: string): boolean {
   const safeValues = ["changeme", "your_key_here", "replace_me", "xxx", "test", "example"];
-  return safeValues.some(s => value.toLowerCase().includes(s)) ||
+  return EXCLUDED_VALUE_PATTERNS.some(pattern => pattern.test(value)) ||
+    safeValues.some(s => value.toLowerCase().includes(s)) ||
     value.length < 16 ||
     /^[A-Za-z]+$/.test(value) && value.length < 20;
 }

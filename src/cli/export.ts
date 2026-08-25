@@ -12,9 +12,10 @@
  */
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { EXIT, getOption } from "./exit-codes.js";
-import type { FindingsArtifact } from "../types/artifacts.js";
+import type { FindingCategory, FindingsArtifact } from "../types/artifacts.js";
 import {
   type GatefieldStaticResult,
   type StateGateEvidence,
@@ -97,6 +98,22 @@ function severityCounts(findings: FindingsArtifact): { critical: number; high: n
   };
 }
 
+const SECURITY_SARIF_CATEGORIES: ReadonlySet<FindingCategory> = new Set([
+  "auth",
+  "payment",
+  "validation",
+  "data",
+  "security",
+]);
+
+function selectSarifFindings(findings: FindingsArtifact, scope: string | undefined): FindingsArtifact {
+  if (scope !== "security") return findings;
+  return {
+    ...findings,
+    findings: findings.findings.filter((finding) => SECURITY_SARIF_CATEGORIES.has(finding.category)),
+  };
+}
+
 function resolveQegHeadSha(env: NodeJS.ProcessEnv = process.env): string | undefined {
   return env.CTG_QEG_HEAD_SHA ?? env.GITHUB_HEAD_SHA ?? env.GITHUB_SHA;
 }
@@ -107,6 +124,85 @@ function qegSourceRef(id: string, pathValue: string, label?: string): Record<str
 
 function qegTrace(sourceRef: Record<string, unknown>, confidence: "low" | "medium" | "high" = "high"): Record<string, unknown> {
   return { sourceRefs: [sourceRef], assumptions: [], confidence };
+}
+
+function qegJson(value: unknown): string {
+  return JSON.stringify(value, null, 2) + "\n";
+}
+
+function qegContentHash(content: string): string {
+  return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
+}
+
+interface QegExpectedGateResult {
+  readonly verdict: "go" | "conditional_go" | "no_go";
+  readonly exitCode: 0 | 2;
+  readonly risk?: Record<string, unknown>;
+  readonly blockers: Record<string, unknown>[];
+  readonly residualRisks: string[];
+  readonly humanReview: string[];
+}
+
+function expectedQegGateResult(
+  readinessStatus: string,
+  sourceRef: Record<string, unknown>,
+  inputArtifactIds: string[]
+): QegExpectedGateResult {
+  if (readinessStatus === "passed") {
+    return { verdict: "go", exitCode: 0, blockers: [], residualRisks: [], humanReview: [] };
+  }
+
+  const riskId = "ctg:risk-readiness";
+  const title = `code-to-gate readiness is ${readinessStatus}`;
+  if (readinessStatus === "passed_with_risk" || readinessStatus === "needs_review") {
+    return {
+      verdict: "conditional_go",
+      exitCode: 2,
+      risk: {
+        id: riskId,
+        kind: "risk",
+        title,
+        priority: "P2",
+        severity: "medium",
+        likelihood: 0.5,
+        businessImpact: 0.5,
+        complianceCriticality: 0.5,
+        evidenceGap: 0.5,
+        novelty: 0.5,
+        traceability: qegTrace(sourceRef, readinessStatus === "needs_review" ? "low" : "medium"),
+        sourceArtifactIds: inputArtifactIds,
+      },
+      blockers: [],
+      residualRisks: [riskId],
+      humanReview: [riskId],
+    };
+  }
+
+  return {
+    verdict: "no_go",
+    exitCode: 2,
+    risk: {
+      id: riskId,
+      kind: "risk",
+      title,
+      priority: "P2",
+      severity: "high",
+      likelihood: 1,
+      businessImpact: 0.8,
+      complianceCriticality: 0.8,
+      evidenceGap: 1,
+      novelty: 0.5,
+      traceability: qegTrace(sourceRef),
+      sourceArtifactIds: inputArtifactIds,
+    },
+    blockers: [{
+      id: `blocker-${riskId}`,
+      message: `High/critical risk "${title}" with evidence gap`,
+      riskIds: [riskId],
+    }],
+    residualRisks: [],
+    humanReview: [],
+  };
 }
 
 function artifactRefFromHash(hash: ArtifactHash, revision?: string, adapter = "code-to-gate"): Record<string, unknown> {
@@ -233,6 +329,8 @@ function generateQegGateInput(
   const readinessRef = qegSourceRef("ctg:sr-readiness", "release-readiness.json", "readiness");
   const evidenceRef = qegSourceRef("ctg:sr-qeg-export", "qeg-code-to-gate.json", "QEG input");
   const inputArtifacts = artifactHashes.map((hash) => artifactRefFromHash(hash, commitSha));
+  const inputArtifactIds = inputArtifacts.map((artifact) => String(artifact.id));
+  const expectedGate = expectedQegGateResult(readiness.status, readinessRef, inputArtifactIds);
   const policy = {
     policyId: "qeg:policy-ctg-five-tool-001",
     policyHash,
@@ -244,7 +342,7 @@ function generateQegGateInput(
     exitCodePolicy: { go: 0, conditional_go: 2, no_go: 2, disqualified: 2 },
   };
   const metadata = {
-    qegVersion: "0.1",
+    qegVersion: "0.2",
     runId,
     createdAt: now,
     profile: "ipo_controlled",
@@ -275,7 +373,7 @@ function generateQegGateInput(
         priority: "P1",
         acceptanceCriteriaIds: ["ctg:ac-qeg-gate-input"],
         traceability: qegTrace(sourceRef),
-        sourceArtifactIds: inputArtifacts.map((artifact) => String(artifact.id)),
+        sourceArtifactIds: inputArtifactIds,
       },
       {
         id: "ctg:ac-qeg-gate-input",
@@ -284,7 +382,7 @@ function generateQegGateInput(
         requirementIds: ["ctg:req-five-tool-gate"],
         oracleRefs: [{ id: "ctg:ev-qeg-gate-input", path: "qeg-gate/gate-input.json", evidenceKind: "audit", capturedAt: now }],
         traceability: qegTrace(evidenceRef),
-        sourceArtifactIds: inputArtifacts.map((artifact) => String(artifact.id)),
+        sourceArtifactIds: inputArtifactIds,
       },
       {
         id: "ctg:finding-debt-summary",
@@ -294,7 +392,7 @@ function generateQegGateInput(
         ruleId: "RAW_FINDING_DEBT_VISIBLE",
         changedCodeIds: [],
         traceability: qegTrace(readinessRef),
-        sourceArtifactIds: inputArtifacts.map((artifact) => String(artifact.id)),
+        sourceArtifactIds: inputArtifactIds,
       },
       {
         id: "ctg:evidence-readiness",
@@ -303,8 +401,9 @@ function generateQegGateInput(
         evidenceRefs: [{ id: "ctg:ev-release-readiness", path: "release-readiness.json", evidenceKind: "audit", capturedAt: now, label: "release readiness" }],
         passed: readiness.status === "passed" || readiness.status === "passed_with_risk",
         traceability: qegTrace(readinessRef),
-        sourceArtifactIds: inputArtifacts.map((artifact) => String(artifact.id)),
+        sourceArtifactIds: inputArtifactIds,
       },
+      ...(expectedGate.risk ? [expectedGate.risk] : []),
     ],
     edges: [
       { id: "ctg:edge-ac-supports-requirement", kind: "satisfies", from: "ctg:ac-qeg-gate-input", to: "ctg:req-five-tool-gate", traceability: qegTrace(sourceRef) },
@@ -331,15 +430,7 @@ function generateQegGateInput(
       },
       gatePolicy: policy,
       waivers: [],
-      approvalEvidence: [{
-        id: "qeg:approval-ctg-five-tool",
-        policyId: policy.policyId,
-        policyHash,
-        evidencePackageHash,
-        approvedBy: "code-to-gate-maintainer",
-        approvedAt: now,
-        sourceRefs: [sourceRef],
-      }],
+      approvalEvidence: [],
       manualEvidence: [],
       retention: {
         retentionPeriod: "30 days",
@@ -353,7 +444,7 @@ function generateQegGateInput(
         storageClassification: "versioned",
       },
       sourceRefs: [sourceRef, readinessRef, evidenceRef],
-      phase: "release_decision",
+      phase: "pre_release_review",
       evidencePackageHash,
       controlRoles: {
         producer: "code-to-gate",
@@ -375,7 +466,7 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
   const exportScope = options.getOption(args, "--scope");
 
   if (!targetArg || !fromDir) {
-    console.error("usage: code-to-gate export <target> --from <dir> [--out <file>] [--schema-version v1|v1alpha1]");
+    console.error("usage: code-to-gate export <target> --from <dir> [--out <file>] [--schema-version v1|v1alpha1] [--scope <security|qeos-039-040>]");
     console.error(`supported targets: ${SUPPORTED_TARGETS.join(", ")}`);
     return options.EXIT.USAGE_ERROR;
   }
@@ -383,6 +474,12 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
   if (!SUPPORTED_TARGETS.includes(targetArg)) {
     console.error(`unsupported target: ${targetArg}`);
     console.error(`supported targets: ${SUPPORTED_TARGETS.join(", ")}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+
+  if (targetArg === "sarif" && exportScope && exportScope !== "security") {
+    console.error(`unsupported SARIF scope: ${exportScope}`);
+    console.error("supported SARIF scope: security");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -415,6 +512,7 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
   try {
     const findingsContent = readFileSync(findingsPath, "utf8");
     const findings: FindingsArtifact = JSON.parse(findingsContent);
+    const sarifFindings = selectSarifFindings(findings, exportScope);
 
     let output: unknown;
     let outputPath: string;
@@ -448,7 +546,7 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
         break;
 
       case "sarif":
-        output = generateSarif(findings);
+        output = generateSarif(sarifFindings);
         outputPath = outFile ?? path.join(artifactDir, "results.sarif");
         break;
 
@@ -568,24 +666,80 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
           artifactDir,
           resolveQegHeadSha()
         );
+        const expectedGate = expectedQegGateResult(
+          readiness.status,
+          qegSourceRef("ctg:sr-readiness", "release-readiness.json", "readiness"),
+          artifactHashes.map((hash) => String(artifactRefFromHash(hash, resolveQegHeadSha()).id))
+        );
         const gateDir = path.resolve(cwd, outFile ?? path.join(artifactDir, "qeg-gate"));
         if (!existsSync(gateDir)) {
           await import("node:fs").then(({ mkdirSync }) => mkdirSync(gateDir, { recursive: true }));
         }
         const gateInputPath = path.join(gateDir, "gate-input.json");
         const expectedVerdictPath = path.join(gateDir, "expected-gate-verdict.json");
-        writeFileSync(gateInputPath, JSON.stringify(gateInput, null, 2) + "\n", "utf8");
-        writeFileSync(expectedVerdictPath, JSON.stringify({
+        const expectedVerdict = {
           fixture: "code-to-gate-five-tool-qeg-gate",
-          description: "Generated Code-to-gate five-tool QEG fixture should validate and gate to go when readiness passed",
-          expectedVerdict: "go",
+          description: `Generated Code-to-gate five-tool QEG fixture reflects readiness status ${readiness.status}`,
+          expectedVerdict: expectedGate.verdict,
           expectedDisqualifications: [],
-          expectedBlockers: [],
-          expectedResidualRisks: [],
-          expectedHumanReview: [],
-          expectedExitCode: 0,
+          expectedBlockers: expectedGate.blockers,
+          expectedResidualRisks: expectedGate.residualRisks,
+          expectedHumanReview: expectedGate.humanReview,
+          expectedExitCode: expectedGate.exitCode,
           contractRef: "docs/specs/SPEC-30-five-tool-qeg-gate.md",
-        }, null, 2) + "\n", "utf8");
+        };
+        const gateRecord = gateInput as {
+          metadata: Record<string, unknown>;
+          graph: Record<string, unknown>;
+          placementPlan: Record<string, unknown>;
+          evidencePackage: {
+            qegOutputs: Record<string, Record<string, unknown>>;
+          };
+        };
+        const supportArtifacts = {
+          qegBundle: {
+            fileName: "qeg-bundle.json",
+            id: "qeg:qeg-ctg-five-tool",
+            kind: "quality_evidence_record",
+            value: gateRecord.graph,
+          },
+          testPlacementPlan: {
+            fileName: "placement-plan.json",
+            id: "qeg:tpp-ctg-five-tool",
+            kind: "test_model",
+            value: gateRecord.placementPlan,
+          },
+          gateVerdict: {
+            fileName: "producer-gate-expectation.json",
+            id: "qeg:gv-ctg-five-tool",
+            kind: "gate_decision",
+            value: expectedVerdict,
+          },
+          qualityEvidenceRecord: {
+            fileName: "pre-release-quality-record.json",
+            id: "qeg:qer-ctg-five-tool",
+            kind: "quality_evidence_record",
+            value: {
+              metadata: gateRecord.metadata,
+              phase: "pre_release_review",
+              readinessStatus: readiness.status,
+              note: "Producer-side pre-release evidence record; QEG owns the final verdict and record.",
+            },
+          },
+        } as const;
+        for (const [key, artifact] of Object.entries(supportArtifacts)) {
+          const content = qegJson(artifact.value);
+          writeFileSync(path.join(gateDir, artifact.fileName), content, "utf8");
+          gateRecord.evidencePackage.qegOutputs[key] = {
+            id: artifact.id,
+            adapter: "qeg-native",
+            kind: artifact.kind,
+            path: artifact.fileName,
+            contentHash: qegContentHash(content),
+          };
+        }
+        writeFileSync(gateInputPath, qegJson(gateInput), "utf8");
+        writeFileSync(expectedVerdictPath, qegJson(expectedVerdict), "utf8");
 
         console.log(
           JSON.stringify({
@@ -598,7 +752,7 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
               findings: findings.findings.length,
               readiness_status: readiness.status,
               artifact_hashes: artifactHashes.length,
-              expected_verdict: "go",
+              expected_verdict: expectedGate.verdict,
             },
           })
         );
@@ -652,9 +806,10 @@ export async function exportCommand(args: string[], options: ExportOptions): Pro
         input: path.relative(cwd, findingsPath),
         output: path.relative(cwd, absoluteOutputPath),
         summary: {
-          findings: findings.findings.length,
+          findings: targetArg === "sarif" ? sarifFindings.findings.length : findings.findings.length,
+          scope: targetArg === "sarif" ? exportScope : undefined,
           rules: targetArg === "sarif"
-            ? new Set(findings.findings.map((f) => f.ruleId)).size
+            ? new Set(sarifFindings.findings.map((f) => f.ruleId)).size
             : undefined,
         },
       })
