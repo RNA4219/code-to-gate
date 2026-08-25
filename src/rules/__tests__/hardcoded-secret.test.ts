@@ -91,7 +91,11 @@ describe("HARDCODED_SECRET_RULE", () => {
   });
 
   it("still detects a credential-shaped variable with a non-placeholder value", () => {
-    const content = 'const db_password = "q9X-7rV2-pL4-8mN6";';
+    const content = [
+      'const db_password = "',
+      "q9X-7rV2-pL4-8mN6",
+      '";',
+    ].join("");
     const findings = HARDCODED_SECRET_RULE.evaluate(createContext("src/config.ts", content));
 
     expect(findings).toHaveLength(1);
