@@ -19,10 +19,10 @@ Get started with code-to-gate in 5 minutes. This guide covers installation, firs
 
 ### Install
 
-**From GitHub** (primary method while npm publication is pending):
+**From the verified GitHub Release package** (npm registry publication is pending):
 
 ```bash
-npm install -g github:RNA4219/code-to-gate
+npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
 ```
 
 **Future npm path** after publication:
@@ -82,6 +82,11 @@ The `analyze` command runs full quality assessment:
 code-to-gate analyze ./my-repo --emit all --out .qh
 ```
 
+For a first run, this command is enough: it includes scanning and does not require
+an LLM provider or API key. Open `.qh/analysis-report.md` from your current working
+directory, check the evidence in `.qh/findings.json`, and use `.qh/test-seeds.json`
+to choose tests to implement and run. `readiness` is a separate step below.
+
 Output:
 ```
 {"tool":"code-to-gate","command":"analyze","exit_code":0,"status":"passed_with_risk","summary":"3 findings require review"}
@@ -109,11 +114,12 @@ Evaluate release readiness against policy:
 code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 ```
 
-The readiness status determines release eligibility:
+The readiness status records the policy result for the supplied evidence. It does
+not certify the absence of bugs or replace the final human release decision:
 
 | Status | Meaning | Action |
 |--------|---------|--------|
-| `passed` | No issues | Proceed with release |
+| `passed` | No policy blocker in the supplied evidence | Review alongside test results and release criteria |
 | `passed_with_risk` | Low-risk issues | Review recommended |
 | `needs_review` | High severity issues | Human review required |
 | `blocked_input` | Critical issues | Fix before release |
@@ -214,7 +220,9 @@ Each finding includes evidence for traceability:
 
 ## CI Usage
 
-Add code-to-gate to your GitHub Actions pipeline:
+Add code-to-gate to your GitHub Actions pipeline. First save a policy from the
+[Policy Guide](policy-guide.md) as `policy.yaml`, adapt it to your project, and
+commit it to the repository:
 
 ```yaml
 # .github/workflows/code-to-gate.yml
@@ -238,17 +246,14 @@ jobs:
           node-version: '20'
 
       - name: Install code-to-gate
-        run: npm install -g github:RNA4219/code-to-gate
+        run: npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
 
       - name: Run Analysis
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           code-to-gate analyze ./ \
+            --policy policy.yaml \
             --emit json,sarif \
-            --out .qh \
-            --llm-provider openai \
-            --llm-model gpt-4
+            --out .qh
 
       - name: Upload SARIF to GitHub
         uses: github/codeql-action/upload-sarif@v3
@@ -257,14 +262,7 @@ jobs:
 
       - name: Check Release Readiness
         run: |
-          status=$(jq -r '.status' .qh/release-readiness.json)
-          if [ "$status" = "blocked_input" ]; then
-            echo "::error::Release blocked due to critical findings"
-            exit 1
-          fi
-          if [ "$status" = "needs_review" ]; then
-            echo "::warning::High severity findings require review"
-          fi
+          code-to-gate readiness ./ --policy policy.yaml --from .qh --out .qh
 ```
 
 ### Key CI Features

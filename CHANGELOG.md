@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- 次回リリース向けの変更はありません。
+- 人間向けREADMEに用途別の案内、初回解析から結果を読む手順、利用上の限界を追加し、Quickstartの配布経路とCI例を同期した（[Task Seed 20260911-01](docs/tasks/20260911-01-human-readme.md)）。
 
 ## [1.6.0] - 2026-09-10 - 安定版品質証跡リリース
 

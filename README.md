@@ -20,6 +20,15 @@ or downstream approval gate.
 
 Language: English | [日本語](README_JA.md)
 
+## When to use code-to-gate
+
+| Situation | Start with | What to review or produce |
+|-----------|------------|---------------------------|
+| Before a PR | [`analyze`](docs/cli-reference.md#analyze) or [`diff`](docs/cli-reference.md#diff) | Review points and changed-scope evidence |
+| QA planning | [`analyze`](docs/cli-reference.md#analyze) | Candidate tests in `test-seeds.json` |
+| Before a release | [`analyze`](docs/cli-reference.md#analyze), then `readiness` | Policy evaluation in `release-readiness.json` |
+| CI result aggregation | [`import`](docs/cli-reference.md#import), then [`export`](docs/cli-reference.md#export) SARIF | Existing tool results and `results.sarif`; external tools are not run by these commands |
+
 ## Current Distribution Status
 
 | Channel | Status |
@@ -47,13 +56,44 @@ npm link
 The npm package name is reserved in docs as `@quality-harness/code-to-gate`, but
 registry publication has not been completed yet.
 
-## Quick Start
+## First run
+
+Replace `./my-repo` with the repository path you want to inspect, then run this
+one command:
 
 ```bash
-code-to-gate scan ./my-repo --out .qh
 code-to-gate analyze ./my-repo --emit all --out .qh
+```
+
+Then open `.qh/analysis-report.md` in your current working directory. Use
+`.qh/findings.json` to inspect each finding's path, line, and evidence, and use
+`.qh/test-seeds.json` to consider concrete tests. `analyze` includes the scan,
+so a separate `scan` is not required for this first run. It produces analysis
+artifacts; `readiness` is a separate command and creates the release-readiness
+result. LLM or account setup is optional for this first run.
+
+## Before a release
+
+Save the [Policy Example](#policy-example) as `policy.yaml`, then adapt it to
+your project before using it:
+
+```bash
+code-to-gate analyze ./my-repo --policy ./policy.yaml --emit all --out .qh
+code-to-gate readiness ./my-repo --policy ./policy.yaml --from .qh --out .qh
+```
+
+Open `.qh/release-readiness.json` and review its `status`, `summary`, and
+`recommendedActions`.
+
+## Additional commands
+
+These commands are optional; you do not need to run them all or run them in
+order.
+
+```bash
+# Optional graph-only scan
+code-to-gate scan ./my-repo --out .qh
 code-to-gate ownership --from .qh --out .qh
-code-to-gate readiness ./my-repo --policy policy.yaml --from .qh --out .qh
 code-to-gate spec-drift ./my-repo --out .qh
 code-to-gate test-plan --from .qh --out .qh
 code-to-gate pr-review --from .qh --out .qh
@@ -61,6 +101,20 @@ code-to-gate export sarif --from .qh --out results.sarif
 code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 code-to-gate viewer --from .qh --out public/index.html --hosted
 ```
+
+`import` consumes results that another tool has already produced; it does not
+execute that tool. Use the imported artifacts as input to the relevant export.
+
+## Limits and expectations
+
+Findings are review-required candidates and can include false positives. A
+successful `analyze` run, or a run with no findings, does not mean the code is
+bug-free or that a release is approved. `test-seeds.json` contains suggestions
+for tests; it does not run those tests. The product is primarily a CLI and file
+artifact workflow, rather than a GUI-centered tool.
+
+For common errors, see [Troubleshooting](docs/troubleshooting.md). For policy
+syntax and evaluation, see the [Policy Guide](docs/policy-guide.md).
 
 For database migration analysis (preview surface):
 

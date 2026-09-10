@@ -2,7 +2,7 @@
 intent_id: DOC-LEGACY
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-09-10
+last_reviewed_at: 2026-09-11
 next_review_due: 2026-10-10
 ---
 
@@ -76,7 +76,8 @@ next_review_due: YYYY-MM-DD
 - [20260910-10-precision-workbench](tasks/20260910-10-precision-workbench.md) — 精度レビュー操作画面
 - [20260910-11-severity-report](tasks/20260910-11-severity-report.md) — severity調整理由の表示
 - [20260910-12-release-1.6.0](tasks/20260910-12-release-1.6.0.md) — 1.6.0正式公開の承認・検収（GitHub Release・公開後検証完了）
+- [20260911-01-human-readme](tasks/20260911-01-human-readme.md) — 人間向けREADMEの用途・初回実行・結果の読み方
 
 ---
 
-更新日: 2026-09-10
+更新日: 2026-09-11

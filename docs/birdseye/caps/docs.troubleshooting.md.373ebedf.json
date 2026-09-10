@@ -1,14 +1,14 @@
 {
   "schema": "birdseye/cap/v1",
-  "id": "README_JA.md",
+  "id": "docs/troubleshooting.md",
   "role": "dependency",
-  "summary": "code-to-gate",
+  "summary": "code-to-gate Troubleshooting",
   "public_api": [],
   "deps_out": [],
   "deps_in": [
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "ba4c1daa6910050ca169bd8aea0ad5f135c75b48570eaf767319abbad6530da8",
+  "sourceHash": "69608dea9bbf762751cddcd8d16c9d731feaf67465e1d359df0e7b5ec75da461",
   "generation_id": "birdseye-7ff3bd3efb758004"
 }
