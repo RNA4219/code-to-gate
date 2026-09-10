@@ -66,8 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Task Seed: [01](docs/tasks/20260910-01-ledger-sync.md)、[02](docs/tasks/20260910-02-precision-review.md)、[03](docs/tasks/20260910-03-release-prep.md)、[04](docs/tasks/20260910-04-birdseye.md)、[05](docs/tasks/20260910-05-severity-tuning.md)。
 - 追加Task Seed: [07](docs/tasks/20260910-07-ci-maintenance.md)、[08](docs/tasks/20260910-08-run-identity.md)、[09](docs/tasks/20260910-09-diff-severity.md)、[10](docs/tasks/20260910-10-precision-workbench.md)、[11](docs/tasks/20260910-11-severity-report.md)、[12](docs/tasks/20260910-12-release-1.6.0.md)。
 - precision-reviewの実repo分類はAI案または未判定であり、実機の人手精度合格を主張しない。
-- GitHub Release、npm publish、tag、mergeなどの公開操作の状態は
-  [`docs/distribution-status.md`](docs/distribution-status.md)で管理する。
+- GitHub Release [v1.6.0](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0)とtagは公開済み。
+  npm publishの状態は[`docs/distribution-status.md`](docs/distribution-status.md)で管理する。
 
 ---
 

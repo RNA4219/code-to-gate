@@ -75,7 +75,7 @@ next_review_due: YYYY-MM-DD
 - [20260910-09-diff-severity](tasks/20260910-09-diff-severity.md) — diffへのseverity policy適用
 - [20260910-10-precision-workbench](tasks/20260910-10-precision-workbench.md) — 精度レビュー操作画面
 - [20260910-11-severity-report](tasks/20260910-11-severity-report.md) — severity調整理由の表示
-- [20260910-12-release-1.6.0](tasks/20260910-12-release-1.6.0.md) — 1.6.0正式公開の承認・検収（GitHub Release実行待ち）
+- [20260910-12-release-1.6.0](tasks/20260910-12-release-1.6.0.md) — 1.6.0正式公開の承認・検収（GitHub Release・公開後検証完了）
 
 ---
 

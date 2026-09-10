@@ -16,9 +16,9 @@ npm publication status.
 | Channel | Current State | Notes |
 |---------|---------------|-------|
 | `package.json` | `1.6.0` | GitHub release version; npm remains unpublished |
-| GitHub Release | `v1.6.0` | Release/tag prepared at [v1.6.0](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0); final publication confirmation pending |
+| GitHub Release | `v1.6.0` | Latest public release, published 2026-09-10 at [v1.6.0](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0); draft/prerelease false |
 | npm registry | Not published | `npm view @quality-harness/code-to-gate` returned `E404` on 2026-09-10 |
-| Recommended install | Pinned GitHub install | Use `npm install -g github:RNA4219/code-to-gate#v1.6.0` until npm publication is separately verified |
+| Recommended install | Public GitHub tgz | Use the `v1.6.0` release asset below |
 | Local npm auth | Not authenticated | `npm whoami` returned `E401` on 2026-09-10; this does not establish broader publish permissions |
 | CLI Docker image | Not distributed | Docker support currently covers plugin sandbox execution, not a public CLI image |
 | Prebuilt binaries | Not distributed | Windows/macOS/Linux standalone binaries are future scope |
@@ -26,8 +26,8 @@ npm publication status.
 ## Install Commands
 
 ```bash
-# Current recommended path, pinned to the release tag
-npm install -g github:RNA4219/code-to-gate#v1.6.0
+# Current recommended path: public release artifact
+npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
 
 # Future npm path after publication
 npm install -g @quality-harness/code-to-gate
@@ -37,24 +37,36 @@ npm install -g @quality-harness/code-to-gate
 
 | Item | v1.6.0 Status |
 |------|---------------------------------------|
-| Git tag | `v1.6.0` target: https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0 |
-| GitHub release | Prepared; final publication confirmation pending |
+| Git tag | `v1.6.0`, fixed to `0260825379a6698c5dab4ec5303dfecc8536a014` |
+| GitHub release | Published 2026-09-10 09:15:03Z; draft=false, prerelease=false |
 | npm package | Not published; E404 observed on 2026-09-10 |
 | Integrated revision | `a793d2f`; PR #20 reported 15 successful CI checks |
-| Verification record | [AC-20260910-14](acceptance/AC-20260910-14-ci-integration.md) |
+| Verification record | Integration: [AC-20260910-14](acceptance/AC-20260910-14-ci-integration.md); publication: [AC-20260910-15](acceptance/AC-20260910-15-release-1.6.0.md) |
+
+### Public release assets
+
+The release contains `quality-harness-code-to-gate-1.6.0.tgz`,
+`release-manifest.json`, `release-summary.json`, and `SHA256SUMS.txt`.
+All four downloaded asset hashes matched the local copies. The manifest's two
+recorded entries, the tgz and `release-summary.json`, matched their asset size
+and SHA-256 values. The tgz is 593104 bytes with SHA-256
+`371ce4789ee26893c5d0232ca98fe7253a7fa5b805ef1d8e0a14f0c8c3adb91a`.
+An isolated install and CLI 1.6.0, SDK, scan, and schema checks succeeded.
+The tag commit's [Release CI](https://github.com/RNA4219/code-to-gate/actions/runs/34458148628)
+and [Security CI](https://github.com/RNA4219/code-to-gate/actions/runs/34458148608)
+both succeeded. CI ZIP files are not public distribution assets.
 
 ## 1.6.0 Release Status
 
-`1.6.0` is prepared for the GitHub release/tag above, from integrated revision
-`a793d2f`. The final GitHub publication check remains with the release owner.
+`1.6.0` is the public GitHub release from integrated revision `a793d2f`.
 npm publication remains separate and unverified; no npm, binary, or Docker CLI
 distribution is claimed here.
 
 ## Release Notes Alignment
 
-`CHANGELOG.md` is the source for the `v1.6.0` release notes. GitHub/source
-installation is pinned to `v1.6.0`; npm remains unavailable until a maintainer
-publishes the package and records independent publication evidence.
+`CHANGELOG.md` is the source for the `v1.6.0` release notes. The public GitHub
+release asset is the supported install path; npm remains unavailable until a
+maintainer publishes the package and records independent publication evidence.
 
 ## Publication Evidence Policy
 
@@ -71,7 +83,7 @@ Until those commands are captured, npm remains `Not published`.
 
 ## Non-npm Distribution Scope
 
-Current public distribution is GitHub/source install first, then npm after
+Current public distribution is the GitHub release asset, then npm after
 publication. There is no supported `docker run code-to-gate/cli` image and no
 standalone prebuilt binary in the current release surface.
 

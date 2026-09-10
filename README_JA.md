@@ -16,17 +16,18 @@ finding は **review-required candidate** であり、確定済み脆弱性や�
 | チャネル | 状態 |
 |----------|------|
 | `package.json` | `1.6.0` GitHub公開版の対象 |
-| GitHub Release | `v1.6.0` の公開確認待ち |
+| GitHub Release | `v1.6.0` 公開済み（2026-09-10） |
 | npm registry | 未公開 |
 
 詳細は [Distribution Status](docs/distribution-status.md) を正本にします。
-`1.6.0` は次の GitHub release/tag 向けに準備済みです（最終公開確認待ち）。
-<https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0>。npm package は未公開のため、npm 公開が別途確認されるまでは固定した GitHub/source install を利用してください。
+`1.6.0` は [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0) として公開済みです。npm package は未公開です。
 
 ## インストール
 
 ```bash
-npm install -g github:RNA4219/code-to-gate#v1.6.0
+# 公開tgz（推奨）
+npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
+
 ```
 
 source から使う場合:
