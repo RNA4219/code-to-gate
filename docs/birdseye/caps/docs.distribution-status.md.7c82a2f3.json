@@ -6,9 +6,10 @@
   "public_api": [],
   "deps_out": [],
   "deps_in": [
+    "CHANGELOG.md",
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "4fc3ead79292686d3f77559224c953f93fa1aa68338ae7ed0f7e3f78c52eca8b",
-  "generation_id": "birdseye-45a42f759a1afea0"
+  "sourceHash": "bc4bf71621d533f84a7d7a02f30f7fe8924be055fa9d68ed3a63fcdea40e7b60",
+  "generation_id": "birdseye-6cd918ecc76a8baf"
 }

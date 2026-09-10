@@ -15,17 +15,18 @@ finding は **review-required candidate** であり、確定済み脆弱性や�
 
 | チャネル | 状態 |
 |----------|------|
-| `package.json` | `1.6.0` 開発候補（ローカル、未公開） |
-| GitHub Release | 公開済み最新は `v1.5.1` |
+| `package.json` | `1.6.0` GitHub公開版の対象 |
+| GitHub Release | `v1.6.0` の公開確認待ち |
 | npm registry | 未公開 |
 
 詳細は [Distribution Status](docs/distribution-status.md) を正本にします。
-`1.6.0` はローカル準備中の開発候補です。公開済み GitHub Release の最新は `v1.5.1` のままで、npm package は未公開です。明示的なリリースと npm publish が完了するまでは GitHub/source install を利用してください。
+`1.6.0` は次の GitHub release/tag 向けに準備済みです（最終公開確認待ち）。
+<https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0>。npm package は未公開のため、npm 公開が別途確認されるまでは固定した GitHub/source install を利用してください。
 
 ## インストール
 
 ```bash
-npm install -g github:RNA4219/code-to-gate
+npm install -g github:RNA4219/code-to-gate#v1.6.0
 ```
 
 source から使う場合:

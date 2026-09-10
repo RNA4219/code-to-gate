@@ -9,71 +9,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- CIのdiff/readiness policy接続、PATH入力判定の誤検知、Birdseyeのリンク先境界を修正し、
-  js-yaml 4.3.2とVitest 4.1.11へ更新した
-  ([AC-20260910-14](docs/acceptance/AC-20260910-14-ci-integration.md))。
-- マージ前レビューで、ポリシー検証エラー時の停止、引用・数値・`release-risk`キーの解釈、
-  レビュー用スクリプトの入力保護、importデータのrepo外からのコード表示を修正した
-  ([AC-20260910-13](docs/acceptance/AC-20260910-13-premerge-review.md))。
-- `diff --policy`にseverity調整と対応policy設定の厳密な検証を追加。
-  raw/effective成果物、件数、audit、終了判定を同じ評価結果へ統一した
-  ([20260910-09](docs/tasks/20260910-09-diff-severity.md))。
-- `precision-review`でローカルのレビューHTMLを生成できるようにした。
-  根拠コード、絞り込み、分類・コメント、JSON保存と再開を提供し、
-  AIレビューと人手レビューの区別を保持する
-  ([20260910-10](docs/tasks/20260910-10-precision-workbench.md))。
-- MarkdownとHTML Viewerへ重大度の元値・適用値・調整理由を追加。
-  Viewerのpublic profileでは追加詳細を省き、表示用スクリプトの本文露出も修正した
-  ([20260910-11](docs/tasks/20260910-11-severity-report.md))。
-- 追加5件の統合検証を
-  [AC-20260910-12](docs/acceptance/AC-20260910-12-follow-up.md)へ記録する。
-  配布パッケージの検証には、新規レビューCLIとdiff policyの実行を含める。
-- Made independent runtime IDs collision-resistant while preserving inherited
-  artifact IDs and agent request reuse. Graph cache hits refresh run metadata
-  without changing cached source identity
-  ([20260910-08](docs/tasks/20260910-08-run-identity.md)).
-- Connected maintenance tests, Birdseye freshness, strict roadmap completion,
-  and document references to the PR coverage and Release analyze jobs.
-  Birdseye normalizes source line endings so Windows and Linux agree
-  ([20260910-07](docs/tasks/20260910-07-ci-maintenance.md)).
-- Prepared the local `1.6.0` candidate with roadmap-ledger drift checks, the
-  precision-review evidence path, and maintenance Node tests in the npm test
-  entrypoint; human adjudication and final release gates remain pending.
-- Implemented optional per-rule severity overrides with selector validation,
-  original/effective severity evidence, and cross-surface policy evaluation.
-  Targeted analyze/readiness/baseline and schema regression checks pass; this is
-  still an unreleased candidate feature.
-- Implemented deterministic Birdseye index/capsule generation and drift checks;
-  the real-repo run passed. The candidate remains unpublished pending candidate
-  review and release approval.
-- Task Seed entries for this preparation are tracked in
-  [20260910-01](docs/tasks/20260910-01-ledger-sync.md),
-  [20260910-02](docs/tasks/20260910-02-precision-review.md),
-  [20260910-03](docs/tasks/20260910-03-release-prep.md), and
-  [20260910-04](docs/tasks/20260910-04-birdseye.md), plus
-  [20260910-05](docs/tasks/20260910-05-severity-tuning.md); their
-  implementation, review, and final integration states remain distinct.
-- The earlier maintenance batch's full-test integration result is routed to
-  [AC-20260910-06-maintenance](docs/acceptance/AC-20260910-06-maintenance.md).
-- Fixed rule precision for literal-aware debt comments, secret assignment binding,
-  router-anchored rate-limit checks, SQL keyword boundaries, and AST-based
-  JavaScript/TypeScript function counts. `fs.existsSync` is no longer reported
-  as deprecated, and `Buffer()` no longer matches `ArrayBuffer` variants.
-- Added policy-backed `LARGE_MODULE` thresholds and made count thresholds apply
-  only to effective, non-suppressed, non-baselined findings at severities that
-  are explicitly blocking. Explicit policies no longer inherit undeclared count
-  caps from the built-in default policy.
-- Fixed `qeg-gate-input` to emit the QEG 0.2 wire contract, stop synthesizing
-  release approval evidence, and map non-passing readiness to source-backed
-  conditional/no-go expectations. Generated QEG output references now point to
-  real hash-backed pre-release artifacts instead of missing future outputs.
-- Excluded common Python tool caches and repository-local generated output
-  directories from bounded repository discovery so ignored runtime evidence
-  does not incorrectly downgrade source analysis to partial.
-- Updated vulnerable direct and transitive dependencies in the root package and
-  demo fixtures so their audited installs report no known vulnerabilities.
-- Added `export sarif --scope security` and limited GitHub Code Scanning uploads
-  to security-relevant categories while retaining the full SARIF artifact.
+- 次回リリース向けの変更はありません。
+
+## [1.6.0] - 2026-09-10 - 安定版品質証跡リリース
+
+### 追加
+
+- 公開 `ctg/v1` artifact APIとの互換性を保ったまま、順序付き任意
+  `severity_overrides` policyを追加した。selectorの検証、元severityと適用後severity、
+  理由の証跡を持ち、analyze/readiness/baselineとpolicy評価で同じ結果を使う。
+- `precision-review`のprivate運用JSONとローカルHTML画面を追加した。根拠コード、検索・分類、
+  日本語コメント、JSON保存・再開に対応し、AI reviewerと人手 reviewerを区別する。
+  AI案や未判定を人手精度の合格根拠として扱わない。
+- run ID生成を独立実行ごとに衝突しにくくし、継承artifact IDとagent requestの再利用を維持した。
+  graph cache hitではsource identityを変えず実行metadataを更新する。
+- 決定的なBirdseye index/capsule生成とdrift check、roadmap台帳の完了・参照検査、
+  maintenance testをCIのPR coverageとRelease analyzeへ接続した。
+- `diff --policy`のseverity調整を追加し、raw/effective findings、件数、audit、終了判定を
+  同じpolicy評価へ統一した。
+
+### 改善・修正
+
+- MarkdownとHTML Viewerに元severity、適用severity、調整理由を表示し、public profileでは
+  privateな追加詳細を公開しない。表示用scriptへの本文露出も修正した。
+- policy入力の引用・数値・`release-risk`解釈を厳密化し、不正policyはfail closedとした。
+  precision-reviewの入力・出力保護、import artifactのrepo binding、既存出力の上書き防止を強化した。
+- PATH入力の誤検知を修正し、Birdseyeのsource/testリンクが指定root外へ出ないことを確認する。
+  コード取得ではUTF-8 bytes上限を明示検査し、成功結果でも上限超過本文を表示しない。
+- js-yamlを4.3.2、Vitest/coverage-v8を4.1.11へ更新し、root `fast-uri`を3.1.7、
+  demo fixtureの`qs`を6.16.0へ更新した。
+
+### セキュリティ・証跡（PR #17以降）
+
+- v1.5.1から継続するSemgrep/Gitleaksの固定metadata、CycloneDX SBOM、golden regressionを
+  release gateとして検証し、scanner provenanceとhigh/critical npm auditの確認を維持する。
+- evidence bundleの抽出先外path、Windows traversal、正規化後衝突を拒否し、Docker commandを
+  argvで実行する。timeout時はplugin process treeを終了する。
+- rule precision、LARGE_MODULE/count threshold、QEG 0.2 wire contract、security scope付き
+  SARIF export、生成済みhash-backed artifact参照を修正した。Python cacheとrepo内生成物は
+  bounded discoveryから除外する。
+
+### 検証
+
+- PR #20の最終CI 15 checksは成功した。現main `a793d2f`のRelease Readiness run
+  `34429572590`とSecurity run `34429572444`も成功した。
+- 全体テストは3,814 passed + 4 skipped。UTF-8上限修正のsource対象は6 testsで成功し、
+  最終coverageは1,860 passed + 4 skipped、Statements 88.82%、Branches 80.67%、
+  Functions 94.69%、Lines 89.80%だった。
+- 配布package smoke、schema・dependency検証、Birdseye生成/check、実ブラウザのprecision-review
+  操作を確認した。統合記録は[AC-20260910-12](docs/acceptance/AC-20260910-12-follow-up.md)、
+  CI統合の詳細は[AC-20260910-14](docs/acceptance/AC-20260910-14-ci-integration.md)に記録する。
+
+### 公開範囲
+
+- [詳細なリリースノート](docs/releases/v1.6.0.md)と[公開検収・承認記録](docs/acceptance/AC-20260910-15-release-1.6.0.md)を参照。
+- Task Seed: [01](docs/tasks/20260910-01-ledger-sync.md)、[02](docs/tasks/20260910-02-precision-review.md)、[03](docs/tasks/20260910-03-release-prep.md)、[04](docs/tasks/20260910-04-birdseye.md)、[05](docs/tasks/20260910-05-severity-tuning.md)。
+- 追加Task Seed: [07](docs/tasks/20260910-07-ci-maintenance.md)、[08](docs/tasks/20260910-08-run-identity.md)、[09](docs/tasks/20260910-09-diff-severity.md)、[10](docs/tasks/20260910-10-precision-workbench.md)、[11](docs/tasks/20260910-11-severity-report.md)、[12](docs/tasks/20260910-12-release-1.6.0.md)。
+- precision-reviewの実repo分類はAI案または未判定であり、実機の人手精度合格を主張しない。
+- GitHub Release、npm publish、tag、mergeなどの公開操作の状態は
+  [`docs/distribution-status.md`](docs/distribution-status.md)で管理する。
 
 ---
 

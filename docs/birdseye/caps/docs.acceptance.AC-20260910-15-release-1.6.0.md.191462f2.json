@@ -1,14 +1,14 @@
 {
   "schema": "birdseye/cap/v1",
-  "id": "docs/tasks/20260910-09-diff-severity.md",
+  "id": "docs/acceptance/AC-20260910-15-release-1.6.0.md",
   "role": "dependency",
-  "summary": "diffへのseverity policy適用",
+  "summary": "1.6.0正式公開の承認・検収",
   "public_api": [],
   "deps_out": [],
   "deps_in": [
     "CHANGELOG.md"
   ],
   "tests": [],
-  "sourceHash": "aa3dd0e0c6be22bc66bbbcb03932e5cbed1b8c571bd7c178fe79be2355b2338f",
+  "sourceHash": "5c116fbd97b26a5afe4ca158dbfe7619220b43254ee860978b17ecad87ef65bf",
   "generation_id": "birdseye-6cd918ecc76a8baf"
 }

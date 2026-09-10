@@ -15,19 +15,19 @@ npm publication status.
 
 | Channel | Current State | Notes |
 |---------|---------------|-------|
-| `package.json` | `1.6.0` | Local development candidate; not released or published |
-| GitHub Release | `v1.5.1` | Latest published release, 2026-07-22 |
-| npm registry | Not published | Historical check: `npm view @quality-harness/code-to-gate` returned `E404` on 2026-07-12; not rechecked in this update |
-| Recommended install | GitHub install | Use `npm install -g github:RNA4219/code-to-gate` until npm publish is complete |
-| Local npm auth | Not authenticated | Historical check on 2026-07-12: `npm whoami` returned `ENEEDAUTH`; not rechecked in this update |
+| `package.json` | `1.6.0` | GitHub release version; npm remains unpublished |
+| GitHub Release | `v1.6.0` | Release/tag prepared at [v1.6.0](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0); final publication confirmation pending |
+| npm registry | Not published | `npm view @quality-harness/code-to-gate` returned `E404` on 2026-09-10 |
+| Recommended install | Pinned GitHub install | Use `npm install -g github:RNA4219/code-to-gate#v1.6.0` until npm publication is separately verified |
+| Local npm auth | Not authenticated | `npm whoami` returned `E401` on 2026-09-10; this does not establish broader publish permissions |
 | CLI Docker image | Not distributed | Docker support currently covers plugin sandbox execution, not a public CLI image |
 | Prebuilt binaries | Not distributed | Windows/macOS/Linux standalone binaries are future scope |
 
 ## Install Commands
 
 ```bash
-# Current recommended path
-npm install -g github:RNA4219/code-to-gate
+# Current recommended path, pinned to the release tag
+npm install -g github:RNA4219/code-to-gate#v1.6.0
 
 # Future npm path after publication
 npm install -g @quality-harness/code-to-gate
@@ -35,32 +35,33 @@ npm install -g @quality-harness/code-to-gate
 
 ## Release Alignment
 
-| Item | v1.5.1 Status |
+| Item | v1.6.0 Status |
 |------|---------------------------------------|
-| Git tag | `v1.5.1` created and pushed |
-| GitHub release | Published with notes based on `CHANGELOG.md` |
-| npm package | Pending `npm login` and `npm publish --access public` |
-| Package integrity | Passed before release; CI records the integrity artifact |
-| Docs | README, Release Approval Record, CHANGELOG, and this file synchronized |
+| Git tag | `v1.6.0` target: https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0 |
+| GitHub release | Prepared; final publication confirmation pending |
+| npm package | Not published; E404 observed on 2026-09-10 |
+| Integrated revision | `a793d2f`; PR #20 reported 15 successful CI checks |
+| Verification record | [AC-20260910-14](acceptance/AC-20260910-14-ci-integration.md) |
 
-## Next Candidate (Unreleased)
+## 1.6.0 Release Status
 
-`1.6.0` is prepared locally as a candidate version. It has no Git tag, GitHub
-Release, npm publication, merge, or release approval record. Optional per-rule
-severity and Birdseye index/capsule repair are implemented, targeted validation
-and the final full test are complete. Candidate review and publication remain
-separate gates.
+`1.6.0` is prepared for the GitHub release/tag above, from integrated revision
+`a793d2f`. The final GitHub publication check remains with the release owner.
+npm publication remains separate and unverified; no npm, binary, or Docker CLI
+distribution is claimed here.
 
 ## Release Notes Alignment
 
-`CHANGELOG.md` is the source for the published `v1.5.1` release notes. GitHub
-and source installation now provide `v1.5.1`; npm remains unavailable until a
-maintainer publishes the package after authenticating to npm.
+`CHANGELOG.md` is the source for the `v1.6.0` release notes. GitHub/source
+installation is pinned to `v1.6.0`; npm remains unavailable until a maintainer
+publishes the package and records independent publication evidence.
 
 ## Publication Evidence Policy
 
-No npm publication has been performed for the current `1.6.0` candidate. If npm publication is
-performed, the release evidence bundle must include:
+No npm publication has been performed for `1.6.0`. On 2026-09-10, `npm view
+@quality-harness/code-to-gate` returned `E404` and `npm whoami` returned `E401`.
+These results do not establish broader publish permissions. If npm publication
+is performed, the release evidence bundle must include:
 
 - `npm whoami`
 - `npm publish --access public`
@@ -78,11 +79,12 @@ standalone prebuilt binary in the current release surface.
 - Prebuilt binary support: future scope; require packaging, signing, checksum,
   and platform smoke-test evidence before being documented as an install path.
 
-## npm Publication Blocker
+## npm Publication Status
 
 The package name `@quality-harness/code-to-gate` is not currently visible on
-the public npm registry. Publication is blocked only by local npm
-authentication on this machine:
+the public npm registry. The local authentication check returned `E401` on
+2026-09-10; npm remains `Not published` until a successful publish and view
+check are recorded:
 
 ```bash
 npm login

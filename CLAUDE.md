@@ -8,9 +8,9 @@ code-to-gate is a local-first quality harness CLI tool that analyzes repositorie
 **Node**: 20+
 **Framework**: Vitest for testing, ts-morph for AST parsing
 **Package**: `@quality-harness/code-to-gate`
-**Current package version**: `1.6.0` (local development candidate; unpublished)
-**Latest GitHub release**: `v1.5.1` (published 2026-07-22)
-**npm registry**: not published according to `docs/distribution-status.md`; npm publication evidence is still pending
+**Current package version**: `1.6.0` (GitHub release version)
+**GitHub release**: `v1.6.0` ([tag](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0)); final publication confirmation is pending
+**npm registry**: not published; `npm view` returned E404 and `npm whoami` returned E401 on 2026-09-10. These checks do not establish broader publish permissions.
 
 ## Key Commands
 
@@ -113,7 +113,7 @@ it does not establish human precision. Birdseye maintenance is tracked in
 to final repository generation and check.
 
 追加5件（CI接続、実行ID、diff policy、精度レビュー画面、severity理由表示）は
-[`AC-20260910-12`](docs/acceptance/AC-20260910-12-follow-up.md)で統合検証する。
+[`AC-20260910-14`](docs/acceptance/AC-20260910-14-ci-integration.md)に統合検証結果を記録する。
 `diff --policy`の対応項目は[Severity tuning](docs/severity-tuning.md)、
 `precision-review --from ... --review ... --out review.html`の操作は
 [精度レビュー運用](docs/precision-review.md)を参照する。

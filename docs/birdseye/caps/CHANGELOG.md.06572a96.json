@@ -5,10 +5,11 @@
   "summary": "code-to-gate CHANGELOG",
   "public_api": [],
   "deps_out": [
-    "docs/acceptance/AC-20260910-06-maintenance.md",
     "docs/acceptance/AC-20260910-12-follow-up.md",
-    "docs/acceptance/AC-20260910-13-premerge-review.md",
     "docs/acceptance/AC-20260910-14-ci-integration.md",
+    "docs/acceptance/AC-20260910-15-release-1.6.0.md",
+    "docs/distribution-status.md",
+    "docs/releases/v1.6.0.md",
     "docs/tasks/20260910-01-ledger-sync.md",
     "docs/tasks/20260910-02-precision-review.md",
     "docs/tasks/20260910-03-release-prep.md",
@@ -18,13 +19,14 @@
     "docs/tasks/20260910-08-run-identity.md",
     "docs/tasks/20260910-09-diff-severity.md",
     "docs/tasks/20260910-10-precision-workbench.md",
-    "docs/tasks/20260910-11-severity-report.md"
+    "docs/tasks/20260910-11-severity-report.md",
+    "docs/tasks/20260910-12-release-1.6.0.md"
   ],
   "deps_in": [
     "CHECKLISTS.md",
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "55d9cd5704f63ae7bbfe608f3b3bc336cfe1b7c8912520b160e59c38fd44a0d7",
-  "generation_id": "birdseye-45a42f759a1afea0"
+  "sourceHash": "f58fab273483ec277998727394e6a75cf600e5235322d7e278bb360c956ccf81",
+  "generation_id": "birdseye-6cd918ecc76a8baf"
 }
