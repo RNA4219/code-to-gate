@@ -1,8 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appendFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { collectPrecisionCode, PRECISION_SOURCE_LIMITS } from "../precision-review-source.js";
 import { createPrecisionWorkbenchFixture } from "./precision-review-fixture.js";
+
+const childProcessMock = vi.hoisted(() => ({
+  spawnSync: vi.fn(),
+  realSpawnSync: undefined as unknown as typeof import("node:child_process").spawnSync,
+}));
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  childProcessMock.realSpawnSync = actual.spawnSync;
+  return { ...actual, spawnSync: childProcessMock.spawnSync };
+});
+
+beforeEach(() => {
+  childProcessMock.spawnSync.mockImplementation((...args: any[]) => childProcessMock.realSpawnSync(...(args as Parameters<typeof childProcessMock.realSpawnSync>)));
+});
+afterEach(() => {
+  childProcessMock.spawnSync.mockReset();
+});
 
 describe("precision-review source", () => {
   it("retrieves requested ranges from an older bound commit and caps snippets", () => {
@@ -71,5 +88,24 @@ describe("precision-review source", () => {
       const oversize = { ...fixture.findings, findings: [{ ...fixture.findings.findings[0], evidence: [{ id: "oversize", kind: "text" as const, path: "oversize.js", startLine: 1, endLine: 1 }] }] };
       expect(collectPrecisionCode(oversize, fixture.review, fixture.repoPath).get("fixture-1")?.[0].status).toBe("unavailable");
     } finally { fixture.cleanup(); }
+  });
+
+  it("checks UTF-8 bytes even when a successful git show result exceeds the limit", () => {
+    const fixture = createPrecisionWorkbenchFixture();
+    try {
+      const exact = "日".repeat(Math.floor(PRECISION_SOURCE_LIMITS.maxFileBytes / 3)) + "x".repeat(PRECISION_SOURCE_LIMITS.maxFileBytes % 3);
+      expect(Buffer.byteLength(exact, "utf8")).toBe(PRECISION_SOURCE_LIMITS.maxFileBytes);
+      let output = exact;
+      childProcessMock.spawnSync.mockImplementation((command: string, args: readonly string[], options: object) => {
+        if (Array.isArray(args) && args.includes("show")) return { status: 0, stdout: output, stderr: "" };
+        return childProcessMock.realSpawnSync(command, args, options as never);
+      });
+      const oneLineFindings = { ...fixture.findings, findings: fixture.findings.findings.map((finding, index) => index === 0 ? { ...finding, evidence: [{ ...finding.evidence[0], startLine: 1, endLine: 1 }] } : finding) };
+      const exactResult = collectPrecisionCode(oneLineFindings, fixture.review, fixture.repoPath).get("fixture-1")?.[0];
+      expect(exactResult?.status).toBe("available");
+      output = `${exact}a`;
+      const oversized = collectPrecisionCode(oneLineFindings, fixture.review, fixture.repoPath).get("fixture-1")?.[0];
+      expect(oversized?.status).toBe("unavailable"); expect(oversized?.content).toBeUndefined(); expect(oversized?.reason).toContain("bytes");
+    } finally { vi.restoreAllMocks(); fixture.cleanup(); }
   });
 });

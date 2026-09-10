@@ -60,7 +60,9 @@ function readAtCommit(repoPath: string, fullSha: string, relativePath: string): 
     maxBuffer: PRECISION_SOURCE_LIMITS.maxFileBytes,
   });
   if (result.status !== 0) return { status: "unavailable", path: relativePath, reason: result.error ? "コード取得がtimeoutまたは上限超過です" : "対象commitからコードを取得できません", bytes: 0 };
-  return { status: "available", path: relativePath, content: result.stdout, bytes: Buffer.byteLength(result.stdout, "utf8") };
+  const bytes = Buffer.byteLength(result.stdout, "utf8");
+  if (bytes > PRECISION_SOURCE_LIMITS.maxFileBytes) return { status: "unavailable", path: relativePath, reason: "ファイルbytes上限を超えるためコードを表示しません", bytes };
+  return { status: "available", path: relativePath, content: result.stdout, bytes };
 }
 
 function snippetFor(file: LoadedCodeFile, evidence: { startLine?: number; endLine?: number }): PrecisionCodeSnippet {
