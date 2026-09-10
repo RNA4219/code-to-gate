@@ -1,0 +1,29 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/core/repo-graph-builder.ts",
+  "role": "dependency",
+  "summary": "BuildGraphOptions, addGraphClassifications, addGraphEntrypoint, addPartialGraphDiagnostic の公開API",
+  "public_api": [
+    "BuildGraphOptions",
+    "addGraphClassifications",
+    "addGraphEntrypoint",
+    "addPartialGraphDiagnostic",
+    "buildGraph",
+    "clearGraphCache",
+    "clearParseCache",
+    "createEmptyRepoGraph",
+    "discoverGraphFiles",
+    "discoverGraphFilesBounded",
+    "isGraphTargetFile"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/scan.ts"
+  ],
+  "tests": [
+    "src/core/__tests__/repo-graph-builder.test.ts"
+  ],
+  "sourceHash": "e8acb1e7136dd7c5ecafa6faa49066af7897788cc87f24950e47dbeb78911f0e",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

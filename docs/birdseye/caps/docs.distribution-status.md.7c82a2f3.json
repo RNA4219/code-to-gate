@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/distribution-status.md",
+  "role": "dependency",
+  "summary": "Distribution Status",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "4fc3ead79292686d3f77559224c953f93fa1aa68338ae7ed0f7e3f78c52eca8b",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

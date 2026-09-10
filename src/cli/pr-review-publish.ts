@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { createGitHubClientFromEnv, type GitHubApiClient, type GitHubRateLimit } from "../github/api-client.js";
 import type { GitHubAppHealthArtifact } from "../types/artifacts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
 
@@ -165,7 +166,7 @@ function createHealthArtifact(params: {
   return {
     version: "ctg/v1",
     generated_at: params.generatedAt,
-    run_id: params.runId ?? `github-app-health-${params.generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: params.runId ?? createUniqueRunId("github-app-health", { timestamp: params.generatedAt }),
     repo: { root: "." },
     tool: { name: "code-to-gate", version: params.version, plugin_versions: [] },
     artifact: "github-app-health",

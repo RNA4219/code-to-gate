@@ -1,0 +1,34 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/config/policy-evaluator.ts",
+  "role": "config",
+  "summary": "CATEGORY_MAP, FailedCondition, PolicyEvaluationContext, PolicyEvaluationResult の公開API",
+  "public_api": [
+    "CATEGORY_MAP",
+    "FailedCondition",
+    "PolicyEvaluationContext",
+    "PolicyEvaluationResult",
+    "ReadinessStatus",
+    "evaluatePolicy",
+    "generateBlockingSummary",
+    "generateEvaluationSummary",
+    "getExitCode",
+    "getStatusMessage",
+    "isBlockingStatus",
+    "isCategoryBlocked"
+  ],
+  "deps_out": [
+    "src/config/policy-loader.ts",
+    "src/config/severity-resolver.ts",
+    "src/types/artifacts.ts"
+  ],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts"
+  ],
+  "tests": [
+    "src/config/__tests__/policy-evaluator.test.ts"
+  ],
+  "sourceHash": "d1f2af4eb202dcdd9eb20db6f2fc47810f23f5ce47e1a9d927635434701c00fa",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/integrations.md",
+  "role": "dependency",
+  "summary": "code-to-gate Integration Contracts",
+  "public_api": [
+    "GatefieldStaticResult",
+    "ManualBbSeed",
+    "StateGateEvidence",
+    "WorkflowEvidence"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "39d4398638ba48974e034db741619449581e498c8fbfecde15970b819a52cddb",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

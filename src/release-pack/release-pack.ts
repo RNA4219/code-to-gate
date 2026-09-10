@@ -5,6 +5,7 @@ import path from "node:path";
 import { createZipEntry, createZipFile } from "../evidence/zip-utils.js";
 import type { RedactionProfile, ReleasePackArtifact, ReleasePackEntry } from "../types/artifacts.js";
 import { createRedactionProfile, createRedactionSummary } from "../redaction/redaction-profile.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 export interface ReleasePackOptions {
   version: string;
@@ -517,12 +518,12 @@ function baseHeader(fromDir: string): { runId: string; repoRoot: string; generat
     if (!parsed) continue;
     const repo = parsed.repo as Record<string, unknown> | undefined;
     return {
-      runId: typeof parsed.run_id === "string" ? parsed.run_id : `release-pack-${Date.now()}`,
+      runId: typeof parsed.run_id === "string" ? parsed.run_id : createUniqueRunId("release-pack"),
       repoRoot: typeof repo?.root === "string" ? repo.root : process.cwd(),
       generatedAt: typeof parsed.generated_at === "string" ? parsed.generated_at : undefined,
     };
   }
-  return { runId: `release-pack-${Date.now()}`, repoRoot: process.cwd() };
+  return { runId: createUniqueRunId("release-pack"), repoRoot: process.cwd() };
 }
 
 export function createReleasePack(options: ReleasePackOptions): ReleasePackResult {

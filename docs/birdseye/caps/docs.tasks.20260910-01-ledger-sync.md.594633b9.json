@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-01-ledger-sync.md",
+  "role": "dependency",
+  "summary": "改修台帳・文書同期",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "94bb31f87e5afbe72d2f09703c5c3b84fc4245228e7d073afc7a0295680f3b50",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

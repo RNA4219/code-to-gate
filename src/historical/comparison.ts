@@ -26,6 +26,7 @@ import {
 } from "../types/artifacts.js";
 import { detectRegressions, RegressionConfig } from "./regression.js";
 import { buildFingerprintLookupMap } from "../utils/fingerprint.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import {
   buildFindingLookupMap,
   takeNextFinding,
@@ -471,7 +472,7 @@ export function generateHistoricalReport(
   trendHistory?: RiskTrendPoint[]
 ): HistoricalSummaryReport {
   const now = new Date().toISOString();
-  const runId = `historical-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
+  const runId = createUniqueRunId("historical", { timestamp: now });
 
   const riskTrends = analyzeRiskTrends(findingsComparison, readinessComparison, trendHistory);
   const qualitySlo = buildQualitySloSummary(findingsComparison, readinessComparison, trendHistory);

@@ -152,7 +152,8 @@ export function validateRequiredArgs(
 }
 
 /**
- * Generate a unique run ID from timestamp
+ * Generate a legacy timestamp label; this pure helper is not collision-resistant.
+ * Independent runtime executions use createUniqueRunId from utils/run-id instead.
  * @param timestamp - ISO timestamp string
  * @returns Run ID string (e.g., "ctg-202604301234")
  */

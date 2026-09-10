@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/llm/providers/index.ts",
+  "role": "dependency",
+  "summary": "createAutoProvider, createProvider, createProviderWithFallback, providerFactories の公開API",
+  "public_api": [
+    "createAutoProvider",
+    "createProvider",
+    "createProviderWithFallback",
+    "providerFactories"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [],
+  "sourceHash": "e49b33a184bd46c2fe4a999d151377fcecf0ae1e1add354fd6c7580770cb3921",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

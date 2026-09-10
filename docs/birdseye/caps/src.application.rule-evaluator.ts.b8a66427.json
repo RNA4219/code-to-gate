@@ -1,0 +1,20 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/application/rule-evaluator.ts",
+  "role": "dependency",
+  "summary": "clearFileContentCache, createFindingsHeader, evaluateRules の公開API",
+  "public_api": [
+    "clearFileContentCache",
+    "createFindingsHeader",
+    "evaluateRules"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/application/__tests__/rule-evaluator.test.ts"
+  ],
+  "sourceHash": "4d73e84f57d825045d671f3a3dff2eef2f340cb1915f09d0371ed755c4dfce9f",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -6,6 +6,29 @@
   "type": "object",
   "required": ["version", "policy_id", "blocking", "confidence"],
   "additionalProperties": false,
+  "not": { "required": ["severity_overrides", "severityOverrides"] },
+  "$defs": {
+    "severityOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "reason"],
+      "anyOf": [
+        { "required": ["rule_id"] },
+        { "required": ["ruleId"] },
+        { "required": ["path"] },
+        { "required": ["category"] }
+      ],
+      "not": { "required": ["rule_id", "ruleId"] },
+      "properties": {
+        "rule_id": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "ruleId": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "path": { "type": "string", "pattern": "^(?!\\s)(?!.*\\s$)(?!!).+$" },
+        "category": { "enum": ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"] },
+        "severity": { "enum": ["critical", "high", "medium", "low"] },
+        "reason": { "type": "string", "minLength": 1, "pattern": "\\S" }
+      }
+    }
+  },
   "properties": {
     "version": {
       "type": "string",
@@ -201,6 +224,16 @@
           }
         }
       }
+    },
+    "severity_overrides": {
+      "type": "array",
+      "description": "Ordered severity overrides; the first matching entry wins",
+      "items": { "$ref": "#/$defs/severityOverride" }
+    },
+    "severityOverrides": {
+      "type": "array",
+      "description": "Camel case alias for severity_overrides",
+      "items": { "$ref": "#/$defs/severityOverride" }
     }
   }
 }

@@ -1,0 +1,22 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/py-tree-sitter-adapter.ts",
+  "role": "dependency",
+  "summary": "getPythonInitStatus, initPythonParser, isTreeSitterAvailable, parsePythonFileSync の公開API",
+  "public_api": [
+    "getPythonInitStatus",
+    "initPythonParser",
+    "isTreeSitterAvailable",
+    "parsePythonFileSync",
+    "parsePythonTreeSitter"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/py-tree-sitter-adapter.test.ts"
+  ],
+  "sourceHash": "69777afd9d76822c4cac97104265f820be74204b18b201d388751d9286c30304",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

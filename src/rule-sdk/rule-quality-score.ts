@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type {
   RuleQualityScoreArtifact,
@@ -189,7 +190,7 @@ export function createRuleQualityScore(options: RuleQualityScoreOptions): RuleQu
   return {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `rule-quality-score-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("rule-quality-score", { timestamp: generatedAt }),
     repo: { root: process.cwd() },
     tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
     artifact: "rule-quality-score",

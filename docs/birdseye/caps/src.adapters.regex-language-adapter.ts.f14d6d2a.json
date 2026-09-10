@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/regex-language-adapter.ts",
+  "role": "dependency",
+  "summary": "RegexLanguage, parseRegexLanguageFile の公開API",
+  "public_api": [
+    "RegexLanguage",
+    "parseRegexLanguageFile"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/regex-language-adapter.test.ts"
+  ],
+  "sourceHash": "ed66f94b80e743f5e1f33b89b2c9548c1d4fc431244773f0dd948c0ca6b6af19",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

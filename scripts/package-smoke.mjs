@@ -18,6 +18,7 @@
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const TEMP_DIR = join(ROOT, ".test-temp", "package-smoke");
@@ -170,7 +171,7 @@ try {
   const helpOutput = execFileSync(process.execPath, [cliPath, "--help"], {
     cwd: TEMP_DIR,
     encoding: "utf8",
-  });  if (!helpOutput.includes("code-to-gate") || !helpOutput.includes("plugin-sandbox")) {
+  });  if (!helpOutput.includes("code-to-gate") || !helpOutput.includes("plugin-sandbox") || !helpOutput.includes("precision-review")) {
     throw new Error("--help output is incomplete");
   }
   console.log("    ✓ --help: command list loaded");
@@ -223,6 +224,23 @@ try {
   }
   console.log("    ✓ viewer: viewer-report.html created");
 
+  console.log("  Testing precision-review from installed package...");
+  const precisionModule = await import(pathToFileURL(join(installedDir, "dist", "evaluation", "precision-review.js")).href);
+  const findingsBytes = readFileSync(findingsPath);
+  const reviewPath = join(analyzeOutDir, "review.json");
+  const reviewHtmlPath = join(analyzeOutDir, "review.html");
+  const precisionReview = precisionModule.createPrecisionReview(JSON.parse(findingsBytes.toString("utf8")), {
+    findingsBytes, findingsPath, reviewer: { kind: "ai", id: "package-smoke" },
+  });
+  writeFileSync(reviewPath, JSON.stringify(precisionReview, null, 2));
+  execFileSync(process.execPath, [cliPath, "precision-review", "--from", findingsPath, "--review", reviewPath, "--out", reviewHtmlPath], {
+    cwd: TEMP_DIR, encoding: "utf8", timeout: 60000,
+  });
+  if (!existsSync(reviewHtmlPath) || readFileSync(reviewHtmlPath, "utf8").length < 1000) {
+    throw new Error("precision-review did not create a standalone review page");
+  }
+  console.log("    ✓ precision-review: installed CLI and runtime generated review.html");
+
   // Step 9: CLI diff (MUST PASS - no exceptions allowed)
   console.log("  Testing diff (strict)...");
   const diffOutDir = join(TEMP_DIR, "diff-out");
@@ -242,6 +260,20 @@ try {
     throw new Error("diff-analysis.json not created by diff command");
   }
   console.log("    ✓ diff: diff-analysis.json created\n");
+
+  console.log("  Testing diff policy from installed package...");
+  const diffPolicyPath = join(TEMP_DIR, "diff-policy.yaml");
+  writeFileSync(diffPolicyPath, "version: ctg/v1\npolicy_id: package-smoke\nseverity_overrides: []\n");
+  const diffPolicyOut = join(TEMP_DIR, "diff-policy-out");
+  execFileSync(process.execPath, [cliPath, "diff", DIFF_FIXTURE_DIR, "--base", "HEAD", "--head", "HEAD", "--out", diffPolicyOut, "--policy", diffPolicyPath], {
+    cwd: TEMP_DIR, encoding: "utf8", timeout: 60000,
+  });
+  const rawDiff = JSON.parse(readFileSync(join(diffPolicyOut, "raw-findings.json"), "utf8"));
+  const effectiveDiff = JSON.parse(readFileSync(join(diffPolicyOut, "findings.json"), "utf8"));
+  if (rawDiff.completeness !== "complete" || rawDiff.run_id !== effectiveDiff.run_id) {
+    throw new Error("diff policy raw/effective contract is inconsistent");
+  }
+  console.log("    ✓ diff policy: complete empty raw/effective artifacts created");
 
   // Cleanup (normal exit)
   cleanup();

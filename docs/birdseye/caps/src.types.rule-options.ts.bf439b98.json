@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/types/rule-options.ts",
+  "role": "dependency",
+  "summary": "LargeModuleRuleOptions, RuleOptionsConfig の公開API",
+  "public_api": [
+    "LargeModuleRuleOptions",
+    "RuleOptionsConfig"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/config/policy-loader.ts",
+    "src/rules/index.ts"
+  ],
+  "tests": [],
+  "sourceHash": "76d6d3ee6888fa2523549e7deffb09112693911c978db9a9d743b802071ac3b8",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

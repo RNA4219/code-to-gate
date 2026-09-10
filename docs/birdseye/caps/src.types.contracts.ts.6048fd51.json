@@ -1,0 +1,26 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/types/contracts.ts",
+  "role": "dependency",
+  "summary": "ClockService, FileAccess, FileStats, GitFileAccess の公開API",
+  "public_api": [
+    "ClockService",
+    "FileAccess",
+    "FileStats",
+    "GitFileAccess",
+    "HashService",
+    "ParserAdapter",
+    "ParserAdapterResult",
+    "ParserRegistry",
+    "PathService",
+    "ServiceContext"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts",
+    "src/cli/analyze.ts"
+  ],
+  "tests": [],
+  "sourceHash": "7a820f95adcf4d199c12e754676cc4d1fcea4c4735feacce95f6a01205abf8d8",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

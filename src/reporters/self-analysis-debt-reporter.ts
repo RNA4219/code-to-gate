@@ -114,8 +114,9 @@ export function generateSelfAnalysisDebtArtifact(
   const rawCounts = rawFindingsArtifact?.bySeverity ?? countBySeverity(effectiveFindings.findings);
 
   // Effective counts (findings not suppressed)
+  const suppressedIds = new Set(suppressedFindings.map((finding) => finding.id));
   const effectiveFindingsFiltered = effectiveFindings.findings.filter(
-    (f) => !suppressedFindings.includes(f) && f.ruleId !== "SUPPRESSION_DEBT" && f.ruleId !== "DEBT_MARKER"
+    (f) => !suppressedIds.has(f.id) && f.ruleId !== "SUPPRESSION_DEBT" && f.ruleId !== "DEBT_MARKER"
   );
   const effectiveCounts = countBySeverity(effectiveFindingsFiltered);
 
@@ -156,10 +157,10 @@ export function generateSelfAnalysisDebtArtifact(
 
   // Count debt candidates from effective findings
   const debtCandidates = {
-    unsafeDelete: effectiveFindings.findings.filter((f) => f.ruleId === "UNSAFE_DELETE").length,
-    tryCatchSwallow: effectiveFindings.findings.filter((f) => f.ruleId === "TRY_CATCH_SWALLOW").length,
-    rawSql: effectiveFindings.findings.filter((f) => f.ruleId === "RAW_SQL").length,
-    largeModule: effectiveFindings.findings.filter((f) => f.ruleId === "LARGE_MODULE").length,
+    unsafeDelete: effectiveFindingsFiltered.filter((f) => f.ruleId === "UNSAFE_DELETE").length,
+    tryCatchSwallow: effectiveFindingsFiltered.filter((f) => f.ruleId === "TRY_CATCH_SWALLOW").length,
+    rawSql: effectiveFindingsFiltered.filter((f) => f.ruleId === "RAW_SQL").length,
+    largeModule: effectiveFindingsFiltered.filter((f) => f.ruleId === "LARGE_MODULE").length,
   };
 
   // Generate recommended actions

@@ -1,0 +1,34 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/config/policy-loader.ts",
+  "role": "config",
+  "summary": "BroadSuppression, SuppressionExpiryWarning, checkSuppressionExpiry, detectBroadSuppressions の公開API",
+  "public_api": [
+    "BroadSuppression",
+    "SuppressionExpiryWarning",
+    "checkSuppressionExpiry",
+    "detectBroadSuppressions",
+    "isBroadSuppression",
+    "isSuppressed",
+    "isValidPolicyVersion",
+    "loadPolicyFile",
+    "loadSuppressionFile",
+    "validatePolicy"
+  ],
+  "deps_out": [
+    "src/config/policy-types.ts",
+    "src/config/policy-yaml-parser.ts",
+    "src/types/artifacts.ts",
+    "src/types/rule-options.ts"
+  ],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts",
+    "src/config/policy-evaluator.ts"
+  ],
+  "tests": [
+    "src/config/__tests__/policy-loader.test.ts"
+  ],
+  "sourceHash": "58eea8ff0e70347a582e15cfd6af779e4f90ee3519b1be4f5e5da65855091a10",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

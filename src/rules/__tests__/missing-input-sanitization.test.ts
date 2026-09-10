@@ -222,6 +222,24 @@ function readFile(req) {
       const findings = MISSING_INPUT_SANITIZATION_RULE.evaluate(context);
       expect(findings.length).toBeGreaterThan(0);
     });
+
+    it("should not treat internal requestedStem identifiers as request input", () => {
+      const context = createMockContext([
+        {
+          path: "scripts/birdseye.mjs",
+          content: `
+function resolveLocalImport(root, source, specifier) {
+  const requested = path.resolve(path.dirname(source), specifier);
+  const requestedStem = requested.slice(0, -path.extname(requested).length);
+  return path.join(requestedStem, "index.ts");
+}
+`,
+        },
+      ]);
+
+      const findings = MISSING_INPUT_SANITIZATION_RULE.evaluate(context);
+      expect(findings).toHaveLength(0);
+    });
   });
 
   describe("NoSQL injection detection", () => {

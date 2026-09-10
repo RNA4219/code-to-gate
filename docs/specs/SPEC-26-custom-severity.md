@@ -1,221 +1,58 @@
-# SPEC-26: Custom Severity Tuning
+# SPEC-26: Severity Tuning
 
-**Version**: v1.0
-**Created**: 2026-05-04
-**Status**: draft
-**Priority**: P3
-**Estimated Time**: 2 days
+**状態**: 実装済み（任意 policy 設定）
+**対象版**: `ctg/v1` policy / `findings@v1` artifacts
 
----
+## 目的
 
-## 1. Purpose
+ルールが検出した元の重大度を、リポジトリ固有のリスク判断に基づいて policy の順序付きルールで調整する。policy がこの設定を持たない場合は、従来の検出時重大度と挙動を維持する。
 
-Allow users to customize finding severity based on project context and risk tolerance.
-
----
-
-## 2. Scope
-
-### Included
-- Severity override in policy file
-- Project-specific severity mapping
-- Rule-specific severity tuning
-- Context-based severity adjustment
-
-### Excluded
-- ML-based severity prediction
-- Automatic severity learning
-- Severity history tracking
-
----
-
-## 3. Current State
-
-**Status**: Hardcoded severity in rules
-
-**Current Implementation**: Each rule has `defaultSeverity` hardcoded
-
-**Need**: Different projects have different risk tolerance.
-
----
-
-## 4. Proposed Implementation
-
-### Policy Severity Override
+## 設定契約
 
 ```yaml
-# policy.yaml
-apiVersion: ctg/v1
-kind: policy
-name: custom-severity
-severityOverrides:
-  # Lower severity for test files
-  CLIENT_TRUSTED_PRICE:
-    testFiles: medium      # Downgrade in tests
-    paymentFiles: critical  # Keep critical in payment code
-
-  # Project-specific overrides
-  MISSING_SERVER_VALIDATION:
-    default: high          # Override from medium
-    internalApi: low       # Internal APIs less critical
-
-  # Context-based overrides
-  HARDCODED_SECRET:
-    production: critical
-    development: medium
-    test: low
-
-  # Category overrides
-  category:
-    maintainability: low   # All maintainability = low
-    testing: medium        # All testing = medium
+version: ctg/v1
+policy_id: release-policy
+severity_overrides:
+  - rule_id: CLIENT_TRUSTED_PRICE
+    path: src/checkout/**
+    category: payment
+    severity: critical
+    reason: 決済経路はプロジェクトの最重要境界である
+  - category: maintainability
+    severity: low
+    reason: 保守性の指摘はこのリリースでは警告として扱う
 ```
 
-### Severity Resolver
+`severity_overrides` は配列で、各項目に `rule_id`、`path`、`category` のうち少なくとも一つを指定する。複数の selector は AND 条件である。重大度は `critical`、`high`、`medium`、`low` のいずれか、`reason` は空でない文字列とする。`ruleId` と `severityOverrides` も入力時の camel case alias として受け付ける。snake/camel の同時指定は拒否する。path は repo 相対の既存 minimatch glob で、否定 glob は拒否する。
 
-```typescript
-// src/config/severity-resolver.ts
-interface SeverityOverride {
-  ruleId: string;
-  contexts: Record<string, Severity>;
-  default?: Severity;
-}
+配列は上から評価し、最初に一致した項目だけを適用する。一致しない finding は元の重大度を使う。設定の構文または値が不正な場合、`analyze`、`readiness`、`diff --policy` は `POLICY_FAILED` で終了する。
 
-function resolveSeverity(
-  finding: Finding,
-  overrides: SeverityOverride[],
-  context: EvaluationContext
-): Severity {
-  // 1. Check rule-specific overrides
-  const ruleOverride = overrides.find(o => o.ruleId === finding.ruleId);
-  if (ruleOverride) {
-    // Check context matches
-    for (const [ctxPattern, severity] of Object.entries(ruleOverride.contexts)) {
-      if (matchesContext(finding, ctxPattern, context)) {
-        return severity;
-      }
-    }
-    // Use override default if specified
-    if (ruleOverride.default) {
-      return ruleOverride.default;
-    }
-  }
+## artifact と評価
 
-  // 2. Check category overrides
-  const categoryOverride = overrides.find(o => o.ruleId === "category");
-  if (categoryOverride?.contexts[finding.category]) {
-    return categoryOverride.contexts[finding.category];
-  }
+`raw-findings.json` はルールが検出した重大度を保持する。policy 適用後の findings、risk、test、report、policy DSL、blocking threshold、count threshold は同じ effective severity を使う。effective finding には調整時だけ次を記録する。
 
-  // 3. Default to rule's default severity
-  return finding.severity;
-}
+CLIでpolicyを適用する範囲は `analyze`、`readiness`、明示的に `--policy` を指定した `diff` である。diffはseverity overrides、blocking、confidence、partial、baseline/manual evidence条件を含まないDSLに対応する。未対応の明示設定はGit取得・空差分分岐より前に拒否する。詳細は [運用ガイド](../severity-tuning.md) を参照する。
 
-function matchesContext(
-  finding: Finding,
-  pattern: string,
-  context: EvaluationContext
-): boolean {
-  const path = finding.evidence[0]?.path || "";
+- `originalSeverity`: 検出時の重大度
+- `severityResolution`: `policyId`、`originalSeverity`、適用後 `severity`、`reason`、一致した selector
 
-  switch (pattern) {
-    case "testFiles":
-      return path.includes("__tests__") || path.includes(".test.");
-    case "paymentFiles":
-      return path.includes("payment") || path.includes("checkout");
-    case "production":
-      return context.env === "production";
-    case "development":
-      return context.env === "development";
-    default:
-      return path.includes(pattern);
-  }
-}
-```
+resolver は調整時に finding をコピーして返し、調整がない場合は既存 finding の参照と serialization を維持する。再適用時は既存の `originalSeverity` を基点にするため、同じ policy の再適用や policy の差し替えで調整が累積しない。調整を含まない policy を再適用すると、元の重大度とメタデータへ戻る。readiness の current/baseline 比較も、同じ policy で双方を正規化してから行う。
 
-### CLI Usage
+## 実際の利用方法
 
 ```bash
-# Use custom severity policy
-code-to-gate analyze . --policy policy.yaml --out .qh
-
-# View severity overrides
-code-to-gate policy show --policy policy.yaml
+code-to-gate analyze <repo> --policy policy.yaml --out .qh
+code-to-gate readiness <repo> --policy policy.yaml --from .qh --out .qh
+code-to-gate diff <repo> --base main --head HEAD --policy diff-policy.yaml --out .qh-diff
 ```
 
----
+既存の policy loader と CLI 契約を利用する。severity 専用の `policy show` コマンドや、未実装の擬似 API は提供しない。直接利用する場合は `src/config/severity-resolver.ts` の `resolveSeverity` / `resolveSeverities`、評価全体は `evaluatePolicy` を使う。
 
-## 5. Technical Design
+## 検証観点
 
-### Files to Create/Modify
-
-| File | Action | Purpose |
-|---|---|---|
-| `src/config/severity-resolver.ts` | Create | Severity logic |
-| `src/config/policy-loader.ts` | Modify | Load overrides |
-| `src/config/policy-evaluator.ts` | Modify | Apply overrides |
-| `docs/severity-tuning.md` | Create | Documentation |
-
----
-
-## 6. Dependencies
-
-| Dependency | Type | Status |
-|---|---|:---:|
-| Policy file | Existing | Active |
-| Finding structure | Existing | Active |
-| Context evaluation | New | Needed |
-
----
-
-## 7. Acceptance Criteria
-
-| Criterion | Measurable | Verification |
-|---|---|---|
-| Severity override applied | Finding severity modified | Automated |
-| Context matching works | Test files get lower severity | Automated |
-| Policy validation | Invalid override rejected | Automated |
-| Default fallback | No override uses rule default | Automated |
-
----
-
-## 8. Test Plan
-
-### Severity Override Tests
-```typescript
-describe("severity-resolver", () => {
-  it("should override severity for test files", () => {
-    const finding = { ruleId: "CLIENT_TRUSTED_PRICE", evidence: [{ path: "__tests__/test.ts" }] };
-    const overrides = [{ ruleId: "CLIENT_TRUSTED_PRICE", contexts: { testFiles: "medium" } }];
-    const resolved = resolveSeverity(finding, overrides, context);
-    expect(resolved).toBe("medium");
-  });
-
-  it("should apply category override", () => {
-    const finding = { category: "maintainability" };
-    const overrides = [{ ruleId: "category", contexts: { maintainability: "low" } }];
-    const resolved = resolveSeverity(finding, overrides, context);
-    expect(resolved).toBe("low");
-  });
-});
-```
-
----
-
-## 9. Risks
-
-| Risk | Likelihood | Impact | Mitigation |
-|---|:---:|:---:|---|
-| Override conflicts | Medium | Medium | Priority order |
-| Context detection errors | Low | Low | Clear pattern syntax |
-| Policy complexity | Low | Low | Examples in docs |
-
----
-
-## 10. References
-
-| Reference | Path |
-|---|---|
-| Policy loader | `src/config/policy-loader.ts` |
-| Policy evaluator | `src/config/policy-evaluator.ts` |
-| Finding structure | `src/types/artifacts.ts` |
+- 設定なしの互換性、first-match-wins、selector の AND、path の slash 正規化
+- 不正 YAML、selector、重大度、category、reason の fail closed
+- resolver の idempotence と policy 変更時の元重大度復元
+- policy DSL、blocking、count threshold、baseline ratchet の effective severity 一貫性
+- raw artifact が検出時重大度を保持すること
+- diffの昇降格・空差分・DB差分で、件数、audit、policy判定、終了コードが一致すること

@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-07-ci-maintenance.md",
+  "role": "dependency",
+  "summary": "CI maintenance checks",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "e82c74d94bc31254c144dc03a9a46e638ac516b9d17afab93b29799669c43572",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

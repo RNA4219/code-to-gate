@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/untested-critical-path.ts",
+  "role": "dependency",
+  "summary": "UNTESTED_CRITICAL_PATH_RULE の公開API",
+  "public_api": [
+    "UNTESTED_CRITICAL_PATH_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/untested-critical-path.test.ts"
+  ],
+  "sourceHash": "e3d129dbc7456f72d13820008f07c057cdd2f105a762049443dd00321a84723b",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/application/context.ts",
+  "role": "dependency",
+  "summary": "ApplicationContext, createApplicationContext の公開API",
+  "public_api": [
+    "ApplicationContext",
+    "createApplicationContext"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [],
+  "sourceHash": "62d7b80de02c7a60d9c949bdaac57c541af4d4645a228f08835a852f8ce31759",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": ".ctg/policy.yaml",
+  "role": "policy",
+  "summary": "Block on critical security rules",
+  "public_api": [
+    "configuration"
+  ],
+  "deps_out": [],
+  "deps_in": [],
+  "tests": [],
+  "sourceHash": "e9737c6e2bbfa4e900c178bdc3c04e5e19a8d293bb63c1cf6e9994e3605c5a5f",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

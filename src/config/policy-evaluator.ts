@@ -6,6 +6,7 @@
 import type { Completeness, Finding, Severity, FindingCategory, PolicyReadinessStatus } from "../types/artifacts.js";
 import type { CtgPolicy, SuppressionEntry } from "./policy-loader.js";
 import { isSuppressed } from "./policy-loader.js";
+import { resolveSeverities } from "./severity-resolver.js";
 
 /**
  * Readiness status values
@@ -341,6 +342,7 @@ export function evaluatePolicy(
   suppressions: SuppressionEntry[] = [],
   context: PolicyEvaluationContext = {}
 ): PolicyEvaluationResult {
+  const effectiveFindings = resolveSeverities(findings, policy);
   const passedFindings: Finding[] = [];
   const blockedFindings: Finding[] = [];
   const heldFindings: Finding[] = [];
@@ -358,7 +360,7 @@ export function evaluatePolicy(
   const categoryCounts: Partial<Record<FindingCategory, number>> = {};
 
   // Process each finding
-  for (const finding of findings) {
+  for (const finding of effectiveFindings) {
     // Count severity and category
     severityCounts[finding.severity]++;
     categoryCounts[finding.category] = (categoryCounts[finding.category] || 0) + 1;
@@ -457,7 +459,7 @@ export function evaluatePolicy(
     policy.baseline?.newFindingsBlock !== false
       ? new Set(context.baselineNewOrWorsenedFindingIds)
       : undefined;
-  const thresholdFindings = findings.filter(finding =>
+  const thresholdFindings = effectiveFindings.filter(finding =>
     !suppressedFindingIds.has(finding.id) &&
     (!baselineGatedFindingIds || baselineGatedFindingIds.has(finding.id))
   );
@@ -489,7 +491,7 @@ export function evaluatePolicy(
 
   // Build summary
   const summary = {
-    totalFindings: findings.length,
+    totalFindings: effectiveFindings.length,
     passedCount: passedFindings.length,
     blockedCount: blockedFindings.length,
     heldCount: heldFindings.length,

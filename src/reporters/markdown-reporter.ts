@@ -69,6 +69,35 @@ function evidenceKindSummary(finding: Finding): string {
   return [...kinds].join(", ") || "missing";
 }
 
+function escapeSeverityMarkdownValue(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/&/g, "&amp;")
+    .replace(/\|/g, "\\|")
+    .replace(/\r\n|\r|\n/g, " ")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/`/g, "\\`")
+    .replace(/\*/g, "\\*")
+    .replace(/_/g, "\\_")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]");
+}
+
+function severitySelectorSummary(finding: Finding): string {
+  const selectors = finding.severityResolution?.matchedSelectors;
+  if (!selectors) return "none";
+  const entries: Array<[string, string | undefined]> = [
+    ["ruleId", selectors.ruleId],
+    ["path", selectors.path],
+    ["category", selectors.category],
+  ];
+  return entries
+    .filter((entry): entry is [string, string] => entry[1] !== undefined)
+    .map(([key, value]) => `${key}=${escapeSeverityMarkdownValue(value)}`)
+    .join(", ") || "none";
+}
+
 function impactHypothesis(finding: Finding): string {
   const domain = inferFindingDomain(finding).label;
   return `${domain}: ${finding.summary || finding.title}`;
@@ -274,6 +303,23 @@ code-to-gate readiness "${repoRoot}" --from .qh --out .qh
 `;
     for (const finding of activeFindings) {
       md += `| ${finding.id} | ${severityBadge(finding.severity)} | ${escapeMarkdownCell(impactHypothesis(finding))} | ${escapeMarkdownCell(`${firstEvidencePath(finding)} (${evidenceKindSummary(finding)})`)} | ${finding.confidence.toFixed(2)} | ${escapeMarkdownCell(reviewVerificationHint(finding))} |\n`;
+    }
+    md += "\n";
+  }
+
+  const severityAdjustments = findings.findings.filter((finding) => finding.severityResolution);
+  if (severityAdjustments.length > 0) {
+    md += `## Severity Adjustments
+
+明示的なseverity policyの結果があるfindingについて、元の値と適用後の値を確認できる。
+
+| Finding ID | Original | Effective | Policy | Reason | Matched Selectors |
+|------------|----------|-----------|--------|--------|-------------------|
+`;
+    for (const finding of severityAdjustments) {
+      const resolution = finding.severityResolution;
+      if (!resolution) continue;
+      md += `| ${escapeSeverityMarkdownValue(finding.id)} | ${escapeSeverityMarkdownValue(resolution.originalSeverity)} | ${escapeSeverityMarkdownValue(resolution.severity)} | ${escapeSeverityMarkdownValue(resolution.policyId)} | ${escapeSeverityMarkdownValue(resolution.reason)} | ${severitySelectorSummary(finding)} |\n`;
     }
     md += "\n";
   }

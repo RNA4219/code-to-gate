@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/test-seed-generator.ts",
+  "role": "dependency",
+  "summary": "buildTestSeedsFromFindings, writeTestSeedsJson の公開API",
+  "public_api": [
+    "buildTestSeedsFromFindings",
+    "writeTestSeedsJson"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/test-seed-generator.test.ts"
+  ],
+  "sourceHash": "aba32b8a8d425983f9356d472716c17a6bdd19b0ec4584ded3d8f7ad03d4e4fb",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/types/artifacts.ts",
+  "role": "dependency",
+  "summary": "ArtifactHeader, AuditArtifact, AuditExit, AuditInput の公開API",
+  "public_api": [
+    "ArtifactHeader",
+    "AuditArtifact",
+    "AuditExit",
+    "AuditInput",
+    "AuditLlm",
+    "AuditOutputArtifact",
+    "AuditPolicy",
+    "BaselineDebtLedgerArtifact",
+    "BaselineDebtLedgerItem",
+    "BaselineDebtLedgerStatus",
+    "CTG_VERSION",
+    "CTG_VERSION_V1"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts",
+    "src/cli/scan.ts",
+    "src/config/policy-evaluator.ts",
+    "src/config/policy-loader.ts",
+    "src/config/severity-resolver.ts",
+    "src/rules/index.ts"
+  ],
+  "tests": [],
+  "sourceHash": "ba57806c7cc0073951eaf32161f9c12c5e64a7da13147bdcd050f95d067429c4",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

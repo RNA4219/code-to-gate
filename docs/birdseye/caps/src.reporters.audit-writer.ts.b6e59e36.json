@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/audit-writer.ts",
+  "role": "dependency",
+  "summary": "buildAuditArtifact, writeAuditJson の公開API",
+  "public_api": [
+    "buildAuditArtifact",
+    "writeAuditJson"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/audit-writer.test.ts"
+  ],
+  "sourceHash": "d57b9f4cd878e6052bcc6bb582e2759e8289f296f9f617fb548713690f65c8ef",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

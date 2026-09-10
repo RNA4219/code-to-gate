@@ -29,6 +29,7 @@ import { explainGateCommand } from "./cli/explain-gate.js";
 import { driftBudgetCommand } from "./cli/drift-budget.js";
 import { reviewQueueCommand } from "./cli/review-queue.js";
 import { baselineLedgerCommand } from "./cli/baseline-ledger.js";
+import { precisionReviewCommand } from "./cli/precision-review.js";
 import { EXIT, VERSION, getOption } from "./cli/exit-codes.js";
 import { emitCliError } from "./cli/output.js";
 
@@ -45,10 +46,11 @@ Usage:
   code-to-gate schema migrate <artifact> --out <file-or-dir> [--target-version <version>]
   code-to-gate scan <repo> --out <dir> [--database-analysis]
   code-to-gate analyze <repo> [--emit all] --out <dir> [--require-llm] [--llm-provider <provider>] [--llm-base-url <url>] [--debug-llm-trace] [--database-analysis]
-  code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]
+  code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--policy <file>] [--database-analysis]
   code-to-gate import <tool> <input-file> --out <dir> [--repo-root <dir>] [--max-input-mb <number>] [--producer-version <version>]
     Tools: eslint, semgrep, sarif, codeql, npm-audit, tsc, coverage, test
   code-to-gate readiness <repo> --policy <file> [--from <dir>] --out <dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
+  code-to-gate precision-review --from findings.json --review review.json --out review.html [--repo <path>] [--force]
   code-to-gate export <target> --from <dir> [--out <file>]
     Targets: gatefield, state-gate, manual-bb, workflow-evidence, sarif, qeg-code-to-gate, hate-qeg-bundle, qeg-gate-input, evidence-dag, provenance-index
   code-to-gate viewer --from <dir> [--out <file>] [--title <title>] [--dark] [--hosted] [--portal] [--public-url <url>] [--hosted-target <target>] [--redaction-profile <profile>]
@@ -101,7 +103,7 @@ Options:
   --out <dir>        Output directory (default: .qh)
   --base <ref>       Base ref for diff (branch, commit, tag)
   --head <ref>       Head ref for diff (branch, commit, tag)
-  --policy <file>    Policy file for readiness evaluation
+  --policy <file>    Policy file for analyze, readiness, or diff evaluation
   --from <dir>       Input artifact directory
   --baseline <file-or-dir>
                      Baseline findings/readiness artifact or artifact directory for ratchet gating
@@ -205,6 +207,10 @@ async function main(): Promise<number> {
 
     if (command === "readiness") {
       return await readinessCommand(args, { VERSION, EXIT, getOption });
+    }
+
+    if (command === "precision-review") {
+      return await precisionReviewCommand(args, { EXIT });
     }
 
     if (command === "export") {

@@ -20,6 +20,7 @@ import type {
 } from "../types/artifacts.js";
 import type { RedactionProfile } from "../types/artifacts.js";
 import { createRedactionProfile, createRedactionSummary } from "../redaction/redaction-profile.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 interface ArtifactSpec {
   id: string;
@@ -131,7 +132,7 @@ function headerFromInputs(
   const audit = readOptionalJson<Record<string, unknown>>(fromDir, "audit.json");
   const repo = audit?.repo as Record<string, unknown> | undefined;
   return {
-    runId: typeof audit?.run_id === "string" ? audit.run_id : `pr-review-${Date.now()}`,
+    runId: typeof audit?.run_id === "string" ? audit.run_id : createUniqueRunId("pr-review"),
     repoRoot: typeof repo?.root === "string" ? repo.root : process.cwd(),
   };
 }

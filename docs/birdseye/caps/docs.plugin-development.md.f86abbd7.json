@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/plugin-development.md",
+  "role": "dependency",
+  "summary": "Plugin Development Guide",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "971f433e3f2b84145ac6e112dd8693e351e3428f087f1c09164cd56d24374f89",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

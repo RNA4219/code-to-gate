@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type { QeosAcceptanceMatrixArtifact, QeosAcceptanceMatrixEntry } from "../types/artifacts.js";
 import type { EXIT, getOption } from "./exit-codes.js";
@@ -208,7 +209,7 @@ export async function qeosCommand(args: string[], options: QeosCliOptions): Prom
     const artifact: QeosAcceptanceMatrixArtifact = {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `qeos-acceptance-matrix-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId("qeos-acceptance-matrix", { timestamp: generatedAt }),
       repo: { root: repoRoot },
       tool: { name: "code-to-gate", version: options.VERSION, plugin_versions: [] },
       artifact: "qeos-acceptance-matrix",

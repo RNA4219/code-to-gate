@@ -1,0 +1,28 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/cli/readiness.ts",
+  "role": "entrypoint",
+  "summary": "readinessCommand の公開API",
+  "public_api": [
+    "readinessCommand"
+  ],
+  "deps_out": [
+    "src/cli/exit-codes.ts",
+    "src/cli/intake-artifact.ts",
+    "src/config/policy-evaluator.ts",
+    "src/config/policy-loader.ts",
+    "src/config/severity-resolver.ts",
+    "src/core/file-utils.ts",
+    "src/historical/ratchet-gate.ts",
+    "src/reporters/index.ts",
+    "src/reporters/raw-findings-reporter.ts",
+    "src/self-analysis/suppression-summary.ts",
+    "src/types/artifacts.ts"
+  ],
+  "deps_in": [],
+  "tests": [
+    "src/cli/__tests__/readiness.test.ts"
+  ],
+  "sourceHash": "440249c7ce069bde99bd16819088e2426f0cb9ddcc78fd5eaf1e941e3835ef92",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

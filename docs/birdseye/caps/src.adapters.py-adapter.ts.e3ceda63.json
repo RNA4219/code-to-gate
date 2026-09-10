@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/py-adapter.ts",
+  "role": "dependency",
+  "summary": "parsePythonFile, to の公開API",
+  "public_api": [
+    "parsePythonFile",
+    "to"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/py-adapter.test.ts"
+  ],
+  "sourceHash": "06a08e3fa54da053974d489ad3f4d883e9d6f52d45ce12746502249bdaba4255",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

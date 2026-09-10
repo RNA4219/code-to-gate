@@ -69,6 +69,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run maintenance checks
+        run: |
+          npm run test:maintenance
+          node scripts/birdseye.mjs check
+          node scripts/check-roadmap-completion-drift.mjs --fail
+          npm run docs:lint-refs
+
       - name: Run tests with coverage
         run: npm run test:coverage
 
@@ -260,7 +267,7 @@ jobs:
           node ./dist/cli.js diff . \
             --base origin/main \
             --head HEAD \
-            --policy .github/ctg-policy.yaml \
+            --policy .github/ctg-diff-policy.yaml \
             --llm-provider deterministic \
             --out .qh
           DIFF_EXIT=$?

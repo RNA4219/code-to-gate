@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/db-destructive-ops.ts",
+  "role": "dependency",
+  "summary": "DB_DESTRUCTIVE_OPS_RULE の公開API",
+  "public_api": [
+    "DB_DESTRUCTIVE_OPS_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/db-destructive-ops.test.ts"
+  ],
+  "sourceHash": "6fa2f753ad1f2b625329eb55253fb8b506920e9e2c0854a28a8701ab13ffb2af",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -1,6 +1,6 @@
 {
   "name": "@quality-harness/code-to-gate",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "A local-first quality harness that turns repository signals into evidence-backed quality risks, test seeds, and release-readiness gate inputs",
   "type": "module",
   "packageManager": "npm@10.9.8",
@@ -65,9 +65,10 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "ctg": "node ./dist/cli.js",
-    "test": "npm run test:normal && npm run test:tree-sitter",
+    "test": "npm run test:normal && npm run test:tree-sitter && npm run test:maintenance",
     "test:normal": "vitest run --reporter=dot",
     "test:tree-sitter": "vitest run --config vitest.tree-sitter.config.ts --reporter=dot",
+    "test:maintenance": "node --test scripts/__tests__/*.test.mjs",
     "test:ci": "vitest run --maxWorkers=2 --reporter=dot",
     "test:ci:stable": "vitest run --maxWorkers=1 --reporter=dot",
     "test:watch": "vitest",
@@ -132,7 +133,7 @@
     "ajv-formats": "^3.0.1",
     "fs-extra": "^11.3.4",
     "glob": "^13.0.6",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.2",
     "ts-morph": "^25.0.1",
     "web-tree-sitter": "^0.26.8"
   },
@@ -142,12 +143,12 @@
     "@types/glob": "^8.1.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.19.17",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "tree-sitter-go": "^0.25.0",

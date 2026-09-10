@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/Release_Checklist.md",
+  "role": "dependency",
+  "summary": "リリースチェックリスト",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHECKLISTS.md"
+  ],
+  "tests": [],
+  "sourceHash": "1069801dd55d4652788eedaec13918003aeac8d59717922a54193f688f02e9f7",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

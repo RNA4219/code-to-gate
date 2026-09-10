@@ -67,7 +67,14 @@ export {
   type PartialConfig,
   type BaselineConfig,
   type ExitConfig,
+  type SeverityOverride,
 } from "./policy-types.js";
+
+export {
+  resolveSeverity,
+  resolveSeverities,
+  type SeverityResolution,
+} from "./severity-resolver.js";
 
 // Policy evaluator
 export {

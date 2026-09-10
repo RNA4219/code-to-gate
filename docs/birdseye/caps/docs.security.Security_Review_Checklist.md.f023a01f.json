@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/security/Security_Review_Checklist.md",
+  "role": "dependency",
+  "summary": "Security Review Checklist",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHECKLISTS.md"
+  ],
+  "tests": [],
+  "sourceHash": "a12e368479cf46a042d7ae7b04edf9205238b9e8ed5cbeca85331b076c620acc",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

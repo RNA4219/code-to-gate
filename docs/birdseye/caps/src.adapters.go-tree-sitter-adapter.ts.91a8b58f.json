@@ -1,0 +1,22 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/go-tree-sitter-adapter.ts",
+  "role": "dependency",
+  "summary": "getGoInitStatus, initGoParser, isGoTreeSitterAvailable, parseGoFileSync の公開API",
+  "public_api": [
+    "getGoInitStatus",
+    "initGoParser",
+    "isGoTreeSitterAvailable",
+    "parseGoFileSync",
+    "parseGoTreeSitter"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/go-tree-sitter-adapter.test.ts"
+  ],
+  "sourceHash": "f1a15198d4bba0f7202d61e315b72e8cc7b97a6056b170ada197dd29ef63ff24",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

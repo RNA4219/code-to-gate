@@ -279,6 +279,27 @@ describe("generateSuppressionRecommendations", () => {
 });
 
 describe("createFPEvaluationResult", () => {
+  it("joins source metadata by finding ID when review order changes", () => {
+    const input: FPEvaluationInput = {
+      evaluation_id: "fp-eval-order", repo: "test-repo", evaluator: "reviewer", date: "2026-04-30", phase: "phase1",
+      findings: [
+        { finding_id: "finding-003", rule_id: "TRY_CATCH_SWALLOW", classification: "TP" },
+        { finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "FP" },
+      ],
+    };
+    const result = createFPEvaluationResult(mockFindingsArtifact, input);
+    expect(result.findings[0].severity).toBe("medium");
+    expect(result.findings[1].severity).toBe("critical");
+  });
+
+  it("rejects unknown, duplicate, and rule-mismatched IDs", () => {
+    const base: FPEvaluationInput = { evaluation_id: "bad", repo: "r", evaluator: "e", date: "2026-04-30", phase: "phase1", findings: [{ finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "TP" }] };
+    expect(() => createFPEvaluationResult(mockFindingsArtifact, { ...base, findings: [{ ...base.findings[0], finding_id: "unknown" }] })).toThrow(/unknown/);
+    expect(() => createFPEvaluationResult(mockFindingsArtifact, { ...base, findings: [base.findings[0], base.findings[0]] })).toThrow(/duplicate/);
+    expect(() => createFPEvaluationResult(mockFindingsArtifact, { ...base, findings: [{ ...base.findings[0], rule_id: "WRONG" }] })).toThrow(/mismatch/);
+    expect(() => createFPEvaluationResult(mockFindingsArtifact, base, undefined, { mode: "strict" })).toThrow(/missing/);
+  });
+
   it("should create complete evaluation result", () => {
     const input: FPEvaluationInput = {
       evaluation_id: "fp-eval-001",
@@ -316,9 +337,9 @@ describe("createFPEvaluationResult", () => {
       date: "2026-04-30",
       phase: "phase1",
       findings: [
-        { finding_id: "F001", rule_id: "R001", classification: "TP" },
-        { finding_id: "F002", rule_id: "R002", classification: "TP" },
-        { finding_id: "F003", rule_id: "R003", classification: "TP" },
+        { finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "TP" },
+        { finding_id: "finding-002", rule_id: "WEAK_AUTH_GUARD", classification: "TP" },
+        { finding_id: "finding-003", rule_id: "TRY_CATCH_SWALLOW", classification: "TP" },
       ],
     };
 
@@ -333,9 +354,9 @@ describe("createFPEvaluationResult", () => {
       date: "2026-04-30",
       phase: "phase3", // 5% target
       findings: [
-        { finding_id: "F001", rule_id: "R001", classification: "FP" },
-        { finding_id: "F002", rule_id: "R002", classification: "FP" },
-        { finding_id: "F003", rule_id: "R003", classification: "TP" },
+        { finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "FP" },
+        { finding_id: "finding-002", rule_id: "WEAK_AUTH_GUARD", classification: "FP" },
+        { finding_id: "finding-003", rule_id: "TRY_CATCH_SWALLOW", classification: "TP" },
       ],
     };
 
@@ -405,7 +426,7 @@ describe("validateFPEvaluationInput", () => {
       date: "2026-04-30",
       phase: "phase1",
       findings: [
-        { finding_id: "F001", rule_id: "R001", classification: "TP" },
+        { finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "TP" },
       ],
     };
 
@@ -460,6 +481,15 @@ describe("validateFPEvaluationInput", () => {
     expect(result.errors.some((e) => e.includes("classification"))).toBe(true);
   });
 
+  it("should reject an empty classification", () => {
+    const result = validateFPEvaluationInput({
+      evaluation_id: "fp-eval-001", repo: "test-repo", evaluator: "tech-lead", date: "2026-04-30", phase: "phase1",
+      findings: [{ finding_id: "F001", rule_id: "R001", classification: "" }],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes("classification is required"))).toBe(true);
+  });
+
   it("should reject non-object input", () => {
     const result = validateFPEvaluationInput(null);
     expect(result.valid).toBe(false);
@@ -468,6 +498,18 @@ describe("validateFPEvaluationInput", () => {
 });
 
 describe("compareFPEvaluations", () => {
+  it("does not claim an empty or non-finite comparison passes", () => {
+    const empty = compareFPEvaluations([]);
+    expect(empty.average_fp_rate).toBe(0);
+    expect(empty.all_pass).toBe(false);
+    const nonFinite = compareFPEvaluations([{
+      evaluation_id: "eval-nan", repo: "repo", evaluator: "evaluator", date: "2026-04-30", phase: "phase1", findings: [],
+      summary: { total: 0, tp: 0, fp: 0, uncertain: 0, fp_rate: Number.NaN, target: 15, pass: true },
+    }]);
+    expect(nonFinite.all_pass).toBe(false);
+    expect(Number.isFinite(nonFinite.worst_fp_rate)).toBe(true);
+  });
+
   it("should calculate comparison statistics", () => {
     const results: FPEvaluationResult[] = [
       {

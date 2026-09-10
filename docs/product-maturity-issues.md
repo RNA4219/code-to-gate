@@ -2,8 +2,8 @@
 intent_id: DOC-PRODUCT-MATURITY-ISSUES-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-07-04
-next_review_due: 2026-08-04
+last_reviewed_at: 2026-09-10
+next_review_due: 2026-10-10
 ---
 
 # Product Maturity Issues
@@ -12,7 +12,7 @@ next_review_due: 2026-08-04
 
 結論として、code-to-gate は v0.1 PoC そのものではない。CLI、schema、artifact、viewer、plugin、export、rule set、release-readiness の実装証跡はあり、QAチェーン内の品質証跡センサーとして実用候補に到達している。
 
-一方で、単体で mature SAST / enterprise security scanner / public stable product として扱うには、精度検証、配布、外向き文言、human-facing report の整理が不足している。
+一方で、単体で mature SAST / enterprise security scanner / public stable product として扱うには、実 repo の人手精度判定、配布導線、外向き文言の整理が不足している。人間向け `analysis-report.md` と Human Review Guide は実装済みだが、これは実 repo の精度保証や公開判定を置き換えない。
 
 ## 1. 現在の推奨位置づけ
 
@@ -33,35 +33,38 @@ next_review_due: 2026-08-04
 | 文書 | 確認した観点 |
 |---|---|
 | `README.md`, `README_JA.md` | linter / SAST 代替ではなく evidence / gate input layer として説明している。 |
-| `docs/distribution-status.md` | `package.json` は 1.5.0、GitHub release は v1.4.2、npm registry は未公開。 |
-| `docs/public-readiness.md` | security scanning、enterprise organizations など、外向き表現が強い。 |
+| `docs/distribution-status.md` | `package.json` は 1.6.0 のローカル候補、GitHub release は v1.5.1、npm registry は未公開。GitHub/source install が現行導線。 |
+| `docs/public-readiness.md` | review-required evidence、SAST 代替ではないこと、automatic release approver ではないことを明記している。 |
 | `docs/acceptance-review-manual-bb.md` | v0.1 MVP は GO。ただし text fallback、実 LLM provider contract、次段階 AST adapter 強化が残余リスクとして記録されている。 |
 | `docs/product-gap-analysis.md` | Phase 1-5 の完了事項が多く、PoC からの進展は明確。 |
 | `docs/product-acceptance-v1.md` | 本来は real repo 数、FP/FN、human review による acceptance が段階基準。 |
 | `docs/assurance-precision-evaluation.md` | controlled fixture 精度であり、実 repo 全体の precision 保証ではないと明記。 |
-| `docs/real-repo-validation-record.md` | Real repo validation としつつ、記録内容は fixture 実行中心に見える。 |
-| `docs/rule-precision-backlog.md` | 既知の false positive / detector precision 改善候補が残っている。 |
+| `docs/real-repo-validation-evidence-20260704.md` | 4 repo の実行は 4/4 pass。1,721 findings は human TP/FP 判定未実施で、全件 Uncertain と記録されている。 |
+| [`docs/acceptance/AC-20260910-02-precision-review.md`](acceptance/AC-20260910-02-precision-review.md) | 別 run の 1,449 findings。FP-DM-002、FP-DM-003、FP-RS-002、FP-MIS-001 は現行検出なしの記録だが、人手精度判定は未実施。 |
+| `docs/rule-precision-backlog.md` | HARDCODED_SECRET、DEBT_MARKER、RAW_SQL の既知ケースは detector 対応済み。MISSING_INPUT_SANITIZATION の accepted-design は残件として管理している。 |
 
 ## 3. 課題一覧
 
 | ID | 優先度 | 課題 | 根拠 | 影響 | 対応方針 |
 |---|---|---|---|---|---|
-| MT-01 | P0 | 外向き表現が実証済み精度より強い | `public-readiness.md` は security scanning / enterprise を前面に出す一方、README は SAST 代替ではないと説明している。 | 利用者が確定脆弱性診断や enterprise scanner と誤解する。false positive が製品不良として受け取られやすい。 | public docs を「QA evidence」「review-required candidates」「release-readiness input」に寄せる。security は補助観点として扱う。 |
-| MT-02 | P0 | npm 未公開で配布状態が public stable と一致しない | `docs/distribution-status.md` は npm registry 未公開、GitHub release v1.4.2、local package 1.5.0 と記録している。 | 導入再現性、サポート、外部検証の信頼性が弱い。 | v1.5.0 を GitHub release / npm publish するか、README と public docs を GitHub install 前提へ明確化する。 |
-| MT-03 | P0 | real repo precision evidence が不足・混線している | `assurance-precision-evaluation.md` は controlled fixture 限定と明記。`real-repo-validation-record.md` は 4 fixtures を real repo 動作として PASS 扱いしている。 | FP/FN 目標を外部へ説明しづらい。実運用時の検出精度が読み切れない。 | 3+ / 5+ / 10+ の実 repo acceptance を再実行し、artifact、human TP/FP/Uncertain 判定、対象 commit を保存する。fixture 証跡とは分離する。 |
-| MT-04 | P0 | finding severity / category が人間向け報告には粗い | QA観点では広く拾えているが、`critical` / `high` が「確定事故」ではなく「確認候補」として混在する。 | チームへそのまま渡すと、誤検知よりも表現の強さが摩擦になる。 | report profile を分ける。machine profile は広め、human profile は「要確認」「根拠」「影響仮説」「確度」を明示する。 |
-| MT-05 | P1 | detector precision backlog が残っている | `docs/rule-precision-backlog.md` に HARDCODED_SECRET、DEBT_MARKER、MISSING_INPUT_SANITIZATION、RAW_SQL の改善候補がある。 | 自己解析や大規模 repo でノイズが増え、suppression 依存が強くなる。 | backlog item ごとに rule regression test を追加し、suppression ではなく detector 側で削る。 |
-| MT-06 | P1 | product acceptance と完了記録の粒度が揃っていない | `product-acceptance-v1.md` は段階基準を定義するが、完了記録・RUNBOOK・個別 evidence の対応が散らばっている。 | 第三者が「何が本当に通ったか」を追跡しにくい。 | acceptance evidence index を作り、各基準に対して command、artifact path、対象 commit、判定者、日付を結ぶ。 |
+| MT-01 | monitor | 外向き表現の同期を維持する | `public-readiness.md` と README は review-required evidence、SAST 代替ではないこと、automatic release approver ではないことを明記している。 | 古い文書が残ると、利用者が確定脆弱性診断や enterprise scanner と誤解する。 | 公開文書のレビュー時に「QA evidence」「review-required candidates」「release-readiness input」の表現を維持する。 |
+| MT-02 | P0 | npm 未公開で配布状態が public stable と一致しない | `docs/distribution-status.md` は local package 1.6.0、GitHub release v1.5.1、npm registry 未公開と記録している。 | 導入再現性、サポート、外部検証の信頼性が弱い。 | npm 公開までは README と public docs を GitHub/source install 前提に保ち、公開時に registry evidence を追加する。 |
+| MT-03 | P0 | real repo precision evidence が不足している | `docs/real-repo-validation-evidence-20260704.md` は 4 repo の実行成功を記録するが、1,721 findings の human TP/FP adjudication は未実施。 | FP/FN 目標を外部へ説明しづらい。実運用時の検出精度が読み切れない。 | 対象 commit、artifact、human TP/FP/Uncertain 判定を別証跡で保存する。現時点では real repo precision を主張しない。 |
+| MT-04 | P0 | 人間向け報告の確認導線は実装済みだが、精度保証とは別 | `src/reporters/markdown-reporter.ts` と `docs/cli-reference.md` に Human Review Guide、影響仮説、evidence、confidence、確認コマンドがある。 | ガイドの存在だけでは実 repo の判定や公開可否を確定できない。 | `analysis-report.md` は review-required candidates として運用し、machine artifact と人手判定を別に保持する。 |
+| MT-05 | P1 | detector precision backlog に残件がある | `docs/rule-precision-backlog.md` では HS-001/002、DM-001、RS-001 の HEAD 実装を記録する一方、self-reference は suppression 継続、DM-002/003、RS-002、MISSING_INPUT_SANITIZATION は根拠不足または accepted-design として残る。 | 自己解析や大規模 repo で未判定ノイズが残る。 | 残件ごとに detector 改修または accepted-design の根拠を追加し、今回の完了範囲を越えて一括完了にしない。 |
+| MT-06 | P1 | product acceptance と完了記録の粒度が揃っていない | `docs/acceptance-evidence-index.md` は存在するが、real repo の人手判定は未記入で、QEOS-031..042 は実装記録と受入証跡を分けて扱う必要がある。 | 第三者が「何が本当に通ったか」を追跡しにくい。 | command、artifact path、対象 commit、判定者、日付を受入時に追記する。 |
 | MT-07 | P1 | database analysis は preview 契約が残る | `docs/distribution-status.md` は `database-assets@v1alpha1` を experimental artifact として扱う。 | DB解析を stable surface と誤認されると、破壊的変更時に互換性期待を壊す。 | DB analysis は preview / experimental と明示し、stable 化前に schema review と migration guide を追加する。 |
-| MT-08 | P1 | QAチェーン内の役割が public docs で弱い | five-tool chain では Code-to-gate は広めに候補を拾い、HATE / manual-bb / QEG へ渡す前段センサーとして機能する。 | 単体ツールとして過剰評価されるか、逆に false positive だけで過小評価される。 | README / public brief に「standalone mode」と「QA chain mode」の違いを追加する。 |
-| MT-09 | P2 | confidence / evidence model が report 上で不足する | finding が source / sink / sanitizer / trust boundary / test evidence absence のどれに基づくかが、report だけでは読み取りづらい。 | LLM 後段や人間レビューで文脈復元コストが高い。 | finding schema/report に `confidence`, `evidenceKind`, `contractAssumption`, `reviewHint` を追加する。 |
-| MT-10 | P2 | RUNBOOK review 日付と一部 status が古い | RUNBOOK front matter の `next_review_due` が 2026-05-15 のまま。 | 現在の製品判断と運用入口の鮮度がズレる。 | RUNBOOK の定期レビューで front matter と既知負債 section を更新する。 |
+| MT-08 | P1 | QAチェーン内の役割を継続して明示する必要がある | `docs/five-tool-validation-chain.md`、CLI export、QEOS-031..042 の実装記録で、Code-to-gate は HATE / manual-bb / QEG へ渡す前段センサーと整理されている。 | 単体ツールの精度保証や最終リリース判定と誤解される余地がある。 | public docs では standalone と QA-chain の役割、QEG が最終 gate owner である境界を維持する。 |
+| MT-09 | P2 | confidence / evidence model の残る項目が report 上で不足する | `analysis-report.md` は confidence、evidence kind、review hint を表示する。`contractAssumption` など finding schema 側の残る項目は未整理。 | LLM 後段や人間レビューで文脈復元コストが高い。 | 既存表示を維持し、schema/report の未反映項目だけを追加検討する。 |
+| MT-10 | P2 | RUNBOOK review 日付と一部 status が古い | RUNBOOK front matter の `next_review_due` は 2026-08-04 で、現行レビュー時点を過ぎている。 | 現在の製品判断と運用入口の鮮度がズレる。 | RUNBOOK の定期レビューで front matter と既知負債 section を更新する。 |
 
 ## 4. 次に実施する改善パッケージ
 
 ### 4.1 P0: public positioning alignment
 
 目的: 実態と外向き表現を揃える。
+
+現状: README と `docs/public-readiness.md` の review-required evidence 表現は同期済み。継続監視とする。
 
 Done 条件:
 - `README.md`, `README_JA.md`, `docs/public-readiness.md`, `docs/public-brief.md` が同じ位置づけを説明する。
@@ -73,15 +76,21 @@ Done 条件:
 
 目的: fixture 精度と実 repo 精度を分離し、外部に説明できる形にする。
 
+現状: 4 repo の実行証跡はあるが、1,721 findings の人手判定は未完了。受入待ちとして継続する。
+
 Done 条件:
 - 3+ public repo の scan/analyze/readiness を対象 commit 固定で再実行する。
 - findings を TP / FP / Uncertain / Accepted design に分類する。
 - FP rate と Uncertain rate を rule 別に出す。
-- `docs/real-repo-validation-record.md` を fixture record と real repo record に分割する。
+- `docs/real-repo-validation-evidence-20260704.md` と `docs/real-repo-validation-record.md` の fixture / real repo の証跡を別記録として維持する。
 
 ### 4.3 P1: report profile split
 
 目的: machine-first output と team-facing output を分ける。
+
+現状: `analysis-report.md` の human review guide（review-required candidates、
+impact hypothesis、evidence、confidence、confirmation commands）は実装済み。
+`--report-profile machine|human` のような別 CLI profile は将来拡張として残る。
 
 Done 条件:
 - `--report-profile machine` は現行に近い広め検出を維持する。
@@ -93,11 +102,19 @@ Done 条件:
 
 目的: 広く拾う設計を残しつつ、明らかなノイズを減らす。
 
+現状: HS-001/002、DM-001、RS-001 は HEAD 実装を記録済み。その他の項目は根拠確認待ち。
+
 Done 条件:
 - `HARDCODED_SECRET` が HTML password field、schema property、self-reference を誤検出しない。
 - `UNSAFE_DELETE` が DOM remove / localStorage remove / temp file cleanup / bounded upload cleanup を区別する。
 - `UNSAFE_REDIRECT` が same-origin navigation、custom scheme callback、user-controlled open redirect を区別する。
 - `innerHTML` 系 rule が stored sanitized HTML、trusted render contract、untrusted source を分ける。
+
+### 4.5 現行段階の実装トラッキング
+
+- optional per-rule severity は実装・対象検証済みであり、任意 policy 設定として SPEC-26 に記録する。統合結果は `docs/acceptance/AC-20260910-06-maintenance.md` へ導く。
+- Birdseye generator/check は実装・対象検証済みで、実 repo の生成・checkも通過した。統合結果は `docs/acceptance/AC-20260910-06-maintenance.md` へ導く。
+- 精度レビューは 1,449件の別 run と4件の現行非再現記録までで、人手精度は未確認のまま継続する。
 
 ## 5. product claim guardrail
 
@@ -131,5 +148,7 @@ Done 条件:
 - `docs/product-gap-analysis.md`
 - `docs/product-acceptance-v1.md`
 - `docs/assurance-precision-evaluation.md`
-- `docs/real-repo-validation-record.md`
+- `docs/real-repo-validation-evidence-20260704.md`
+- `docs/acceptance/AC-20260910-02-precision-review.md`
+- `docs/tasks/20260910-05-severity-tuning.md`
 - `docs/rule-precision-backlog.md`

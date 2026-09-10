@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/severity-tuning.md",
+  "role": "dependency",
+  "summary": "Severity tuning 運用ガイド",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "02b724772a9817cfa8f2e7edf1a2da06afb0f8967c5a53c484569b901eb77ec8",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

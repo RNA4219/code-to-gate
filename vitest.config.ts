@@ -21,6 +21,7 @@ export default defineConfig({
       'src/**/*tree-sitter*.test.ts',
     ],
     pool: 'forks',
+    maxWorkers: 2,
     fileParallelism: true,
     testTimeout: 60000,
     hookTimeout: 60000,

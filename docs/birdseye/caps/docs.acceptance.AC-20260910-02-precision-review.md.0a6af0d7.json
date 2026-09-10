@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/acceptance/AC-20260910-02-precision-review.md",
+  "role": "dependency",
+  "summary": "精度評価の実リポジトリ試行（2026-09-10）",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "e2a19c116bc5a9abcdbaed0fa37b467968da9f84c25b57d9482d7398ec3b65a6",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

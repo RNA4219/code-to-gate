@@ -5,6 +5,7 @@ import path from "node:path";
 import type { DriftBudgetArtifact, SpecDriftArtifact } from "../types/artifacts.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 export interface DriftBudgetCliOptions {
   VERSION: string;
@@ -156,7 +157,7 @@ export function createDriftBudget(input: {
   return {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `drift-budget-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("drift-budget", { timestamp: generatedAt }),
     repo: current.artifact.repo,
     tool: { name: "code-to-gate", version: input.version, plugin_versions: [] },
     artifact: "drift-budget",

@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/policy-guide.md",
+  "role": "dependency",
+  "summary": "Policy Guide",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "45b4c7e2a1f70335e621f731428ab1d2e6573f7dc2a340c7556c771131d5486b",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

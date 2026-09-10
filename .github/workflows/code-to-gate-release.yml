@@ -127,6 +127,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run maintenance checks
+        run: |
+          npm run test:maintenance
+          node scripts/birdseye.mjs check
+          node scripts/check-roadmap-completion-drift.mjs --fail
+          npm run docs:lint-refs
+
       - name: Run test coverage
         run: npm run test:coverage
 

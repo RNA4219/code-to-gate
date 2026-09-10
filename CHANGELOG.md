@@ -9,6 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CIのdiff/readiness policy接続、PATH入力判定の誤検知、Birdseyeのリンク先境界を修正し、
+  js-yaml 4.3.2とVitest 4.1.11へ更新した
+  ([AC-20260910-14](docs/acceptance/AC-20260910-14-ci-integration.md))。
+- マージ前レビューで、ポリシー検証エラー時の停止、引用・数値・`release-risk`キーの解釈、
+  レビュー用スクリプトの入力保護、importデータのrepo外からのコード表示を修正した
+  ([AC-20260910-13](docs/acceptance/AC-20260910-13-premerge-review.md))。
+- `diff --policy`にseverity調整と対応policy設定の厳密な検証を追加。
+  raw/effective成果物、件数、audit、終了判定を同じ評価結果へ統一した
+  ([20260910-09](docs/tasks/20260910-09-diff-severity.md))。
+- `precision-review`でローカルのレビューHTMLを生成できるようにした。
+  根拠コード、絞り込み、分類・コメント、JSON保存と再開を提供し、
+  AIレビューと人手レビューの区別を保持する
+  ([20260910-10](docs/tasks/20260910-10-precision-workbench.md))。
+- MarkdownとHTML Viewerへ重大度の元値・適用値・調整理由を追加。
+  Viewerのpublic profileでは追加詳細を省き、表示用スクリプトの本文露出も修正した
+  ([20260910-11](docs/tasks/20260910-11-severity-report.md))。
+- 追加5件の統合検証を
+  [AC-20260910-12](docs/acceptance/AC-20260910-12-follow-up.md)へ記録する。
+  配布パッケージの検証には、新規レビューCLIとdiff policyの実行を含める。
+- Made independent runtime IDs collision-resistant while preserving inherited
+  artifact IDs and agent request reuse. Graph cache hits refresh run metadata
+  without changing cached source identity
+  ([20260910-08](docs/tasks/20260910-08-run-identity.md)).
+- Connected maintenance tests, Birdseye freshness, strict roadmap completion,
+  and document references to the PR coverage and Release analyze jobs.
+  Birdseye normalizes source line endings so Windows and Linux agree
+  ([20260910-07](docs/tasks/20260910-07-ci-maintenance.md)).
+- Prepared the local `1.6.0` candidate with roadmap-ledger drift checks, the
+  precision-review evidence path, and maintenance Node tests in the npm test
+  entrypoint; human adjudication and final release gates remain pending.
+- Implemented optional per-rule severity overrides with selector validation,
+  original/effective severity evidence, and cross-surface policy evaluation.
+  Targeted analyze/readiness/baseline and schema regression checks pass; this is
+  still an unreleased candidate feature.
+- Implemented deterministic Birdseye index/capsule generation and drift checks;
+  the real-repo run passed. The candidate remains unpublished pending candidate
+  review and release approval.
+- Task Seed entries for this preparation are tracked in
+  [20260910-01](docs/tasks/20260910-01-ledger-sync.md),
+  [20260910-02](docs/tasks/20260910-02-precision-review.md),
+  [20260910-03](docs/tasks/20260910-03-release-prep.md), and
+  [20260910-04](docs/tasks/20260910-04-birdseye.md), plus
+  [20260910-05](docs/tasks/20260910-05-severity-tuning.md); their
+  implementation, review, and final integration states remain distinct.
+- The earlier maintenance batch's full-test integration result is routed to
+  [AC-20260910-06-maintenance](docs/acceptance/AC-20260910-06-maintenance.md).
 - Fixed rule precision for literal-aware debt comments, secret assignment binding,
   router-anchored rate-limit checks, SQL keyword boundaries, and AST-based
   JavaScript/TypeScript function counts. `fs.existsSync` is no longer reported

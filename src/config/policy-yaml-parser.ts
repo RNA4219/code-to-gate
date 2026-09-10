@@ -5,6 +5,7 @@
 
 import type { Severity } from "../types/artifacts.js";
 import yaml from "js-yaml";
+import { makeRe } from "minimatch";
 import {
   POLICY_VERSION,
   DEFAULT_BLOCKING_SEVERITY,
@@ -22,6 +23,7 @@ import {
   type PolicyDslAction,
   type PolicyDslBaseline,
   type PolicyDslManualEvidence,
+  type SeverityOverride,
 } from "./policy-types.js";
 import type { RuleOptionsConfig } from "../types/rule-options.js";
 
@@ -56,6 +58,14 @@ function numericValue(value: unknown): number | undefined {
     return undefined;
   }
   return typeof value === "number" ? value : Number.NaN;
+}
+
+function parseStrictNumber(value: string): number {
+  const trimmed = value.trim().replace(/\s+#.*$/, "").trim();
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(trimmed)) {
+    return Number.NaN;
+  }
+  return Number(trimmed);
 }
 
 function parseRuleOptions(content: string): RuleOptionsConfig | undefined {
@@ -125,11 +135,64 @@ function parsePolicyDsl(content: string): PolicyDslConfig | undefined {
   return { rules: parsedRules };
 }
 
+function parseSeverityOverrides(content: string): SeverityOverride[] | undefined {
+  let parsed: unknown;
+  try { parsed = yaml.load(content, { schema: yaml.JSON_SCHEMA }); }
+  catch (error) {
+    // Keep legacy malformed policies permissive, but never ignore a malformed
+    // document that advertises an override key (including quoted/flow keys).
+    if (/(^|[,{\n])\s*["']?(severity_overrides|severityOverrides)["']?\s*:/m.test(content)) {
+      throw new Error(`Invalid policy YAML: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    }
+    return undefined;
+  }
+  const root = asRecord(parsed);
+  const hasSnake = root ? Object.prototype.hasOwnProperty.call(root, "severity_overrides") : false;
+  const hasCamel = root ? Object.prototype.hasOwnProperty.call(root, "severityOverrides") : false;
+  if (hasSnake && hasCamel) throw new Error("severity_overrides and severityOverrides cannot both be specified");
+  if (!hasSnake && !hasCamel) return undefined;
+  const raw = hasSnake ? root?.severity_overrides : root?.severityOverrides;
+  if (!Array.isArray(raw)) throw new Error("severity_overrides must be an array");
+  const validSeverities = ["critical", "high", "medium", "low"];
+  const validCategories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"];
+  return raw.map((entry, index) => {
+    const item = asRecord(entry);
+    if (!item) throw new Error(`severity_overrides[${index}] must be an object`);
+    const allowedKeys = new Set(["rule_id", "ruleId", "path", "category", "severity", "reason"]);
+    for (const key of Object.keys(item)) if (!allowedKeys.has(key)) throw new Error(`severity_overrides[${index}] has unknown field: ${key}`);
+    if (Object.prototype.hasOwnProperty.call(item, "rule_id") && Object.prototype.hasOwnProperty.call(item, "ruleId")) {
+      throw new Error(`severity_overrides[${index}] cannot specify both rule_id and ruleId`);
+    }
+    const readRequiredString = (key: string, value: unknown): string | undefined => {
+      if (value === undefined) return undefined;
+      if (typeof value !== "string" || !value.trim()) throw new Error(`severity_overrides[${index}].${key} must be a non-empty string`);
+      return value.trim();
+    };
+    const ruleId = readRequiredString("rule_id", Object.prototype.hasOwnProperty.call(item, "rule_id") ? item.rule_id : item.ruleId);
+    const pathValue = readRequiredString("path", item.path);
+    if (pathValue !== undefined && item.path !== pathValue) throw new Error(`severity_overrides[${index}].path must not have leading or trailing whitespace`);
+    if (pathValue?.startsWith("!")) throw new Error(`severity_overrides[${index}].path must not be a negated glob`);
+    if (pathValue && !makeRe(pathValue.replace(/\\/g, "/"))) throw new Error(`severity_overrides[${index}].path is invalid`);
+    const path = pathValue?.replace(/\\/g, "/");
+    const category = readRequiredString("category", item.category);
+    const severity = readRequiredString("severity", item.severity);
+    const reason = readRequiredString("reason", item.reason);
+    if (!ruleId && !path && !category) throw new Error(`severity_overrides[${index}] requires at least one selector (rule_id, path, or category)`);
+    if (!severity || !validSeverities.includes(severity)) throw new Error(`severity_overrides[${index}].severity is invalid`);
+    if (!reason?.trim()) throw new Error(`severity_overrides[${index}].reason is required`);
+    if (category && !validCategories.includes(category)) throw new Error(`severity_overrides[${index}].category is invalid`);
+    return { ruleId, path, category: category as SeverityOverride["category"], severity: severity as SeverityOverride["severity"], reason };
+  });
+}
+
 /**
  * Parse YAML policy file
  */
 export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   const result: Partial<CtgPolicy> = {};
+  const documentRoot = asRecord(yaml.load(content, { schema: yaml.JSON_SCHEMA }));
+  const severityOverrides = parseSeverityOverrides(content);
+  if (severityOverrides) result.severityOverrides = severityOverrides;
   const dsl = parsePolicyDsl(content);
   if (dsl) {
     result.dsl = dsl;
@@ -154,14 +217,25 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
     const indent = line.length - line.trimStart().length;
 
     if (indent === 0 && trimmed.includes(":")) {
-      const [key, value] = trimmed.split(":").map(s => s.trim());
+      const pair = splitYamlKeyValue(trimmed);
+      if (!pair) continue;
+      const [key, rawValue] = pair;
+      const value = unquoteYamlScalar(rawValue);
       currentSection = key;
       currentSubSection = null;
 
       if (key === "version") {
-        result.version = value || POLICY_VERSION;
+        const rootValue = documentRoot?.version;
+        if (Object.prototype.hasOwnProperty.call(documentRoot ?? {}, key) && typeof rootValue !== "string") {
+          throw new Error("version must be a string");
+        }
+        result.version = typeof rootValue === "string" ? rootValue : (value || POLICY_VERSION);
       } else if (key === "policy_id") {
-        result.policyId = value || "";
+        const rootValue = documentRoot?.policy_id;
+        if (Object.prototype.hasOwnProperty.call(documentRoot ?? {}, key) && typeof rootValue !== "string") {
+          throw new Error("policy_id must be a string");
+        }
+        result.policyId = typeof rootValue === "string" ? rootValue : (value || "");
       } else if (key === "blocking") {
         result.blocking = {
           severity: { ...DEFAULT_BLOCKING_SEVERITY },
@@ -200,7 +274,7 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
           result.blocking.severity[key as Severity] = value === "true";
         }
       } else if (currentSection === "blocking" && currentSubSection === "category" && result.blocking?.category) {
-        const categoryKey = key.replace("-", "");
+        const categoryKey = key === "release-risk" ? "releaseRisk" : key;
         if (categoryKey in DEFAULT_BLOCKING_CATEGORY) {
           result.blocking.category[categoryKey as keyof BlockingCategoryConfig] = value === "true";
         }
@@ -212,19 +286,19 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
           result.blocking.countThreshold = {};
         }
         if (key === "critical_max") {
-          result.blocking.countThreshold.criticalMax = parseInt(value, 10);
+          result.blocking.countThreshold.criticalMax = parseStrictNumber(value);
         } else if (key === "high_max") {
-          result.blocking.countThreshold.highMax = parseInt(value, 10);
+          result.blocking.countThreshold.highMax = parseStrictNumber(value);
         } else if (key === "medium_max") {
-          result.blocking.countThreshold.mediumMax = parseInt(value, 10);
+          result.blocking.countThreshold.mediumMax = parseStrictNumber(value);
         } else if (key === "low_max") {
-          result.blocking.countThreshold.lowMax = parseInt(value, 10);
+          result.blocking.countThreshold.lowMax = parseStrictNumber(value);
         }
       } else if (currentSection === "confidence" && result.confidence) {
         if (key === "min_confidence") {
-          result.confidence.minConfidence = parseFloat(value);
+          result.confidence.minConfidence = parseStrictNumber(value);
         } else if (key === "low_confidence_threshold") {
-          result.confidence.lowConfidenceThreshold = parseFloat(value);
+          result.confidence.lowConfidenceThreshold = parseStrictNumber(value);
         } else if (key === "filter_low") {
           result.confidence.filterLow = value === "true";
         }
@@ -242,7 +316,7 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
         } else if (key === "mode") {
           result.llm.mode = value as "remote" | "local-only" | "none";
         } else if (key === "min_confidence") {
-          result.llm.minConfidence = parseFloat(value);
+          result.llm.minConfidence = parseStrictNumber(value);
         } else if (key === "require_llm") {
           result.llm.requireLlm = value === "true";
         } else if (key === "unsupported_claims_max") {
@@ -252,7 +326,7 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
         if (key === "allow_partial") {
           result.partial.allowPartial = value === "true";
         } else if (key === "partial_warning_threshold") {
-          result.partial.partialWarningThreshold = parseFloat(value);
+          result.partial.partialWarningThreshold = parseStrictNumber(value);
         }
       } else if (currentSection === "baseline" && result.baseline) {
         if (key === "enabled") {
@@ -309,6 +383,7 @@ export function mergeWithDefaults(parsed: Partial<CtgPolicy>): CtgPolicy {
         ...parsed.ruleOptions?.LARGE_MODULE,
       },
     },
+    severityOverrides: parsed.severityOverrides,
   };
 }
 

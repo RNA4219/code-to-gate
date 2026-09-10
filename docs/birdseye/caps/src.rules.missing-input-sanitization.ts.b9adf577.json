@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/missing-input-sanitization.ts",
+  "role": "dependency",
+  "summary": "MISSING_INPUT_SANITIZATION_RULE の公開API",
+  "public_api": [
+    "MISSING_INPUT_SANITIZATION_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/missing-input-sanitization.test.ts"
+  ],
+  "sourceHash": "8d3c11b90259818375266c8da77ec2d81a69879c53f7af4e8f2ac83286d0b1a6",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

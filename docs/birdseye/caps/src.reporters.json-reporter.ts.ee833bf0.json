@@ -1,0 +1,16 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/json-reporter.ts",
+  "role": "dependency",
+  "summary": "src/reporters/json-reporter.ts",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/json-reporter.test.ts"
+  ],
+  "sourceHash": "a924feab7a3d13ada6dbc0cd291a34c9fa091c14a1666191434e4e6c8ca28994",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

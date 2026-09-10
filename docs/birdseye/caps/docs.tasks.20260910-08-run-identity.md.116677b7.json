@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-08-run-identity.md",
+  "role": "dependency",
+  "summary": "独立実行の識別",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "f047e844ceee28c35c56c7a6b85c644188843c91676f8f319607bbd12c9f070b",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

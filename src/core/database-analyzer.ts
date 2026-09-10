@@ -24,6 +24,7 @@ import {
 } from "../types/database-assets.js";
 import type { NormalizedRepoGraph, RepoFile } from "../types/artifacts.js";
 import type { HashService, GitFileAccess } from "../types/contracts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import { DefaultHashService } from "./hash-service.js";
 import {
   discoverDatabaseFiles,
@@ -442,12 +443,13 @@ function analyzeDatabasePipeline(
   uniqueDiagnostics.sort((a, b) => a.filePath.localeCompare(b.filePath) || a.code.localeCompare(b.code));
 
   // Build artifact
+  const generatedAt = new Date().toISOString();
   const artifact: DatabaseAssetsArtifact = {
     artifact: "database-assets",
     schema: DATABASE_ASSETS_SCHEMA_VERSION,
     version: "ctg/v1",
-    generated_at: new Date().toISOString(),
-    run_id: options.graph?.run_id ?? `db-analysis-${fileSource.runIdSuffix()}`,
+    generated_at: generatedAt,
+    run_id: options.graph?.run_id ?? createUniqueRunId("db-analysis", { timestamp: generatedAt }),
     repo: options.graph?.repo ?? {
       root: fileSource.repoRoot,
     },
@@ -623,12 +625,13 @@ export function analyzeDatabaseAssetsAtRef(options: DatabaseAnalysisAtRefOptions
   // Caller must inject GitFileAccess adapter for Git operations
   // Backward compatibility: return error artifact if not provided
   if (!options.gitFileAccess) {
+    const generatedAt = new Date().toISOString();
     return {
       artifact: "database-assets",
       schema: DATABASE_ASSETS_SCHEMA_VERSION,
       version: "ctg/v1",
-      generated_at: new Date().toISOString(),
-      run_id: `git-ref-${options.gitRef}-${Date.now()}`,
+      generated_at: generatedAt,
+      run_id: createUniqueRunId("git-ref", { timestamp: generatedAt }),
       repo: {
         root: options.repoRoot,
         revision: options.gitRef,

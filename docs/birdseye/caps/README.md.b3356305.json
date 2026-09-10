@@ -1,0 +1,22 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "README.md",
+  "role": "overview",
+  "summary": "code-to-gate",
+  "public_api": [],
+  "deps_out": [
+    "CHANGELOG.md",
+    "docs/cli-reference.md",
+    "docs/distribution-status.md",
+    "docs/integrations.md",
+    "docs/plugin-development.md",
+    "docs/policy-guide.md",
+    "docs/quickstart.md",
+    "docs/security-gate.md",
+    "README_JA.md"
+  ],
+  "deps_in": [],
+  "tests": [],
+  "sourceHash": "b69e1ddf4b75b960d054a0a5c6a36ecc39bd3d2ef734cec2b9019cf278b339a0",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

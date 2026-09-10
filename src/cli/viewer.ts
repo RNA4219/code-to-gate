@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import * as path from "node:path";
 
 import { VERSION } from "./exit-codes.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import {
   FindingsArtifact,
   RiskRegisterArtifact,
@@ -194,7 +195,7 @@ function parseHostedTarget(value: string | undefined): HostedStaticReportTarget 
   return null;
 }
 
-function chooseRunId(artifacts: LoadedArtifacts): string {
+function chooseRunId(artifacts: LoadedArtifacts, generatedAt: string): string {
   return (
     artifacts.findings?.run_id ||
     artifacts.readiness?.run_id ||
@@ -202,7 +203,7 @@ function chooseRunId(artifacts: LoadedArtifacts): string {
     artifacts.historicalComparison?.run_id ||
     artifacts.evidenceDag?.run_id ||
     artifacts.qegEvidence?.run_id ||
-    `viewer-report-${Date.now()}`
+    createUniqueRunId("viewer-report", { timestamp: generatedAt })
   );
 }
 
@@ -258,11 +259,12 @@ function createHostedStaticReportManifest(input: {
   redactionSummary: RedactionSummary;
 }): HostedStaticReportArtifact {
   const htmlBytes = Buffer.from(input.html, "utf8");
+  const generatedAt = new Date().toISOString();
 
   return {
     version: "ctg/v1",
-    generated_at: new Date().toISOString(),
-    run_id: chooseRunId(input.artifacts),
+    generated_at: generatedAt,
+    run_id: chooseRunId(input.artifacts, generatedAt),
     repo: { root: chooseRepoRoot(input.artifacts, input.artifactDir) },
     tool: { name: "code-to-gate", version: input.version, plugin_versions: [] },
     artifact: "hosted-static-report",

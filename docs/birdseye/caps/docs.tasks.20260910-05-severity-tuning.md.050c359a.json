@@ -1,0 +1,15 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-05-severity-tuning.md",
+  "role": "dependency",
+  "summary": "Task: SPEC-26 severity tuning",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md",
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "b2b298338654d3d3026d0475d436e282baa2ec0edcc0a4b792f3321fe4f6d53a",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

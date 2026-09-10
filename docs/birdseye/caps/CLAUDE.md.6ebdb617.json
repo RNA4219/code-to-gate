@@ -1,0 +1,24 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "CLAUDE.md",
+  "role": "context",
+  "summary": "CLAUDE.md - code-to-gate Project Context",
+  "public_api": [],
+  "deps_out": [
+    "docs/acceptance/AC-20260910-02-precision-review.md",
+    "docs/acceptance/AC-20260910-06-maintenance.md",
+    "docs/acceptance/AC-20260910-12-follow-up.md",
+    "docs/precision-review.md",
+    "docs/run-identity.md",
+    "docs/severity-tuning.md",
+    "docs/specs/SPEC-26-custom-severity.md",
+    "docs/tasks/20260910-04-birdseye.md",
+    "docs/tasks/20260910-05-severity-tuning.md"
+  ],
+  "deps_in": [
+    "CHECKLISTS.md"
+  ],
+  "tests": [],
+  "sourceHash": "1af2fc709bb25cb1d8504c81d9569fd43d2f2b9025aecdc83ab2ae7c86e3c3d4",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

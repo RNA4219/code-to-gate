@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/node-services.ts",
+  "role": "dependency",
+  "summary": "src/adapters/node-services.ts",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [],
+  "sourceHash": "47a9f94de6e6c0457d096825269ec57f305a5f4cf0288f349af4b4685a4923e0",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

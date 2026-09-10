@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type {
   NormalizedRepoGraph,
@@ -381,7 +382,7 @@ export function createOwnershipRisk(options: OwnershipRiskOptions): OwnershipRis
     artifact: {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `ownership-risk-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId("ownership-risk", { timestamp: generatedAt }),
       repo: graph.repo,
       tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
       artifact: "ownership-risk",

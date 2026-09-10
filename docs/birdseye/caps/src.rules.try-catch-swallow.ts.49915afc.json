@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/try-catch-swallow.ts",
+  "role": "dependency",
+  "summary": "TRY_CATCH_SWALLOW_RULE の公開API",
+  "public_api": [
+    "TRY_CATCH_SWALLOW_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/try-catch-swallow.test.ts"
+  ],
+  "sourceHash": "09c7c6fe35124c97003e19dacad9f1a548e862539118dfda7ccd9a197bcb2d16",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

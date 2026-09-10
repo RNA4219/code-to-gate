@@ -546,3 +546,44 @@ npm run release:validate  # Unified gate: lint + typecheck + smoke + architectur
 | release:validate | pass、約4分43秒 |
 
 `diff-rules.ts`の単一module化を解消するため、共通処理と4つのdiff semantic ruleを専用moduleへ分離した。公開entrypointの`diff-rules.ts`は67行、最大rule moduleは196行となり、self-analysisの`LARGE_MODULE` highは解消された。新規suppressionは追加していない。
+
+## 2026-09-10 Roadmap完了ID対応表
+
+`docs/product-roadmap.md` の完了記録と実装・文書・テスト証跡を対応づけた。ここでの確認は各成果物の存在または実装記録の確認であり、現在の全製品受入・公開承認・人手による精度判定を意味しない。特に NA-06 と P1-DEV-06 は評価対象の選定・実行準備および実行記録までで、2026-07-04 の実repo出力について人手精度判定は未実施である。
+
+| roadmap ID | 確認した成果物・根拠 | 確認範囲 |
+|---|---|---|
+| NA-01 | `docs/product-acceptance-v1.md`、`docs/product-spec-v1.md:1815` | 受入文書の作成 |
+| NA-02 | `docs/product-gap-analysis.md`、`docs/product-spec-v1.md:1816` | gap分析文書の作成 |
+| NA-03 | `docs/product-roadmap.md`、`docs/product-spec-v1.md:1817` | roadmap文書の作成 |
+| NA-04 | `docs/ast-parser-evaluation.md:215-217` | AST評価と実装記録 |
+| NA-06 | `scripts/real-repo-test.ps1:35-59`、`docs/real-repo-validation-evidence-20260704.md:23-26` | 4 repoの選定・実行記録。人手精度は未実施 |
+| NA-07 | `docs/fp-evaluation.md:39-49,377-378` | FP評価手順とスクリプト |
+| NA-08 | `.github/workflows/code-to-gate-pr.yml`、`docs/product-spec-v1.md:1819` | Actionsテンプレート |
+| P1-DEV-01 | `src/adapters/ts-adapter.ts:365`、`src/adapters/__tests__/ts-adapter.test.ts` | TypeScript parser実装・テスト |
+| P1-DEV-02 | `.github/workflows/code-to-gate-pr.yml` | Actions workflow |
+| P1-DEV-03 | `.github/actions/pr-comment/action.yml`、`src/github/pr-comment.ts`、`docs/github-actions.md:46` | PR comment実装・記録 |
+| P1-DEV-04 | `.github/actions/checks/action.yml`、`src/github/checks.ts`、`docs/github-actions.md:47` | Checks実装・記録 |
+| P1-DEV-05 | `src/config/policy-loader.ts:212,232`、`src/config/__tests__/policy-loader.test.ts:386,454` | suppression loader・判定テスト |
+| P1-DEV-06 | `scripts/real-repo-test.ps1:20,35-59`、`docs/real-repo-validation-evidence-20260704.md:23-26` | 実repo評価の準備・実行記録。人手精度は未実施 |
+| P1-DEV-07 | `docs/quickstart.md`、`docs/cli-reference.md`、`docs/completion-record.md:206-208` | ドキュメント更新 |
+| P2-DEV-01 | `src/plugin/plugin-runner.ts:37,446`、`src/plugin/__tests__/plugin-runner.test.ts:29` | Plugin SDK実装・テスト |
+| P2-DEV-02 | `.github/workflows/code-to-gate-pr.yml:87`、`docs/completion-record.md:221` | contract tests CI |
+| P2-DEV-03 | `src/config/policy-loader.ts:280`、`src/config/__tests__/policy-loader.test.ts:386`以降 | suppression expiry |
+| P2-DEV-04 | `src/historical/comparison.ts:45,206,327`、`docs/historical-comparison.md` | historical comparison実装・説明 |
+| P2-DEV-05 | `src/viewer/report-viewer.ts:91,181`、`src/viewer/__tests__/report-viewer.test.ts:49,70` | Web viewer MVP |
+| P2-DEV-06 | `src/llm/providers/index.ts:18,34,62`、`docs/local-llm-setup.md:81-110` | local LLM provider・設定 |
+| P3-DEV-01 | `src/adapters/py-adapter.ts:48`、`docs/completion-record.md:240` | Python adapter分割 |
+| P3-DEV-02 | `docs/completion-record.md:235`、`ctg/v1` schema安定化記録 | schema v1 |
+| P3-DEV-03 | `src/parallel/file-processor.ts:54`、`src/parallel/__tests__/file-processor.test.ts:38`以降 | large repo処理 |
+| P3-DEV-04 | `src/plugin/docker-sandbox.ts:36,438,457`、`src/plugin/__tests__/docker-sandbox.test.ts:62,385` | private plugin sandbox |
+| P3-DEV-05 | `src/evidence/bundle-builder.ts:350,526`、`src/evidence/__tests__/bundle-builder.test.ts:88,252,309` | release evidence bundle |
+| P3-DEV-06 | `src/viewer/graph-viewer.ts:38,276`、`src/viewer/finding-viewer.ts`、`src/viewer/__tests__/report-viewer.test.ts` | Web viewer full |
+| P2-FUTURE-01 | `src/viewer/report-sections.ts:352,440,513`、`src/viewer/__tests__/report-viewer.test.ts:415,466,503` | risk/readiness/test seed表示 |
+| P2-FUTURE-02 | `src/plugin/__tests__/plugin-security-contract.test.ts:21,40,80`、`docs/plugin-security-contract.md` | Plugin SDK contract hardening |
+| P2-FUTURE-03 | `src/rules/debt-marker.ts:44,111`、`src/rules/__tests__/debt-marker.test.ts:42` | explicit debt marker |
+| P2-FUTURE-04 | `src/rules/suppression-debt.ts:94,154`、`src/rules/__tests__/suppression-debt.test.ts:38` | suppression debt検出 |
+| P2-FUTURE-05 | `src/reporters/markdown-reporter.ts:296,312`、`docs/completion-record.md:14-15` | suppression debt表示 |
+| P2-FUTURE-06 | `src/core/file-utils.ts:22,68,71-74,235` | `.qh*` / `.test-temp*`除外 |
+
+NA-05 と NA-09 は、現行実装の存在と過去の意思決定・開催記録を分けて確認する必要があるため、ロードマップ側を `Unverified（旧Done、決定記録未確認）` / `Unverified（旧Done、開催記録未確認）` としている。これらを本表へ転記して完了扱いにはしない。

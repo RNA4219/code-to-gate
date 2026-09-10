@@ -1,0 +1,20 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/cli/import-consumer.ts",
+  "role": "dependency",
+  "summary": "ImportConsumptionError, ImportConsumptionResult, consumeImportArtifacts の公開API",
+  "public_api": [
+    "ImportConsumptionError",
+    "ImportConsumptionResult",
+    "consumeImportArtifacts"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/cli/__tests__/import-consumer.test.ts"
+  ],
+  "sourceHash": "24460e24c90268486eb00245c1d0c50087b6f2225305050b8c8fcbba63173466",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

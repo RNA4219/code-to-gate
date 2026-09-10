@@ -33,6 +33,28 @@
           "affectedEntrypoints": { "type": "array", "items": { "type": "string" } },
           "tags": { "type": "array", "items": { "type": "string" } },
           "fingerprint": { "type": "string", "minLength": 16, "maxLength": 16, "description": "Stable hash for historical matching across code changes" },
+          "originalSeverity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+          "severityResolution": {
+            "type": "object",
+            "required": ["policyId", "originalSeverity", "severity", "reason", "matchedSelectors"],
+            "additionalProperties": false,
+            "properties": {
+              "policyId": { "type": "string", "minLength": 1 },
+              "originalSeverity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+              "severity": { "$ref": "./shared-defs.schema.json#/$defs/severity" },
+              "reason": { "type": "string", "minLength": 1 },
+              "matchedSelectors": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "ruleId": { "type": "string", "minLength": 1 },
+                  "path": { "type": "string", "minLength": 1 },
+                  "category": { "enum": ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"] }
+                }
+              }
+            }
+          },
           "upstream": {
             "type": "object",
             "required": ["tool"],

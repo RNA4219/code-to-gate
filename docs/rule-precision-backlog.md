@@ -2,8 +2,8 @@
 intent_id: INT-SELF-ANALYSIS-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-05-17
-next_review_due: 2026-06-17
+last_reviewed_at: 2026-09-10
+next_review_due: 2026-10-10
 ---
 
 # Rule Precision Backlog
@@ -18,19 +18,19 @@ Suppression は正当な除外を管理するが、rule の detection precision 
 
 ## 2. Backlog Items
 
-### 2.1 HARDCODED_SECRET False Positives
+### 2.1 HARDCODED_SECRET False Positives (一部解消)
 
 | ID | Location | Detection | Root Cause | Improvement Suggestion |
 |---|---|---|---|---|
-| FP-HS-001 | src/plugin/plugin-schemas.ts | JSON schema property `secrets: {}` | Line contains "secret" keyword (SECRET_VAR_NAMES) | Exclude JSON/YAML schema property definitions |
-| FP-HS-002 | src/plugin/plugin-runner.ts | Schema examples | Same as FP-HS-001 | Same as FP-HS-001 |
-| FP-HS-003 | src/rules/hardcoded-secret.ts | Self-reference | Rule contains detection patterns | self-reference suppression is correct |
+| FP-HS-001 | src/plugin/plugin-schemas.ts | JSON schema property `secrets: {}` | Line contains "secret" keyword (SECRET_VAR_NAMES) | `isSchemaPropertyDefinition` で除外済み |
+| FP-HS-002 | src/plugin/plugin-runner.ts | Schema examples | Same as FP-HS-001 | `isSchemaPropertyDefinition` で除外済み |
+| FP-HS-003 | src/rules/hardcoded-secret.ts | Self-reference | Rule contains detection patterns | self-reference suppression を継続 |
 
-**Current Status**: Suppressed as `self-reference` for rule files, but schema files need precision fix.
+**Current Status**: FP-HS-001/002 は HEAD `53897b9` で schema property を detector 側から除外済み。FP-HS-003 は元設計どおり suppression を継続する。
 
-**Improvement Priority**: P2 (affects plugin schema development UX)
+**Improvement Priority**: 一部完了（実装根拠: `src/rules/hardcoded-secret.ts`、公開版への収録時点は未確認）
 
-**Suggested Fix**:
+**Historical Suggestion (implemented for schema properties):**
 ```typescript
 // In hardcoded-secret.ts, line 95
 // Current: SECRET_VAR_NAMES.some(v => line.toLowerCase().includes(v))
@@ -39,19 +39,19 @@ const isPropertyDef = /^\s*["']?\w+["']?\s*:\s*\{/.test(line);
 if (isPropertyDef) continue; // Skip JSON schema property definitions
 ```
 
-### 2.2 DEBT_MARKER False Positives
+### 2.2 DEBT_MARKER False Positives (一部解消)
 
 | ID | Location | Detection | Root Cause | Improvement Suggestion |
 |---|---|---|---|---|
-| FP-DM-001 | src/cli/schema-validate.ts:1 | Comment `// Ajv ESM/CJS interop workaround` | Comment contains "workaround" keyword | Exclude single-line comments from detection |
-| FP-DM-002 | src/evaluation/fp-evaluator.ts | JSDoc `@expiry` field description | Comment contains "expiry" keyword | Same as FP-DM-001 |
-| FP-DM-003 | src/plugin/docker-sandbox.ts | Comment about temp Dockerfile | Comment contains "temporary" keyword | Same as FP-DM-001 |
+| FP-DM-001 | src/cli/schema-validate.ts:1 | Comment `// Ajv ESM/CJS interop workaround` | Comment contains "workaround" keyword | `isAcceptedCompatibilityNote` で除外済み |
+| FP-DM-002 | src/evaluation/fp-evaluator.ts | JSDoc `@expiry` field description | 現行 marker set に `expiry` は含まれない | 現行非再現（過去原因未特定） |
+| FP-DM-003 | src/plugin/docker-sandbox.ts | Comment about temp Dockerfile | 現行の `temporary Dockerfile` は marker 条件に合致しない | 現行非再現（過去原因未特定） |
 
-**Current Status**: Suppressed as `accepted-design` for these specific locations.
+**Current Status**: FP-DM-001 の互換性説明除外は HEAD `53897b9` で実装済み。FP-DM-002/003 は現行 source/dist の直接評価で非再現だったが、過去原因は未特定であり、全体 detector 解消とは扱わない。
 
-**Improvement Priority**: P2 (noise in codebase documentation)
+**Improvement Priority**: 一部完了（実装根拠: `src/rules/debt-marker.ts`、公開版への収録時点は未確認）
 
-**Suggested Fix**:
+**Historical Suggestion (compatibility notes):**
 ```typescript
 // In debt-marker.ts detection
 // Proposed: Skip comments that explain legitimate compatibility solutions
@@ -66,20 +66,25 @@ if (isCompatibilityComment) continue; // Skip compatibility explanation comments
 | FP-MIS-001 | src/cli/llm-health.ts | Log output for provider status | CLI health check logs to console | CLI logging is intentional, not input sanitization issue |
 | FP-MIS-002 | src/rules/*.ts | Self-reference | Rule implementation patterns | self-reference suppression is correct |
 
-**Current Status**: Suppressed as `accepted-design` for CLI health check.
+**Current Status**: CLI health check の logging は現行 source/dist の直接評価で非再現だった。過去原因は未特定であり、人間精度判定や全体 detector 解消とは扱わない。
 
-**Improvement Priority**: P3 (low noise, single location)
+**Improvement Priority**: P3（FP-MIS-001 は現行非再現、過去原因未特定）
 
-### 2.4 RAW_SQL False Positives
+### 2.4 RAW_SQL False Positives (一部解消)
 
 | ID | Location | Detection | Root Cause | Improvement Suggestion |
 |---|---|---|---|---|
-| FP-RS-001 | src/plugin/__tests__/plugin-security-contract.test.ts | Rule name "RAW_SQL" in string literal | Line contains "RAW_SQL" string | Exclude rule names in test assertions |
-| FP-RS-002 | src/plugin/plugin-context.ts | Schema type reference | Unknown - need investigation | Check if this is still a false positive |
+| FP-RS-001 | src/plugin/__tests__/plugin-security-contract.test.ts | Rule name "RAW_SQL" in string literal | SQL keyword/query construction を伴わない | `sqlKeywords` と unsafe pattern の条件に入らず除外済み |
+| FP-RS-002 | src/plugin/plugin-context.ts | Schema type reference | SQL query construction を伴わない | 現行非再現（過去原因未特定） |
 
-**Current Status**: Suppressed as `self-reference`.
+**Current Status**: FP-RS-001 の rule 名文字列は HEAD `53897b9` の SQL keyword/query 条件に入らない。FP-RS-002 は現行 source/dist の直接評価で非再現だったが、過去原因は未特定であり、全体 detector 解消とは扱わない。
 
-**Improvement Priority**: P3 (test file false positives)
+**Improvement Priority**: 一部完了（実装根拠: `src/rules/raw-sql.ts`、公開版への収録時点は未確認）
+
+### 2.5 MISSING_INPUT_SANITIZATION (残件)
+
+FP-MIS-001 は現行非再現（過去原因未特定）として記録する。今回の直接評価だけでは
+accepted-design の確定、人間精度判定、detector 改修完了とは判定しない。
 
 ## 3. Suppression vs Precision Backlog
 
@@ -122,14 +127,17 @@ Rule ごとの fixture は、次の 2 種類を分けて管理する。
 
 | Item | Status | Target Version | Notes |
 |---|---|---|---|
-| FP-HS-001 | backlog | v1.4+ | JSON schema property exclusion |
-| FP-DM-001 | backlog | v1.4+ | Comment context detection |
-| FP-MIS-001 | suppressed | N/A | Single location, acceptable noise |
-| FP-RS-001 | suppressed | N/A | Test file, self-reference pattern |
+| FP-HS-001/002 | implemented at HEAD `53897b9` | Unreleased | schema property exclusion。FP-HS-003 は suppression 継続 |
+| FP-DM-001 | implemented at HEAD `53897b9` | Unreleased | compatibility note exclusion |
+| FP-DM-002/003 | current non-reproduction | AC-20260910-02 | source/dist とも 0 findings、過去原因未特定 |
+| FP-MIS-001 | current non-reproduction | AC-20260910-02 | source/dist とも 0 findings、過去原因未特定 |
+| FP-RS-001 | implemented at HEAD `53897b9` | Unreleased | rule 名文字列だけでは SQL 条件に入らない |
+| FP-RS-002 | current non-reproduction | AC-20260910-02 | source/dist とも 0 findings、過去原因未特定 |
 
 ## 6. Next Review
 
-2026-06-17 に backlog を再評価:
+2026-10-10 に backlog を再評価:
 - False positive 数の推移確認
 - Rule improvement 実装状況確認
 - Suppression 削減可能性評価
+- MISSING_INPUT_SANITIZATION の detector 改修要否を再確認

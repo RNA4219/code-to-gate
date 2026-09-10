@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/run-identity.md",
+  "role": "dependency",
+  "summary": "実行IDと再現性",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "00d7564332b54a10d573ebbdcbf8c4560563bbb66b972fa47a67c5ffb8bf313f",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

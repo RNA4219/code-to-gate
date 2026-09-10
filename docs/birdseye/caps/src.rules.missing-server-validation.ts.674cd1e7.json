@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/missing-server-validation.ts",
+  "role": "dependency",
+  "summary": "MISSING_SERVER_VALIDATION_RULE の公開API",
+  "public_api": [
+    "MISSING_SERVER_VALIDATION_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/missing-server-validation.test.ts"
+  ],
+  "sourceHash": "5fd6a3c38afb600adcded3d17f79ec46549fb58c6381323f51a6fd0d70b2567d",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

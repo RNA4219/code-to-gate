@@ -17,6 +17,7 @@ export {
   type FindingReview,
   type FPEvaluationResult,
   type FPEvaluationInput,
+  type FPEvaluationMode,
   type SuppressionRecommendation,
   FP_RATE_TARGETS,
 
@@ -32,6 +33,22 @@ export {
   compareFPEvaluations,
   generateFPEvidenceYAML,
 } from "./fp-evaluator.js";
+
+export {
+  type PrecisionReviewerKind,
+  type PrecisionClassification,
+  type PrecisionReviewFinding,
+  type PrecisionReviewArtifact,
+  type PrecisionReviewSummary,
+  type PrecisionReviewCreateOptions,
+  sha256Hex,
+  evidenceRefHash,
+  createPrecisionReview,
+  validatePrecisionReview,
+  summarizePrecisionReview,
+  updatePrecisionReview,
+  readFindingsArtifact,
+} from "./precision-review.js";
 
 // FN Evaluator exports
 export {

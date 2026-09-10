@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/js-adapter.ts",
+  "role": "dependency",
+  "summary": "parseJavaScriptFile の公開API",
+  "public_api": [
+    "parseJavaScriptFile"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/js-adapter.test.ts"
+  ],
+  "sourceHash": "1f5b5ed041aa221d02770e665cdbdafe1e6c47d3e1037f22218c443ccd09282a",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

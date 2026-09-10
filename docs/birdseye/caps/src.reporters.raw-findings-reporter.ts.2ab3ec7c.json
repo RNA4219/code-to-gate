@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/raw-findings-reporter.ts",
+  "role": "dependency",
+  "summary": "RawFindingsArtifact, generateRawFindingsArtifact, writeRawFindingsJson の公開API",
+  "public_api": [
+    "RawFindingsArtifact",
+    "generateRawFindingsArtifact",
+    "writeRawFindingsJson"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts"
+  ],
+  "tests": [],
+  "sourceHash": "ed5e6e2a84c0dc246fe6b30d6b13ac27fcde535f7b66269806fa33f0ea73533c",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

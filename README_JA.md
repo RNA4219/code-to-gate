@@ -15,12 +15,12 @@ finding は **review-required candidate** であり、確定済み脆弱性や�
 
 | チャネル | 状態 |
 |----------|------|
-| `package.json` | `1.5.1` |
+| `package.json` | `1.6.0` 開発候補（ローカル、未公開） |
 | GitHub Release | 公開済み最新は `v1.5.1` |
 | npm registry | 未公開 |
 
 詳細は [Distribution Status](docs/distribution-status.md) を正本にします。
-`1.5.1` は GitHub Release として公開済みです。npm publish は未完了のため、npm 公開までは GitHub/source install を利用してください。
+`1.6.0` はローカル準備中の開発候補です。公開済み GitHub Release の最新は `v1.5.1` のままで、npm package は未公開です。明示的なリリースと npm publish が完了するまでは GitHub/source install を利用してください。
 
 ## インストール
 
@@ -119,5 +119,7 @@ npm install
 npm run build
 npm test
 ```
+
+`npm test` は Vitest 実行後に `scripts/__tests__` の Node maintenance checks も実行します。
 
 MIT License. See [LICENSE](LICENSE).

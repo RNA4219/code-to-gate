@@ -8,6 +8,7 @@ import type {
 } from "../types/artifacts.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 export interface BaselineLedgerCliOptions {
   VERSION: string;
@@ -131,7 +132,7 @@ export function createBaselineDebtLedger(input: {
   const artifact: BaselineDebtLedgerArtifact = {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `baseline-debt-ledger-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("baseline-debt-ledger", { timestamp: generatedAt }),
     repo: { root: readiness?.repo.root ?? process.cwd() },
     tool: { name: "code-to-gate", version: input.version, plugin_versions: [] },
     artifact: "baseline-debt-ledger",

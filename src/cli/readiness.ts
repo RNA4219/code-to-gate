@@ -10,6 +10,7 @@ import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, detectBroadSuppressions, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
+import { resolveSeverities } from "../config/severity-resolver.js";
 import { assessIntakeArtifact, type IntakeAssessment } from "./intake-artifact.js";
 import { classifySuppressedFindings } from "../self-analysis/suppression-summary.js";
 
@@ -301,9 +302,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       for (const error of policyErrors) {
         console.error(`Policy error: ${error}`);
       }
-      if (!policy.policyId) {
-        return options.EXIT.POLICY_FAILED;
-      }
+      return options.EXIT.POLICY_FAILED;
     }
 
     // Load suppressions if configured
@@ -332,6 +331,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
 
     const findingsContent = readFileSync(findingsPath, "utf8");
     const findings: FindingsArtifact = JSON.parse(findingsContent);
+    findings.findings = resolveSeverities(findings.findings, policy);
 
     const configuredBaselinePath = baselinePath ?? (policy.baseline?.enabled ? policy.baseline.file : undefined);
     const baselineBaseDir = baselinePath ? cwd : repoRoot;
@@ -339,6 +339,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     let findingsForPolicy: Finding[] = findings.findings;
     if (configuredBaselinePath) {
       const baseline = loadBaselineFindingsArtifact(configuredBaselinePath, baselineBaseDir);
+      baseline.artifact.findings = resolveSeverities(baseline.artifact.findings, policy);
       baselineResult = evaluateBaselineRatchet(findings.findings, baseline);
       baselineResult.summary.source = path.relative(cwd, baseline.source) || baseline.source;
       if (policy.baseline?.newFindingsBlock !== false) {
@@ -350,7 +351,10 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     // Falls back to findings.json if raw-findings.json doesn't exist
     const rawFindingsPath = path.resolve(cwd, fromDir, "raw-findings.json");
     let rawFindingsArtifact: RawFindingsArtifact | undefined;
-    let rawCounts = countBySeverity(findings.findings);
+    const rawSeverityFindings = findings.findings.map((finding) =>
+      finding.originalSeverity ? { ...finding, severity: finding.originalSeverity } : finding
+    );
+    let rawCounts = countBySeverity(rawSeverityFindings);
 
     if (existsSync(rawFindingsPath)) {
       try {

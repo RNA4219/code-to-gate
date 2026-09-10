@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/db-schema-change.ts",
+  "role": "dependency",
+  "summary": "DB_SCHEMA_CHANGE_RULE の公開API",
+  "public_api": [
+    "DB_SCHEMA_CHANGE_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/db-schema-change.test.ts"
+  ],
+  "sourceHash": "295eea4652dd25b65547d22019f1f17f7498e7bfef189da516babdb6f1288869",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

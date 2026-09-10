@@ -1,0 +1,33 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/parser-registry.ts",
+  "role": "adapter",
+  "summary": "DefaultParserRegistry, EmptyParserRegistry, createParserRegistry の公開API",
+  "public_api": [
+    "DefaultParserRegistry",
+    "EmptyParserRegistry",
+    "createParserRegistry"
+  ],
+  "deps_out": [
+    "src/adapters/go-tree-sitter-adapter.ts",
+    "src/adapters/js-adapter.ts",
+    "src/adapters/py-adapter.ts",
+    "src/adapters/py-tree-sitter-adapter.ts",
+    "src/adapters/rb-adapter.ts",
+    "src/adapters/rb-tree-sitter-adapter.ts",
+    "src/adapters/regex-language-adapter.ts",
+    "src/adapters/rs-tree-sitter-adapter.ts",
+    "src/adapters/tree-sitter-initializer.ts",
+    "src/adapters/ts-adapter.ts",
+    "src/types/contracts.ts",
+    "src/types/graph.ts"
+  ],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/parser-registry.test.ts"
+  ],
+  "sourceHash": "706011edc8dc137e2a8b688c05c48e0b522cf52ecbf4048c21fc866ec9b0fb95",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

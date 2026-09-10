@@ -1,0 +1,21 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/self-analysis/suppression-summary.ts",
+  "role": "dependency",
+  "summary": "ClassifiedSuppressedFinding, classifySuppressedFindings, countSuppressedByClass の公開API",
+  "public_api": [
+    "ClassifiedSuppressedFinding",
+    "classifySuppressedFindings",
+    "countSuppressedByClass"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts"
+  ],
+  "tests": [
+    "src/self-analysis/__tests__/suppression-summary.test.ts"
+  ],
+  "sourceHash": "2ed7f9eb636d2c45b65a26cac6befafbbdb1b59845ca7f89bba2e6e73d5411ce",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

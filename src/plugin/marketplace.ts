@@ -7,6 +7,7 @@ import type {
   PluginMarketplaceKind,
   RuleQualityScoreArtifact,
 } from "../types/artifacts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import { createPluginLoader } from "./plugin-loader.js";
 import type { PluginLoadResult, PluginManifest } from "./types.js";
 
@@ -196,7 +197,7 @@ export async function createPluginMarketplace(options: PluginMarketplaceOptions)
     artifact: {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `plugin-marketplace-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId("plugin-marketplace", { timestamp: generatedAt }),
       repo: { root: process.cwd() },
       tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
       artifact: "plugin-marketplace",

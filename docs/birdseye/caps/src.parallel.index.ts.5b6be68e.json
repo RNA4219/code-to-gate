@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/parallel/index.ts",
+  "role": "dependency",
+  "summary": "FileProcessor,",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/scan.ts"
+  ],
+  "tests": [],
+  "sourceHash": "62aa1ca60588ed8ec48d6050b00b49fb1a5f7c40fc97c273286160aa1d48b531",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

@@ -17,6 +17,7 @@ import path from "node:path";
 import type { NormalizedRepoGraph, RepoFile, RepoModule, RepoRef } from "../types/artifacts.js";
 import { CTG_VERSION } from "../types/artifacts.js";
 import type { ParserRegistry, ParserAdapterResult } from "../types/contracts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import {
   DEFAULT_DIRECTORY_WALK_LIMITS,
   detectLanguage,
@@ -144,14 +145,14 @@ function moduleIdForFile(modules: RepoModule[], relPath: string): string | undef
 }
 
 export function createEmptyRepoGraph(repoRoot: string, toolVersion: string): NormalizedRepoGraph {
-  const now = new Date().toISOString();
+  const now = new Date();
+  const generatedAt = now.toISOString();
   const repo = readRepoRef(repoRoot);
-  const commitSha = process.env.GITHUB_SHA?.slice(0, 7) || "local";
-  const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 12)}-${commitSha}`;
+  const runId = createUniqueRunId("ctg", { timestamp: now });
 
   return {
     version: CTG_VERSION,
-    generated_at: now,
+    generated_at: generatedAt,
     run_id: runId,
     repo,
     tool: { name: "code-to-gate", version: toolVersion, plugin_versions: [] },
@@ -356,7 +357,11 @@ export function buildGraph(
   if (graphCacheKey) {
     const cachedGraph = graphCache.get(graphCacheKey);
     if (cachedGraph) {
-      return structuredClone(cachedGraph);
+      const graph = structuredClone(cachedGraph);
+      const now = new Date();
+      graph.generated_at = now.toISOString();
+      graph.run_id = createUniqueRunId("ctg", { timestamp: now });
+      return graph;
     }
   }
 

@@ -1,0 +1,22 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/rb-tree-sitter-adapter.ts",
+  "role": "dependency",
+  "summary": "getRubyInitStatus, initRubyParser, isRubyTreeSitterAvailable, parseRubyFileSync の公開API",
+  "public_api": [
+    "getRubyInitStatus",
+    "initRubyParser",
+    "isRubyTreeSitterAvailable",
+    "parseRubyFileSync",
+    "parseRubyTreeSitter"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/rb-tree-sitter-adapter.test.ts"
+  ],
+  "sourceHash": "9d4d7b1a846dba4469374c1a7b5687ce05c65f9464e6451bc05f7c9fc5da2ca2",
+  "generation_id": "birdseye-45a42f759a1afea0"
+}

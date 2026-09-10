@@ -12,7 +12,7 @@ automatic release decisions. `critical` and `high` are gate severity labels used
 to prioritize human review; the final release decision remains with the human
 or downstream approval gate.
 
-[![Package](https://img.shields.io/badge/package-1.5.1-blue)](CHANGELOG.md)
+[![Package](https://img.shields.io/badge/package-1.6.0-blue)](CHANGELOG.md)
 [![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.5.1-yellow)](https://github.com/RNA4219/code-to-gate/releases)
 [![npm](https://img.shields.io/badge/npm-not%20published-lightgrey)](https://www.npmjs.com/package/@quality-harness/code-to-gate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -24,13 +24,14 @@ Language: English | [日本語](README_JA.md)
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.5.1` |
+| `package.json` | `1.6.0` development candidate (local, unpublished) |
 | GitHub Release | `v1.5.1` latest published release |
 | npm registry | Not published yet |
 
 See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
-`1.5.1` is available as a GitHub Release. The npm package remains unpublished,
-so install from GitHub/source until npm publication is completed.
+`1.6.0` is a local development candidate. `v1.5.1` remains the latest GitHub
+Release, and the npm package remains unpublished; use GitHub/source install
+until an explicit release and npm publication are completed.
 
 ## Install
 
@@ -144,6 +145,9 @@ npm run build
 npm run test:smoke
 npm test
 ```
+
+`npm test` also runs the Node maintenance checks in `scripts/__tests__` after
+the Vitest suites.
 
 ## License
 

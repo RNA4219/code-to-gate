@@ -67,6 +67,7 @@ describe("markdown-reporter", () => {
       const report = generateAnalysisReport(findings, riskRegister, "/test/repo");
 
       expect(report).toContain("# code-to-gate Analysis Report");
+      expect(report).not.toContain("## Severity Adjustments");
     });
 
     it("includes generated_at timestamp", () => {
