@@ -107,6 +107,8 @@ export interface FPEvaluationInput {
   }>;
 }
 
+export type FPEvaluationMode = "partial" | "strict";
+
 // === Core Functions ===
 
 /**
@@ -218,16 +220,47 @@ export function createFPEvaluationResult(
   additionalInfo?: {
     severity?: Severity;
     category?: Finding["category"];
-  }[]
+  }[],
+  options?: { mode?: FPEvaluationMode },
 ): FPEvaluationResult {
-  const reviews: FindingReview[] = input.findings.map((f, index) => ({
-    finding_id: f.finding_id,
-    rule_id: f.rule_id,
-    classification: f.classification,
-    comment: f.comment,
-    severity: additionalInfo?.[index]?.severity ?? findingsArtifact.findings[index]?.severity ?? "medium",
-    category: additionalInfo?.[index]?.category ?? findingsArtifact.findings[index]?.category ?? "release-risk",
-  }));
+  const inputValidation = validateFPEvaluationInput(input);
+  if (!inputValidation.valid) {
+    throw new Error(`Invalid FP evaluation: ${inputValidation.errors.join("; ")}`);
+  }
+  const findingById = new Map(findingsArtifact.findings.map((finding) => [finding.id, finding]));
+  const seen = new Set<string>();
+  const errors: string[] = [];
+
+  for (const review of input.findings) {
+    if (seen.has(review.finding_id)) {
+      errors.push(`duplicate finding_id: ${review.finding_id}`);
+    }
+    seen.add(review.finding_id);
+    const source = findingById.get(review.finding_id);
+    if (!source) errors.push(`unknown finding_id: ${review.finding_id}`);
+    if (source && source.ruleId !== review.rule_id) {
+      errors.push(`rule_id mismatch for ${review.finding_id}: expected ${source.ruleId}`);
+    }
+  }
+
+  if (options?.mode === "strict") {
+    for (const finding of findingsArtifact.findings) {
+      if (!seen.has(finding.id)) errors.push(`missing finding_id: ${finding.id}`);
+    }
+  }
+  if (errors.length > 0) throw new Error(`Invalid FP evaluation: ${errors.join("; ")}`);
+
+  const reviews: FindingReview[] = input.findings.map((f, index) => {
+    const source = findingById.get(f.finding_id);
+    return {
+      finding_id: f.finding_id,
+      rule_id: f.rule_id,
+      classification: f.classification,
+      comment: f.comment,
+      severity: additionalInfo?.[index]?.severity ?? source?.severity ?? "medium",
+      category: additionalInfo?.[index]?.category ?? source?.category ?? "release-risk",
+    };
+  });
 
   const { fp_rate, target, pass } = evaluateFP(reviews, input.phase);
   const counts = classifyFindings(reviews);
@@ -340,7 +373,7 @@ export function validateFPEvaluationInput(input: unknown): {
     errors.push("date is required and must be a string");
   }
 
-  if (!obj.phase || !FP_RATE_TARGETS[obj.phase as keyof typeof FP_RATE_TARGETS]) {
+  if (typeof obj.phase !== "string" || !Object.prototype.hasOwnProperty.call(FP_RATE_TARGETS, obj.phase)) {
     errors.push(`phase is required and must be one of: ${Object.keys(FP_RATE_TARGETS).join(", ")}`);
   }
 
@@ -356,10 +389,9 @@ export function validateFPEvaluationInput(input: unknown): {
       if (!finding.rule_id || typeof finding.rule_id !== "string") {
         errors.push(`findings[${i}].rule_id is required`);
       }
-      if (
-        finding.classification &&
-        !["TP", "FP", "Uncertain"].includes(finding.classification as string)
-      ) {
+      if (!finding.classification || typeof finding.classification !== "string") {
+        errors.push(`findings[${i}].classification is required`);
+      } else if (!["TP", "FP", "Uncertain"].includes(finding.classification)) {
         errors.push(`findings[${i}].classification must be TP, FP, or Uncertain`);
       }
     }
@@ -380,7 +412,17 @@ export function compareFPEvaluations(
   all_pass: boolean;
   any_conditional: boolean;
 } {
-  const fpRates = results.map((r) => r.summary.fp_rate);
+  const fpRates = results.map((r) => r.summary.fp_rate).filter(Number.isFinite);
+
+  if (fpRates.length === 0 || fpRates.length !== results.length) {
+    return {
+      average_fp_rate: 0,
+      worst_fp_rate: 0,
+      best_fp_rate: 0,
+      all_pass: false,
+      any_conditional: false,
+    };
+  }
 
   return {
     average_fp_rate: Math.round((fpRates.reduce((a, b) => a + b, 0) / fpRates.length) * 100) / 100,

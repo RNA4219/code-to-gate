@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/precision-review.md",
+  "role": "dependency",
+  "summary": "precision-review@v1 運用",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "8366da73e8d334d4733ea7b15d944ad80548043543fb3035ea43045ba8c6f0be",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

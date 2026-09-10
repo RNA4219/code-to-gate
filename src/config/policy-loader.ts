@@ -5,7 +5,8 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { minimatch } from "minimatch";
+import { makeRe, minimatch } from "minimatch";
+import type { FindingCategory, Severity } from "../types/artifacts.js";
 import {
   POLICY_VERSION,
   createDefaultPolicy,
@@ -49,6 +50,7 @@ export {
   PolicyDslRule,
   PolicyDslWhen,
   CtgPolicy,
+  SeverityOverride,
 } from "./policy-types.js";
 export type { LargeModuleRuleOptions, RuleOptionsConfig } from "../types/rule-options.js";
 
@@ -64,6 +66,7 @@ export function isValidPolicyVersion(version: string): boolean {
  */
 export function validatePolicy(policy: CtgPolicy): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+  const isValidFraction = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= 1;
 
   if (!isValidPolicyVersion(policy.version)) {
     errors.push(`Invalid policy version: ${policy.version}. Expected: ${POLICY_VERSION}`);
@@ -73,19 +76,37 @@ export function validatePolicy(policy: CtgPolicy): { valid: boolean; errors: str
     errors.push(`Policy policy_id is required`);
   }
 
-  if (policy.confidence.minConfidence < 0 || policy.confidence.minConfidence > 1) {
+  if (!isValidFraction(policy.confidence.minConfidence)) {
     errors.push(`Invalid min_confidence: ${policy.confidence.minConfidence}. Must be between 0 and 1`);
   }
 
   if (policy.confidence.lowConfidenceThreshold !== undefined) {
-    if (policy.confidence.lowConfidenceThreshold < 0 || policy.confidence.lowConfidenceThreshold > 1) {
+    if (!isValidFraction(policy.confidence.lowConfidenceThreshold)) {
       errors.push(`Invalid low_confidence_threshold: ${policy.confidence.lowConfidenceThreshold}. Must be between 0 and 1`);
     }
   }
 
   if (policy.llm?.minConfidence !== undefined) {
-    if (policy.llm.minConfidence < 0 || policy.llm.minConfidence > 1) {
+    if (!isValidFraction(policy.llm.minConfidence)) {
       errors.push(`Invalid LLM min_confidence: ${policy.llm.minConfidence}. Must be between 0 and 1`);
+    }
+  }
+
+  if (policy.partial?.partialWarningThreshold !== undefined && !isValidFraction(policy.partial.partialWarningThreshold)) {
+    errors.push(`Invalid partial_warning_threshold: ${policy.partial.partialWarningThreshold}. Must be between 0 and 1`);
+  }
+
+  if (policy.blocking.countThreshold) {
+    const thresholds = [
+      ["critical_max", policy.blocking.countThreshold.criticalMax],
+      ["high_max", policy.blocking.countThreshold.highMax],
+      ["medium_max", policy.blocking.countThreshold.mediumMax],
+      ["low_max", policy.blocking.countThreshold.lowMax],
+    ] as const;
+    for (const [name, value] of thresholds) {
+      if (value !== undefined && (!Number.isFinite(value) || !Number.isInteger(value) || value < 0)) {
+        errors.push(`Invalid count threshold ${name}: ${value}. Must be a non-negative integer`);
+      }
     }
   }
 
@@ -109,6 +130,21 @@ export function validatePolicy(policy: CtgPolicy): { valid: boolean; errors: str
   const validSeverities = ["critical", "high", "medium", "low"];
   const validCategories = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"];
   const dslRuleIds = new Set<string>();
+
+  const validOverrideSeverities: Severity[] = ["critical", "high", "medium", "low"];
+  const validOverrideCategories: FindingCategory[] = ["auth", "payment", "validation", "data", "config", "maintainability", "testing", "compatibility", "release-risk", "security"];
+  if (policy.severityOverrides !== undefined) {
+    if (!Array.isArray(policy.severityOverrides)) errors.push("severity_overrides must be an array");
+    else for (const [index, override] of policy.severityOverrides.entries()) {
+      if (!override || typeof override !== "object") { errors.push(`Invalid severity override at index ${index}`); continue; }
+      if (!override.ruleId && !override.path && !override.category) errors.push(`severity_overrides[${index}] requires at least one selector`);
+      if (!validOverrideSeverities.includes(override.severity)) errors.push(`Invalid severity override severity at index ${index}`);
+      if (typeof override.reason !== "string" || !override.reason.trim()) errors.push(`severity_overrides[${index}].reason is required`);
+      if (override.category !== undefined && (typeof override.category !== "string" || !override.category.trim() || !validOverrideCategories.includes(override.category))) errors.push(`Invalid severity override category at index ${index}`);
+      if (override.ruleId !== undefined && (typeof override.ruleId !== "string" || !override.ruleId.trim())) errors.push(`Invalid severity override rule_id at index ${index}`);
+      if (override.path !== undefined && (typeof override.path !== "string" || !override.path.trim() || override.path.trim() !== override.path || override.path.startsWith("!") || !makeRe(override.path.replace(/\\/g, "/")))) errors.push(`Invalid severity override path at index ${index}`);
+    }
+  }
 
   for (const rule of policy.dsl?.rules ?? []) {
     if (!rule.id) {
@@ -168,7 +204,16 @@ export function loadPolicyFile(
 
   const source = absolutePath;
   const content = readFileSync(absolutePath, "utf8");
-  const parsedPolicy = parseYamlPolicy(content);
+  let parsedPolicy: Partial<CtgPolicy>;
+  try {
+    parsedPolicy = parseYamlPolicy(content);
+  } catch (error) {
+    return {
+      policy: createDefaultPolicy(),
+      source,
+      errors: [`severity override invalid: ${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
 
   const policy = mergeWithDefaults(parsedPolicy);
   const validation = validatePolicy(policy);

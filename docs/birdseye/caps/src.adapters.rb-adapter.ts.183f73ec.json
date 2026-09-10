@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/rb-adapter.ts",
+  "role": "dependency",
+  "summary": "parseRubyFile の公開API",
+  "public_api": [
+    "parseRubyFile"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/rb-adapter.test.ts"
+  ],
+  "sourceHash": "7ff1976c6962aa5d9a1b79a008a64d820fae2743cc0f86401415416a91f5c08a",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

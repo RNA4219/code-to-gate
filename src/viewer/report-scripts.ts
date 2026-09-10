@@ -93,7 +93,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
-</script>
+
 ${getMermaidJavaScript()}
+</script>
 `;
 }

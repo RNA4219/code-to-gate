@@ -20,6 +20,7 @@ import { PluginSchemaValidatorImpl, DefaultPluginLogger } from "./plugin-context
 import { DockerSandboxRunner } from "./docker-sandbox.js";
 import { DEFAULT_SANDBOX_CONFIG } from "./sandbox-config.js";
 import { executePluginProcess, killRunningProcesses } from "./plugin-process-executor.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import { ChildProcess } from "child_process";
 import * as fs from "fs/promises";
 
@@ -320,7 +321,7 @@ export class PluginRunnerImpl implements PluginRunner {
    */
   private createExecutionContext(_entry: PluginRegistryEntry): PluginExecutionContext {
     return {
-      runId: `plugin-run-${Date.now()}`,
+      runId: createUniqueRunId("plugin-run"),
       repoRoot: process.cwd(),
       workDir: this.config.workDir ?? "./.qh/plugin-work",
       startTime: new Date(),

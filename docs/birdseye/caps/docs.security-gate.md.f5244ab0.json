@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/security-gate.md",
+  "role": "dependency",
+  "summary": "Security Gate",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "95858445632021e5ddf779d429168aa4827a6ef5cfebff14285b9bb8b6359168",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

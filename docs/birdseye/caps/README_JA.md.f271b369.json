@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "README_JA.md",
+  "role": "dependency",
+  "summary": "code-to-gate",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "a9d6336a07ca494d8d40a6682603db9f82fbc9d88383ae9defd9f30316822370",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

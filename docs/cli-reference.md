@@ -28,6 +28,7 @@ This document provides a complete reference for all `code-to-gate` CLI commands,
    - [readiness](#readiness)
    - [export](#export)
    - [viewer](#viewer)
+   - [precision-review](#precision-review)
    - [historical](#historical)
    - [spec-drift](#spec-drift)
    - [drift-budget](#drift-budget)
@@ -92,6 +93,7 @@ These options apply to all commands:
 | `pr-review` | Generate deterministic PR review sections and a Markdown comment body from gate artifacts. | `pr-review.json`, `pr-review.md` |
 | `pr-review-publish` | Publish PR review markdown with token or GitHub App auth and emit posting health evidence. | `github-app-health.json` |
 | `viewer` | Generate a standalone HTML report or multi-run evidence portal from existing artifacts. | `viewer-report.html`, optional `hosted-static-report.json`, `hosted-evidence-portal.json` |
+| `precision-review` | 根拠・分類・コメントを確認し、JSONを保存して再開するローカルレビュー画面を生成。 | 任意のHTMLファイル |
 | `release-pack` | Assemble release review evidence into a manifest, HTML report, and ZIP archive. | `release-pack.json`, `release-pack.html`, `release-pack.zip` |
 | `plugin-marketplace` | Build a validated local plugin registry for distribution review. | `plugin-marketplace.json` |
 
@@ -286,7 +288,7 @@ Analyze differences between two Git references and estimate blast radius.
 
 **Usage:**
 ```bash
-code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir>
+code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir> [--policy <file>]
 ```
 
 **Arguments:**
@@ -297,16 +299,25 @@ code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir>
 **Options:**
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--base <ref>` | `main` | Base branch or commit reference |
-| `--head <ref>` | `HEAD` | Head branch or commit reference |
+| `--base <ref>` | 必須 | 比較元のGit ref |
+| `--head <ref>` | 必須 | 比較先のGit ref |
 | `--out <dir>` | `.qh` | Output directory for generated artifacts |
+| `--policy <file>` | 指定なし | カレントディレクトリ基準のpolicy。対応範囲は下記参照 |
 | `--blast-depth <n>` | `1` | Importer traversal depth for blast radius. `1` includes direct importers; higher values include transitive importers up to 10. |
 | `--database-analysis` | false | Enable database migration analysis for risky schema changes |
 
 **Output:**
 | Artifact | Description |
 |----------|-------------|
-| `diff.json` | Changed files, affected entrypoints, and blast radius analysis |
+| `diff-analysis.json` | 変更ファイル・影響範囲 |
+| `findings.json` | 差分の検出結果。policy指定時は調整後の重大度 |
+| `raw-findings.json` | policy指定時の調整前の検出結果 |
+| `audit.json` | 実行・policy・終了判定の監査記録 |
+| `blast-radius.mmd` | 影響範囲のMermaid図 |
+
+空差分ではpolicy未指定時は `diff-analysis.json` のみ、policy指定時はこれにcompleteな空findings/raw-findingsとauditを加える。
+
+policyは `severity_overrides`、`blocking`、`confidence`、`partial`、baseline/manual evidence条件のない `dsl` に対応する。suppression、baseline、llm、exit、rule_optionsなど未対応項目はエラーにする。policyはGit取得前に検証するため、不正policyと不正refを同時指定した場合はpolicyエラーが優先する。[Severity tuning運用ガイド](severity-tuning.md) も参照。
 
 **Example:**
 ```bash
@@ -324,8 +335,31 @@ code-to-gate diff ./my-repo --base main --head feature-migration \
 **Exit Codes:**
 | Code | Name | Description |
 |------|------|-------------|
-| 0 | OK | Diff analysis completed |
-| 2 | USAGE_ERROR | Invalid arguments or repository path |
+| 0 | OK | 差分解析完了。policyのpassed/passed_with_riskを含む |
+| 1 | READINESS_NOT_CLEAR | policy判定がneeds_review/blocked_input、またはpolicyなしでhigh/criticalを検出 |
+| 2 | USAGE_ERROR | 必須引数・repoパスの不備 |
+| 3 | SCAN_FAILED | Git refや差分解析の失敗 |
+| 5 | POLICY_FAILED | 不正または未対応のpolicy設定 |
+
+---
+
+### precision-review
+
+作成済みのprivate `precision-review@v1`をローカルHTMLで編集する。
+
+```bash
+code-to-gate precision-review --from findings.json --review review.json --out review.html [--repo <path>] [--force]
+```
+
+| オプション | 必須 | 内容 |
+|---|---|---|
+| `--from <file>` | はい | reviewと結び付いたfindings JSON（元のbytes） |
+| `--review <file>` | はい | 既存review JSON |
+| `--out <file>` | はい | 生成するHTMLファイル |
+| `--repo <path>` | いいえ | 明示指定した場合に、根拠のcommitにあるコードを取得 |
+| `--force` | いいえ | 既存HTMLの上書きを許可。入力ファイルの上書きは常に拒否 |
+
+入力照合に成功した場合だけHTMLを生成する。ブラウザでの編集はJSONとして保存し、同じHTMLへ読み込んで再開する。AIの分類を人手分類へ自動変換しない。新規reviewの作成と最終集計は [precision-review運用](precision-review.md) を参照。
 
 ---
 

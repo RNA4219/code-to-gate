@@ -15,6 +15,7 @@ import { consumeImportArtifacts } from "./import-consumer.js";
 import {
   EmitFormat,
   AuditOutputArtifact,
+  FindingsArtifact,
 } from "../types/artifacts.js";
 import {
   CtgPolicy,
@@ -29,6 +30,7 @@ import {
   getExitCode,
   type ReadinessStatus,
 } from "../config/policy-evaluator.js";
+import { resolveSeverities } from "../config/severity-resolver.js";
 
 import {
   evaluateRules,
@@ -340,11 +342,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
         for (const error of loaded.errors) {
           console.error(`Policy error: ${error}`);
         }
-        // Return POLICY_FAILED if policy is missing or has no valid policyId
-        if (!loaded.policy.policyId || loaded.errors.some(e => e.includes("not found"))) {
-          return options.EXIT.POLICY_FAILED;
-        }
-        // Otherwise continue with graceful partial (policy loaded with warnings)
+        return options.EXIT.POLICY_FAILED;
       }
       policy = loaded.policy;
     }
@@ -468,19 +466,30 @@ Provide concise, actionable findings.`,
       generated.push(databaseAssetsPath);
     }
 
+    // Snapshot raw findings before policy severity resolution. Downstream
+    // reports need this snapshot even when effective findings are rewritten.
+    const rawFindingsSnapshot: FindingsArtifact = {
+      ...findings,
+      findings: [...findings.findings],
+    };
+    const rawFindingsArtifact = generateRawFindingsArtifact(
+      rawFindingsSnapshot,
+      graph.repo.root,
+      graph.run_id,
+      VERSION,
+      policy?.policyId
+    );
+
     // Generate raw-findings.json (all findings before suppression)
     // This is emitted for self-analysis transparency and debt tracking
     // Always emit when json format is requested (companion artifact)
     if (emitFormats.includes("json")) {
-      const rawFindingsArtifact = generateRawFindingsArtifact(
-        findings,
-        graph.repo.root,
-        graph.run_id,
-        VERSION,
-        policy?.policyId
-      );
       const rawFindingsPath = writeRawFindingsJson(absoluteOutDir, rawFindingsArtifact);
       generated.push(rawFindingsPath);
+    }
+
+    if (policy?.severityOverrides?.length) {
+      findings.findings = resolveSeverities(findings.findings, policy);
     }
 
     // Evaluate policy using shared evaluator (unified with readiness)
@@ -526,7 +535,7 @@ Provide concise, actionable findings.`,
     if (emitFormats.includes("md")) {
       const reportPath = writeAnalysisReportMd(
         absoluteOutDir,
-        findings,
+        rawFindingsSnapshot,
         riskRegister,
         graph.repo.root,
         {
@@ -553,12 +562,13 @@ Provide concise, actionable findings.`,
     // When no policy, readiness command will generate authoritative debt artifact
     if (policy && suppressions.length > 0) {
       const selfAnalysisDebt = generateSelfAnalysisDebtArtifact(
-        findings,
+        reportedFindings,
         suppressions,
         suppressedFindings,
         graph.repo.root,
         graph.run_id,
-        VERSION
+        VERSION,
+        rawFindingsArtifact
       );
       const selfAnalysisDebtPath = writeSelfAnalysisDebtJson(absoluteOutDir, selfAnalysisDebt);
       generated.push(selfAnalysisDebtPath);

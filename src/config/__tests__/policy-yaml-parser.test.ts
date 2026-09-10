@@ -25,7 +25,7 @@ describe("policy YAML parser", () => {
       "    critical_max: 1",
       "    high_max: 2",
       "    medium_max: 3",
-      "    low_max: 4",
+      "    low_max: 4 # inline limit",
       "confidence:",
       "  min_confidence: 0.8",
       "  low_confidence_threshold: 0.5",
@@ -73,6 +73,7 @@ describe("policy YAML parser", () => {
     expect(parsed.version).toBe("ctg.policy/v1");
     expect(parsed.policyId).toBe("custom");
     expect(parsed.blocking?.countThreshold?.highMax).toBe(2);
+    expect(parsed.blocking?.countThreshold?.lowMax).toBe(4);
     expect(parsed.confidence?.filterLow).toBe(true);
     expect(parsed.llm?.mode).toBe("local-only");
     expect(parsed.baseline?.newFindingsBlock).toBe(true);
@@ -86,14 +87,39 @@ describe("policy YAML parser", () => {
     expect(mergeWithDefaults(parsed).policyId).toBe("custom");
   });
 
-  it("falls back safely for malformed or incomplete DSL", () => {
-    expect(parseYamlPolicy("dsl: [invalid")).not.toHaveProperty("dsl");
+  it("rejects malformed YAML and defaults incomplete policy sections", () => {
+    expect(() => parseYamlPolicy("dsl: [invalid")).toThrow();
     expect(parseYamlPolicy("dsl:\n  rules: []").dsl).toEqual({ rules: [] });
-    expect(parseYamlPolicy("version:\npolicy_id:").version).toBeDefined();
+    expect(() => parseYamlPolicy("version:\npolicy_id:")).toThrow(/must be a string/);
     const merged = mergeWithDefaults({});
     expect(merged.blocking).toBeDefined();
     expect(merged.blocking.countThreshold).toBeUndefined();
     expect(merged.dsl.rules).toEqual([]);
+  });
+
+  it("preserves quoted root scalars containing colons and release-risk category", () => {
+    const parsed = parseYamlPolicy([
+      'version: "ctg/v1"',
+      'policy_id: \'team: review\'',
+      "blocking:",
+      "  category:",
+      "    release-risk: true",
+    ].join("\n"));
+    expect(parsed.version).toBe("ctg/v1");
+    expect(parsed.policyId).toBe("team: review");
+    expect(parsed.blocking?.category?.releaseRisk).toBe(true);
+  });
+
+  it("uses YAML root scalars with comments and escapes", () => {
+    const parsed = parseYamlPolicy([
+      'version: "ctg/v1" # current schema',
+      'policy_id: "team\\nreview" # escaped newline',
+    ].join("\n"));
+    expect(parsed.version).toBe("ctg/v1");
+    expect(parsed.policyId).toBe("team\nreview");
+
+    expect(() => parseYamlPolicy("version: 1\npolicy_id: 42")).toThrow(/version must be a string/);
+    expect(() => parseYamlPolicy("version: ctg/v1\npolicy_id: 42")).toThrow(/policy_id must be a string/);
   });
 
   it("parses suppression entries, inline fields, classes, and defaults", () => {

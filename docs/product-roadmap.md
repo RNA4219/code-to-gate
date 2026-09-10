@@ -575,11 +575,13 @@ Phase 0 v0.1 MVP は GO。Phase 1-3 の前提条件は明確。
 | NA-02 | `docs/product-gap-analysis.md` 作成 | Analyst | 2026-04-30 | Done |
 | NA-03 | `docs/product-roadmap.md` 作成 | PM | 2026-04-30 | Done |
 | NA-04 | AST parser library evaluation | Dev | 2026-05-07 | Done |
-| NA-05 | GitHub App/PAT setup decision | Dev | 2026-05-07 | Done |
+| NA-05 | GitHub App/PAT setup decision | Dev | 2026-05-07 | Unverified（旧Done、決定記録未確認） |
 | NA-06 | Public repo evaluation list作成 | QA | 2026-05-07 | Done |
 | NA-07 | FP evaluation workflow定義 | QA | 2026-05-07 | Done |
 | NA-08 | GitHub Actions template design | Dev | 2026-05-07 | Done |
-| NA-09 | Phase 1 kickoff meeting | PM | 2026-05-07 | Done |
+| NA-09 | Phase 1 kickoff meeting | PM | 2026-05-07 | Unverified（旧Done、開催記録未確認） |
+
+注: NA-05 は現行の GitHub Actions / PAT 利用実装の存在と、当時の採用決定記録の確認を分けて扱う。NA-09 は Phase 1 の実装記録があっても、キックオフの開催記録を確認できないため、いずれも現在の受入完了を示さない。
 
 ### 12.2 Phase 1 Development Actions - COMPLETED
 

@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/missing-rate-limit.ts",
+  "role": "dependency",
+  "summary": "MISSING_RATE_LIMIT_RULE の公開API",
+  "public_api": [
+    "MISSING_RATE_LIMIT_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/missing-rate-limit.test.ts"
+  ],
+  "sourceHash": "8704c442bb60ed671dd251b5b554763595dbe414cbb6aecce536be269dc65f37",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

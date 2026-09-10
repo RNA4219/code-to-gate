@@ -179,6 +179,19 @@ describe("policy-loader", () => {
       expect(result.errors.some(e => e.includes("min_confidence"))).toBe(true);
     });
 
+    it.each([
+      ["NaN", Number.NaN, "min_confidence"],
+      ["Infinity", Number.POSITIVE_INFINITY, "min_confidence"],
+      ["fractional count", 0.5, "count"],
+      ["negative count", -1, "count"],
+    ])("should reject invalid numeric policy value (%s)", (_label, value, field) => {
+      const policy = createDefaultPolicy();
+      if (field === "count") policy.blocking.countThreshold = { highMax: value };
+      else policy.confidence.minConfidence = value;
+      const result = validatePolicy(policy);
+      expect(result.valid).toBe(false);
+    });
+
     it("should validate LLM minConfidence if present", () => {
       const policy: CtgPolicy = {
         ...createDefaultPolicy(),
@@ -227,6 +240,13 @@ confidence:
       expect(result.policy.policyId).toBe("default-policy");
     });
 
+    it("should reject explicitly non-string root scalars", () => {
+      const policyPath = path.join(tempDir, "non-string-root-policy.yaml");
+      writeFileSync(policyPath, "version: 1\npolicy_id: 42\n");
+      const result = loadPolicyFile(policyPath, tempDir);
+      expect(result.errors.some(error => error.includes("must be a string"))).toBe(true);
+    });
+
     it("should parse rule blocking", () => {
       const policyPath = path.join(tempDir, "rule-policy.yaml");
       writeFileSync(policyPath, `
@@ -272,6 +292,16 @@ blocking:
       expect(result.policy.blocking.countThreshold?.criticalMax).toBe(0);
       expect(result.policy.blocking.countThreshold?.highMax).toBe(3);
       expect(result.policy.blocking.countThreshold?.mediumMax).toBe(10);
+    });
+
+    it.each([
+      ["NaN", "NaN"], ["Infinity", "Infinity"], ["suffix", "5suffix"],
+      ["fraction", "0.5"], ["negative", "-1"],
+    ])("should reject ambiguous count threshold (%s)", (label, value) => {
+      const policyPath = path.join(tempDir, `invalid-count-${label}.yaml`);
+      writeFileSync(policyPath, `version: ctg/v1\npolicy_id: invalid-${label}\nblocking:\n  count_threshold:\n    high_max: ${value}\n`);
+      const result = loadPolicyFile(policyPath, tempDir);
+      expect(result.errors.some(error => error.includes("count threshold"))).toBe(true);
     });
 
     it("should parse LLM config", () => {

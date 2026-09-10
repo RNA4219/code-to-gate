@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-10-precision-workbench.md",
+  "role": "dependency",
+  "summary": "第4段階：精度レビュー操作画面",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "d46f660cba4819c6a5eac830359357c8f365dd2409043b00103c1e7da1e1a8ab",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

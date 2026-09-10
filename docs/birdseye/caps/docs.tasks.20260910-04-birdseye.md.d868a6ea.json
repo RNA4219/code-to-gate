@@ -1,0 +1,15 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-04-birdseye.md",
+  "role": "dependency",
+  "summary": "Birdseye修復",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md",
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "cdbe3a7a66633b31f275fbe701756949dc7133ae4fc3fc07441dfdc94d026403",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

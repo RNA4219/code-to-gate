@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/cli-reference.md",
+  "role": "dependency",
+  "summary": "Agent Protocol",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "08f03af2811c66720af31dc9069d99febf511e8aeaa642884f1016a08434ad43",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

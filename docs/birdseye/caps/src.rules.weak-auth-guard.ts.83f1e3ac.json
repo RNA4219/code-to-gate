@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/weak-auth-guard.ts",
+  "role": "dependency",
+  "summary": "WEAK_AUTH_GUARD_RULE の公開API",
+  "public_api": [
+    "WEAK_AUTH_GUARD_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/weak-auth-guard.test.ts"
+  ],
+  "sourceHash": "3aa59f53d09dd7fcc54139359a72bd27a88337b3f0530c42b927d9472dfc5b71",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

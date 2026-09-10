@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/llm-enrichment.ts",
+  "role": "dependency",
+  "summary": "applyLlmEnrichment の公開API",
+  "public_api": [
+    "applyLlmEnrichment"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/llm-enrichment.test.ts"
+  ],
+  "sourceHash": "5ff4cda73ca808a067f13ef232c9533ca8d4e1dac9e8fc271700858f2feb99b2",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

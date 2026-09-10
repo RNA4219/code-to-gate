@@ -1,0 +1,25 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/cli/scan.ts",
+  "role": "entrypoint",
+  "summary": "scanCommand の公開API",
+  "public_api": [
+    "scanCommand"
+  ],
+  "deps_out": [
+    "src/adapters/tree-sitter-initializer.ts",
+    "src/cache/index.ts",
+    "src/cli/exit-codes.ts",
+    "src/core/database-analyzer.ts",
+    "src/core/file-utils.ts",
+    "src/core/repo-graph-builder.ts",
+    "src/parallel/index.ts",
+    "src/types/artifacts.ts"
+  ],
+  "deps_in": [],
+  "tests": [
+    "src/cli/__tests__/scan.test.ts"
+  ],
+  "sourceHash": "f4e626c2704ee6af9e6ef9fd827c0c609b1b415efc1eaf431f8eb7fa63d3e19d",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

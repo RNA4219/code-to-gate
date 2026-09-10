@@ -9,6 +9,7 @@
 import { GitDiffAccess } from "../adapters/git-diff-access.js";
 import { GitFileAccessAdapter, DB_ANALYSIS_LIMITS } from "../adapters/git-file-access-adapter.js";
 import { toPosix } from "../core/path-utils.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 import {
   detectLanguage,
   detectRole,
@@ -44,6 +45,18 @@ import {
   buildAuditArtifact,
   writeAuditJson,
 } from "../reporters/audit-writer.js";
+import { writeRawFindingsJson } from "../reporters/raw-findings-reporter.js";
+import {
+  countSeverities,
+  evaluateDiffFindings,
+  loadDiffPolicy,
+} from "./diff-policy.js";
+import {
+  generateBlockingSummary,
+  getExitCode,
+  type PolicyEvaluationResult,
+} from "../config/policy-evaluator.js";
+import type { CtgPolicy } from "../config/policy-types.js";
 
 // Application context and adapters
 import { createApplicationContext } from "../application/context.js";
@@ -530,13 +543,14 @@ function generateBlastRadiusMermaid(blastRadius: BlastRadius): string {
 }
 
 function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
-  const now = new Date().toISOString();
+  const now = new Date();
+  const generatedAt = now.toISOString();
   const relativeRoot = toPosix(nodePathService.relative(process.cwd(), repoRoot) || ".");
-  const runId = `ctg-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
+  const runId = createUniqueRunId("ctg", { timestamp: now });
 
   const graph: NormalizedRepoGraph = {
     version: CTG_VERSION,
-    generated_at: now,
+    generated_at: generatedAt,
     run_id: runId,
     repo: { root: relativeRoot },
     tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
@@ -614,11 +628,12 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
   const baseRef = options.getOption(args, "--base");
   const headRef = options.getOption(args, "--head");
   const outDir = options.getOption(args, "--out") ?? ".qh";
+  const policyPath = options.getOption(args, "--policy");
   const blastDepth = Math.max(1, Math.min(10, Number.parseInt(options.getOption(args, "--blast-depth") ?? "1", 10) || 1));
   const useDatabaseAnalysis = args.includes("--database-analysis");
 
-  if (!repoArg || !baseRef || !headRef) {
-    console.error("usage: code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--database-analysis]");
+  if (!repoArg || !baseRef || !headRef || (args.includes("--policy") && !policyPath)) {
+    console.error("usage: code-to-gate diff <repo> --base <ref> --head <ref> --out <dir> [--policy <file>] [--database-analysis]");
     return options.EXIT.USAGE_ERROR;
   }
 
@@ -637,6 +652,16 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
   }
 
   const absoluteOutDir = nodePathService.resolve(cwd, outDir);
+
+  let policy: CtgPolicy | undefined;
+  if (policyPath) {
+    const loaded = loadDiffPolicy(policyPath, cwd);
+    if (loaded.errors.length > 0 || !loaded.policy) {
+      for (const error of loaded.errors) console.error(`Policy error: ${error}`);
+      return options.EXIT.POLICY_FAILED;
+    }
+    policy = loaded.policy;
+  }
 
   try {
     // Build partial graph for analysis
@@ -714,6 +739,57 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
       const diffAnalysisPath = nodePathService.join(absoluteOutDir, "diff-analysis.json");
       nodeFileAccess.writeFile(diffAnalysisPath, JSON.stringify(emptyDiffAnalysis, null, 2) + "\n");
 
+      if (policy) {
+        const emptyFindings: FindingsArtifact = {
+          version: CTG_VERSION,
+          generated_at: graph.generated_at,
+          run_id: graph.run_id,
+          repo: graph.repo,
+          tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+          artifact: "findings",
+          schema: "findings@v1",
+          completeness: "complete",
+          findings: [],
+          unsupported_claims: [],
+        };
+        const applied = evaluateDiffFindings(emptyFindings, policy, graph.repo.root, graph.run_id, VERSION);
+        const rawPath = writeRawFindingsJson(absoluteOutDir, applied.rawFindings);
+        const findingsPath = writeFindingsJson(absoluteOutDir, applied.effectiveFindings);
+        const exitCode = getExitCode(applied.evaluation.status);
+        const audit = buildAuditArtifact(
+          graph,
+          applied.effectiveFindings,
+          policy,
+          exitCode,
+          applied.evaluation.status,
+          "No findings in changed files",
+          VERSION
+        );
+        const auditPath = writeAuditJson(absoluteOutDir, audit);
+        console.log(JSON.stringify({
+          tool: "code-to-gate",
+          command: "diff",
+          status: "no_changes",
+          run_id: graph.run_id,
+          artifacts: [
+            nodePathService.relative(cwd, diffAnalysisPath),
+            nodePathService.relative(cwd, rawPath),
+            nodePathService.relative(cwd, findingsPath),
+            nodePathService.relative(cwd, auditPath),
+          ],
+          summary: {
+            changed_files: 0,
+            findings: 0,
+            ...countSeverities([]),
+            policy_status: applied.evaluation.status,
+            blocked: applied.evaluation.summary.blockedCount,
+            held: applied.evaluation.summary.heldCount,
+          },
+          message: "No changes detected between base and head",
+        }));
+        return exitCode;
+      }
+
       console.log(
         JSON.stringify({
           tool: "code-to-gate",
@@ -732,7 +808,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
 
     // Build diff findings
     const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES);
-    const findings = useDatabaseAnalysis
+    let findings = useDatabaseAnalysis
       ? mergeNewDatabaseFindings(
           coreFindings,
           buildDatabaseFindingsAtRef(repoRoot, baseRef, graph.run_id, VERSION),
@@ -741,6 +817,15 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
       : coreFindings;
 
     ensureDir(absoluteOutDir);
+
+    let policyEvaluation: PolicyEvaluationResult | undefined;
+    let rawFindingsPath: string | undefined;
+    if (policy) {
+      const applied = evaluateDiffFindings(findings, policy, graph.repo.root, graph.run_id, VERSION);
+      findings = applied.effectiveFindings;
+      policyEvaluation = applied.evaluation;
+      rawFindingsPath = writeRawFindingsJson(absoluteOutDir, applied.rawFindings);
+    }
 
     // Generate diff-analysis.json
     const diffAnalysis: DiffAnalysisArtifact = {
@@ -828,16 +913,25 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     const mermaidPath = nodePathService.join(absoluteOutDir, "blast-radius.mmd");
     nodeFileAccess.writeFile(mermaidPath, mermaid);
 
+    const hasBlockingFindings = findings.findings.some(
+      (f) => f.severity === "critical" || f.severity === "high"
+    );
+    const commandExitCode = policyEvaluation
+      ? getExitCode(policyEvaluation.status)
+      : hasBlockingFindings ? options.EXIT.READINESS_NOT_CLEAR : options.EXIT.OK;
+
     // Generate audit.json
     const audit = buildAuditArtifact(
       graph,
       findings,
-      undefined,
-      0,
-      "passed_with_risk",
-      findings.findings.length > 0
-        ? `${findings.findings.length} findings in changed files`
-        : "No findings in changed files",
+      policy,
+      commandExitCode,
+      policyEvaluation?.status ?? "passed_with_risk",
+      policyEvaluation
+        ? generateBlockingSummary(policyEvaluation.failedConditions, policyEvaluation.blockedFindings)
+        : findings.findings.length > 0
+          ? `${findings.findings.length} findings in changed files`
+          : "No findings in changed files",
       VERSION
     );
     const auditPath = writeAuditJson(absoluteOutDir, audit);
@@ -850,6 +944,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
         run_id: graph.run_id,
         artifacts: [
           nodePathService.relative(cwd, diffAnalysisPath),
+          ...(rawFindingsPath ? [nodePathService.relative(cwd, rawFindingsPath)] : []),
           nodePathService.relative(cwd, findingsPath),
           ...(databaseAssetsPath ? [nodePathService.relative(cwd, databaseAssetsPath)] : []),
           ...(databaseAssetsBasePath ? [nodePathService.relative(cwd, databaseAssetsBasePath)] : []),
@@ -865,6 +960,15 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
           findings: findings.findings.length,
           critical: findings.findings.filter((f) => f.severity === "critical").length,
           high: findings.findings.filter((f) => f.severity === "high").length,
+          ...(policyEvaluation ? {
+            medium: findings.findings.filter((f) => f.severity === "medium").length,
+            low: findings.findings.filter((f) => f.severity === "low").length,
+          } : {}),
+          ...(policyEvaluation ? {
+            policy_status: policyEvaluation.status,
+            blocked: policyEvaluation.summary.blockedCount,
+            held: policyEvaluation.summary.heldCount,
+          } : {}),
           ...(dbDiff ? {
             db_added_migrations: dbDiff.addedMigrations.length,
             db_removed_rollback_patterns: dbDiff.removedRollbackPatterns.length,
@@ -874,12 +978,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
       })
     );
 
-    // Return exit code based on findings severity
-    const hasBlockingFindings = findings.findings.some(
-      (f) => f.severity === "critical" || f.severity === "high"
-    );
-
-    return hasBlockingFindings ? options.EXIT.READINESS_NOT_CLEAR : options.EXIT.OK;
+    return commandExitCode;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     return options.EXIT.SCAN_FAILED;

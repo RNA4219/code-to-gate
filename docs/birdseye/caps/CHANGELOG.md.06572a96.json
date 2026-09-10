@@ -1,0 +1,29 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "CHANGELOG.md",
+  "role": "history",
+  "summary": "code-to-gate CHANGELOG",
+  "public_api": [],
+  "deps_out": [
+    "docs/acceptance/AC-20260910-06-maintenance.md",
+    "docs/acceptance/AC-20260910-12-follow-up.md",
+    "docs/acceptance/AC-20260910-13-premerge-review.md",
+    "docs/tasks/20260910-01-ledger-sync.md",
+    "docs/tasks/20260910-02-precision-review.md",
+    "docs/tasks/20260910-03-release-prep.md",
+    "docs/tasks/20260910-04-birdseye.md",
+    "docs/tasks/20260910-05-severity-tuning.md",
+    "docs/tasks/20260910-07-ci-maintenance.md",
+    "docs/tasks/20260910-08-run-identity.md",
+    "docs/tasks/20260910-09-diff-severity.md",
+    "docs/tasks/20260910-10-precision-workbench.md",
+    "docs/tasks/20260910-11-severity-report.md"
+  ],
+  "deps_in": [
+    "CHECKLISTS.md",
+    "README.md"
+  ],
+  "tests": [],
+  "sourceHash": "817a58125f6d3df221e402cf19426c5beba4d64ba663501a99ebd212c2185095",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

@@ -1,11 +1,18 @@
 {
+  "schema": "birdseye/hot/v1",
+  "generated_at": "birdseye-051388fce5f1ad9f",
+  "generation_id": "birdseye-051388fce5f1ad9f",
+  "sourceHash": "051388fce5f1ad9fa08b1d7835cbbce55fe34b94836df08a66283cefd9805660",
   "hot_nodes": [
+    ".ctg/policy.yaml",
+    "GUARDRAILS.md",
     "src/cli/analyze.ts",
     "src/cli/readiness.ts",
-    "src/rules/index.ts",
+    "src/cli/scan.ts",
+    "src/config/policy-evaluator.ts",
     "src/config/policy-loader.ts",
-    "CLAUDE.md",
-    "GUARDRAILS.md"
+    "src/config/severity-resolver.ts",
+    "src/rules/index.ts"
   ],
-  "reason": "Most frequently accessed entrypoints and policy evaluation logic"
+  "reason": "seedのentrypoint・registry・config・policyを優先表示"
 }

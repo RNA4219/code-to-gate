@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/large-module.ts",
+  "role": "dependency",
+  "summary": "LARGE_MODULE_RULE の公開API",
+  "public_api": [
+    "LARGE_MODULE_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/large-module.test.ts"
+  ],
+  "sourceHash": "542fd7bee7745deb6d5ba2318147bcf87fdd921aecbd997c5822a7225743a012",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

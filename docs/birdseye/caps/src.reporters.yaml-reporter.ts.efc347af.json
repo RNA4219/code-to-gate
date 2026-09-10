@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/yaml-reporter.ts",
+  "role": "dependency",
+  "summary": "Generated: ${artifact.generated_at}",
+  "public_api": [
+    "buildRiskRegisterFromFindings",
+    "writeRiskRegisterYaml"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/yaml-reporter.test.ts"
+  ],
+  "sourceHash": "3a6819325b76498927d94423eaebc66e8b224e1ac50495611cdc67978f3390c9",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

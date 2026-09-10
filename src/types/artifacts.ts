@@ -174,6 +174,14 @@ export interface Finding {
   };
   /** Stable fingerprint for historical matching (SHA-256 truncated to 16 chars) */
   fingerprint?: string;
+  originalSeverity?: Severity;
+  severityResolution?: {
+    policyId: string;
+    originalSeverity: Severity;
+    severity: Severity;
+    reason: string;
+    matchedSelectors: { ruleId?: string; path?: string; category?: FindingCategory };
+  };
 }
 
 export interface UnsupportedClaim {

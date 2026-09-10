@@ -1,0 +1,15 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/acceptance/AC-20260910-12-follow-up.md",
+  "role": "dependency",
+  "summary": "追加5項目の統合検収（2026-09-10）",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md",
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "27c18c30b231ea19aed5bb433cc4ccefe53e70d9be85df3e4857dcd7a2f609a4",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

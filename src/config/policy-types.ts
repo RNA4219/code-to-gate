@@ -152,6 +152,14 @@ export interface ExitConfig {
   warnOnly?: boolean;
 }
 
+export interface SeverityOverride {
+  ruleId?: string;
+  path?: string;
+  category?: FindingCategory;
+  severity: Severity;
+  reason: string;
+}
+
 export type PolicyDslAction = "block" | "hold" | "allow";
 export type PolicyDslBaseline = "new_or_worsened";
 export type PolicyDslManualEvidence = "present" | "absent";
@@ -191,6 +199,7 @@ export interface CtgPolicy {
   exit?: ExitConfig;
   dsl?: PolicyDslConfig;
   ruleOptions?: RuleOptionsConfig;
+  severityOverrides?: SeverityOverride[];
 }
 
 /**

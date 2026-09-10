@@ -11,11 +11,13 @@ seeds, SARIF, and release-readiness evidence.
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.5.0` |
-| GitHub Release | `v1.4.2` latest published release |
+| `package.json` | `1.6.0` development candidate (local, unpublished) |
+| GitHub Release | `v1.5.1` latest published release |
 | npm registry | Not published yet |
 
 See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
+`1.6.0` is a local development candidate; `v1.5.1` remains the latest GitHub
+Release and npm publication is still pending.
 
 ## Install
 
@@ -111,5 +113,8 @@ npm install
 npm run build
 npm test
 ```
+
+`npm test` also runs the Node maintenance checks in `scripts/__tests__` after
+the Vitest suites.
 
 MIT License. See [LICENSE](LICENSE).

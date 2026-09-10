@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type {
   HostedEvidencePortalArtifact,
@@ -302,7 +303,7 @@ export function createEvidencePortal(options: EvidencePortalOptions): EvidencePo
   const manifest: HostedEvidencePortalArtifact = {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `hosted-evidence-portal-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("hosted-evidence-portal", { timestamp: generatedAt }),
     repo: { root: options.runsDir },
     tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
     artifact: "hosted-evidence-portal",

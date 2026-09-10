@@ -197,9 +197,9 @@ describe("FP and FN Evaluation Integration", () => {
     it("should pass when both FP and FN pass", () => {
       // Create passing FP result (low FP rate)
       const passingReviews: FindingReview[] = [
-        { finding_id: "F001", rule_id: "R001", classification: "TP", severity: "high", category: "auth" },
-        { finding_id: "F002", rule_id: "R002", classification: "TP", severity: "medium", category: "maintainability" },
-        { finding_id: "F003", rule_id: "R003", classification: "TP", severity: "low", category: "testing" },
+        { finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "TP", severity: "high", category: "auth" },
+        { finding_id: "finding-002", rule_id: "WEAK_AUTH_GUARD", classification: "TP", severity: "medium", category: "maintainability" },
+        { finding_id: "finding-003", rule_id: "TRY_CATCH_SWALLOW", classification: "TP", severity: "low", category: "testing" },
       ];
 
       const fpInput: FPEvaluationInput = {
@@ -236,8 +236,8 @@ describe("FP and FN Evaluation Integration", () => {
     it("should fail when either FP or FN fails", () => {
       // Create failing FP result (high FP rate)
       const failingReviews: FindingReview[] = [
-        { finding_id: "F001", rule_id: "R001", classification: "FP", severity: "critical", category: "payment" },
-        { finding_id: "F002", rule_id: "R002", classification: "FP", severity: "high", category: "auth" },
+        { finding_id: "finding-001", rule_id: "CLIENT_TRUSTED_PRICE", classification: "FP", severity: "critical", category: "payment" },
+        { finding_id: "finding-002", rule_id: "WEAK_AUTH_GUARD", classification: "FP", severity: "high", category: "auth" },
       ];
 
       const fpInput: FPEvaluationInput = {

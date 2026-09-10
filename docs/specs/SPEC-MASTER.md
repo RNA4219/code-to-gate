@@ -1,9 +1,9 @@
 # code-to-gate Feature Enhancement Specifications - Master Index
 
-**Version**: v1.0
+**Version**: v1.2
 **Created**: 2026-05-04
 **Status**: active index; individual specs may remain draft/partial/done
-**Total Specs**: 29
+**Total Specs**: 30
 **Purpose**: Comprehensive specification documents for all feature enhancement items
 
 ---
@@ -12,7 +12,7 @@
 
 This document serves as the master index for all code-to-gate feature enhancement specifications. Each specification follows a standardized template and is designed for acceptance review.
 
-## Status Recheck (2026-07-04)
+## Status Recheck (2026-09-10)
 
 The original `draft` marker in SPEC-01 through SPEC-28 is retained inside
 individual spec files until each document is fully rewritten. The implementation
@@ -20,7 +20,7 @@ status below is the current routing table for planning and public claims.
 
 | Spec range | Current implementation status | Evidence / boundary |
 |---|---|---|
-| SPEC-01, SPEC-04 | partial | lint/coverage gates exist, but full coverage gate is not green in current local evidence |
+| SPEC-01, SPEC-04 | implemented baseline | post-fix lint and coverage evidence pass: statements 88.14%, branches 80.27%, functions 93.34%, lines 88.94% |
 | SPEC-02 | partial | tree-sitter adapters and fallback paths exist; WASM compatibility remains environment-dependent |
 | SPEC-03, SPEC-09, SPEC-10, SPEC-12 | implemented core baseline | rule implementations and tests exist for new rule families |
 | SPEC-05 | implemented | PR annotations, Checks, SARIF responsibilities documented and wired in workflows |
@@ -32,9 +32,10 @@ status below is the current routing table for planning and public claims.
 | SPEC-22 | future / draft | VS Code extension is not implemented |
 | SPEC-24 | implemented dataflow-lite baseline | full proof-grade cross-file taint remains future scope |
 | SPEC-25 | partial | generic/framework patterns exist; framework-specific precision requires more real repo evidence |
-| SPEC-26 | partial | policy severity thresholds exist; per-rule custom severity tuning remains future scope |
+| SPEC-26 | implemented local | optional policy severity and cross-surface checks are implemented; integration evidence is routed through [AC-20260910-06](../acceptance/AC-20260910-06-maintenance.md) |
 | SPEC-27, SPEC-28 | partial | regex fallback baseline exists; full tree-sitter Java/C++ adapters remain future scope |
 | SPEC-29 | done | `docs/acceptance/QA-SPEC-29-20260614.md`, `docs/acceptance/AC-20260611-01.md` |
+| SPEC-30 | implemented baseline / acceptance pending | Five-tool export surfaces and QEOS-031..042 implementation records exist; external QEG execution and executed manual evidence remain acceptance boundaries |
 
 ---
 
@@ -44,10 +45,10 @@ status below is the current routing table for planning and public claims.
 
 | Spec ID | Title | Priority | Est. Time | Status |
 |---|---|:---:|:---:|:---:|
-| [SPEC-01](SPEC-01-eslint-warnings.md) | ESLint Warnings Fix | P1 | 15 min | draft |
+| [SPEC-01](SPEC-01-eslint-warnings.md) | ESLint Warnings Fix | P1 | 15 min | implemented baseline |
 | [SPEC-02](SPEC-02-tree-sitter-wasm.md) | tree-sitter WASM Compatibility | P2 | 30 min | draft |
 | [SPEC-03](SPEC-03-new-rules.md) | New Detection Rules | P1 | 60 min | draft |
-| [SPEC-04](SPEC-04-coverage-80.md) | Coverage 80% Achievement | P1 | 45 min | draft |
+| [SPEC-04](SPEC-04-coverage-80.md) | Coverage 80% Achievement | P1 | 45 min | implemented baseline |
 | [SPEC-05](SPEC-05-pr-annotations.md) | GitHub PR Annotations | P2 | 30 min | draft |
 
 ### B. AI/LLM Enhancement (3 specs)
@@ -99,7 +100,7 @@ status below is the current routing table for planning and public claims.
 |---|---|:---:|:---:|:---:|
 | [SPEC-24](SPEC-24-cross-file-dataflow.md) | Cross-file Dataflow | P2 | 1 week | draft |
 | [SPEC-25](SPEC-25-framework-patterns.md) | Framework-specific Patterns | P2 | 3 days | draft |
-| [SPEC-26](SPEC-26-custom-severity.md) | Custom Severity Tuning | P3 | 2 days | draft |
+| [SPEC-26](SPEC-26-custom-severity.md) | Custom Severity Tuning | P3 | 2 days | implemented local |
 
 ### H. Language Support (2 specs)
 
@@ -114,17 +115,23 @@ status below is the current routing table for planning and public claims.
 |---|---|:---:|:---:|:---:|
 | [SPEC-29](SPEC-29-sql-database-analysis.md) | SQL・データベース変更リスク解析 | P1 | 2026-06-11 | done |
 
+### J. QA Chain & Gate Integration (1 spec)
+
+| Spec ID | Title | Priority | Est. Time | Status |
+|---|---|:---:|:---:|:---:|
+| [SPEC-30](SPEC-30-five-tool-qeg-gate.md) | Five-tool QEG Gate Integration | P1 | 1 week | implemented baseline / acceptance pending |
+
 ---
 
 ## Summary Statistics
 
 | Metric | Value |
 |---|:---:|
-| Total Specifications | 29 |
+| Total Specifications | 30 |
 | P1 (High Priority) | 8 |
-| P2 (Medium Priority) | 14 |
+| P2 (Medium Priority) | 15 |
 | P3 (Low Priority) | 7 |
-| Estimated Total Time | ~8 weeks; SPEC-29 completed |
+| Estimated Total Time | ~8 weeks; SPEC-29 completed, SPEC-30 implementation baseline recorded |
 
 ---
 
@@ -187,3 +194,4 @@ Quarterly review should prioritize stale P1/P2 drafts and specs whose implementa
 |---|---|---|
 | 2026-05-04 | v1.0 | Initial creation with 28 specs |
 | 2026-06-10 | v1.1 | Added SPEC-29 SQL・データベース変更リスク解析 |
+| 2026-09-10 | v1.2 | Added SPEC-30 five-tool QEG gate integration and linked QEOS-031..042 implementation records |

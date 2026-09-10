@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-03-release-prep.md",
+  "role": "dependency",
+  "summary": "1.6.0 次版準備",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "25d7225b6d8bfcf330bb465b787f738bb6df335f3fc67d484abab781f1102b95",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

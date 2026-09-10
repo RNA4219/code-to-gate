@@ -1,0 +1,27 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/core/database-analyzer.ts",
+  "role": "dependency",
+  "summary": "DatabaseAnalysisAtRefOptions, DatabaseAnalysisOptions, DatabaseAssetsDiff, DatabaseFileSource の公開API",
+  "public_api": [
+    "DatabaseAnalysisAtRefOptions",
+    "DatabaseAnalysisOptions",
+    "DatabaseAssetsDiff",
+    "DatabaseFileSource",
+    "WorkspaceFileSource",
+    "analyzeDatabaseAssets",
+    "analyzeDatabaseAssetsAtRef",
+    "createDatabaseRuleGraph",
+    "diffDatabaseAssets"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/scan.ts"
+  ],
+  "tests": [
+    "src/core/__tests__/database-analyzer.test.ts"
+  ],
+  "sourceHash": "bc976ab1550e7c19d4261cba7216a08cf3416874048f84efe80072e006180ed7",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/ADR/README.md",
+  "role": "dependency",
+  "summary": "Architecture Decision Records (ADR)",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHECKLISTS.md"
+  ],
+  "tests": [],
+  "sourceHash": "72a7c2a87a44a36ec81ef6b4306281f658373607fb4e179390fb14f1ac3fefb4",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

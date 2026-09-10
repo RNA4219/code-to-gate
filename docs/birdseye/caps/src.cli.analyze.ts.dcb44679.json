@@ -1,0 +1,49 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/cli/analyze.ts",
+  "role": "entrypoint",
+  "summary": "analyzeCommand, buildGeneratedArtifactRefs, resolveSuppressionPath の公開API",
+  "public_api": [
+    "analyzeCommand",
+    "buildGeneratedArtifactRefs",
+    "resolveSuppressionPath"
+  ],
+  "deps_out": [
+    "src/adapters/node-services.ts",
+    "src/adapters/parser-registry.ts",
+    "src/application/context.ts",
+    "src/application/rule-evaluator.ts",
+    "src/cli/exit-codes.ts",
+    "src/cli/import-consumer.ts",
+    "src/cli/output.ts",
+    "src/config/policy-evaluator.ts",
+    "src/config/policy-loader.ts",
+    "src/config/severity-resolver.ts",
+    "src/core/database-analyzer.ts",
+    "src/core/file-utils.ts",
+    "src/core/repo-graph-builder.ts",
+    "src/llm/providers/index.ts",
+    "src/llm/providers/provider-health.ts",
+    "src/llm/types.ts",
+    "src/reporters/audit-writer.ts",
+    "src/reporters/invariant-generator.ts",
+    "src/reporters/json-reporter.ts",
+    "src/reporters/llm-enrichment.ts",
+    "src/reporters/markdown-reporter.ts",
+    "src/reporters/raw-findings-reporter.ts",
+    "src/reporters/self-analysis-debt-reporter.ts",
+    "src/reporters/test-seed-generator.ts",
+    "src/reporters/yaml-reporter.ts",
+    "src/rules/index.ts",
+    "src/self-analysis/suppression-summary.ts",
+    "src/types/artifacts.ts",
+    "src/types/contracts.ts"
+  ],
+  "deps_in": [],
+  "tests": [
+    "src/cli/__tests__/analyze-imports-security.test.ts",
+    "src/cli/__tests__/analyze.test.ts"
+  ],
+  "sourceHash": "88b060789f31af41c7c225259a0b4dbc4842a64cc2ba0cf4cf7670622fc1494f",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

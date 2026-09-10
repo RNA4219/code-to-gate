@@ -6,6 +6,8 @@
  */
 
 import { Finding, Severity, FindingCategory, EvidenceRef, FindingsArtifact } from "../types/artifacts.js";
+import type { RedactionProfile } from "../types/artifacts.js";
+import { createRedactionProfile } from "../redaction/redaction-profile.js";
 import {
   escapeHtml,
   sortFindingsBySeverity,
@@ -42,6 +44,45 @@ export interface FindingViewerConfig {
   collapsibleEvidence?: boolean;
   maxEvidenceLength?: number;
   maxRenderedFindings?: number;
+  redactionProfile?: RedactionProfile;
+}
+
+const DEFAULT_SEVERITY_DETAIL_PROFILE = createRedactionProfile("private");
+
+function severityResolutionRow(label: string, value: string, preserveWhitespace = false): string {
+  const style = preserveWhitespace ? ' style="white-space:pre-wrap;"' : "";
+  return `<div class="severity-resolution-row"><dt>${escapeHtml(label)}</dt><dd${style}>${escapeHtml(value)}</dd></div>`;
+}
+
+function generateSeverityResolutionHtml(
+  finding: Finding,
+  profile: RedactionProfile
+): string {
+  const resolution = finding.severityResolution;
+  const originalSeverity = resolution?.originalSeverity ?? finding.originalSeverity;
+  const effectiveSeverity = resolution?.severity ?? finding.severity;
+  if (!resolution && (originalSeverity === undefined || originalSeverity === effectiveSeverity)) {
+    return "";
+  }
+
+  const values = severityResolutionRow(
+    "重要度",
+    `${originalSeverity ?? finding.severity} → ${effectiveSeverity}`
+  );
+  if (!profile.allowsDetail || !resolution) {
+    return `<dl class="finding-severity-resolution" style="overflow-wrap:anywhere;">${values}</dl>`;
+  }
+
+  const selectors = [
+    ["ruleId", resolution.matchedSelectors.ruleId],
+    ["path", resolution.matchedSelectors.path],
+    ["category", resolution.matchedSelectors.category],
+  ]
+    .filter((entry): entry is [string, string] => entry[1] !== undefined)
+    .map(([key, value]) => `${escapeHtml(key)}=${escapeHtml(value)}`)
+    .join(", ") || "none";
+
+  return `<dl class="finding-severity-resolution" style="overflow-wrap:anywhere;">${values}${severityResolutionRow("ポリシー", resolution.policyId)}${severityResolutionRow("理由", resolution.reason, true)}${severityResolutionRow("一致セレクタ", selectors)}</dl>`;
 }
 
 /**
@@ -98,6 +139,10 @@ export function generateFindingCard(
 ): string {
   const severityBadgeClass = `badge-${finding.severity}`;
   const evidenceHtml = generateEvidenceHtml(finding.evidence, config);
+  const severityResolutionHtml = generateSeverityResolutionHtml(
+    finding,
+    config.redactionProfile ?? DEFAULT_SEVERITY_DETAIL_PROFILE
+  );
 
   return `
 <div class="finding" data-finding-id="${escapeHtml(finding.id)}" data-severity="${finding.severity}" data-category="${finding.category}" data-suppressed="${isSuppressedFinding(finding) ? "true" : "false"}">
@@ -132,6 +177,7 @@ export function generateFindingCard(
             <span>${finding.affectedEntrypoints.map((e) => escapeHtml(e)).join(", ")}</span>
           ` : ""}
         </div>
+        ${severityResolutionHtml}
         <div class="finding-summary">
           <p>${escapeHtml(finding.summary)}</p>
         </div>
@@ -385,6 +431,7 @@ function searchFindings(query) {
 }
 
 function applyFilters() {
+  let visibleCount = 0;
   document.querySelectorAll('.finding').forEach(el => {
     const severity = el.dataset.severity;
     const category = el.dataset.category;
@@ -414,10 +461,10 @@ function applyFilters() {
     }
 
     el.style.display = show ? 'block' : 'none';
+    if (show) visibleCount += 1;
   });
 
   // Update visible count
-  const visibleCount = document.querySelectorAll('.finding[style="display: block"], .finding:not([style])').length;
   document.querySelector('.section-count').textContent = visibleCount + ' findings';
 }
 

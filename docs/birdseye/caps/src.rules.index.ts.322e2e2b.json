@@ -1,0 +1,48 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/index.ts",
+  "role": "registry",
+  "summary": "ALL_RULES, CORE_RULES, DATABASE_RULES, RuleContext の公開API",
+  "public_api": [
+    "ALL_RULES",
+    "CORE_RULES",
+    "DATABASE_RULES",
+    "RuleContext",
+    "RulePlugin",
+    "SimpleGraph",
+    "generateFindingId"
+  ],
+  "deps_out": [
+    "src/core/evidence-utils.ts",
+    "src/rules/circular-dependency.ts",
+    "src/rules/client-trusted-price.ts",
+    "src/rules/db-destructive-ops.ts",
+    "src/rules/db-migration-ops.ts",
+    "src/rules/db-schema-change.ts",
+    "src/rules/debt-marker.ts",
+    "src/rules/deprecated-api.ts",
+    "src/rules/env-direct-access.ts",
+    "src/rules/hardcoded-secret.ts",
+    "src/rules/large-module.ts",
+    "src/rules/missing-input-sanitization.ts",
+    "src/rules/missing-rate-limit.ts",
+    "src/rules/missing-server-validation.ts",
+    "src/rules/raw-sql.ts",
+    "src/rules/suppression-debt.ts",
+    "src/rules/try-catch-swallow.ts",
+    "src/rules/unsafe-delete.ts",
+    "src/rules/unsafe-redirect.ts",
+    "src/rules/untested-critical-path.ts",
+    "src/rules/weak-auth-guard.ts",
+    "src/types/artifacts.ts",
+    "src/types/rule-options.ts"
+  ],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/index.test.ts"
+  ],
+  "sourceHash": "064ea7edaf026afc462c5d0a0eb526316b7cd7875e15197ba9586420eeef8532",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

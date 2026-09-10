@@ -2,8 +2,8 @@
 intent_id: DOC-LEGACY
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2025-05-31
-next_review_due: 2025-06-31
+last_reviewed_at: 2026-09-10
+next_review_due: 2026-10-10
 ---
 
 # Task Seeds 運用ガイド
@@ -65,8 +65,17 @@ next_review_due: YYYY-MM-DD
 
 ## 5. 登録済み Task Seeds
 
-（現在なし）
+- [20260910-01-ledger-sync](tasks/20260910-01-ledger-sync.md) — 改修台帳・文書同期（技術検収済み）
+- [20260910-02-precision-review](tasks/20260910-02-precision-review.md) — 実 repo 精度レビューの機能（技術検収済み、人手判定は別途）
+- [20260910-03-release-prep](tasks/20260910-03-release-prep.md) — 1.6.0 次版準備（ローカル検証済み、公開は別途）
+- [20260910-04-birdseye](tasks/20260910-04-birdseye.md) — Birdseye generator/check（技術検収済み）
+- [20260910-05-severity-tuning](tasks/20260910-05-severity-tuning.md) — SPEC-26 severity tuning（技術検収済み）
+- [20260910-07-ci-maintenance](tasks/20260910-07-ci-maintenance.md) — maintenance検証のCI接続
+- [20260910-08-run-identity](tasks/20260910-08-run-identity.md) — 実行IDの衝突防止
+- [20260910-09-diff-severity](tasks/20260910-09-diff-severity.md) — diffへのseverity policy適用
+- [20260910-10-precision-workbench](tasks/20260910-10-precision-workbench.md) — 精度レビュー操作画面
+- [20260910-11-severity-report](tasks/20260910-11-severity-report.md) — severity調整理由の表示
 
 ---
 
-更新日: 2025-05-31
+更新日: 2026-09-10

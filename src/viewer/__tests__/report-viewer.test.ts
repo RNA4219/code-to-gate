@@ -30,6 +30,7 @@ import { createEvidencePortal } from "../evidence-portal.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import * as vm from "node:vm";
 import { NormalizedRepoGraph, SymbolNode, GraphRelation } from "../../types/graph.js";
 import {
   createMockFinding,
@@ -77,6 +78,7 @@ describe("report-viewer", () => {
       expect(html).toContain("</html>");
       expect(html).toContain("<head>");
       expect(html).toContain("<body>");
+      expect(html).not.toMatch(/<\/script>\s*\/\/ Embedded Mermaid initialization/);
     });
 
     it("includes embedded CSS styles", () => {
@@ -181,6 +183,49 @@ describe("report-viewer", () => {
       expect(html).toContain("filter-btn");
       expect(html).toContain("Severity:");
       expect(html).toContain("Suppression:");
+    });
+
+    it("keeps the findings count alongside rendered finding cards", () => {
+      const findings = createMockFindings({
+        findings: [
+          createMockFinding("high", "security", { id: "finding-one" }),
+          createMockFinding("medium", "validation", { id: "finding-two" }),
+          createMockFinding("low", "data", { id: "finding-three" }),
+        ],
+      });
+      const html = generateReportHtml({ findings });
+
+      expect(html).toContain('<span class="section-count">3 findings</span>');
+      expect((html.match(/class="finding"/g) ?? []).length).toBe(3);
+    });
+
+    it("updates the findings count from the same show decision as each card", () => {
+      const explorer = generateFindingsExplorer(createMockFindings({
+        findings: [
+          createMockFinding("high", "security", { id: "finding-high", title: "High signal" }),
+          createMockFinding("low", "data", { id: "finding-low", title: "Low signal" }),
+        ],
+      }));
+      const script = explorer.match(/<script>\n\/\/ Finding filtering[\s\S]*?<\/script>/)?.[0];
+      if (!script) throw new Error("finding filter script was not generated");
+
+      const elements = [
+        { dataset: { severity: "high", category: "security", suppressed: "false" }, style: { display: "" }, querySelector: () => ({ textContent: "high signal" }) },
+        { dataset: { severity: "low", category: "data", suppressed: "false" }, style: { display: "" }, querySelector: () => ({ textContent: "low signal" }) },
+      ];
+      const count = { textContent: "" };
+      const context = vm.createContext({
+        document: {
+          querySelectorAll: (selector: string) => selector === ".finding" ? elements : [],
+          querySelector: (selector: string) => selector === ".section-count" ? count : null,
+          addEventListener: () => undefined,
+        },
+      });
+      vm.runInContext(script.replace(/^<script>|<\/script>$/g, ""), context);
+      vm.runInContext("searchFindings('high')", context);
+
+      expect(elements.map((element) => element.style.display)).toEqual(["block", "none"]);
+      expect(count.textContent).toBe("1 findings");
     });
 
     it("limits rendered findings for large reports", () => {

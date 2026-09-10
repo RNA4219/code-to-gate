@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/unsafe-delete.ts",
+  "role": "dependency",
+  "summary": "UNSAFE_DELETE_RULE の公開API",
+  "public_api": [
+    "UNSAFE_DELETE_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/unsafe-delete.test.ts"
+  ],
+  "sourceHash": "e7f32e68bb820ef13f88a94615e2209a764e0719165196fb2b0a364482921f17",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

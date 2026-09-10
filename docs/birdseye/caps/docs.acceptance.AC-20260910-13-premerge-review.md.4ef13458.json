@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/acceptance/AC-20260910-13-premerge-review.md",
+  "role": "dependency",
+  "summary": "マージ前の最終レビュー（2026-09-10）",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "99b143816ad13e479a01a979cbaee433c8ec8793b45cbba0588b2580d85d5398",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

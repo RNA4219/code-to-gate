@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/unsafe-redirect.ts",
+  "role": "dependency",
+  "summary": "UNSAFE_REDIRECT_RULE の公開API",
+  "public_api": [
+    "UNSAFE_REDIRECT_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/unsafe-redirect.test.ts"
+  ],
+  "sourceHash": "784d78d32c435c46157688879ce6afdfecb34c595c2f0a467a2acc0f00e0eeb6",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

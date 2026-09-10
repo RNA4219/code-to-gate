@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260910-11-severity-report.md",
+  "role": "dependency",
+  "summary": "severity調整理由の表示",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "ba07475fa9b20d29098f88b5df641cc68bd816416a78cda7803e796d05b8a2c8",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/cli/output.ts",
+  "role": "dependency",
+  "summary": "CliDiagnostic, emitCliError, emitCliSummary, hasQuietFlag の公開API",
+  "public_api": [
+    "CliDiagnostic",
+    "emitCliError",
+    "emitCliSummary",
+    "hasQuietFlag"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [],
+  "sourceHash": "3af8abcfc832b27aa77d3fd100d998696bbd68250725eb29cc9901eea3537e49",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

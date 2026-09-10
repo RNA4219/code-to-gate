@@ -8,9 +8,9 @@ code-to-gate is a local-first quality harness CLI tool that analyzes repositorie
 **Node**: 20+
 **Framework**: Vitest for testing, ts-morph for AST parsing
 **Package**: `@quality-harness/code-to-gate`
-**Current package version**: `1.5.0`
-**Latest GitHub release**: `v1.4.2` until the v1.5.0 release is published
-**npm registry**: not published until npm authentication is completed
+**Current package version**: `1.6.0` (local development candidate; unpublished)
+**Latest GitHub release**: `v1.5.1` (published 2026-07-22)
+**npm registry**: not published according to `docs/distribution-status.md`; npm publication evidence is still pending
 
 ## Key Commands
 
@@ -32,6 +32,10 @@ node ./dist/cli.js <command>  # Run directly
 # Release validation
 npm run release:validate
 npm run release:public
+
+# Precision review / Birdseye maintenance
+node scripts/precision-review.mjs <create|update|summarize> ...
+node scripts/birdseye.mjs <generate|check> [--root path]
 ```
 
 ## Architecture
@@ -84,14 +88,35 @@ Policies are YAML files. See `docs/policy-guide.md` for the public guide.
 
 Common fields:
 
-- `blocking.severities` - Block on severity level
-- `blocking.categories` - Block on category (payment, auth, etc.)
+- `blocking.severity` - Block on severity level
+- `blocking.category` - Block on category (payment, auth, etc.)
 - `blocking.rules` - Block on specific rule IDs
 - `readiness.criticalFindingStatus` - Status for critical findings (blocked_input/needs_review)
 
 ### Policy Evaluation
 
 Located in `src/config/policy-loader.ts` and `src/config/policy-evaluator.ts`.
+
+`analysis-report.md` is the implemented human review profile. It presents
+review-required candidates with evidence, confidence, impact hypotheses, and
+confirmation commands; structured artifacts remain the machine and QA-chain
+contract.
+
+Optional per-rule severity is tracked by [SPEC-26](docs/specs/SPEC-26-custom-severity.md)
+and [Task Seed 20260910-05](docs/tasks/20260910-05-severity-tuning.md)
+with local cross-surface acceptance recorded in
+[`AC-20260910-06-maintenance`](docs/acceptance/AC-20260910-06-maintenance.md).
+Precision evidence is recorded in
+[`AC-20260910-02-precision-review`](docs/acceptance/AC-20260910-02-precision-review.md);
+it does not establish human precision. Birdseye maintenance is tracked in
+[`20260910-04-birdseye`](docs/tasks/20260910-04-birdseye.md) and remains subject
+to final repository generation and check.
+
+追加5件（CI接続、実行ID、diff policy、精度レビュー画面、severity理由表示）は
+[`AC-20260910-12`](docs/acceptance/AC-20260910-12-follow-up.md)で統合検証する。
+`diff --policy`の対応項目は[Severity tuning](docs/severity-tuning.md)、
+`precision-review --from ... --review ... --out review.html`の操作は
+[精度レビュー運用](docs/precision-review.md)を参照する。
 
 ## Built-in Rules
 
@@ -138,11 +163,13 @@ Defined in `src/cli/exit-codes.ts`:
 | Code | Constant | Meaning |
 |------|----------|---------|
 | 0 | OK | Success |
-| 1 | USAGE_ERROR | Invalid arguments |
-| 2 | POLICY_FAILED | Policy violation |
+| 1 | READINESS_NOT_CLEAR | Findings or policy require review |
+| 2 | USAGE_ERROR | Invalid arguments |
 | 3 | SCAN_FAILED | Scan error |
-| 4 | ANALYZE_FAILED | Analysis error |
-| 5 | FINDINGS_THRESHOLD | Findings exceed threshold |
+| 4 | LLM_FAILED | Required LLM processing failed |
+| 5 | POLICY_FAILED | Policy configuration error |
+| 7 | SCHEMA_FAILED | Artifact schema validation failed |
+| 10 | INTERNAL_ERROR | Unexpected internal error |
 
 ## Common Tasks
 
@@ -175,6 +202,9 @@ Large repos (5000+ files) use:
 - Lazy symbol extraction
 
 ## Generated Artifacts Location
+
+Run IDs are opaque execution identifiers. See [run identity](docs/run-identity.md)
+for independent execution IDs, inherited artifact IDs, and agent request reuse.
 
 Do not commit:
 - `.qh/` - Default output directory

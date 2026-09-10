@@ -1,0 +1,21 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/historical/ratchet-gate.ts",
+  "role": "dependency",
+  "summary": "BaselineRatchetResult, BaselineRatchetSummary, LoadedBaselineFindings, evaluateBaselineRatchet の公開API",
+  "public_api": [
+    "BaselineRatchetResult",
+    "BaselineRatchetSummary",
+    "LoadedBaselineFindings",
+    "evaluateBaselineRatchet",
+    "findingIdentity",
+    "loadBaselineFindingsArtifact"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/readiness.ts"
+  ],
+  "tests": [],
+  "sourceHash": "498d1a9f2893deb6fe9bf43397c3975b94e918413452fe3b22d13f3f0ea158bd",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

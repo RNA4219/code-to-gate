@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type {
   EvidenceProvenanceEntry,
@@ -197,7 +198,7 @@ export function generateEvidenceProvenanceIndex(input: ProvenanceInput): Evidenc
   return {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `evidence-provenance-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("evidence-provenance", { timestamp: generatedAt }),
     repo: input.findings.repo,
     tool: { name: "code-to-gate", version: input.version, plugin_versions: [] },
     artifact: "evidence-provenance-index",

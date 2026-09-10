@@ -1,0 +1,31 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/core/file-utils.ts",
+  "role": "dependency",
+  "summary": "BoundedDirectoryWalk, DEFAULT_DIRECTORY_WALK_LIMITS, DEFAULT_IGNORED_DIRS, DirectoryWalkLimits の公開API",
+  "public_api": [
+    "BoundedDirectoryWalk",
+    "DEFAULT_DIRECTORY_WALK_LIMITS",
+    "DEFAULT_IGNORED_DIRS",
+    "DirectoryWalkLimits",
+    "FileRole",
+    "Language",
+    "detectLanguage",
+    "detectOrmFromPath",
+    "detectRole",
+    "detectTestFramework",
+    "discoverDatabaseFiles",
+    "ensureDir"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts",
+    "src/cli/scan.ts"
+  ],
+  "tests": [
+    "src/core/__tests__/file-utils.test.ts"
+  ],
+  "sourceHash": "e41ffb8a106b1a144181bf56f6b08ef1c6029da9f25c5344f7314d93c5bbf7c1",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

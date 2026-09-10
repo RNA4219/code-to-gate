@@ -1,0 +1,28 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/config/policy-types.ts",
+  "role": "dependency",
+  "summary": "BaselineConfig, BlockingCategoryConfig, BlockingConfig, BlockingCountThreshold の公開API",
+  "public_api": [
+    "BaselineConfig",
+    "BlockingCategoryConfig",
+    "BlockingConfig",
+    "BlockingCountThreshold",
+    "BlockingRulesConfig",
+    "BlockingSeverityConfig",
+    "ConfidenceConfig",
+    "CtgPolicy",
+    "DEFAULT_BLOCKING_CATEGORY",
+    "DEFAULT_BLOCKING_SEVERITY",
+    "DEFAULT_CONFIDENCE",
+    "DEFAULT_SUPPRESSION_CLASS"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/config/policy-loader.ts",
+    "src/config/severity-resolver.ts"
+  ],
+  "tests": [],
+  "sourceHash": "aabbd5785b83fbcd9a2f6fbb51ac4fdd2a3281e21e97cc025ed89db7bb9596a8",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/cli/intake-artifact.ts",
+  "role": "dependency",
+  "summary": "IntakeAssessment, IntakeBlockingIssue, assessIntakeArtifact の公開API",
+  "public_api": [
+    "IntakeAssessment",
+    "IntakeBlockingIssue",
+    "assessIntakeArtifact"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/readiness.ts"
+  ],
+  "tests": [],
+  "sourceHash": "98504b8ceea65018d2ecd1cb1afe140b8464d1c6b47855b959bdef54d7147155",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

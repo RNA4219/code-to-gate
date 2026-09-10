@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type {
   Severity,
@@ -383,7 +384,7 @@ export function detectSpecDrift(options: DetectorOptions): SpecDriftArtifact {
   return {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `spec-drift-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("spec-drift", { timestamp: generatedAt }),
     repo: { root: options.repoRoot },
     tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
     artifact: "spec-drift",

@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/circular-dependency.ts",
+  "role": "dependency",
+  "summary": "CIRCULAR_DEPENDENCY_RULE の公開API",
+  "public_api": [
+    "CIRCULAR_DEPENDENCY_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/circular-dependency.test.ts"
+  ],
+  "sourceHash": "1b874bc49fcc83c530b75b2e91c0c77386fd9df46eec59dcba26946074d85308",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

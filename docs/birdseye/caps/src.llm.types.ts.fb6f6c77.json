@@ -1,0 +1,23 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/llm/types.ts",
+  "role": "dependency",
+  "summary": "DEFAULT_CONFIGS, DEFAULT_MODELS, HealthCheckResult, LlmAnalysisRequest の公開API",
+  "public_api": [
+    "DEFAULT_CONFIGS",
+    "DEFAULT_MODELS",
+    "HealthCheckResult",
+    "LlmAnalysisRequest",
+    "LlmConfig",
+    "LlmProvider",
+    "LlmProviderType",
+    "LlmResponse"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [],
+  "sourceHash": "fbb1a2bffafd873a5a9e55eb1c22c3d8c8abedd440760cdcf8b64ec84c9ffe67",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

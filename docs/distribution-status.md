@@ -2,8 +2,8 @@
 intent_id: DOC-DISTRIBUTION-STATUS-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-07-22
-next_review_due: 2026-08-22
+last_reviewed_at: 2026-09-10
+next_review_due: 2026-10-10
 ---
 
 # Distribution Status
@@ -15,11 +15,11 @@ npm publication status.
 
 | Channel | Current State | Notes |
 |---------|---------------|-------|
-| `package.json` | `1.5.1` | Release package version |
-| GitHub Release | `v1.5.1` | Published 2026-07-22 |
-| npm registry | Not published | `npm view @quality-harness/code-to-gate` returned `E404` on 2026-07-12 |
+| `package.json` | `1.6.0` | Local development candidate; not released or published |
+| GitHub Release | `v1.5.1` | Latest published release, 2026-07-22 |
+| npm registry | Not published | Historical check: `npm view @quality-harness/code-to-gate` returned `E404` on 2026-07-12; not rechecked in this update |
 | Recommended install | GitHub install | Use `npm install -g github:RNA4219/code-to-gate` until npm publish is complete |
-| Local npm auth | Not authenticated | `npm whoami` returns `ENEEDAUTH`; maintainer login is required before publish |
+| Local npm auth | Not authenticated | Historical check on 2026-07-12: `npm whoami` returned `ENEEDAUTH`; not rechecked in this update |
 | CLI Docker image | Not distributed | Docker support currently covers plugin sandbox execution, not a public CLI image |
 | Prebuilt binaries | Not distributed | Windows/macOS/Linux standalone binaries are future scope |
 
@@ -43,6 +43,14 @@ npm install -g @quality-harness/code-to-gate
 | Package integrity | Passed before release; CI records the integrity artifact |
 | Docs | README, Release Approval Record, CHANGELOG, and this file synchronized |
 
+## Next Candidate (Unreleased)
+
+`1.6.0` is prepared locally as a candidate version. It has no Git tag, GitHub
+Release, npm publication, merge, or release approval record. Optional per-rule
+severity and Birdseye index/capsule repair are implemented, targeted validation
+and the final full test are complete. Candidate review and publication remain
+separate gates.
+
 ## Release Notes Alignment
 
 `CHANGELOG.md` is the source for the published `v1.5.1` release notes. GitHub
@@ -51,7 +59,7 @@ maintainer publishes the package after authenticating to npm.
 
 ## Publication Evidence Policy
 
-No npm publication has been performed for `1.5.1`. If npm publication is
+No npm publication has been performed for the current `1.6.0` candidate. If npm publication is
 performed, the release evidence bundle must include:
 
 - `npm whoami`

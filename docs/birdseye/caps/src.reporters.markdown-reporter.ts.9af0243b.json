@@ -1,0 +1,19 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/markdown-reporter.ts",
+  "role": "dependency",
+  "summary": "Summary",
+  "public_api": [
+    "generateAnalysisReport",
+    "writeAnalysisReportMd"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/markdown-reporter.test.ts"
+  ],
+  "sourceHash": "27cf59a73aff27ac70c85ea59505acc69e05fee07ab0ccdcde971327295e20b4",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

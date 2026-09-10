@@ -1,0 +1,25 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/config/severity-resolver.ts",
+  "role": "config",
+  "summary": "SeverityResolution, resolveSeverities, resolveSeverity の公開API",
+  "public_api": [
+    "SeverityResolution",
+    "resolveSeverities",
+    "resolveSeverity"
+  ],
+  "deps_out": [
+    "src/config/policy-types.ts",
+    "src/types/artifacts.ts"
+  ],
+  "deps_in": [
+    "src/cli/analyze.ts",
+    "src/cli/readiness.ts",
+    "src/config/policy-evaluator.ts"
+  ],
+  "tests": [
+    "src/config/__tests__/severity-resolver.test.ts"
+  ],
+  "sourceHash": "bbd3cbafa841452b9b1688183e0cc5b297bf281a7f9e6e6b894cf475aae7d8b8",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

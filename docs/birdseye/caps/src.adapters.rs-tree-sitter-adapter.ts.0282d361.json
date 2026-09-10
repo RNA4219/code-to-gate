@@ -1,0 +1,22 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/adapters/rs-tree-sitter-adapter.ts",
+  "role": "dependency",
+  "summary": "getRustInitStatus, initRustParser, isRustTreeSitterAvailable, parseRustFileSync の公開API",
+  "public_api": [
+    "getRustInitStatus",
+    "initRustParser",
+    "isRustTreeSitterAvailable",
+    "parseRustFileSync",
+    "parseRustTreeSitter"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [
+    "src/adapters/__tests__/rs-tree-sitter-adapter.test.ts"
+  ],
+  "sourceHash": "133363bd94b24556f0e559e89386f75a2731a1de8601d0c5ef47bc6ea45d73b8",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

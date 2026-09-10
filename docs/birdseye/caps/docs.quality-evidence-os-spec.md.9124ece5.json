@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/quality-evidence-os-spec.md",
+  "role": "dependency",
+  "summary": "Quality Evidence OS 仕様",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHECKLISTS.md"
+  ],
+  "tests": [],
+  "sourceHash": "6a71b6bbb02d55872135e95e22f8537c3fbd9e7d62c714883189cd300ae3805d",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

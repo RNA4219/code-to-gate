@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { DoctorArtifact, DoctorCheck } from "../types/artifacts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 export interface DoctorOptions {
   version: string;
@@ -259,7 +260,7 @@ export function createDoctorArtifact(options: DoctorOptions): DoctorResult {
     artifact: {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `doctor-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId("doctor", { timestamp: generatedAt }),
       repo: { root: options.repoRoot ?? process.cwd() },
       tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
       artifact: "doctor",

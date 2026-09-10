@@ -1,0 +1,18 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/rules/raw-sql.ts",
+  "role": "dependency",
+  "summary": "RAW_SQL_RULE の公開API",
+  "public_api": [
+    "RAW_SQL_RULE"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/rules/index.ts"
+  ],
+  "tests": [
+    "src/rules/__tests__/raw-sql.test.ts"
+  ],
+  "sourceHash": "91cd4dae2b6fd4f8cba89506c707c0acd0eddcfa8e9ec5d235318e3407b66cb1",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

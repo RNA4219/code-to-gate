@@ -102,6 +102,7 @@ export function generateReportHtml(
       showSearch: config.findingsConfig?.showSearch ?? true,
       collapsibleEvidence: config.findingsConfig?.collapsibleEvidence ?? true,
       maxRenderedFindings: config.findingsConfig?.maxRenderedFindings,
+      redactionProfile: config.redactionProfile,
     }
   );
   const graphSection = config.showGraph

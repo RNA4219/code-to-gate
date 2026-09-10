@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import yamlImport from "js-yaml";
 import type { SchemaMigrationArtifact } from "../types/artifacts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 const EXIT = {
   OK: 0,
@@ -693,11 +694,12 @@ function createMigrationReport(input: {
   const sourceRepo = isRecord(input.source.repo) ? input.source.repo : undefined;
   const targetRepo = isRecord(input.target.repo) ? input.target.repo : undefined;
   const repoRoot = getStringField(targetRepo ?? sourceRepo ?? {}, "root") ?? process.cwd();
-  const runId = getStringField(input.target, "run_id") ?? getStringField(input.source, "run_id") ?? `schema-migration-${Date.now()}`;
+  const generatedAt = new Date().toISOString();
+  const runId = getStringField(input.target, "run_id") ?? getStringField(input.source, "run_id") ?? createUniqueRunId("schema-migration", { timestamp: generatedAt });
 
   return {
     version: "ctg/v1",
-    generated_at: new Date().toISOString(),
+    generated_at: generatedAt,
     run_id: runId,
     repo: { root: repoRoot },
     tool: { name: "code-to-gate", version: TOOL_VERSION, plugin_versions: [] },

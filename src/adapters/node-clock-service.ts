@@ -3,6 +3,7 @@
  */
 
 import type { ClockService } from "../types/contracts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 /**
  * Node.js-based clock service implementation
@@ -17,12 +18,6 @@ export const nodeClockService: ClockService = {
   },
 
   runId(): string {
-    const now = new Date();
-    // Format: ctg-YYYYMMDDHHMMSS
-    const timestamp = now
-      .toISOString()
-      .replace(/[-:.TZ]/g, "")
-      .slice(0, 14);
-    return `ctg-${timestamp}`;
+    return createUniqueRunId("ctg");
   },
 };

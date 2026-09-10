@@ -12,6 +12,7 @@ import type {
 } from "../types/artifacts.js";
 import type { EXIT, getOption } from "./exit-codes.js";
 import { emitCliError, emitCliSummary } from "./output.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 export interface ReviewQueueCliOptions {
   VERSION: string;
@@ -167,7 +168,7 @@ export function createReviewQueue(input: { fromDir: string; version: string; now
   return {
     version: "ctg/v1",
     generated_at: generatedAt,
-    run_id: `review-queue-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+    run_id: createUniqueRunId("review-queue", { timestamp: generatedAt }),
     repo: { root: repoRoot },
     tool: { name: "code-to-gate", version: input.version, plugin_versions: [] },
     artifact: "review-queue",

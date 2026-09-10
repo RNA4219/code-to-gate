@@ -31,6 +31,19 @@ code-to-gate運用時のチェックリスト集。
 
 ## Pull Request / Review
 
+### 2026-09-10 改修の検収
+
+- 精度reviewは入力bytes・repo・commit・finding IDとevidenceを照合し、AI/未判定を人手精度合格にしない
+- severity override未設定時の互換性、first-matchの優先順、元severityと変更理由、analyze/readiness/baselineの一致を検証する
+- `node scripts/birdseye.mjs generate` 後に `node scripts/birdseye.mjs check` を実行し、sourceとcapsuleの鮮度を確認する
+- `npm run build`、`npm run lint`、`npm test`、`npm run test:coverage`、package smokeを実行し、80%閾値を維持する
+- package 1.6.0候補と公開v1.5.1を区別し、検収結果と公開承認を別に記録する
+- CIのmaintenance・台帳・文書・Birdseye checkが既存必須jobで失敗を伝播することを確認する
+- 独立run IDの同時計時衝突防止とagentの冪等再利用を別々に検証する
+- diffの任意policy設定でraw/effective・終了判定・出力が一致することを確認する
+- 精度レビュー画面のJSON保存・再開・入力照合・AI/人手区別を実ブラウザで確認する
+- severity調整の元値・適用値・理由をMarkdown/Viewerでも確認し、表示文字をescapeする
+
 - 失敗させたテストが緑化する最小コミット単位を維持し、差分を可視化
 - PR / 検収記録から unit / integration / coverage の結果が追跡できるようにする
 - `CHANGELOG.md` の `[Unreleased](CHANGELOG.md#unreleased)` に Task Seed 番号付きで成果を追記
@@ -52,7 +65,7 @@ code-to-gate運用時のチェックリスト集。
 - `npm run build` が通ること
 - `npm run test:smoke` が通ること
 - `node ./dist/cli.js llm-health --all` で LLM provider status が正常
-- Birdseye freshness check（`docs/birdseye/index.json` の `generated_at` が最新）
+- Birdseye freshness check（`node scripts/birdseye.mjs check` でsource hashと閉じた参照を検証）
 
 ## Release
 
@@ -85,7 +98,7 @@ code-to-gate運用時のチェックリスト集。
 - `npx tsc --noEmit` が通ること
 - `npm run test:coverage` が通ること（coverage 80%）
 - CI / Governance を変更した場合は `.github/workflows/`、`.github/ctg-policy.yaml`、`governance/policy.yaml` の同期を確認
-- Birdseye を更新した場合は `docs/birdseye/index.json` / `caps/*` の差分と `generated_at` を確認
+- Birdseye を更新した場合は `docs/birdseye/index.json` / `caps/*` の差分と生成IDを確認し、`node scripts/birdseye.mjs check` を通す
 - 旧呼称の混入チェック（例: `grep "<旧ブランド名>"` で現行ブランド以外の名称が残存していないか確認）
 
 ---

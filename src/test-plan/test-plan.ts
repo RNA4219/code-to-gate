@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type {
   NormalizedRepoGraph,
@@ -287,7 +288,7 @@ export function createTestPlan(options: TestPlanOptions): TestPlanResult {
     artifact: {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `test-plan-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId("test-plan", { timestamp: generatedAt }),
       repo: graph.repo,
       tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
       artifact: "test-plan",

@@ -1,8 +1,8 @@
 # Public Readiness Follow-up Backlog
 
-**Generated**: 2026-05-31
+**Generated**: 2026-09-10
 **Repository**: code-to-gate (RNA4219/code-to-gate)
-**Source**: docs/public-readiness/acceptance-report.md (GO judgment)
+**Source**: docs/public-readiness/acceptance-report.md, docs/distribution-status.md, docs/real-repo-validation-evidence-20260704.md
 
 ---
 
@@ -17,44 +17,66 @@
 
 ---
 
-## P0 Critical Items (None)
+## P0 Critical Items (None assigned)
 
-No P0 items. Primary gates passed, no public security exposure.
+No P0 item is assigned from the available evidence. Public claims remain
+bounded by the P1 distribution and real-repo precision follow-ups below.
 
 ---
 
-## P1 High Items (None)
+## P1 High Items (2)
 
-No P1 items. Dependency vulnerabilities resolved via npm audit fix (2026-05-31). Vulnerability history documented in SECURITY.md.
+### FB-07: Real-Repo Precision Adjudication (OPEN)
+
+| Field | Value |
+|-------|-------|
+| ID | FB-07 |
+| Priority | P1 |
+| Category | Operations |
+| Description | Real-repo execution passed, but finding precision has no human adjudication |
+| Owner | QA Lead |
+| Deadline | Human adjudication pending |
+| Status | ⚠️ Execution complete; precision review pending |
+| Reference | `docs/real-repo-validation-evidence-20260704.md`; [`AC-20260910-02-precision-review`](../acceptance/AC-20260910-02-precision-review.md) |
+
+#### Current Evidence
+
+The 2026-07-04 run passed scan, analyze, readiness, and schema validation for
+4/4 repositories. It produced 1,721 findings. No human TP/FP/Accepted-design
+review was completed, so all findings are recorded as Uncertain and real-repo
+precision is not claimed.
+
+---
+
+### FB-10: Distribution and Public Claim Alignment (OPEN)
+
+| Field | Value |
+|-------|-------|
+| ID | FB-10 |
+| Priority | P1 |
+| Category | Release / Documentation |
+| Description | npm publication and public wording must remain aligned with the shipped surface |
+| Owner | Release Maintainer |
+| Deadline | Before npm publication or public stable claim |
+| Status | Open |
+| Reference | `docs/distribution-status.md` |
+
+#### Current Evidence
+
+`package.json` is the local `1.6.0` candidate and the latest GitHub release is
+`v1.5.1`; npm remains unpublished according to the repository distribution
+record. A separate 2026-09-10 precision run recorded 1,449 findings, including
+current non-reproduction records for FP-DM-002, FP-DM-003, FP-RS-002, and
+FP-MIS-001. Human precision adjudication remains incomplete. GitHub/source
+installation is the current supported distribution path. Public docs must
+continue to describe review-required candidates and the QA evidence role until
+publication and release evidence are complete.
 
 ---
 
 ## P2 Medium Items (0)
 
-### FB-07: Real-Repo Validation Expansion (RESOLVED)
-
-| Field | Value |
-|-------|-------|
-| ID | FB-07 |
-| Priority | P2 |
-| Category | Operations |
-| Description | Limited real-repo testing (express, axios, dayjs only) |
-| Owner | QA Lead |
-| Deadline | 2026-07-31 |
-| Status | ✅ Resolved |
-| Reference | OR-01 in risk-register.md |
-
-#### Resolution Evidence
-
-| Requirement | Evidence |
-|-------------|----------|
-| Add 2-3 more fixture repos | ✅ 10 fixtures exist (demo-shop-ts, demo-auth-js, demo-ci-imports, demo-edge-cases, demo-github-actions-ts, demo-monorepo, demo-multilang, demo-python, demo-ruby, demo-suppressions-ts) |
-| Add weekly CI acceptance job | ✅ `.github/workflows/code-to-gate-release.yml` acceptance job (cron: '0 0 * * 0') |
-| Document real-repo validation criteria | ✅ docs/public-readiness/real-repo-validation.md created |
-
----
-
-## Resolved P3 Items (1)
+## Resolved P3 Items (2)
 
 ### FB-08: Lint Warnings (162→0) (RESOLVED)
 
@@ -122,10 +144,10 @@ No P1 items. Dependency vulnerabilities resolved via npm audit fix (2026-05-31).
 | Priority | Count | Deadline Range |
 |----------|-------|----------------|
 | P0 Critical | 0 | - |
-| P1 High | 0 | - |
-| P2 Medium | 0 | ✅ Resolved |
-| P3 Low | 0 | ✅ Resolved |
-| **Total** | **0** | - |
+| P1 High | 2 | Human adjudication / npm publication alignment |
+| P2 Medium | 0 | - |
+| P3 Low | 2 | ✅ Resolved |
+| **Total** | **4** | - |
 
 ---
 
@@ -133,7 +155,8 @@ No P1 items. Dependency vulnerabilities resolved via npm audit fix (2026-05-31).
 
 | Item | Status | Deadline | Next Review |
 |------|--------|----------|-------------|
-| FB-07 | ✅ Resolved | 2026-07-31 | Closed |
+| FB-07 | ⚠️ Precision review pending | Human adjudication pending | 2026-10-10 |
+| FB-10 | Open | Before npm publication or public stable claim | 2026-10-10 |
 | FB-08 | ✅ Resolved | 2026-09-30 | Closed |
 | FB-09 | ✅ Resolved | 2026-12-31 | Closed |
 
@@ -152,6 +175,6 @@ Escalate to P1 if:
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-05-31
-**Next Review**: 2026-06-15
+**Document Version**: 1.1
+**Last Updated**: 2026-09-10
+**Next Review**: 2026-10-10

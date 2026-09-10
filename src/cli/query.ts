@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 import type { EvidenceQueryArtifact, EvidenceQueryMatch } from "../types/artifacts.js";
 import {
@@ -245,7 +246,7 @@ export async function queryCommand(args: string[], options: QueryCliOptions): Pr
     const artifact: EvidenceQueryArtifact = {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `evidence-query-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId("evidence-query", { timestamp: generatedAt }),
       repo: { root: "." },
       tool: { name: "code-to-gate", version: options.VERSION, plugin_versions: [] },
       artifact: "evidence-query",

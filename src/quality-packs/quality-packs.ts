@@ -12,6 +12,7 @@ import type {
   QualityPackId,
   Severity,
 } from "../types/artifacts.js";
+import { createUniqueRunId } from "../utils/run-id.js";
 
 export interface QualityPackOptions {
   id: string;
@@ -381,7 +382,7 @@ export function createQualityPackArtifact(options: QualityPackOptions): QualityP
     artifact: {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `quality-pack-${selected.id}-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId(`quality-pack-${selected.id}`, { timestamp: generatedAt }),
       repo: { root: process.cwd() },
       tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
       artifact: "quality-pack",
@@ -430,7 +431,7 @@ export function createQualityPackGoldenSuiteArtifact(options: QualityPackOptions
     artifact: {
       version: "ctg/v1",
       generated_at: generatedAt,
-      run_id: `quality-pack-golden-suite-${selected.id}-${generatedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      run_id: createUniqueRunId(`quality-pack-golden-suite-${selected.id}`, { timestamp: generatedAt }),
       repo: { root: process.cwd() },
       tool: { name: "code-to-gate", version: options.version, plugin_versions: [] },
       artifact: "quality-pack-golden-suite",

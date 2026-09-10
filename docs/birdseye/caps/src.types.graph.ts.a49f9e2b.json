@@ -1,0 +1,27 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/types/graph.ts",
+  "role": "dependency",
+  "summary": "CTG_VERSION_V1, CTG_VERSION_V1ALPHA1, ConfigNode, DataflowGraph の公開API",
+  "public_api": [
+    "CTG_VERSION_V1",
+    "CTG_VERSION_V1ALPHA1",
+    "ConfigNode",
+    "DataflowGraph",
+    "DataflowNode",
+    "DataflowRelation",
+    "EntrypointNode",
+    "EvidenceRef",
+    "GRAPH_SCHEMA_VERSION",
+    "GraphDiagnostic",
+    "GraphRelation",
+    "GraphStats"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/adapters/parser-registry.ts"
+  ],
+  "tests": [],
+  "sourceHash": "65517cdf7234a79335e58ab9919153d7154b525e090f47d75fe8335b471c2b21",
+  "generation_id": "birdseye-051388fce5f1ad9f"
+}

@@ -9,6 +9,7 @@ import { existsSync, statSync, readFileSync, writeFileSync, mkdirSync } from "no
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { createUniqueRunId } from "../utils/run-id.js";
 import {
   EVIDENCE_VERSION,
   EvidenceBundleMetadata,
@@ -454,7 +455,7 @@ export async function createEvidenceBundle(options: BundleBuilderOptions): Promi
     }
 
     if (!runId) {
-      runId = `run-${Date.now()}`;
+      runId = createUniqueRunId("run");
     }
   }
 
