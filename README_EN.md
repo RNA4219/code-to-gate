@@ -11,18 +11,18 @@ seeds, SARIF, and release-readiness evidence.
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.6.0` development candidate (local, unpublished) |
-| GitHub Release | `v1.5.1` latest published release |
+| `package.json` | `1.6.0` GitHub release version |
+| GitHub Release | `v1.6.0` release/tag prepared; final publication confirmation pending |
 | npm registry | Not published yet |
 
 See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
-`1.6.0` is a local development candidate; `v1.5.1` remains the latest GitHub
-Release and npm publication is still pending.
+`1.6.0` is prepared for the [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0).
+The npm package remains unpublished; use the pinned GitHub/source install.
 
 ## Install
 
 ```bash
-npm install -g github:RNA4219/code-to-gate
+npm install -g github:RNA4219/code-to-gate#v1.6.0
 ```
 
 From source:

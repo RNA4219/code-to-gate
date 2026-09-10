@@ -1,8 +1,8 @@
 {
   "schema": "birdseye/v1",
-  "generated_at": "birdseye-6cd918ecc76a8baf",
-  "generation_id": "birdseye-6cd918ecc76a8baf",
-  "sourceHash": "6cd918ecc76a8baf6537f57eaa954c9cabeb0f0cb5afed86fb6b643c595d8d07",
+  "generated_at": "birdseye-1c34475eed3adace",
+  "generation_id": "birdseye-1c34475eed3adace",
+  "sourceHash": "1c34475eed3adace0e998d9db1befd535a7df1e5bd2c12cb7382f050b58da171",
   "scope": {
     "kind": "seed+local-one-hop",
     "required_seeds": [
@@ -40,697 +40,697 @@
       "role": "policy",
       "caps": "docs/birdseye/caps/.ctg.policy.yaml.2d4a1e58.json",
       "sourceHash": "e9737c6e2bbfa4e900c178bdc3c04e5e19a8d293bb63c1cf6e9994e3605c5a5f",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "CHANGELOG.md": {
       "role": "history",
       "caps": "docs/birdseye/caps/CHANGELOG.md.06572a96.json",
       "sourceHash": "f58fab273483ec277998727394e6a75cf600e5235322d7e278bb360c956ccf81",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "CHECKLISTS.md": {
       "role": "checklist",
       "caps": "docs/birdseye/caps/CHECKLISTS.md.c3da629e.json",
       "sourceHash": "5cf278defe5d10d211f1c3e9c5ef217c02c4397e25511a7de62b3f644bf83377",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "CLAUDE.md": {
       "role": "context",
       "caps": "docs/birdseye/caps/CLAUDE.md.6ebdb617.json",
       "sourceHash": "67c284193b10c52be2cd47e720c14c517d33823746a8ee4de46492a4a3842bbe",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "GUARDRAILS.md": {
       "role": "policy",
       "caps": "docs/birdseye/caps/GUARDRAILS.md.dceca4b6.json",
       "sourceHash": "a947b875bd6ac3fab7fdd204fc0573d4c914b97ef6d92131ddf3db98d3227397",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "README.md": {
       "role": "overview",
       "caps": "docs/birdseye/caps/README.md.b3356305.json",
       "sourceHash": "f91e6072486c07e19a588934c6b86f9693958d1b1fa6ed9e5f69eaf161426ff4",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "README_JA.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/README_JA.md.f271b369.json",
       "sourceHash": "c23993d628dcc9b2c7a5880129a8ddec151c939b71e1d861357c747dd41b6719",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/ADR/README.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.ADR.README.md.0468bb03.json",
       "sourceHash": "72a7c2a87a44a36ec81ef6b4306281f658373607fb4e179390fb14f1ac3fefb4",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/Release_Checklist.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.Release_Checklist.md.6185103b.json",
       "sourceHash": "1069801dd55d4652788eedaec13918003aeac8d59717922a54193f688f02e9f7",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/TASKS.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.TASKS.md.8519adad.json",
       "sourceHash": "27f04f3b0822916cc0b7c29ca6b0b47d2a451dae624b412914584b55aff655fa",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/acceptance/AC-20260910-02-precision-review.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.acceptance.AC-20260910-02-precision-review.md.0a6af0d7.json",
       "sourceHash": "e2a19c116bc5a9abcdbaed0fa37b467968da9f84c25b57d9482d7398ec3b65a6",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/acceptance/AC-20260910-06-maintenance.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.acceptance.AC-20260910-06-maintenance.md.f139681a.json",
       "sourceHash": "cb63f053c6cb7fcc9bf3897153fe9da0102b92cc7f24b9eba1cc35e2d36c7b8b",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/acceptance/AC-20260910-12-follow-up.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.acceptance.AC-20260910-12-follow-up.md.b6a9b379.json",
       "sourceHash": "27c18c30b231ea19aed5bb433cc4ccefe53e70d9be85df3e4857dcd7a2f609a4",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/acceptance/AC-20260910-14-ci-integration.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.acceptance.AC-20260910-14-ci-integration.md.d0d02354.json",
       "sourceHash": "9a4ed75d254862a75d71acc796a90d05681b04671866b25ca483c4c55a24b371",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/acceptance/AC-20260910-15-release-1.6.0.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.acceptance.AC-20260910-15-release-1.6.0.md.191462f2.json",
       "sourceHash": "5c116fbd97b26a5afe4ca158dbfe7619220b43254ee860978b17ecad87ef65bf",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/cli-reference.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.cli-reference.md.d5d8360d.json",
       "sourceHash": "08f03af2811c66720af31dc9069d99febf511e8aeaa642884f1016a08434ad43",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/distribution-status.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.distribution-status.md.7c82a2f3.json",
       "sourceHash": "bc4bf71621d533f84a7d7a02f30f7fe8924be055fa9d68ed3a63fcdea40e7b60",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/integrations.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.integrations.md.98423805.json",
       "sourceHash": "39d4398638ba48974e034db741619449581e498c8fbfecde15970b819a52cddb",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/plugin-development.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.plugin-development.md.f86abbd7.json",
       "sourceHash": "971f433e3f2b84145ac6e112dd8693e351e3428f087f1c09164cd56d24374f89",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/policy-guide.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.policy-guide.md.294e87e0.json",
       "sourceHash": "45b4c7e2a1f70335e621f731428ab1d2e6573f7dc2a340c7556c771131d5486b",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/precision-review.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.precision-review.md.2d78a86b.json",
       "sourceHash": "8366da73e8d334d4733ea7b15d944ad80548043543fb3035ea43045ba8c6f0be",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/quality-evidence-os-expansion-ideas.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.quality-evidence-os-expansion-ideas.md.43bffbc2.json",
       "sourceHash": "089fb7b77c52af0903512fc7cf7f25089a4cfd2fda700285a1e6b04006e84464",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/quality-evidence-os-requirements.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.quality-evidence-os-requirements.md.50e55101.json",
       "sourceHash": "ba0df900f803101a2384a74c70d0bf07b1d6a6c19c9887282a7ad4c0ab9526b2",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/quality-evidence-os-spec.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.quality-evidence-os-spec.md.9124ece5.json",
       "sourceHash": "6a71b6bbb02d55872135e95e22f8537c3fbd9e7d62c714883189cd300ae3805d",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/quickstart.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.quickstart.md.988a5392.json",
       "sourceHash": "500cdf0b095b87098af2987ccc0af689ab95400a8aab4eb321b3de3edb94a5b5",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/releases/v1.6.0.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.releases.v1.6.0.md.1834bf67.json",
-      "sourceHash": "09a1be353c7e5ca254856d4c7bbb0cc822f6753c83b67af6aef41e938f11b9a1",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "sourceHash": "536fc84ce80a67cfb660e74ef4055118717447e1b4b2813806c786d351e65dbd",
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/run-identity.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.run-identity.md.fab417c4.json",
       "sourceHash": "00d7564332b54a10d573ebbdcbf8c4560563bbb66b972fa47a67c5ffb8bf313f",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/security-gate.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.security-gate.md.f5244ab0.json",
       "sourceHash": "95858445632021e5ddf779d429168aa4827a6ef5cfebff14285b9bb8b6359168",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/security/Security_Review_Checklist.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.security.Security_Review_Checklist.md.f023a01f.json",
       "sourceHash": "a12e368479cf46a042d7ae7b04edf9205238b9e8ed5cbeca85331b076c620acc",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/severity-tuning.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.severity-tuning.md.6c588e6a.json",
       "sourceHash": "02b724772a9817cfa8f2e7edf1a2da06afb0f8967c5a53c484569b901eb77ec8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/specs/SPEC-26-custom-severity.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.specs.SPEC-26-custom-severity.md.368deb68.json",
       "sourceHash": "f7254dc2656f0f693ebf6f96e22b04981c932ca7cc8888f4382e7fe95d78942c",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-01-ledger-sync.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-01-ledger-sync.md.594633b9.json",
       "sourceHash": "94bb31f87e5afbe72d2f09703c5c3b84fc4245228e7d073afc7a0295680f3b50",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-02-precision-review.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-02-precision-review.md.81603b28.json",
       "sourceHash": "4096f63f242f95a0052b49ba2d589813a363dc40734cfa2e8fa6c11e3bffeda1",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-03-release-prep.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-03-release-prep.md.7b0d89dc.json",
       "sourceHash": "25d7225b6d8bfcf330bb465b787f738bb6df335f3fc67d484abab781f1102b95",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-04-birdseye.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-04-birdseye.md.d868a6ea.json",
       "sourceHash": "cdbe3a7a66633b31f275fbe701756949dc7133ae4fc3fc07441dfdc94d026403",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-05-severity-tuning.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-05-severity-tuning.md.050c359a.json",
       "sourceHash": "b2b298338654d3d3026d0475d436e282baa2ec0edcc0a4b792f3321fe4f6d53a",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-07-ci-maintenance.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-07-ci-maintenance.md.1efb06be.json",
       "sourceHash": "e82c74d94bc31254c144dc03a9a46e638ac516b9d17afab93b29799669c43572",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-08-run-identity.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-08-run-identity.md.116677b7.json",
       "sourceHash": "f047e844ceee28c35c56c7a6b85c644188843c91676f8f319607bbd12c9f070b",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-09-diff-severity.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-09-diff-severity.md.2c574c05.json",
       "sourceHash": "aa3dd0e0c6be22bc66bbbcb03932e5cbed1b8c571bd7c178fe79be2355b2338f",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-10-precision-workbench.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-10-precision-workbench.md.595c47c0.json",
       "sourceHash": "d46f660cba4819c6a5eac830359357c8f365dd2409043b00103c1e7da1e1a8ab",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-11-severity-report.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-11-severity-report.md.a91b9b8f.json",
       "sourceHash": "ba07475fa9b20d29098f88b5df641cc68bd816416a78cda7803e796d05b8a2c8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "docs/tasks/20260910-12-release-1.6.0.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/docs.tasks.20260910-12-release-1.6.0.md.8f53b201.json",
       "sourceHash": "c3a025bf66ce5d63afe37a99fb75a28b71f2bcc2edcbe09f6eb9ed5f0d756e46",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "governance/policy.yaml": {
       "role": "governance",
       "caps": "docs/birdseye/caps/governance.policy.yaml.e07e5077.json",
       "sourceHash": "0983f100271ecd79dd56e5e9f5ecbeb648c4e8000f64cf568c85d47e6b8d714b",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "orchestration/quality-evidence-os-implementation.md": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/orchestration.quality-evidence-os-implementation.md.f0809670.json",
       "sourceHash": "60b070819f5a09fe4ac6ddba8595ebb0b7f2bbe349df156dbbc275a830cf4147",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/go-tree-sitter-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.go-tree-sitter-adapter.ts.91a8b58f.json",
       "sourceHash": "f1a15198d4bba0f7202d61e315b72e8cc7b97a6056b170ada197dd29ef63ff24",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/js-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.js-adapter.ts.6ad91ba1.json",
       "sourceHash": "1f5b5ed041aa221d02770e665cdbdafe1e6c47d3e1037f22218c443ccd09282a",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/node-services.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.node-services.ts.286a59fd.json",
       "sourceHash": "47a9f94de6e6c0457d096825269ec57f305a5f4cf0288f349af4b4685a4923e0",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/parser-registry.ts": {
       "role": "adapter",
       "caps": "docs/birdseye/caps/src.adapters.parser-registry.ts.b4dbc7a2.json",
       "sourceHash": "706011edc8dc137e2a8b688c05c48e0b522cf52ecbf4048c21fc866ec9b0fb95",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/py-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.py-adapter.ts.e3ceda63.json",
       "sourceHash": "06a08e3fa54da053974d489ad3f4d883e9d6f52d45ce12746502249bdaba4255",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/py-tree-sitter-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.py-tree-sitter-adapter.ts.6986beaf.json",
       "sourceHash": "69777afd9d76822c4cac97104265f820be74204b18b201d388751d9286c30304",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/rb-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.rb-adapter.ts.183f73ec.json",
       "sourceHash": "7ff1976c6962aa5d9a1b79a008a64d820fae2743cc0f86401415416a91f5c08a",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/rb-tree-sitter-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.rb-tree-sitter-adapter.ts.7b7c067c.json",
       "sourceHash": "9d4d7b1a846dba4469374c1a7b5687ce05c65f9464e6451bc05f7c9fc5da2ca2",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/regex-language-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.regex-language-adapter.ts.f14d6d2a.json",
       "sourceHash": "ed66f94b80e743f5e1f33b89b2c9548c1d4fc431244773f0dd948c0ca6b6af19",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/rs-tree-sitter-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.rs-tree-sitter-adapter.ts.0282d361.json",
       "sourceHash": "133363bd94b24556f0e559e89386f75a2731a1de8601d0c5ef47bc6ea45d73b8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/tree-sitter-initializer.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.tree-sitter-initializer.ts.f63a8860.json",
       "sourceHash": "f83ee08b3f4971f3881c521cd95adcee6f5d88770edf49548dd3233a11db8d5a",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/adapters/ts-adapter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.adapters.ts-adapter.ts.d063679e.json",
       "sourceHash": "437b6b0153ebd8a9d6ef3f3cc2edf18af4dc2a12494c2c970aba040ff00eab01",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/application/context.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.application.context.ts.e96fed93.json",
       "sourceHash": "62d7b80de02c7a60d9c949bdaac57c541af4d4645a228f08835a852f8ce31759",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/application/rule-evaluator.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.application.rule-evaluator.ts.b8a66427.json",
       "sourceHash": "4d73e84f57d825045d671f3a3dff2eef2f340cb1915f09d0371ed755c4dfce9f",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cache/index.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.cache.index.ts.548fc051.json",
       "sourceHash": "284492164b80003538fd82a019f7d4416ccbb5deabda3a8e3b71a11b4d364f97",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/analyze.ts": {
       "role": "entrypoint",
       "caps": "docs/birdseye/caps/src.cli.analyze.ts.dcb44679.json",
       "sourceHash": "88b060789f31af41c7c225259a0b4dbc4842a64cc2ba0cf4cf7670622fc1494f",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/exit-codes.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.cli.exit-codes.ts.b1518d64.json",
       "sourceHash": "a1245cc568a34a36e1a07912760588d6a23591bf09b17089c58854a3d5504bc4",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/import-consumer.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.cli.import-consumer.ts.acce18d5.json",
       "sourceHash": "24460e24c90268486eb00245c1d0c50087b6f2225305050b8c8fcbba63173466",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/intake-artifact.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.cli.intake-artifact.ts.ed77b4f6.json",
       "sourceHash": "98504b8ceea65018d2ecd1cb1afe140b8464d1c6b47855b959bdef54d7147155",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/output.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.cli.output.ts.5a5e76d7.json",
       "sourceHash": "3af8abcfc832b27aa77d3fd100d998696bbd68250725eb29cc9901eea3537e49",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/readiness.ts": {
       "role": "entrypoint",
       "caps": "docs/birdseye/caps/src.cli.readiness.ts.1650193f.json",
       "sourceHash": "440249c7ce069bde99bd16819088e2426f0cb9ddcc78fd5eaf1e941e3835ef92",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/cli/scan.ts": {
       "role": "entrypoint",
       "caps": "docs/birdseye/caps/src.cli.scan.ts.46daf9fd.json",
       "sourceHash": "f4e626c2704ee6af9e6ef9fd827c0c609b1b415efc1eaf431f8eb7fa63d3e19d",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/config/policy-evaluator.ts": {
       "role": "config",
       "caps": "docs/birdseye/caps/src.config.policy-evaluator.ts.692ff63a.json",
       "sourceHash": "d1f2af4eb202dcdd9eb20db6f2fc47810f23f5ce47e1a9d927635434701c00fa",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/config/policy-loader.ts": {
       "role": "config",
       "caps": "docs/birdseye/caps/src.config.policy-loader.ts.0cddccdb.json",
       "sourceHash": "58eea8ff0e70347a582e15cfd6af779e4f90ee3519b1be4f5e5da65855091a10",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/config/policy-types.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.config.policy-types.ts.3e527503.json",
       "sourceHash": "aabbd5785b83fbcd9a2f6fbb51ac4fdd2a3281e21e97cc025ed89db7bb9596a8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/config/policy-yaml-parser.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.config.policy-yaml-parser.ts.9661e594.json",
       "sourceHash": "16520b678a116c9ead6902039ea180230211c1b4292b836b730a1d903941e333",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/config/severity-resolver.ts": {
       "role": "config",
       "caps": "docs/birdseye/caps/src.config.severity-resolver.ts.4f6c0ec0.json",
       "sourceHash": "bbd3cbafa841452b9b1688183e0cc5b297bf281a7f9e6e6b894cf475aae7d8b8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/core/database-analyzer.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.core.database-analyzer.ts.ef83db92.json",
       "sourceHash": "bc976ab1550e7c19d4261cba7216a08cf3416874048f84efe80072e006180ed7",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/core/evidence-utils.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.core.evidence-utils.ts.0a8f2cb4.json",
       "sourceHash": "c9a5c9f4a974bd31ebeca156d5a0861ebcea0c22ae7a5067fcef335df5e14924",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/core/file-utils.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.core.file-utils.ts.e924d65d.json",
       "sourceHash": "e41ffb8a106b1a144181bf56f6b08ef1c6029da9f25c5344f7314d93c5bbf7c1",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/core/repo-graph-builder.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.core.repo-graph-builder.ts.092f146e.json",
       "sourceHash": "e8acb1e7136dd7c5ecafa6faa49066af7897788cc87f24950e47dbeb78911f0e",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/historical/ratchet-gate.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.historical.ratchet-gate.ts.be8657ce.json",
       "sourceHash": "498d1a9f2893deb6fe9bf43397c3975b94e918413452fe3b22d13f3f0ea158bd",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/llm/providers/index.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.llm.providers.index.ts.84190b45.json",
       "sourceHash": "e49b33a184bd46c2fe4a999d151377fcecf0ae1e1add354fd6c7580770cb3921",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/llm/providers/provider-health.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.llm.providers.provider-health.ts.27e7d61b.json",
       "sourceHash": "7e04da292a374bdcc88ca0fd7d2f64f933bd82d7c4ad2463adb8690804c5d414",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/llm/types.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.llm.types.ts.fb6f6c77.json",
       "sourceHash": "fbb1a2bffafd873a5a9e55eb1c22c3d8c8abedd440760cdcf8b64ec84c9ffe67",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/parallel/index.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.parallel.index.ts.5b6be68e.json",
       "sourceHash": "62aa1ca60588ed8ec48d6050b00b49fb1a5f7c40fc97c273286160aa1d48b531",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/audit-writer.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.audit-writer.ts.b6e59e36.json",
       "sourceHash": "d57b9f4cd878e6052bcc6bb582e2759e8289f296f9f617fb548713690f65c8ef",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/index.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.index.ts.ed3613c5.json",
       "sourceHash": "d7e10e907609fa9cc1012e74a02c4b5466e1befe9c51ea7ee05e6279744ae28f",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/invariant-generator.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.invariant-generator.ts.1f18aad4.json",
       "sourceHash": "c320d32d4db226e2c26db57b33a45c257bd7d9c45de6f89829688ff6a5a215a1",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/json-reporter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.json-reporter.ts.ee833bf0.json",
       "sourceHash": "a924feab7a3d13ada6dbc0cd291a34c9fa091c14a1666191434e4e6c8ca28994",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/llm-enrichment.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.llm-enrichment.ts.00e5ad08.json",
       "sourceHash": "5ff4cda73ca808a067f13ef232c9533ca8d4e1dac9e8fc271700858f2feb99b2",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/markdown-reporter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.markdown-reporter.ts.9af0243b.json",
       "sourceHash": "27cf59a73aff27ac70c85ea59505acc69e05fee07ab0ccdcde971327295e20b4",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/raw-findings-reporter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.raw-findings-reporter.ts.2ab3ec7c.json",
       "sourceHash": "ed5e6e2a84c0dc246fe6b30d6b13ac27fcde535f7b66269806fa33f0ea73533c",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/self-analysis-debt-reporter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.self-analysis-debt-reporter.ts.c4f1963a.json",
       "sourceHash": "ae0027ea479d450bad9fb2f5c557611f9899332e9d8fd2ac0ce64c52251318d5",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/test-seed-generator.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.test-seed-generator.ts.b2a7a8ee.json",
       "sourceHash": "aba32b8a8d425983f9356d472716c17a6bdd19b0ec4584ded3d8f7ad03d4e4fb",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/reporters/yaml-reporter.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.reporters.yaml-reporter.ts.efc347af.json",
       "sourceHash": "3a6819325b76498927d94423eaebc66e8b224e1ac50495611cdc67978f3390c9",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/circular-dependency.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.circular-dependency.ts.bceddaa2.json",
       "sourceHash": "1b874bc49fcc83c530b75b2e91c0c77386fd9df46eec59dcba26946074d85308",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/client-trusted-price.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.client-trusted-price.ts.c59aeb06.json",
       "sourceHash": "d6e918f7d778e198929081e849aeac8ae3789373fc35dbcbc9071375912706b2",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/db-destructive-ops.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.db-destructive-ops.ts.c002e59f.json",
       "sourceHash": "6fa2f753ad1f2b625329eb55253fb8b506920e9e2c0854a28a8701ab13ffb2af",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/db-migration-ops.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.db-migration-ops.ts.bc143588.json",
       "sourceHash": "f831b483d7dabf3c36645ef9fca402306935ab8bff8f9e0c736dc500a6a2a5ee",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/db-schema-change.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.db-schema-change.ts.cb6b166e.json",
       "sourceHash": "295eea4652dd25b65547d22019f1f17f7498e7bfef189da516babdb6f1288869",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/debt-marker.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.debt-marker.ts.16a50ec7.json",
       "sourceHash": "f894997cf4f7050a46931d91c3e8f543d251b16853ab7c6bfd65b86e47536ff1",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/deprecated-api.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.deprecated-api.ts.5c32f42a.json",
       "sourceHash": "0c14a4880a4e3888048f542e88f37cd5b66dc2d7ebd883c8c115ece93a019c92",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/env-direct-access.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.env-direct-access.ts.ccd07ba1.json",
       "sourceHash": "e6560a170b2ecb86fc00b88acf4e56596d9f89044a0f2332da001ac07cd4cf9a",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/hardcoded-secret.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.hardcoded-secret.ts.57685f48.json",
       "sourceHash": "7d9efaf6ed46da16b042037cb064d4410578a22a2d27d886c7f47c911b176b93",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/index.ts": {
       "role": "registry",
       "caps": "docs/birdseye/caps/src.rules.index.ts.322e2e2b.json",
       "sourceHash": "064ea7edaf026afc462c5d0a0eb526316b7cd7875e15197ba9586420eeef8532",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/large-module.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.large-module.ts.948c83e5.json",
       "sourceHash": "542fd7bee7745deb6d5ba2318147bcf87fdd921aecbd997c5822a7225743a012",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/missing-input-sanitization.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.missing-input-sanitization.ts.b9adf577.json",
       "sourceHash": "8d3c11b90259818375266c8da77ec2d81a69879c53f7af4e8f2ac83286d0b1a6",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/missing-rate-limit.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.missing-rate-limit.ts.571d00df.json",
       "sourceHash": "8704c442bb60ed671dd251b5b554763595dbe414cbb6aecce536be269dc65f37",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/missing-server-validation.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.missing-server-validation.ts.674cd1e7.json",
       "sourceHash": "5fd6a3c38afb600adcded3d17f79ec46549fb58c6381323f51a6fd0d70b2567d",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/raw-sql.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.raw-sql.ts.d03b2216.json",
       "sourceHash": "91cd4dae2b6fd4f8cba89506c707c0acd0eddcfa8e9ec5d235318e3407b66cb1",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/suppression-debt.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.suppression-debt.ts.e945b433.json",
       "sourceHash": "268d091a971d6693b1e43d5b9716ce666c719c3298e452940950bc450ef4069d",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/try-catch-swallow.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.try-catch-swallow.ts.49915afc.json",
       "sourceHash": "09c7c6fe35124c97003e19dacad9f1a548e862539118dfda7ccd9a197bcb2d16",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/unsafe-delete.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.unsafe-delete.ts.6ae85c1e.json",
       "sourceHash": "e7f32e68bb820ef13f88a94615e2209a764e0719165196fb2b0a364482921f17",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/unsafe-redirect.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.unsafe-redirect.ts.6c21da82.json",
       "sourceHash": "784d78d32c435c46157688879ce6afdfecb34c595c2f0a467a2acc0f00e0eeb6",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/untested-critical-path.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.untested-critical-path.ts.6ec606a5.json",
       "sourceHash": "e3d129dbc7456f72d13820008f07c057cdd2f105a762049443dd00321a84723b",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/rules/weak-auth-guard.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.rules.weak-auth-guard.ts.83f1e3ac.json",
       "sourceHash": "3aa59f53d09dd7fcc54139359a72bd27a88337b3f0530c42b927d9472dfc5b71",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/self-analysis/suppression-summary.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.self-analysis.suppression-summary.ts.61ee0d9d.json",
       "sourceHash": "2ed7f9eb636d2c45b65a26cac6befafbbdb1b59845ca7f89bba2e6e73d5411ce",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/types/artifacts.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.types.artifacts.ts.1d71db34.json",
       "sourceHash": "ba57806c7cc0073951eaf32161f9c12c5e64a7da13147bdcd050f95d067429c4",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/types/contracts.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.types.contracts.ts.6048fd51.json",
       "sourceHash": "7a820f95adcf4d199c12e754676cc4d1fcea4c4735feacce95f6a01205abf8d8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/types/graph.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.types.graph.ts.a49f9e2b.json",
       "sourceHash": "65517cdf7234a79335e58ab9919153d7154b525e090f47d75fe8335b471c2b21",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     },
     "src/types/rule-options.ts": {
       "role": "dependency",
       "caps": "docs/birdseye/caps/src.types.rule-options.ts.bf439b98.json",
       "sourceHash": "76d6d3ee6888fa2523549e7deffb09112693911c978db9a9d743b802071ac3b8",
-      "generation_id": "birdseye-6cd918ecc76a8baf"
+      "generation_id": "birdseye-1c34475eed3adace"
     }
   },
   "edges": [
