@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
@@ -55,12 +55,25 @@ function isAllowedId(id) {
   return !parts.includes("..") && !parts.some((part) => EXCLUDED_PARTS.has(part)) && ![...EXCLUDED_PATHS].some((excluded) => normalized === excluded || normalized.startsWith(`${excluded}/`));
 }
 
+function isContainedRealPath(root, target) {
+  try {
+    const realRoot = realpathSync(path.resolve(root));
+    const realTarget = realpathSync(path.resolve(target));
+    const relative = path.relative(realRoot, realTarget);
+    return !relative.startsWith("..") && !path.isAbsolute(relative);
+  } catch {
+    return false;
+  }
+}
+
 function filePath(root, id) {
   const normalized = normalizeId(id);
   if (!isAllowedId(normalized)) return null;
-  const result = path.resolve(root, ...normalized.split("/"));
-  const relative = path.relative(root, result);
-  return relative.startsWith("..") || path.isAbsolute(relative) ? null : result;
+  const lexicalRoot = path.resolve(root);
+  const result = path.resolve(lexicalRoot, ...normalized.split("/"));
+  const relative = path.relative(lexicalRoot, result);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return null;
+  return isContainedRealPath(lexicalRoot, result) ? result : null;
 }
 
 function readText(root, id) {
@@ -88,7 +101,7 @@ function resolveLocalImport(root, sourceId, specifier, allowBare = false) {
   for (const extension of SOURCE_EXTENSIONS) candidates.push(path.join(requestedStem, `index${extension}`));
   for (const candidate of candidates) {
     const relative = normalizeId(path.relative(root, candidate));
-    if (isAllowedId(relative) && existsSync(candidate)) return relative;
+    if (isAllowedId(relative) && filePath(root, relative)) return relative;
   }
   return null;
 }
@@ -156,7 +169,7 @@ function relatedTests(root, id) {
   const directories = [path.join(directory, "__tests__"), directory];
   const result = [];
   for (const candidateDirectory of directories) {
-    if (!existsSync(candidateDirectory)) continue;
+    if (!existsSync(candidateDirectory) || !isContainedRealPath(root, candidateDirectory)) continue;
     for (const entry of readdirSync(candidateDirectory, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.includes(base) || !/\.test\.[cm]?[jt]sx?$/.test(entry.name)) continue;
       result.push(normalizeId(path.relative(root, path.join(candidateDirectory, entry.name))));

@@ -13,6 +13,6 @@
   "tests": [
     "src/rules/__tests__/missing-input-sanitization.test.ts"
   ],
-  "sourceHash": "24f5ea0a2f7adccf94f538884e8119f07101e108341de9b3c54d67f32deeb4b7",
-  "generation_id": "birdseye-051388fce5f1ad9f"
+  "sourceHash": "8d3c11b90259818375266c8da77ec2d81a69879c53f7af4e8f2ac83286d0b1a6",
+  "generation_id": "birdseye-86b2648f9ff363eb"
 }

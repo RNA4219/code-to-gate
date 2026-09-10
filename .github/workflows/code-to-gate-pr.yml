@@ -267,7 +267,7 @@ jobs:
           node ./dist/cli.js diff . \
             --base origin/main \
             --head HEAD \
-            --policy .github/ctg-policy.yaml \
+            --policy .github/ctg-diff-policy.yaml \
             --llm-provider deterministic \
             --out .qh
           DIFF_EXIT=$?

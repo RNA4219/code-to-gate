@@ -3,10 +3,12 @@ import { existsSync, mkdirSync, rmSync, writeFileSync, readdirSync, readFileSync
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
+import yaml from "js-yaml";
 import type { FindingsArtifact } from "../../types/artifacts.js";
 import { EXIT, getOption, VERSION } from "../../cli/exit-codes.js";
 import { diffCommand } from "../diff.js";
 import { evaluateDiffFindings, loadDiffPolicy } from "../diff-policy.js";
+import { loadPolicyFile } from "../../config/policy-loader.js";
 
 function findings(): FindingsArtifact {
   return {
@@ -55,6 +57,24 @@ function databaseRepo(root: string): string {
 }
 
 describe("diff policy", () => {
+  it("keeps CI diff/readiness policy wiring and shared interpretation aligned", () => {
+    const repoRoot = path.resolve(import.meta.dirname, "../../..");
+    const diffPolicyPath = path.join(repoRoot, ".github", "ctg-diff-policy.yaml");
+    const readinessPolicyPath = path.join(repoRoot, ".github", "ctg-policy.yaml");
+    const diffPolicy = loadDiffPolicy(diffPolicyPath, repoRoot);
+    const readinessPolicy = loadPolicyFile(readinessPolicyPath, repoRoot);
+    expect(diffPolicy.errors).toEqual([]); expect(readinessPolicy.errors).toEqual([]);
+    expect(diffPolicy.policy?.blocking).toEqual(readinessPolicy.policy.blocking);
+    expect(diffPolicy.policy?.confidence).toMatchObject({ minConfidence: readinessPolicy.policy.confidence.minConfidence, lowConfidenceThreshold: readinessPolicy.policy.confidence.lowConfidenceThreshold, filterLow: readinessPolicy.policy.confidence.filterLow });
+    expect(diffPolicy.policy?.partial).toMatchObject({ allowPartial: readinessPolicy.policy.partial?.allowPartial, partialWarningThreshold: readinessPolicy.policy.partial?.partialWarningThreshold });
+    const workflow = yaml.load(readFileSync(path.join(repoRoot, ".github", "workflows", "code-to-gate-pr.yml"), "utf8"), { schema: yaml.JSON_SCHEMA }) as { jobs: Record<string, { steps?: Array<{ name?: string; run?: string }> }> };
+    const steps = Object.values(workflow.jobs).flatMap((job) => job.steps ?? []);
+    const diffRun = steps.find((step) => step.name === "Run diff analysis")?.run;
+    const readinessRun = steps.find((step) => step.name === "Run readiness evaluation")?.run;
+    expect(diffRun).toContain("--policy .github/ctg-diff-policy.yaml");
+    expect(readinessRun).toContain("--policy .github/ctg-policy.yaml");
+  });
+
   it.each([["release-risk", true, "blocked_input"], ["release-risk", false, "passed"], ["releaseRisk", true, "blocked_input"], ["releaseRisk", false, "passed"]] as const)("maps blocking category %s=%s into releaseRisk evaluation", (key, value, expectedStatus) => {
     const { root, file } = policyFile(`version: ctg/v1\npolicy_id: release-risk\nblocking:\n  severity: { critical: false, high: false, medium: false, low: false }\n  category:\n    ${key}: ${value}\n`);
     try {

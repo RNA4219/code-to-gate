@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -160,4 +160,49 @@ test("CRLFとLFで同じsourceを扱い、実内容の変更は検出する", ()
     writeFileSync(path.join(root, "src/cli/scan.ts"), `${readFileSync(path.join(root, "src/cli/scan.ts"), "utf8")}\n// changed\n`, "utf8");
     assert.notEqual(run(root, "check").status, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("root自身のsymlinkを扱い、root外へのリンクは解析対象に含めない", (t) => {
+  const root = fixture();
+  const linkedRoot = `${root}-link`;
+  const outside = mkdtempSync(path.join(repoRoot, ".tmp-birdseye-outside-"));
+  try {
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    try {
+      symlinkSync(root, linkedRoot, linkType);
+      assert.equal(run(linkedRoot, "generate").status, 0);
+      assert.equal(run(linkedRoot, "check").status, 0);
+    } catch (error) {
+      if (error?.code === "EPERM" || error?.code === "EACCES") {
+        t.skip("symlink作成権限がありません");
+        return;
+      }
+      throw error;
+    }
+
+    mkdirSync(path.join(outside, "linked"), { recursive: true });
+    writeFileSync(path.join(outside, "linked", "secret.ts"), "export const outside = true;\n", "utf8");
+    const outsideLink = path.join(root, "linked");
+    symlinkSync(path.join(outside, "linked"), outsideLink, linkType);
+    mkdirSync(path.join(outside, "tests"), { recursive: true });
+    writeFileSync(path.join(outside, "tests", "secret.test.ts"), "export const outsideTest = true;\n", "utf8");
+    const outsideTestsLink = path.join(root, "src", "cli", "__tests__");
+    symlinkSync(path.join(outside, "tests"), outsideTestsLink, linkType);
+    const insideLink = path.join(root, "src", "config-link");
+    symlinkSync(path.join(root, "src", "config"), insideLink, linkType);
+    writeFileSync(path.join(root, "README.md"), `${readFileSync(path.join(root, "README.md"), "utf8")}\n[outside](linked/secret.ts)\n[inside](src/config-link/policy-loader.ts)\n`, "utf8");
+    assert.equal(run(root, "generate").status, 0);
+    const index = JSON.parse(readFileSync(path.join(root, "docs/birdseye/index.json"), "utf8"));
+    assert.equal(index.nodes["linked/secret.ts"], undefined);
+    assert.ok(index.nodes["src/config-link/policy-loader.ts"]);
+    const scanCap = JSON.parse(readFileSync(path.join(root, index.nodes["src/cli/scan.ts"].caps), "utf8"));
+    assert.equal(scanCap.tests.includes("src/cli/__tests__/secret.test.ts"), false);
+  } finally {
+    rmSync(path.join(root, "src", "cli", "__tests__"), { recursive: true, force: true });
+    rmSync(path.join(root, "src", "config-link"), { recursive: true, force: true });
+    rmSync(path.join(root, "linked"), { recursive: true, force: true });
+    rmSync(linkedRoot, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
 });

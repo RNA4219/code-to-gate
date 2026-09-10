@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- CIのdiff/readiness policy接続、PATH入力判定の誤検知、Birdseyeのリンク先境界を修正し、
+  js-yaml 4.3.2とVitest 4.1.11へ更新した
+  ([AC-20260910-14](docs/acceptance/AC-20260910-14-ci-integration.md))。
 - マージ前レビューで、ポリシー検証エラー時の停止、引用・数値・`release-risk`キーの解釈、
   レビュー用スクリプトの入力保護、importデータのrepo外からのコード表示を修正した
   ([AC-20260910-13](docs/acceptance/AC-20260910-13-premerge-review.md))。

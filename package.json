@@ -133,7 +133,7 @@
     "ajv-formats": "^3.0.1",
     "fs-extra": "^11.3.4",
     "glob": "^13.0.6",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^4.3.2",
     "ts-morph": "^25.0.1",
     "web-tree-sitter": "^0.26.8"
   },
@@ -143,12 +143,12 @@
     "@types/glob": "^8.1.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.19.17",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.3.0",
     "globals": "^17.6.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "tree-sitter-go": "^0.25.0",

@@ -72,7 +72,7 @@ const DANGER_CONTEXTS: DangerContext[] = [
     description: "Path traversal risk: User input used in file operation path",
   },
   {
-    pattern: /(?:path\.join|path\.resolve)\s*\([^)]*[^)]*(?:req|request|query|params|body)[^)]*\)/gi,
+    pattern: /(?:path\.join|path\.resolve)\s*\([^)]*[^)]*\b(?:req|request|query|params|body)\b[^)]*\)/gi,
     type: "path",
     severity: "high",
     description: "Path traversal risk: User input in path construction without validation",

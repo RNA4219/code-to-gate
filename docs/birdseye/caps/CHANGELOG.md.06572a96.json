@@ -8,6 +8,7 @@
     "docs/acceptance/AC-20260910-06-maintenance.md",
     "docs/acceptance/AC-20260910-12-follow-up.md",
     "docs/acceptance/AC-20260910-13-premerge-review.md",
+    "docs/acceptance/AC-20260910-14-ci-integration.md",
     "docs/tasks/20260910-01-ledger-sync.md",
     "docs/tasks/20260910-02-precision-review.md",
     "docs/tasks/20260910-03-release-prep.md",
@@ -24,6 +25,6 @@
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "817a58125f6d3df221e402cf19426c5beba4d64ba663501a99ebd212c2185095",
-  "generation_id": "birdseye-051388fce5f1ad9f"
+  "sourceHash": "55d9cd5704f63ae7bbfe608f3b3bc336cfe1b7c8912520b160e59c38fd44a0d7",
+  "generation_id": "birdseye-86b2648f9ff363eb"
 }
