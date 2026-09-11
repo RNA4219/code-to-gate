@@ -15,4 +15,11 @@
 
 ## 統合検証
 
+### 2. readiness入力検証（完了）
+
+- 既存findings@v1 schemaを評価前に検証し、不正JSON・別artifact・必須項目欠落・未知enum・入れ子の不正値をexit 7で拒否する。
+- readiness/severity調整の2テストファイル46件が成功した。既存fixtureはschemaの必須情報とfingerprint長へ同期した。
+- 公開v1.6.0で生成した正常なデモartifactを修正版readinessで評価し、exit 0・passedを確認した。
+- build/typecheck/対象ESLintが成功。ログは`C:/Users/ryo-n/Codex_dev/code-to-gate-fixes-20260911/readiness-tests.log`と`readiness-valid-release.log`。
+
 未実施。公開schemaと既存の厳格policy、公開済みtag/assetを維持する。

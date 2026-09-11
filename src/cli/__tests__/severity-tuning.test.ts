@@ -44,7 +44,7 @@ function writeFindings(dir: string, severity: string): void {
     repo: { root: dir }, tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
     artifact: "findings", schema: "findings@v1", completeness: "complete", unsupported_claims: [],
     findings: [{ id: "same", ruleId: "R", category: "security", severity, confidence: 1,
-      title: "x", summary: "x", fingerprint: "baseline-tuning01", evidence: [{ id: "e", path: "src/a.ts", kind: "text" }] }],
+      title: "x", summary: "x", fingerprint: "baseline-tune001", evidence: [{ id: "e", path: "src/a.ts", kind: "text", excerptHash: "test-excerpt" }] }],
   }), "utf8");
 }
 

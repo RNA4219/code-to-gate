@@ -10,6 +10,7 @@ import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, detectBroadSuppressions, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
+import { validateArtifactObject } from "./schema-validate.js";
 import { resolveSeverities } from "../config/severity-resolver.js";
 import { assessIntakeArtifact, type IntakeAssessment } from "./intake-artifact.js";
 import { classifySuppressedFindings } from "../self-analysis/suppression-summary.js";
@@ -330,7 +331,30 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
 
     const findingsContent = readFileSync(findingsPath, "utf8");
-    const findings: FindingsArtifact = JSON.parse(findingsContent);
+    let findingsValue: unknown;
+    try {
+      findingsValue = JSON.parse(findingsContent) as unknown;
+    } catch (error) {
+      console.error(`Findings schema error: invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
+      return options.EXIT.SCHEMA_FAILED;
+    }
+    if (
+      typeof findingsValue !== "object" ||
+      findingsValue === null ||
+      (findingsValue as Record<string, unknown>).artifact !== "findings" ||
+      (findingsValue as Record<string, unknown>).schema !== "findings@v1"
+    ) {
+      console.error("Findings schema error: --from must contain a findings@v1 artifact");
+      return options.EXIT.SCHEMA_FAILED;
+    }
+    const findingsValidation = await validateArtifactObject(findingsValue, "findings.json");
+    if (findingsValidation.status !== "ok") {
+      for (const error of findingsValidation.errors ?? ["invalid findings artifact"]) {
+        console.error(`Findings schema error: ${error}`);
+      }
+      return options.EXIT.SCHEMA_FAILED;
+    }
+    const findings = findingsValue as FindingsArtifact;
     findings.findings = resolveSeverities(findings.findings, policy);
 
     const configuredBaselinePath = baselinePath ?? (policy.baseline?.enabled ? policy.baseline.file : undefined);

@@ -76,6 +76,8 @@ Repository -> scan -> repo-graph.json -> analyze -> findings.json -> readiness -
 
 Diff completeness follows scan/read completeness, not finding count or the intentional diff scope. Clean documentation/code changes may have zero findings; actual incomplete input must remain partial under strict policy.
 
+Readiness validates the input findings artifact against the existing findings@v1 schema before policy evaluation. Invalid JSON or schema violations return SCHEMA_FAILED (7) without generating a new readiness artifact.
+
 **Current version**: `ctg/v1`
 
 All artifacts use stable schemas in `schemas/`:

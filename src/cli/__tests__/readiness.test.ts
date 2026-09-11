@@ -59,7 +59,7 @@ function createFinding(overrides = {}): object {
     confidence: 0.9,
     title: "Test finding",
     summary: "Test summary",
-    evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10 }],
+    evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10, kind: "text", excerptHash: "test-excerpt" }],
     ...overrides,
   };
 }
@@ -207,6 +207,53 @@ describe("readiness CLI", () => {
   });
 
   describe("error handling", () => {
+    it("rejects findings input missing completeness before writing readiness", async () => {
+      const findingsDir = path.join(tempOutDir, "missing-completeness");
+      mkdirSync(findingsDir, { recursive: true });
+      const artifact = createFindingsArtifact([]) as Record<string, unknown>;
+      delete artifact.completeness;
+      writeFileSync(path.join(findingsDir, "findings.json"), JSON.stringify(artifact), "utf8");
+      const outDir = path.join(tempOutDir, "missing-completeness-out");
+
+      const result = await readinessCommand([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ], { VERSION, EXIT, getOption });
+
+      expect(result).toBe(EXIT.SCHEMA_FAILED);
+      expect(existsSync(path.join(outDir, "release-readiness.json"))).toBe(false);
+    });
+
+    it.each([
+      ["invalid JSON", "{"],
+      ["wrong artifact", JSON.stringify({ ...createFindingsArtifact([]), artifact: "raw-findings", schema: "raw-findings@v1" })],
+      ["invalid nested severity", JSON.stringify(createFindingsArtifact([createFinding({ severity: "urgent" })]))],
+      ["unknown completeness", JSON.stringify(createFindingsArtifact([], { completeness: "unknown" }))],
+    ])("rejects findings input with %s before writing readiness", async (_name, content) => {
+      const findingsDir = path.join(tempOutDir, "invalid-findings");
+      mkdirSync(findingsDir, { recursive: true });
+      writeFileSync(path.join(findingsDir, "findings.json"), content, "utf8");
+      const outDir = path.join(tempOutDir, "invalid-findings-out");
+
+      const result = await readinessCommand([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ], { VERSION, EXIT, getOption });
+
+      expect(result).toBe(EXIT.SCHEMA_FAILED);
+      expect(existsSync(path.join(outDir, "release-readiness.json"))).toBe(false);
+    });
+
     it("returns USAGE_ERROR for invalid arguments", async () => {
       // Missing repo
       const result1 = await readinessCommand(["--policy", policyFile], { VERSION, EXIT, getOption });
@@ -736,7 +783,7 @@ suppression:
       process.env.CTG_BASELINE_OWNER = "@quality";
       process.env.CTG_BASELINE_EXPIRES_AT = "2000-01-01T00:00:00Z";
       try {
-        const fingerprint = "expiredbaseline01";
+        const fingerprint = "expired-base-001";
         const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-expired-readiness"), [
           createFinding({
             id: "baseline-high",
@@ -928,8 +975,8 @@ suppression:
     it("includes selfAnalysis summary in readiness artifact", async () => {
       // Create findings with suppression candidates
       const findings = [
-        createFinding({ id: "f-1", ruleId: "CLIENT_TRUSTED_PRICE", severity: "critical", evidence: [{ id: "ev-1", path: "src/rules/client-price.ts" }] }),
-        createFinding({ id: "f-2", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-2", path: "src/core/utils.ts" }] }),
+        createFinding({ id: "f-1", ruleId: "CLIENT_TRUSTED_PRICE", severity: "critical", evidence: [{ id: "ev-1", path: "src/rules/client-price.ts", kind: "ast" }] }),
+        createFinding({ id: "f-2", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-2", path: "src/core/utils.ts", kind: "ast" }] }),
       ];
 
       const findingsDir = writeFindingsToDir(path.join(tempOutDir, "self-analysis"), findings);
@@ -977,7 +1024,7 @@ suppression:
 
       // Create findings that match broad suppression patterns
       const findings = [
-        createFinding({ id: "f-1", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-1", path: "src/core/large-file.ts" }] }),
+        createFinding({ id: "f-1", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-1", path: "src/core/large-file.ts", kind: "ast" }] }),
       ];
 
       const findingsDir = writeFindingsToDir(path.join(tempOutDir, "broad-review"), findings);

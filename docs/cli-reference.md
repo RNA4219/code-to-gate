@@ -447,6 +447,8 @@ Evaluate release readiness using findings and a policy file.
 code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
 ```
 
+`--from`の`findings.json`は、評価前に既存の`findings@v1` schemaで検証する。不正JSON、別種のartifact、必須項目の欠落や値の誤りはexit 7（`SCHEMA_FAILED`）となり、readiness結果を新規生成しない。
+
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
@@ -504,8 +506,10 @@ code-to-gate readiness ./my-repo --policy ./policies/dsl.yaml --from .qh --out .
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | OK | Passed or passed with risk |
-| 1 | NEEDS_REVIEW | Review required |
+| 1 | READINESS_NOT_CLEAR | Review required or input blocked by policy |
 | 2 | USAGE_ERROR | Invalid arguments |
+| 5 | POLICY_FAILED | Policy or required artifact loading failed |
+| 7 | SCHEMA_FAILED | Input findings JSON or schema validation failed |
 
 ---
 

@@ -40,6 +40,7 @@ code-to-gate運用時のチェックリスト集。
 - package 1.6.0候補と公開v1.5.1を区別し、検収結果と公開承認を別に記録する
 - CIのmaintenance・台帳・文書・Birdseye checkが既存必須jobで失敗を伝播することを確認する
 - 文書のみ・指摘0件の正常なdiffがcompleteとなり、走査上限や読み取り失敗によるpartialと重大findingは厳格policyで引き続きブロックされることを確認する
+- readinessは不正入力をexit 7で拒否し、公開版の正常artifact、重大指摘、baseline/severity調整の動作を維持することを確認する
 - 独立run IDの同時計時衝突防止とagentの冪等再利用を別々に検証する
 - diffの任意policy設定でraw/effective・終了判定・出力が一致することを確認する
 - 精度レビュー画面のJSON保存・再開・入力照合・AI/人手区別を実ブラウザで確認する
