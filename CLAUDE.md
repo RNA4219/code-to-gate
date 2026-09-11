@@ -80,6 +80,8 @@ Readiness validates the input findings artifact against the existing findings@v1
 
 Diff file metadata, rule evidence, and importer traversal use the same pinned head snapshot. The tracked commit content is read in bounded Git batches, independently of checkout and uncommitted edits.
 
+Deleted files are valid diff inputs even though they are absent at head; remaining importers stay in the blast radius. Unprocessed added/modified sources and actual snapshot failures remain partial.
+
 **Current version**: `ctg/v1`
 
 All artifacts use stable schemas in `schemas/`:

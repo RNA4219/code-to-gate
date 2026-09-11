@@ -319,6 +319,8 @@ code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir> [--po
 
 空差分ではpolicy未指定時は `diff-analysis.json` のみ、policy指定時はこれにcompleteな空findings/raw-findingsとauditを加える。
 
+削除済みファイルがheadに存在しないこと自体は入力欠落ではない。削除を参照する残存コードは影響範囲に含め、実際の取得失敗や未対応ソースの変更がある場合はpartialを維持する。
+
 policyは `severity_overrides`、`blocking`、`confidence`、`partial`、baseline/manual evidence条件のない `dsl` に対応する。suppression、baseline、llm、exit、rule_optionsなど未対応項目はエラーにする。policyはGit取得前に検証するため、不正policyと不正refを同時指定した場合はpolicyエラーが優先する。[Severity tuning運用ガイド](severity-tuning.md) も参照。
 
 **Example:**

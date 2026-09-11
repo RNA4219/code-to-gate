@@ -409,6 +409,7 @@ function buildDiffFindings(
 
   const graphPaths = new Set(graph.files.map((file) => file.path));
   const unprocessedChangedFile = changedFiles.some((file) =>
+    file.status !== "deleted" &&
     !graphPaths.has(toPosix(file.path)) &&
     !(databaseAnalysisEnabled && isDatabaseFile(file.path)) &&
     !/\.(json|yaml|yml|md)$/i.test(file.path)

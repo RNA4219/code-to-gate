@@ -31,6 +31,13 @@
 - 自repoの同一135ファイル差分はcompleteのまま。1回の観測値は変更前8.25秒、変更後11.89秒（後者はテスト同時実行中）であり、性能保証値とはしない。
 - ログ: `C:/Users/ryo-n/Codex_dev/code-to-gate-fixes-20260911/diff-snapshot-tests.log`、`diff-snapshot-repro.json`、`diff-after-time.json`。
 
+### 4. 削除差分（完了）
+
+- 削除済みファイルをheadの未処理ファイル判定から除外し、未参照TSの削除は指摘0件・complete・exit 0となった。
+- 削除＋Go変更はpartial・exit 1、削除ファイルを参照する残存TSはblast radiusに含まれる。
+- diff/deletion/snapshot/policyの80テスト、typecheck、対象lintが成功した。
+- 実CLIの削除差分もcomplete・exit 0へ改善し、固定headの3状態一致を維持した（`diff-deletion-repro.json`）。
+
 ## 統合検証
 
 未実施。公開schemaと既存の厳格policy、公開済みtag/assetを維持する。
