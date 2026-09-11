@@ -77,6 +77,7 @@ next_review_due: YYYY-MM-DD
 - [20260910-11-severity-report](tasks/20260910-11-severity-report.md) — severity調整理由の表示
 - [20260910-12-release-1.6.0](tasks/20260910-12-release-1.6.0.md) — 1.6.0正式公開の承認・検収（GitHub Release・公開後検証完了）
 - [20260911-01-human-readme](tasks/20260911-01-human-readme.md) — 人間向けREADMEの用途・初回実行・結果の読み方
+- [20260911-02-readiness-diff-followups](tasks/20260911-02-readiness-diff-followups.md) — 補助文書を先行し、readiness入力・diff参照と削除・ブロック理由を修正
 
 ---
 

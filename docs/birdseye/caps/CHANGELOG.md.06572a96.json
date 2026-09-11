@@ -21,13 +21,14 @@
     "docs/tasks/20260910-10-precision-workbench.md",
     "docs/tasks/20260910-11-severity-report.md",
     "docs/tasks/20260910-12-release-1.6.0.md",
-    "docs/tasks/20260911-01-human-readme.md"
+    "docs/tasks/20260911-01-human-readme.md",
+    "docs/tasks/20260911-02-readiness-diff-followups.md"
   ],
   "deps_in": [
     "CHECKLISTS.md",
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "8018a451f49ee64f2c83a49bca7ed73f99e250a932391d0c2f40e4942799451f",
-  "generation_id": "birdseye-e78629113652dc74"
+  "sourceHash": "ae89c36a155d4cb9a7ada6dd697baf18e980577c7dfc9cf21c217957513816d8",
+  "generation_id": "birdseye-81246e54e27b9459"
 }

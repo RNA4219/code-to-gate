@@ -1,8 +1,8 @@
 # Public Readiness Follow-up Backlog
 
-**Generated**: 2026-09-10
+**Generated**: 2026-09-11
 **Repository**: code-to-gate (RNA4219/code-to-gate)
-**Source**: docs/public-readiness/acceptance-report.md, docs/distribution-status.md, docs/real-repo-validation-evidence-20260704.md
+**Source**: docs/distribution-status.md, docs/acceptance/AC-20260910-02-precision-review.md, docs/acceptance/AC-20260910-15-release-1.6.0.md
 
 ---
 
@@ -41,10 +41,11 @@ bounded by the P1 distribution and real-repo precision follow-ups below.
 
 #### Current Evidence
 
-The 2026-07-04 run passed scan, analyze, readiness, and schema validation for
-4/4 repositories. It produced 1,721 findings. No human TP/FP/Accepted-design
-review was completed, so all findings are recorded as Uncertain and real-repo
-precision is not claimed.
+The 2026-09-10 run passed scan, analyze, readiness, and schema validation for
+4/4 repositories. It produced 1,449 findings (axios 10, dayjs 3, express 20,
+react 1,416). The review records are AI-proposed or Uncertain; no human
+TP/FP/AcceptedDesign adjudication was completed, so real-repo precision is not
+claimed. The earlier 1,721-finding run remains historical evidence only.
 
 ---
 
@@ -55,22 +56,21 @@ precision is not claimed.
 | ID | FB-10 |
 | Priority | P1 |
 | Category | Release / Documentation |
-| Description | npm publication and public wording must remain aligned with the shipped surface |
+| Description | GitHub distribution is public; npm publication and public wording must remain aligned with the shipped surface |
 | Owner | Release Maintainer |
 | Deadline | Before npm publication or public stable claim |
-| Status | Open |
-| Reference | `docs/distribution-status.md` |
+| Status | ⚠️ GitHub release complete; npm publication pending |
+| Reference | `docs/distribution-status.md`; [`AC-20260910-15-release-1.6.0`](../acceptance/AC-20260910-15-release-1.6.0.md) |
 
 #### Current Evidence
 
-`package.json` is the local `1.6.0` candidate and the latest GitHub release is
-`v1.5.1`; npm remains unpublished according to the repository distribution
-record. A separate 2026-09-10 precision run recorded 1,449 findings, including
-current non-reproduction records for FP-DM-002, FP-DM-003, FP-RS-002, and
-FP-MIS-001. Human precision adjudication remains incomplete. GitHub/source
-installation is the current supported distribution path. Public docs must
-continue to describe review-required candidates and the QA evidence role until
-publication and release evidence are complete.
+`v1.6.0` is the latest published GitHub release and its public release asset is
+the supported installation path. The npm package remains unpublished (`npm
+view` returned E404 and local `npm whoami` returned E401 on 2026-09-10), so
+public documentation must not imply npm availability. The separate
+2026-09-10 precision run recorded 1,449 findings; human precision adjudication
+remains incomplete. Public docs must continue to describe review-required
+candidates and the QA evidence role.
 
 ---
 
@@ -156,7 +156,7 @@ publication and release evidence are complete.
 | Item | Status | Deadline | Next Review |
 |------|--------|----------|-------------|
 | FB-07 | ⚠️ Precision review pending | Human adjudication pending | 2026-10-10 |
-| FB-10 | Open | Before npm publication or public stable claim | 2026-10-10 |
+| FB-10 | ⚠️ GitHub release complete; npm publication pending | Before npm publication or public stable claim | 2026-10-10 |
 | FB-08 | ✅ Resolved | 2026-09-30 | Closed |
 | FB-09 | ✅ Resolved | 2026-12-31 | Closed |
 
@@ -175,6 +175,6 @@ Escalate to P1 if:
 
 ---
 
-**Document Version**: 1.1
-**Last Updated**: 2026-09-10
+**Document Version**: 1.2
+**Last Updated**: 2026-09-11
 **Next Review**: 2026-10-10
