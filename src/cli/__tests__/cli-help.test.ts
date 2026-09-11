@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import packageJson from "../../../package.json" with { type: "json" };
+
+const packageVersion = packageJson.version;
 
 interface CliRunResult {
   code: number | string | undefined;
@@ -44,7 +47,7 @@ describe("public CLI global help", () => {
       const result = await runSourceCli([command, "--help"]);
 
       expect(result.code).toBe(0);
-      expect(result.stdout).toContain("code-to-gate 1.6.0");
+      expect(result.stdout).toContain(`code-to-gate ${packageVersion}`);
       expect(result.stdout).toContain(`code-to-gate ${command}`);
       expect(result.stderr).toBe("");
     }
