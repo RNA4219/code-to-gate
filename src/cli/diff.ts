@@ -13,9 +13,10 @@ import { createUniqueRunId } from "../utils/run-id.js";
 import {
   detectLanguage,
   detectRole,
-  walkDir,
+  walkDirBounded,
   ensureDir,
   isDatabaseFile,
+  DEFAULT_DIRECTORY_WALK_LIMITS,
 } from "../core/file-utils.js";
 import {
   analyzeDatabaseAssetsAtRef,
@@ -352,7 +353,8 @@ function buildDiffFindings(
   runId: string,
   repoRoot: string,
   toolVersion: string,
-  rules: RulePlugin[] = CORE_RULES
+  rules: RulePlugin[] = CORE_RULES,
+  databaseAnalysisEnabled = false
 ): FindingsArtifact {
   const findings: Finding[] = [];
 
@@ -368,7 +370,9 @@ function buildDiffFindings(
   const filteredGraph: NormalizedRepoGraph = {
     ...graph,
     files: filteredFiles,
-    stats: { partial: filteredFiles.length < graph.files.length },
+    // Restricting the graph to the diff scope is intentional. Only an actual
+    // scan limitation or an unprocessed claim makes the artifact partial.
+    stats: graph.stats,
   };
 
   // Create application context (Composition Root)
@@ -386,6 +390,13 @@ function buildDiffFindings(
 
   const allFindings = evaluateRules(filteredGraph, applicationContext, undefined, rules);
 
+  const graphPaths = new Set(graph.files.map((file) => file.path));
+  const unprocessedChangedFile = changedFiles.some((file) =>
+    !graphPaths.has(toPosix(file.path)) &&
+    !(databaseAnalysisEnabled && isDatabaseFile(file.path)) &&
+    !/\.(json|yaml|yml|md)$/i.test(file.path)
+  );
+
   // Filter findings to only those in changed files or blast radius
   for (const finding of allFindings.findings) {
     const findingPaths = finding.evidence.map((e) => e.path);
@@ -401,7 +412,9 @@ function buildDiffFindings(
   return {
     ...allFindings,
     findings,
-    completeness: findings.length > 0 ? "complete" : "partial",
+    completeness: graph.stats.partial || unprocessedChangedFile || allFindings.unsupported_claims.length > 0
+      ? "partial"
+      : "complete",
   };
 }
 
@@ -490,9 +503,7 @@ function mergeNewDatabaseFindings(
   return {
     ...coreFindings,
     findings: [...coreFindings.findings, ...newDatabaseFindings],
-    completeness: coreFindings.completeness === "complete" || newDatabaseFindings.length > 0
-      ? "complete"
-      : "partial",
+    completeness: coreFindings.completeness === "complete" ? "complete" : "partial",
   };
 }
 
@@ -547,6 +558,9 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
   const generatedAt = now.toISOString();
   const relativeRoot = toPosix(nodePathService.relative(process.cwd(), repoRoot) || ".");
   const runId = createUniqueRunId("ctg", { timestamp: now });
+  const scan = walkDirBounded(repoRoot);
+  const scanReasons = [...scan.reasons];
+  let scanPartial = scan.partial;
 
   const graph: NormalizedRepoGraph = {
     version: CTG_VERSION,
@@ -564,10 +578,20 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
     configs: [],
     entrypoints: [],
     diagnostics: [],
-    stats: { partial: true },
+    stats: {
+      partial: false,
+      scan: {
+        visitedFiles: scan.visitedFiles,
+        acceptedFiles: scan.files.length,
+        acceptedBytes: scan.acceptedBytes,
+        skippedFiles: scan.skippedFiles,
+        limits: { ...DEFAULT_DIRECTORY_WALK_LIMITS },
+        reasons: scanReasons,
+      },
+    },
   };
 
-  const allFiles = walkDir(repoRoot);
+  const allFiles = scan.files;
   const targetFiles = allFiles.filter(
     (file) =>
       /\.(ts|tsx|js|jsx|py|mjs|cjs|json|yaml|yml|md)$/.test(file) &&
@@ -576,7 +600,13 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
 
   for (const file of targetFiles) {
     const rel = toPosix(nodePathService.relative(repoRoot, file));
-    const body = nodeFileAccess.readFile(file) ?? "";
+    const content = nodeFileAccess.readFile(file);
+    if (content === null) {
+      scanPartial = true;
+      const reason = `FILE_READ_FAILED:${rel}`;
+      if (!scanReasons.includes(reason)) scanReasons.push(reason);
+    }
+    const body = content ?? "";
     const language = detectLanguage(file);
     const role = detectRole(rel);
 
@@ -619,6 +649,9 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
       });
     }
   }
+
+  graph.stats.partial = scanPartial;
+  if (graph.stats.scan) graph.stats.scan.reasons = scanReasons;
 
   return graph;
 }
@@ -807,7 +840,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     const blastRadius = calculateBlastRadius(graph, changedFiles, blastDepth);
 
     // Build diff findings
-    const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES);
+    const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES, useDatabaseAnalysis);
     let findings = useDatabaseAnalysis
       ? mergeNewDatabaseFindings(
           coreFindings,

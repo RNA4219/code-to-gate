@@ -106,6 +106,56 @@ describe("diff CLI", () => {
     expect(result).toBe(EXIT.OK);
   });
 
+  it("marks a complete docs-only zero-finding diff as complete", async () => {
+    const gitRepo = path.join(tempOutDir, "docs-only-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "README.md": "# base\n" },
+      { "README.md": "# head\n" }
+    );
+    const policy = path.join(tempOutDir, "docs-only-policy.yaml");
+    writeFileSync(policy, `version: ctg/v1
+policy_id: docs-only
+blocking:
+  severity: { critical: false, high: false, medium: false, low: false }
+  category: { auth: false, payment: false, validation: false, data: false, config: false, maintainability: false, testing: false, compatibility: false, release-risk: false, security: false }
+confidence: { min_confidence: 0.6, filter_low: true }
+partial: { allow_partial: false }
+`, "utf8");
+    const out = path.join(tempOutDir, "docs-only-out");
+    const result = await diffCommand([gitRepo, "--base", "base", "--head", "head", "--out", out, "--policy", policy], { VERSION, EXIT, getOption });
+    const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
+    expect(result).toBe(EXIT.OK);
+    expect(findings.findings).toHaveLength(0);
+    expect(findings.completeness).toBe("complete");
+  });
+
+  it("marks a fully scanned clean TypeScript diff as complete", async () => {
+    const gitRepo = path.join(tempOutDir, "clean-ts-repo");
+    mkdirSync(gitRepo, { recursive: true });
+    createGitRepoWithCommits(
+      gitRepo,
+      { "src/index.ts": "export const value = 1;\n" },
+      { "src/index.ts": "export const value = 2;\n" }
+    );
+    const policy = path.join(tempOutDir, "clean-ts-policy.yaml");
+    writeFileSync(policy, `version: ctg/v1
+policy_id: clean-ts
+blocking:
+  severity: { critical: false, high: false, medium: false, low: false }
+  category: { auth: false, payment: false, validation: false, data: false, config: false, maintainability: false, testing: false, compatibility: false, release-risk: false, security: false }
+confidence: { min_confidence: 0.6, filter_low: true }
+partial: { allow_partial: false }
+`, "utf8");
+    const out = path.join(tempOutDir, "clean-ts-out");
+    const result = await diffCommand([gitRepo, "--base", "base", "--head", "head", "--out", out, "--policy", policy], { VERSION, EXIT, getOption });
+    const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
+    expect(result).toBe(EXIT.OK);
+    expect(findings.findings).toHaveLength(0);
+    expect(findings.completeness).toBe("complete");
+  });
+
   it("diff-analysis.json is generated", async () => {
     const gitRepo = path.join(tempOutDir, "diff-gen-repo");
     mkdirSync(gitRepo, { recursive: true });

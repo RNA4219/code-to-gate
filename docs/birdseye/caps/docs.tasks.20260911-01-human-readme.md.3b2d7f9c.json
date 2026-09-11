@@ -1,14 +1,14 @@
 {
   "schema": "birdseye/cap/v1",
-  "id": "docs/acceptance/AC-20260910-15-release-1.6.0.md",
+  "id": "docs/tasks/20260911-01-human-readme.md",
   "role": "dependency",
-  "summary": "1.6.0正式公開の承認・検収",
+  "summary": "人間向けREADMEの用途と初回導線",
   "public_api": [],
   "deps_out": [],
   "deps_in": [
     "CHANGELOG.md"
   ],
   "tests": [],
-  "sourceHash": "e08c95fbe35461b056a995ecb945cfd4ae8e835076a852797db4951f22841ac2",
+  "sourceHash": "84c122973c48b41acf97bd9fadfff28ae267bdf9c7927cc31d3cb1ac83c6857a",
   "generation_id": "birdseye-e78629113652dc74"
 }
