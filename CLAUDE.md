@@ -80,6 +80,8 @@ Readiness validates the input findings artifact against the existing findings@v1
 
 Partial input has an explicit INCOMPLETE_INPUT condition, explanatory summary, and recovery actions even with zero findings. Policy-allowed partial input remains passed_with_risk and is identified as partial in the summary.
 
+The partial policy section is read from the parsed YAML mapping, so flow and block styles agree. allow_partial must be a boolean; partial_warning_threshold must be a finite number in 0..1. Invalid partial settings fail with POLICY_FAILED (5), while omitted settings retain their defaults.
+
 Diff file metadata, rule evidence, and importer traversal use the same pinned head snapshot. The tracked commit content is read in bounded Git batches, independently of checkout and uncommitted edits.
 
 Deleted files are valid diff inputs even though they are absent at head; remaining importers stay in the blast radius. Unprocessed added/modified sources and actual snapshot failures remain partial.

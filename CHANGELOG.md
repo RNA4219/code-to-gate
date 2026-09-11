@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- partial policyを1行・複数行YAMLで同じように読み取り、不正な型をpolicyエラーとして拒否する（[Task Seed 20260911-03](docs/tasks/20260911-03-partial-yaml.md)）。
 - 補助文書のpolicy例を理由付きの個別調整へ更新し、設定確認とGitHub/npmの配布状態を同期した（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
 - readinessは入力findingsを既存schemaで検証し、形式不備を成功扱いせずexit 7で拒否する（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
 - diffのファイル情報・指摘根拠・影響範囲を指定headの固定commitから生成し、checkoutや未コミット編集による結果の変動を解消する（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
