@@ -24,12 +24,29 @@ blocking:
     auth: true
     payment: true
     data: true
-readiness:
-  criticalFindingStatus: blocked_input
 ```
 
-`ctg/v1alpha1` is accepted for backward compatibility, but new policy examples
-should use `ctg/v1`.
+policyのversionは`ctg/v1`を使う。`ctg/v1alpha1`はpolicy loaderでは受け付けない。
+
+## YAMLの書式と設定名
+
+Unreleasedでは既知のpolicy節を解析済みYAMLオブジェクトから読み取る。同じ値なら1行形式、複数行形式、末尾コメント、引用key、インデントの違いで判定は変わらない。不正な型はpolicyエラーとなる。公開済みv1.6.0にはこの修正は含まれない。
+
+```yaml
+policy_id: team-quality
+confidence: { min_confidence: 0.9, filter_low: true }
+blocking:
+  rules:
+    DEBT_MARKER: true # 品質レビュー対象
+  count_threshold:
+    high_max: 10
+suppression:
+  file: 'C:/work/project/.ctg/suppressions.yaml'
+```
+
+真偽値や数値を文字列として引用しない。パスは文字列として保持され、コロンや空白も含めて指定できる。Windowsのバックスラッシュを使う場合は単一引用符で囲むか、YAMLのエスケープ規則に従う。
+
+同梱policyは`policy_id`、`count_threshold`、`high_max`等の正式なキーを使う。`policyId`や`blocking.count.highMax`は対応する設定項目ではない。coverageの閾値はCIの検証設定で管理する。
 
 ## Blocking Controls
 
@@ -40,7 +57,7 @@ should use `ctg/v1`.
 | `blocking.rules.<RULE_ID>` | Blocks on specific rules such as `DB_DROP_TABLE`. |
 | `blocking.count_threshold.<level>_max` | Blocks when effective findings exceed an explicitly configured limit for a blocking severity. |
 
-Supported severities are `critical`, `high`, `medium`, `low`, and `info`.
+Supported blocking severities are `critical`, `high`, `medium`, and `low`.
 Common categories include `auth`, `payment`, `data`, `security`,
 `validation`, `testing`, and `maintainability`.
 
@@ -108,13 +125,14 @@ and accepts `manual-bb.json` or `manual-bb-seed.json`.
 
 ## Readiness Status
 
-`readiness.criticalFindingStatus` controls the readiness status used when
-critical findings remain:
+readinessの状態はblocking、partial、DSL等の評価結果から導出する。`readiness.criticalFindingStatus`という設定で切り替える機能は実装していない。
 
 | Value | Meaning |
 |-------|---------|
-| `blocked_input` | Treat critical findings as a release blocker. |
-| `needs_review` | Require human review before release approval. |
+| `passed` | Policy conditions are met with complete input. |
+| `passed_with_risk` | Policy permits the identified risks or partial input. |
+| `blocked_input` | A blocking condition or incomplete input prevents release. |
+| `needs_review` | A hold condition or unresolved review condition requires human review. |
 
 ## Database Analysis Rules
 
@@ -130,8 +148,6 @@ blocking:
     DB_DROP_TABLE: true
     DB_DROP_COLUMN: true
     DB_RISKY_TYPE_CHANGE: true
-readiness:
-  criticalFindingStatus: blocked_input
 ```
 
 ## Run With A Policy

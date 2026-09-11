@@ -43,6 +43,8 @@ code-to-gate運用時のチェックリスト集。
 - readinessは不正入力をexit 7で拒否し、公開版の正常artifact、重大指摘、baseline/severity調整の動作を維持することを確認する
 - 不完全入力は指摘0件でも条件ID・summary・再解析の推奨操作を持ち、partial許可時もpassed_with_riskとして理由を表示することを確認する
 - partialの1行・複数行YAMLは同じ判定となり、不正な型・範囲はexit 5、省略・空mapは既定値を維持することを確認する
+- 他の既知policy節でも1行・複数行・コメント・引用keyの値が一致し、引用符付きWindows絶対パスで抑制/baselineファイルを利用できることを確認する
+- 同梱policyのIDと件数上限が正式なキーで読み込まれ、件数のキーがrulesへ混入しないことを確認する
 - 固定base/headのdiffはcheckout・未コミット編集によらず同じfinding/evidence・影響範囲となり、元の作業ツリーを変更しないことを確認する
 - 未参照ソースの削除だけのdiffはcompleteとなり、残存importerの影響範囲と未対応ソース混在時のpartial判定を維持することを確認する
 - 独立run IDの同時計時衝突防止とagentの冪等再利用を別々に検証する

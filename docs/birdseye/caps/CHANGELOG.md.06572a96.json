@@ -23,13 +23,14 @@
     "docs/tasks/20260910-12-release-1.6.0.md",
     "docs/tasks/20260911-01-human-readme.md",
     "docs/tasks/20260911-02-readiness-diff-followups.md",
-    "docs/tasks/20260911-03-partial-yaml.md"
+    "docs/tasks/20260911-03-partial-yaml.md",
+    "docs/tasks/20260911-04-policy-yaml-sections.md"
   ],
   "deps_in": [
     "CHECKLISTS.md",
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "34572edb95d56c17e978af580f763ed8dbc6412fdd0e49e592b2b431ea384c75",
-  "generation_id": "birdseye-29078f245fa179da"
+  "sourceHash": "ca3ccf2b46c5a23014e1d1bcf45f8a69cd50e1390be3f91474f3a83150ef1523",
+  "generation_id": "birdseye-d2d6a58ca24118dd"
 }

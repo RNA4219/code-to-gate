@@ -142,12 +142,9 @@ blocking:
   category:
     payment: true
     data: true
-readiness:
-  criticalFindingStatus: blocked_input
 ```
 
-`ctg/v1alpha1` is still accepted for backward compatibility, but new examples
-should use `ctg/v1`.
+Policy files use `ctg/v1`.
 
 ## Documentation
 

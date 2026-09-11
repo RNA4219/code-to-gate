@@ -80,7 +80,7 @@ Readiness validates the input findings artifact against the existing findings@v1
 
 Partial input has an explicit INCOMPLETE_INPUT condition, explanatory summary, and recovery actions even with zero findings. Policy-allowed partial input remains passed_with_risk and is identified as partial in the summary.
 
-The partial policy section is read from the parsed YAML mapping, so flow and block styles agree. allow_partial must be a boolean; partial_warning_threshold must be a finite number in 0..1. Invalid partial settings fail with POLICY_FAILED (5), while omitted settings retain their defaults.
+policyの既知項目は解析済みYAMLの値と型から読み取る。1行・複数行・コメント・引用keyで設定は変わらず、文字列のパスはコロンや空白を含めて保持する。不正な型はPOLICY_FAILED (5)とし、省略時の既定値と明示したfalse/0は維持する。
 
 Diff file metadata, rule evidence, and importer traversal use the same pinned head snapshot. The tracked commit content is read in bounded Git batches, independently of checkout and uncommitted edits.
 
@@ -103,7 +103,9 @@ Common fields:
 - `blocking.severity` - Block on severity level
 - `blocking.category` - Block on category (payment, auth, etc.)
 - `blocking.rules` - Block on specific rule IDs
-- `readiness.criticalFindingStatus` - Status for critical findings (blocked_input/needs_review)
+- `blocking.count_threshold` - Severityごとの件数上限。YAMLのキーはcritical_max/high_max/medium_max/low_max。
+
+policy_idなどの設定名は公開ガイドの表記を使う。readinessの状態は評価結果から導出し、readiness.criticalFindingStatusという設定では変更しない。coverageの閾値はCIの検証設定で管理する。
 
 ### Policy Evaluation
 

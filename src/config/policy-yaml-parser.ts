@@ -3,7 +3,6 @@
  * Parses YAML policy and suppression files
  */
 
-import type { Severity } from "../types/artifacts.js";
 import yaml from "js-yaml";
 import { makeRe } from "minimatch";
 import {
@@ -17,7 +16,6 @@ import {
   type SuppressionFile,
   type SuppressionEntry,
   type SuppressionClass,
-  type BlockingCategoryConfig,
   type PolicyDslConfig,
   type PolicyDslRule,
   type PolicyDslAction,
@@ -58,14 +56,6 @@ function numericValue(value: unknown): number | undefined {
     return undefined;
   }
   return typeof value === "number" ? value : Number.NaN;
-}
-
-function parseStrictNumber(value: string): number {
-  const trimmed = value.trim().replace(/\s+#.*$/, "").trim();
-  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(trimmed)) {
-    return Number.NaN;
-  }
-  return Number(trimmed);
 }
 
 function parseRuleOptions(content: string): RuleOptionsConfig | undefined {
@@ -208,159 +198,150 @@ function parsePartialSection(root: Record<string, unknown> | undefined): CtgPoli
  * Parse YAML policy file
  */
 export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
+  const parsed = yaml.load(content, { schema: yaml.JSON_SCHEMA });
+  if (parsed === null || (parsed !== undefined && !asRecord(parsed))) {
+    throw new Error("policy root must be an object");
+  }
+  const documentRoot = asRecord(parsed) ?? {};
   const result: Partial<CtgPolicy> = {};
-  const documentRoot = asRecord(yaml.load(content, { schema: yaml.JSON_SCHEMA }));
+
+  const has = (object: Record<string, unknown>, key: string): boolean =>
+    Object.prototype.hasOwnProperty.call(object, key);
+  const section = (object: Record<string, unknown>, key: string): Record<string, unknown> | undefined => {
+    if (!has(object, key)) return undefined;
+    const value = asRecord(object[key]);
+    if (!value) throw new Error(`${key} must be an object`);
+    return value;
+  };
+  const stringValue = (object: Record<string, unknown>, key: string, label: string): string | undefined => {
+    if (!has(object, key)) return undefined;
+    if (typeof object[key] !== "string") throw new Error(`${label} must be a string`);
+    return object[key] as string;
+  };
+  const booleanValue = (object: Record<string, unknown>, key: string, label: string): boolean | undefined => {
+    if (!has(object, key)) return undefined;
+    if (typeof object[key] !== "boolean") throw new Error(`${label} must be a boolean`);
+    return object[key] as boolean;
+  };
+  const numberValue = (object: Record<string, unknown>, key: string, label: string): number | undefined => {
+    if (!has(object, key)) return undefined;
+    if (typeof object[key] !== "number") throw new Error(`${label} must be a number`);
+    return object[key] as number;
+  };
+
+  result.version = stringValue(documentRoot, "version", "version");
+  result.policyId = stringValue(documentRoot, "policy_id", "policy_id");
+
+  const blocking = section(documentRoot, "blocking");
+  if (blocking) {
+    const parsedBlocking: CtgPolicy["blocking"] = {
+      severity: { ...DEFAULT_BLOCKING_SEVERITY },
+      category: { ...DEFAULT_BLOCKING_CATEGORY },
+      rules: {},
+    };
+    const severity = section(blocking, "severity");
+    if (severity) for (const key of ["critical", "high", "medium", "low"] as const) {
+      const value = booleanValue(severity, key, `blocking.severity.${key}`);
+      if (value !== undefined) parsedBlocking.severity[key] = value;
+    }
+    const category = section(blocking, "category");
+    if (category) for (const [yamlKey, property] of [
+      ["auth", "auth"], ["payment", "payment"], ["validation", "validation"], ["data", "data"],
+      ["config", "config"], ["maintainability", "maintainability"], ["testing", "testing"],
+      ["compatibility", "compatibility"], ["release-risk", "releaseRisk"], ["releaseRisk", "releaseRisk"], ["security", "security"],
+    ] as const) {
+      const value = booleanValue(category, yamlKey, `blocking.category.${yamlKey}`);
+      if (value !== undefined) parsedBlocking.category[property] = value;
+    }
+    if (has(blocking, "rules")) {
+      const rules = section(blocking, "rules");
+      if (rules) for (const [key, raw] of Object.entries(rules)) {
+        if (typeof raw !== "boolean") throw new Error(`blocking.rules.${key} must be a boolean`);
+        if (parsedBlocking.rules) parsedBlocking.rules[key] = raw;
+      }
+    }
+    const countThreshold = section(blocking, "count_threshold");
+    if (countThreshold) {
+      parsedBlocking.countThreshold = {};
+      for (const [yamlKey, property] of [
+        ["critical_max", "criticalMax"], ["high_max", "highMax"], ["medium_max", "mediumMax"], ["low_max", "lowMax"],
+      ] as const) {
+        const value = numberValue(countThreshold, yamlKey, `blocking count threshold ${yamlKey}`);
+        if (value !== undefined) parsedBlocking.countThreshold[property] = value;
+      }
+    }
+    result.blocking = parsedBlocking;
+  }
+
+  const confidence = section(documentRoot, "confidence");
+  if (confidence) {
+    result.confidence = { ...DEFAULT_CONFIDENCE };
+    const min = numberValue(confidence, "min_confidence", "confidence.min_confidence");
+    const low = numberValue(confidence, "low_confidence_threshold", "confidence.low_confidence_threshold");
+    const filter = booleanValue(confidence, "filter_low", "confidence.filter_low");
+    if (min !== undefined) result.confidence.minConfidence = min;
+    if (low !== undefined) result.confidence.lowConfidenceThreshold = low;
+    if (filter !== undefined) result.confidence.filterLow = filter;
+  }
+
+  const suppression = section(documentRoot, "suppression");
+  if (suppression) {
+    result.suppression = {};
+    const file = stringValue(suppression, "file", "suppression.file");
+    const expiry = numberValue(suppression, "expiry_warning_days", "suppression.expiry_warning_days");
+    const max = numberValue(suppression, "max_suppressions_per_rule", "suppression.max_suppressions_per_rule");
+    if (file !== undefined) result.suppression.file = file;
+    if (expiry !== undefined) result.suppression.expiryWarningDays = expiry;
+    if (max !== undefined) result.suppression.maxSuppressionsPerRule = max;
+  }
+
+  const llm = section(documentRoot, "llm");
+  if (llm) {
+    result.llm = {};
+    const enabled = booleanValue(llm, "enabled", "llm.enabled");
+    const mode = stringValue(llm, "mode", "llm.mode");
+    const min = numberValue(llm, "min_confidence", "llm.min_confidence");
+    const requireLlm = booleanValue(llm, "require_llm", "llm.require_llm");
+    const unsupported = numberValue(llm, "unsupported_claims_max", "llm.unsupported_claims_max");
+    if (enabled !== undefined) result.llm.enabled = enabled;
+    if (mode !== undefined) {
+      if (!["remote", "local-only", "none"].includes(mode)) throw new Error(`llm.mode is invalid: ${mode}`);
+      result.llm.mode = mode as "remote" | "local-only" | "none";
+    }
+    if (min !== undefined) result.llm.minConfidence = min;
+    if (requireLlm !== undefined) result.llm.requireLlm = requireLlm;
+    if (unsupported !== undefined) result.llm.unsupportedClaimsMax = unsupported;
+  }
+
   const partial = parsePartialSection(documentRoot);
   if (partial) result.partial = partial;
+  const baseline = section(documentRoot, "baseline");
+  if (baseline) {
+    result.baseline = {};
+    const enabled = booleanValue(baseline, "enabled", "baseline.enabled");
+    const file = stringValue(baseline, "file", "baseline.file");
+    const newBlock = booleanValue(baseline, "new_findings_block", "baseline.new_findings_block");
+    if (enabled !== undefined) result.baseline.enabled = enabled;
+    if (file !== undefined) result.baseline.file = file;
+    if (newBlock !== undefined) result.baseline.newFindingsBlock = newBlock;
+  }
+  const exit = section(documentRoot, "exit");
+  if (exit) {
+    result.exit = {};
+    const critical = booleanValue(exit, "fail_on_critical", "exit.fail_on_critical");
+    const high = booleanValue(exit, "fail_on_high", "exit.fail_on_high");
+    const warnOnly = booleanValue(exit, "warn_only", "exit.warn_only");
+    if (critical !== undefined) result.exit.failOnCritical = critical;
+    if (high !== undefined) result.exit.failOnHigh = high;
+    if (warnOnly !== undefined) result.exit.warnOnly = warnOnly;
+  }
+
   const severityOverrides = parseSeverityOverrides(content);
   if (severityOverrides) result.severityOverrides = severityOverrides;
   const dsl = parsePolicyDsl(content);
-  if (dsl) {
-    result.dsl = dsl;
-  }
+  if (dsl) result.dsl = dsl;
   const ruleOptions = parseRuleOptions(content);
-  if (ruleOptions) {
-    result.ruleOptions = ruleOptions;
-  }
-  const lines = content.split("\n");
-
-  let currentSection: string | null = null;
-  let currentSubSection: string | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const indent = line.length - line.trimStart().length;
-
-    if (indent === 0 && trimmed.includes(":")) {
-      const pair = splitYamlKeyValue(trimmed);
-      if (!pair) continue;
-      const [key, rawValue] = pair;
-      const value = unquoteYamlScalar(rawValue);
-      currentSection = key;
-      currentSubSection = null;
-
-      if (key === "version") {
-        const rootValue = documentRoot?.version;
-        if (Object.prototype.hasOwnProperty.call(documentRoot ?? {}, key) && typeof rootValue !== "string") {
-          throw new Error("version must be a string");
-        }
-        result.version = typeof rootValue === "string" ? rootValue : (value || POLICY_VERSION);
-      } else if (key === "policy_id") {
-        const rootValue = documentRoot?.policy_id;
-        if (Object.prototype.hasOwnProperty.call(documentRoot ?? {}, key) && typeof rootValue !== "string") {
-          throw new Error("policy_id must be a string");
-        }
-        result.policyId = typeof rootValue === "string" ? rootValue : (value || "");
-      } else if (key === "blocking") {
-        result.blocking = {
-          severity: { ...DEFAULT_BLOCKING_SEVERITY },
-          category: { ...DEFAULT_BLOCKING_CATEGORY },
-          rules: {},
-        };
-      } else if (key === "confidence") {
-        result.confidence = { ...DEFAULT_CONFIDENCE };
-      } else if (key === "suppression") {
-        result.suppression = {};
-      } else if (key === "llm") {
-        result.llm = {};
-      } else if (key === "baseline") {
-        result.baseline = {};
-      } else if (key === "exit") {
-        result.exit = {};
-      }
-    } else if (indent > 0 && trimmed.includes(":")) {
-      const [key, value] = trimmed.split(":").map(s => s.trim());
-
-      if (currentSection === "blocking" && result.blocking && indent === 2) {
-        if (key === "severity") {
-          currentSubSection = "severity";
-        } else if (key === "category") {
-          currentSubSection = "category";
-        } else if (key === "rules") {
-          currentSubSection = "rules";
-          result.blocking.rules = {};
-        } else if (key === "count_threshold") {
-          currentSubSection = "count_threshold";
-        }
-      } else if (currentSection === "blocking" && currentSubSection === "severity" && result.blocking?.severity) {
-        if (["critical", "high", "medium", "low"].includes(key)) {
-          result.blocking.severity[key as Severity] = value === "true";
-        }
-      } else if (currentSection === "blocking" && currentSubSection === "category" && result.blocking?.category) {
-        const categoryKey = key === "release-risk" ? "releaseRisk" : key;
-        if (categoryKey in DEFAULT_BLOCKING_CATEGORY) {
-          result.blocking.category[categoryKey as keyof BlockingCategoryConfig] = value === "true";
-        }
-      } else if (currentSection === "blocking" && currentSubSection === "rules" && result.blocking?.rules) {
-        result.blocking.rules[key] = value === "true";
-      } else if (currentSection === "blocking" && currentSubSection === "count_threshold") {
-        if (!result.blocking?.countThreshold) {
-          result.blocking = result.blocking || { severity: DEFAULT_BLOCKING_SEVERITY, category: DEFAULT_BLOCKING_CATEGORY };
-          result.blocking.countThreshold = {};
-        }
-        if (key === "critical_max") {
-          result.blocking.countThreshold.criticalMax = parseStrictNumber(value);
-        } else if (key === "high_max") {
-          result.blocking.countThreshold.highMax = parseStrictNumber(value);
-        } else if (key === "medium_max") {
-          result.blocking.countThreshold.mediumMax = parseStrictNumber(value);
-        } else if (key === "low_max") {
-          result.blocking.countThreshold.lowMax = parseStrictNumber(value);
-        }
-      } else if (currentSection === "confidence" && result.confidence) {
-        if (key === "min_confidence") {
-          result.confidence.minConfidence = parseStrictNumber(value);
-        } else if (key === "low_confidence_threshold") {
-          result.confidence.lowConfidenceThreshold = parseStrictNumber(value);
-        } else if (key === "filter_low") {
-          result.confidence.filterLow = value === "true";
-        }
-      } else if (currentSection === "suppression" && result.suppression) {
-        if (key === "file") {
-          result.suppression.file = value;
-        } else if (key === "expiry_warning_days") {
-          result.suppression.expiryWarningDays = parseInt(value, 10);
-        } else if (key === "max_suppressions_per_rule") {
-          result.suppression.maxSuppressionsPerRule = parseInt(value, 10);
-        }
-      } else if (currentSection === "llm" && result.llm) {
-        if (key === "enabled") {
-          result.llm.enabled = value === "true";
-        } else if (key === "mode") {
-          result.llm.mode = value as "remote" | "local-only" | "none";
-        } else if (key === "min_confidence") {
-          result.llm.minConfidence = parseStrictNumber(value);
-        } else if (key === "require_llm") {
-          result.llm.requireLlm = value === "true";
-        } else if (key === "unsupported_claims_max") {
-          result.llm.unsupportedClaimsMax = parseInt(value, 10);
-        }
-      } else if (currentSection === "baseline" && result.baseline) {
-        if (key === "enabled") {
-          result.baseline.enabled = value === "true";
-        } else if (key === "file") {
-          result.baseline.file = value;
-        } else if (key === "new_findings_block") {
-          result.baseline.newFindingsBlock = value === "true";
-        }
-      } else if (currentSection === "exit" && result.exit) {
-        if (key === "fail_on_critical") {
-          result.exit.failOnCritical = value === "true";
-        } else if (key === "fail_on_high") {
-          result.exit.failOnHigh = value === "true";
-        } else if (key === "warn_only") {
-          result.exit.warnOnly = value === "true";
-        }
-      }
-    }
-  }
-
+  if (ruleOptions) result.ruleOptions = ruleOptions;
   return result;
 }
 

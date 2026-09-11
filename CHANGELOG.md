@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- policyの既知項目を解析済みYAMLから読み取り、書式による判定不一致とWindowsパスの切り詰めを修正する。同梱policyのID・件数上限を正式なキーへ整合する（[Task Seed 20260911-04](docs/tasks/20260911-04-policy-yaml-sections.md)）。
 - partial policyを1行・複数行YAMLで同じように読み取り、不正な型をpolicyエラーとして拒否する（[Task Seed 20260911-03](docs/tasks/20260911-03-partial-yaml.md)）。
 - 補助文書のpolicy例を理由付きの個別調整へ更新し、設定確認とGitHub/npmの配布状態を同期した（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
 - readinessは入力findingsを既存schemaで検証し、形式不備を成功扱いせずexit 7で拒否する（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。

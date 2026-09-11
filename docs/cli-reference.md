@@ -497,6 +497,8 @@ partial:
 
 この1行形式の修正はUnreleasedに含まれる。公開済みv1.6.0を使う場合は複数行形式で記載する。
 
+Unreleasedではblocking、confidence、suppression、llm、baseline、exitも解析済みYAMLから読み取り、末尾コメントや1行形式で値が変わらない。パスは引用符付きで指定できる（例: `suppression: { file: 'C:/work/project/.ctg/suppressions.yaml' }`）。Windowsのバックスラッシュを使う場合は単一引用符で囲むか、YAMLのエスケープ規則に従う。公開済みv1.6.0にはこの修正も含まれない。
+
 **Example:**
 ```bash
 # Evaluate with policy

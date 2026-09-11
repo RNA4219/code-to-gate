@@ -147,11 +147,9 @@ blocking:
   category:
     payment: true
     data: true
-readiness:
-  criticalFindingStatus: blocked_input
 ```
 
-`ctg/v1alpha1` は後方互換として受け付けますが、新しい例は `ctg/v1` を使います。
+policyのversionは`ctg/v1`を使います。
 
 ## ドキュメント
 
