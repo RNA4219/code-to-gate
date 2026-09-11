@@ -13,7 +13,7 @@ to prioritize human review; the final release decision remains with the human
 or downstream approval gate.
 
 [![Package](https://img.shields.io/badge/package-1.6.1-blue)](CHANGELOG.md)
-[![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.6.0-yellow)](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0)
+[![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.6.1-yellow)](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.1)
 [![npm](https://img.shields.io/badge/npm-not%20published-lightgrey)](https://www.npmjs.com/package/@quality-harness/code-to-gate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-20%2B-green)](https://nodejs.org/)
@@ -33,19 +33,19 @@ Language: English | [日本語](README_JA.md)
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.6.1` source version; GitHub publication pending |
-| GitHub Release | `v1.6.0` latest public release (2026-09-10) |
+| `package.json` | `1.6.1` source version; GitHub Release published |
+| GitHub Release | `v1.6.1` latest public release (2026-09-11; published at `2026-09-11T11:20:56Z`) |
 | npm registry | Not published yet |
 
 See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
-`1.6.0` is publicly available from the [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0).
+`1.6.1` is publicly available from the [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.1).
 The npm package remains unpublished.
 
 ## Install
 
 ```bash
 # Recommended public release artifact
-npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
+npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.1/quality-harness-code-to-gate-1.6.1.tgz
 
 # From source
 npm install

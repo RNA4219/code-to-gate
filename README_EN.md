@@ -20,19 +20,19 @@ seeds, SARIF, and release-readiness evidence.
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.6.1` source version; GitHub publication pending |
-| GitHub Release | `v1.6.0` latest public release (2026-09-10) |
+| `package.json` | `1.6.1` source version; GitHub Release published |
+| GitHub Release | `v1.6.1` latest public release (2026-09-11; published at `2026-09-11T11:20:56Z`) |
 | npm registry | Not published yet |
 
 See [Distribution Status](docs/distribution-status.md) for the release/publication matrix.
-`1.6.0` is publicly available from the [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0).
+`1.6.1` is publicly available from the [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.1).
 The npm package remains unpublished.
 
 ## Install
 
 ```bash
 # Recommended public release artifact
-npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
+npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.1/quality-harness-code-to-gate-1.6.1.tgz
 
 ```
 
