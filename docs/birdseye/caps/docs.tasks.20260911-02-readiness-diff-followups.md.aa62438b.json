@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260911-02-readiness-diff-followups.md",
+  "role": "dependency",
+  "summary": "補助文書とreadiness・diffの追加修正",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "223f7e9e44b262b2b450df25f52fe6eb6ddb163666c91c1ebe07ad05583936f0",
+  "generation_id": "birdseye-276040b543b42afb"
+}

@@ -291,6 +291,8 @@ Analyze differences between two Git references and estimate blast radius.
 code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir> [--policy <file>]
 ```
 
+解析本文・ファイル情報・影響範囲は、指定した`--head`を解決したcommitの追跡ファイルから作る。checkout先や未コミット編集・未追跡ファイルは混入しない。作業中のファイルを調べる場合は`analyze`を使う。取得したcommit SHAはfindingsの`repo.revision`へ記録する。
+
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
@@ -316,6 +318,8 @@ code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir> [--po
 | `blast-radius.mmd` | 影響範囲のMermaid図 |
 
 空差分ではpolicy未指定時は `diff-analysis.json` のみ、policy指定時はこれにcompleteな空findings/raw-findingsとauditを加える。
+
+削除済みファイルがheadに存在しないこと自体は入力欠落ではない。削除を参照する残存コードは影響範囲に含め、実際の取得失敗や未対応ソースの変更がある場合はpartialを維持する。
 
 policyは `severity_overrides`、`blocking`、`confidence`、`partial`、baseline/manual evidence条件のない `dsl` に対応する。suppression、baseline、llm、exit、rule_optionsなど未対応項目はエラーにする。policyはGit取得前に検証するため、不正policyと不正refを同時指定した場合はpolicyエラーが優先する。[Severity tuning運用ガイド](severity-tuning.md) も参照。
 
@@ -447,6 +451,8 @@ Evaluate release readiness using findings and a policy file.
 code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <output-dir> [--baseline <file-or-dir>] [--manual-evidence <file>]
 ```
 
+`--from`の`findings.json`は、評価前に既存の`findings@v1` schemaで検証する。不正JSON、別種のartifact、必須項目の欠落や値の誤りはexit 7（`SCHEMA_FAILED`）となり、readiness結果を新規生成しない。
+
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
@@ -470,10 +476,19 @@ code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <
 **Status Values:**
 | Status | Description |
 |--------|-------------|
-| `passed` | No findings detected |
-| `passed_with_risk` | Low/medium findings present but not blocking |
-| `needs_review` | High severity findings require human review |
-| `blocked_input` | Critical findings block release |
+| `passed` | Policy conditions are met with complete input |
+| `passed_with_risk` | Policy allows identified risks or explicitly permits partial input |
+| `needs_review` | Policy requires human review of findings |
+| `blocked_input` | Blocking policy conditions, incomplete input, or unresolved intake issues prevent release |
+
+不完全なfindingsは、指摘0件でも厳格policyでは`INCOMPLETE_INPUT`としてブロックする。summaryとrecommendedActionsを確認し、unsupported claimsや走査診断の原因を解消してanalyze/diffから再生成する。`partial.allow_partial: true`を明示した場合も、状態は`passed_with_risk`となり入力が不完全であることを表示する。
+
+現在のreadiness用policy loaderでは、partial設定は次の複数行形式で記載する。`partial: { allow_partial: true }`という1行形式は反映されない既知の制約がある。
+
+```yaml
+partial:
+  allow_partial: true
+```
 
 **Example:**
 ```bash
@@ -504,8 +519,10 @@ code-to-gate readiness ./my-repo --policy ./policies/dsl.yaml --from .qh --out .
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | OK | Passed or passed with risk |
-| 1 | NEEDS_REVIEW | Review required |
+| 1 | READINESS_NOT_CLEAR | Review required or input blocked by policy |
 | 2 | USAGE_ERROR | Invalid arguments |
+| 5 | POLICY_FAILED | Policy or required artifact loading failed |
+| 7 | SCHEMA_FAILED | Input findings JSON or schema validation failed |
 
 ---
 

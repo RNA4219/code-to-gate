@@ -107,18 +107,35 @@ code-to-gate scan ./my-repo --out .qh
 | Auth/payment category findings | These categories often have zero tolerance |
 
 **Example Fix:**
-```bash
-# View findings
-cat .qh/findings.json | jq '.findings[] | select(.severity == "critical")'
+Review the finding and use a narrow, reasoned override when the policy should
+classify that specific case differently. `severity_overrides` is an ordered
+array; selectors on the same entry are combined with AND, and the first match
+wins. Do not use the obsolete top-level `thresholds` example.
 
-# View recommended actions
+```yaml
+# policies/conservative.yaml
+version: ctg/v1
+policy_id: conservative-review
+severity_overrides:
+  - rule_id: MISSING_SERVER_VALIDATION
+    path: src/api/**
+    severity: critical
+    reason: "API boundary receives external input"
+  - rule_id: LARGE_MODULE
+    path: src/legacy/report-builder.ts
+    category: maintainability
+    severity: low
+    reason: "Accepted maintenance debt for this release"
+```
+
+```bash
+# View findings and recommended actions
+cat .qh/findings.json | jq '.findings[] | select(.severity == "critical")'
 cat .qh/release-readiness.json | jq '.recommendedActions'
 
-# If finding is acceptable, update policy
-# policies/strict.yaml
-thresholds:
-  severity:
-    critical: 1  # Allow 1 critical
+# Re-run analysis and readiness with the policy
+code-to-gate analyze ./my-repo --policy ./policies/conservative.yaml --emit all --out .qh
+code-to-gate readiness ./my-repo --policy ./policies/conservative.yaml --from .qh --out .qh
 ```
 
 ---
@@ -140,15 +157,33 @@ LLM_FAILED: model not found
 |-------|----------|
 | Invalid API key | Verify `OPENAI_API_KEY` environment variable |
 | Rate limit exceeded | Wait and retry, or use smaller model |
-| Model unavailable | Use valid model: `gpt-4`, `gpt-3.5-turbo` |
+| Model unavailable | Check the provider's current model list and use a model ID enabled for this account |
 
 ```bash
 # Check API key
-echo $OPENAI_API_KEY  # Linux/macOS
-echo $env:OPENAI_API_KEY  # Windows PowerShell
+if [ -n "${OPENAI_API_KEY:-}" ]; then
+  echo "OPENAI_API_KEY is set"
+else
+  echo "OPENAI_API_KEY is not set"
+fi
+```
 
+```powershell
+# Check API key without printing its value
+if ($env:OPENAI_API_KEY) {
+  'OPENAI_API_KEY is set'
+} else {
+  'OPENAI_API_KEY is not set'
+}
+```
+
+```bash
 # Set API key
 export OPENAI_API_KEY="sk-..."  # Linux/macOS
+```
+
+```powershell
+# Set API key
 $env:OPENAI_API_KEY = "sk-..."  # Windows PowerShell
 ```
 
@@ -157,7 +192,7 @@ $env:OPENAI_API_KEY = "sk-..."  # Windows PowerShell
 | Issue | Solution |
 |-------|----------|
 | Invalid API key | Verify `ANTHROPIC_API_KEY` |
-| Model name wrong | Use: `claude-sonnet-4-6`, `claude-haiku-4-5` |
+| Model name wrong | Check the provider's current model list and use a model ID enabled for this account |
 
 #### ollama Issues
 

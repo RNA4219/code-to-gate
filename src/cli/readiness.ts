@@ -10,6 +10,7 @@ import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, detectBroadSuppressions, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
 import { evaluatePolicy, generateBlockingSummary, type PolicyEvaluationResult, type ReadinessStatus } from "../config/policy-evaluator.js";
+import { validateArtifactObject } from "./schema-validate.js";
 import { resolveSeverities } from "../config/severity-resolver.js";
 import { assessIntakeArtifact, type IntakeAssessment } from "./intake-artifact.js";
 import { classifySuppressedFindings } from "../self-analysis/suppression-summary.js";
@@ -73,6 +74,9 @@ function mapFailedConditions(result: PolicyEvaluationResult): Array<{
       case "dsl_hold":
         id = `POLICY_DSL_HOLD_${condition.dslRuleId || "UNKNOWN"}`;
         break;
+      case "incomplete_input":
+        id = "INCOMPLETE_INPUT";
+        break;
       default:
         id = "UNKNOWN_CONDITION";
     }
@@ -135,6 +139,11 @@ function generateRecommendedActions(result: PolicyEvaluationResult): string[] {
     if (condition.type === "rule_block") {
       actions.push(`Address findings for blocking rule ${condition.ruleId}`);
     }
+
+    if (condition.type === "incomplete_input") {
+      actions.push("Review unsupported claims and scan diagnostics to identify the incomplete-input cause");
+      actions.push("Resolve the incomplete-input cause, then rerun analyze or diff followed by readiness");
+    }
   }
 
   // Add general recommendations if no specific ones
@@ -154,6 +163,9 @@ function getStatusSummary(status: ReadinessStatus, evalResult?: PolicyEvaluation
     case "passed":
       return "All policy conditions met, release ready";
     case "passed_with_risk":
+      if (evalResult?.failedConditions.some((condition) => condition.type === "incomplete_input")) {
+        return "Release possible with partial input allowed by policy; identified risks to address";
+      }
       return "Release possible with identified risks to address";
     case "needs_review":
       return "Release blocked pending review of findings";
@@ -330,7 +342,30 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
     }
 
     const findingsContent = readFileSync(findingsPath, "utf8");
-    const findings: FindingsArtifact = JSON.parse(findingsContent);
+    let findingsValue: unknown;
+    try {
+      findingsValue = JSON.parse(findingsContent) as unknown;
+    } catch (error) {
+      console.error(`Findings schema error: invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
+      return options.EXIT.SCHEMA_FAILED;
+    }
+    if (
+      typeof findingsValue !== "object" ||
+      findingsValue === null ||
+      (findingsValue as Record<string, unknown>).artifact !== "findings" ||
+      (findingsValue as Record<string, unknown>).schema !== "findings@v1"
+    ) {
+      console.error("Findings schema error: --from must contain a findings@v1 artifact");
+      return options.EXIT.SCHEMA_FAILED;
+    }
+    const findingsValidation = await validateArtifactObject(findingsValue, "findings.json");
+    if (findingsValidation.status !== "ok") {
+      for (const error of findingsValidation.errors ?? ["invalid findings artifact"]) {
+        console.error(`Findings schema error: ${error}`);
+      }
+      return options.EXIT.SCHEMA_FAILED;
+    }
+    const findings = findingsValue as FindingsArtifact;
     findings.findings = resolveSeverities(findings.findings, policy);
 
     const configuredBaselinePath = baselinePath ?? (policy.baseline?.enabled ? policy.baseline.file : undefined);

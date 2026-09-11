@@ -550,7 +550,7 @@ export function getStatusMessage(status: ReadinessStatus): string {
     case "needs_review":
       return "Manual review required. Some findings need attention.";
     case "blocked_input":
-      return "Blocked. Critical/high severity findings or threshold exceeded.";
+      return "Blocked. Critical/high severity findings, incomplete input, or threshold exceeded.";
     default:
       return "Unknown status.";
   }
@@ -574,6 +574,7 @@ export function generateBlockingSummary(
   let countThresholdBlocks = 0;
   let dslBlocks = 0;
   let dslHolds = 0;
+  let incompleteInput = false;
 
   for (const condition of failedConditions) {
     if (condition.type === "severity_block" && condition.severity) {
@@ -588,6 +589,8 @@ export function generateBlockingSummary(
       dslBlocks++;
     } else if (condition.type === "dsl_hold") {
       dslHolds++;
+    } else if (condition.type === "incomplete_input") {
+      incompleteInput = true;
     }
   }
 
@@ -633,6 +636,9 @@ export function generateBlockingSummary(
   }
   if (dslHolds > 0) {
     parts.push(`${dslHolds} Policy DSL hold(s)`);
+  }
+  if (incompleteInput) {
+    parts.push("input evidence is partial");
   }
 
   if (parts.length === 0) {

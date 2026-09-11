@@ -8,12 +8,12 @@
 // SAFETY: Git operations delegated to GitDiffAccess for spawnSync-based safe execution
 import { GitDiffAccess } from "../adapters/git-diff-access.js";
 import { GitFileAccessAdapter, DB_ANALYSIS_LIMITS } from "../adapters/git-file-access-adapter.js";
+import { readGitSnapshot, type GitSnapshotResult } from "../adapters/git-snapshot.js";
 import { toPosix } from "../core/path-utils.js";
 import { createUniqueRunId } from "../utils/run-id.js";
 import {
   detectLanguage,
   detectRole,
-  walkDirBounded,
   ensureDir,
   isDatabaseFile,
   DEFAULT_DIRECTORY_WALK_LIMITS,
@@ -255,10 +255,26 @@ function extractImportSpecifiers(content: string): string[] {
   return imports;
 }
 
+function createSnapshotFileAccess(repoRoot: string, snapshot: GitSnapshotResult): FileAccess {
+  return {
+    ...nodeFileAccess,
+    readFile(filePath: string): string | null {
+      const absolute = nodePathService.resolve(filePath);
+      const relative = toPosix(nodePathService.relative(repoRoot, absolute));
+      return snapshot.contents.get(relative) ?? null;
+    },
+  };
+}
+
 /**
  * Calculate blast radius from changed files
  */
-function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedFile[], maxDepth = 1): BlastRadius {
+function calculateBlastRadius(
+  graph: NormalizedRepoGraph,
+  changedFiles: ChangedFile[],
+  maxDepth = 1,
+  fileAccess: FileAccess = nodeFileAccess
+): BlastRadius {
   const affectedFiles = new Set<string>();
   const affectedSymbols = new Set<string>();
   const affectedTests = new Set<string>();
@@ -273,7 +289,7 @@ function calculateBlastRadius(graph: NormalizedRepoGraph, changedFiles: ChangedF
     const imports: string[] = [];
     try {
       const fullPath = nodePathService.join(graph.repo.root, file.path);
-      const content = nodeFileAccess.readFile(fullPath) ?? "";
+      const content = fileAccess.readFile(fullPath) ?? "";
       for (const importPath of extractImportSpecifiers(content)) {
         imports.push(importPath);
         for (const target of normalizeImportTarget(file.path, importPath)) {
@@ -354,7 +370,8 @@ function buildDiffFindings(
   repoRoot: string,
   toolVersion: string,
   rules: RulePlugin[] = CORE_RULES,
-  databaseAnalysisEnabled = false
+  databaseAnalysisEnabled = false,
+  fileAccess: FileAccess = nodeFileAccess
 ): FindingsArtifact {
   const findings: Finding[] = [];
 
@@ -378,7 +395,7 @@ function buildDiffFindings(
   // Create application context (Composition Root)
   const applicationContext = createApplicationContext(
     {
-      fileAccess: nodeFileAccess,
+      fileAccess,
       hashService: nodeHashService,
       clockService: nodeClockService,
       pathService: nodePathService,
@@ -392,6 +409,7 @@ function buildDiffFindings(
 
   const graphPaths = new Set(graph.files.map((file) => file.path));
   const unprocessedChangedFile = changedFiles.some((file) =>
+    file.status !== "deleted" &&
     !graphPaths.has(toPosix(file.path)) &&
     !(databaseAnalysisEnabled && isDatabaseFile(file.path)) &&
     !/\.(json|yaml|yml|md)$/i.test(file.path)
@@ -553,12 +571,19 @@ function generateBlastRadiusMermaid(blastRadius: BlastRadius): string {
   return mermaid;
 }
 
-function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
+function buildPartialGraph(repoRoot: string, snapshot: GitSnapshotResult): NormalizedRepoGraph {
   const now = new Date();
   const generatedAt = now.toISOString();
   const relativeRoot = toPosix(nodePathService.relative(process.cwd(), repoRoot) || ".");
   const runId = createUniqueRunId("ctg", { timestamp: now });
-  const scan = walkDirBounded(repoRoot);
+  const scan = {
+    files: snapshot.paths.map((relative) => nodePathService.join(repoRoot, relative)),
+    partial: snapshot.partial,
+    reasons: [...snapshot.reasons],
+    visitedFiles: snapshot.scan.visitedFiles,
+    acceptedBytes: snapshot.scan.acceptedBytes,
+    skippedFiles: snapshot.scan.skippedFiles,
+  };
   const scanReasons = [...scan.reasons];
   let scanPartial = scan.partial;
 
@@ -566,7 +591,7 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
     version: CTG_VERSION,
     generated_at: generatedAt,
     run_id: runId,
-    repo: { root: relativeRoot },
+    repo: { root: relativeRoot, ...(snapshot.revision ? { revision: snapshot.revision } : {}) },
     tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
     artifact: "normalized-repo-graph",
     schema: "normalized-repo-graph@v1",
@@ -600,7 +625,7 @@ function buildPartialGraph(repoRoot: string): NormalizedRepoGraph {
 
   for (const file of targetFiles) {
     const rel = toPosix(nodePathService.relative(repoRoot, file));
-    const content = nodeFileAccess.readFile(file);
+    const content = snapshot.contents.get(rel) ?? null;
     if (content === null) {
       scanPartial = true;
       const reason = `FILE_READ_FAILED:${rel}`;
@@ -697,12 +722,21 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
   }
 
   try {
+    // Resolve and read the head tree once. All graph and rule reads below use
+    // this immutable snapshot rather than the mutable working tree.
+    const headSnapshot = readGitSnapshot(repoRoot, headRef);
+    if (!headSnapshot.revision) {
+      console.error(`Git snapshot failed: ${headSnapshot.reasons.join(", ")}`);
+      return options.EXIT.SCAN_FAILED;
+    }
+    const snapshotFileAccess = createSnapshotFileAccess(repoRoot, headSnapshot);
+
     // Build partial graph for analysis
-    const baseGraph = buildPartialGraph(repoRoot);
+    const baseGraph = buildPartialGraph(repoRoot, headSnapshot);
     const graph = baseGraph;
 
     // Get changed files between base and head (no fallback)
-    const changedFilesResult = getChangedFilesResult(repoRoot, baseRef, headRef);
+    const changedFilesResult = getChangedFilesResult(repoRoot, baseRef, headSnapshot.revision);
 
     // Handle Git failures explicitly
     if (changedFilesResult.status === "git_failure") {
@@ -837,15 +871,15 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
     }
 
     // Calculate blast radius
-    const blastRadius = calculateBlastRadius(graph, changedFiles, blastDepth);
+    const blastRadius = calculateBlastRadius(graph, changedFiles, blastDepth, snapshotFileAccess);
 
     // Build diff findings
-    const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES, useDatabaseAnalysis);
+    const coreFindings = buildDiffFindings(graph, changedFiles, blastRadius, graph.run_id, graph.repo.root, VERSION, CORE_RULES, useDatabaseAnalysis, snapshotFileAccess);
     let findings = useDatabaseAnalysis
       ? mergeNewDatabaseFindings(
           coreFindings,
           buildDatabaseFindingsAtRef(repoRoot, baseRef, graph.run_id, VERSION),
-          buildDatabaseFindingsAtRef(repoRoot, headRef, graph.run_id, VERSION)
+          buildDatabaseFindingsAtRef(repoRoot, headSnapshot.revision, graph.run_id, VERSION)
         )
       : coreFindings;
 
@@ -918,7 +952,7 @@ export async function diffCommand(args: string[], options: DiffOptions): Promise
       // Analyze database assets at head ref
       const headAssets = analyzeDatabaseAssetsAtRef({
         repoRoot,
-        gitRef: headRef,
+        gitRef: headSnapshot.revision,
         gitFileAccess,
         hashService: nodeHashService,
       });

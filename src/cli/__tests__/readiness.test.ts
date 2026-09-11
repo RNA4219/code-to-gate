@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { readinessCommand } from "../readiness.js";
+import { validateArtifactObject } from "../schema-validate.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -33,7 +34,7 @@ function getOption(args: string[], name: string): string | undefined {
 }
 
 // Helper: Create findings artifact
-function createFindingsArtifact(findings: object[] = [], overrides = {}): object {
+function createFindingsArtifact(findings: object[] = [], overrides: Record<string, unknown> = {}): object {
   return {
     version: "ctg/v1",
     generated_at: new Date().toISOString(),
@@ -59,20 +60,39 @@ function createFinding(overrides = {}): object {
     confidence: 0.9,
     title: "Test finding",
     summary: "Test summary",
-    evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10 }],
+    evidence: [{ id: "ev-1", path: "src/test.ts", startLine: 10, kind: "text", excerptHash: "test-excerpt" }],
     ...overrides,
   };
 }
 
 // Helper: Write findings to directory
-function writeFindingsToDir(dir: string, findings: object[]): string {
+function writeFindingsToDir(dir: string, findings: object[], overrides: Record<string, unknown> = {}): string {
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     path.join(dir, "findings.json"),
-    JSON.stringify(createFindingsArtifact(findings)),
+    JSON.stringify(createFindingsArtifact(findings, overrides)),
     "utf8"
   );
   return dir;
+}
+
+function writePartialAllowedPolicy(filePath: string): string {
+  writeFileSync(
+    filePath,
+    `version: ctg/v1
+policy_id: partial-allowed
+blocking:
+  severity: { critical: false, high: false, medium: false, low: false }
+  category: { auth: false, payment: false, validation: false, data: false, config: false, maintainability: false, testing: false, compatibility: false, release-risk: false, security: false }
+confidence:
+  min_confidence: 0.6
+  filter_low: true
+partial:
+  allow_partial: true
+`,
+    "utf8"
+  );
+  return filePath;
 }
 
 function writePolicyDslPolicy(filePath: string, dslYaml: string): string {
@@ -189,6 +209,8 @@ describe("readiness CLI", () => {
       expect(readiness.artifactRefs).toBeDefined();
       expect(readiness.completeness).toBeDefined();
       expect(["complete", "partial"]).toContain(readiness.completeness);
+      expect(readiness.status).toBe("passed");
+      expect(readiness.completeness).toBe("complete");
     });
 
     it("handles different fixtures and relative paths", async () => {
@@ -207,6 +229,53 @@ describe("readiness CLI", () => {
   });
 
   describe("error handling", () => {
+    it("rejects findings input missing completeness before writing readiness", async () => {
+      const findingsDir = path.join(tempOutDir, "missing-completeness");
+      mkdirSync(findingsDir, { recursive: true });
+      const artifact = createFindingsArtifact([]) as Record<string, unknown>;
+      delete artifact.completeness;
+      writeFileSync(path.join(findingsDir, "findings.json"), JSON.stringify(artifact), "utf8");
+      const outDir = path.join(tempOutDir, "missing-completeness-out");
+
+      const result = await readinessCommand([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ], { VERSION, EXIT, getOption });
+
+      expect(result).toBe(EXIT.SCHEMA_FAILED);
+      expect(existsSync(path.join(outDir, "release-readiness.json"))).toBe(false);
+    });
+
+    it.each([
+      ["invalid JSON", "{"],
+      ["wrong artifact", JSON.stringify({ ...createFindingsArtifact([]), artifact: "raw-findings", schema: "raw-findings@v1" })],
+      ["invalid nested severity", JSON.stringify(createFindingsArtifact([createFinding({ severity: "urgent" })]))],
+      ["unknown completeness", JSON.stringify(createFindingsArtifact([], { completeness: "unknown" }))],
+    ])("rejects findings input with %s before writing readiness", async (_name, content) => {
+      const findingsDir = path.join(tempOutDir, "invalid-findings");
+      mkdirSync(findingsDir, { recursive: true });
+      writeFileSync(path.join(findingsDir, "findings.json"), content, "utf8");
+      const outDir = path.join(tempOutDir, "invalid-findings-out");
+
+      const result = await readinessCommand([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ], { VERSION, EXIT, getOption });
+
+      expect(result).toBe(EXIT.SCHEMA_FAILED);
+      expect(existsSync(path.join(outDir, "release-readiness.json"))).toBe(false);
+    });
+
     it("returns USAGE_ERROR for invalid arguments", async () => {
       // Missing repo
       const result1 = await readinessCommand(["--policy", policyFile], { VERSION, EXIT, getOption });
@@ -343,6 +412,92 @@ suppression:
   });
 
   describe("policy evaluation", () => {
+    it("blocks zero-finding partial input with an explicit condition and recovery actions", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "partial-strict"), [], {
+        completeness: "partial",
+        unsupported_claims: [{
+          id: "scan-partial",
+          claim: "Repository scan covered all eligible files within the configured limits.",
+          reason: "missing_evidence",
+          sourceSection: "repo-graph:scan",
+        }],
+      });
+      const outDir = path.join(tempOutDir, "partial-strict-out");
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ]);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.completeness).toBe("partial");
+      expect(readiness.counts.findings).toBe(0);
+      expect(readiness.counts.unsupportedClaims).toBe(1);
+      expect(readiness.failedConditions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "INCOMPLETE_INPUT",
+            reason: expect.stringContaining("partial"),
+          }),
+        ])
+      );
+      expect(readiness.summary).toContain("partial");
+      expect(readiness.recommendedActions).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("unsupported claims"),
+          expect.stringContaining("scan diagnostics"),
+          expect.stringContaining("analyze or diff"),
+          expect.stringContaining("readiness"),
+        ])
+      );
+
+      const validation = await validateArtifactObject(readiness, "release-readiness.json");
+      expect(validation.status).toBe("ok");
+    });
+
+    it("allows zero-finding partial input as passed_with_risk when policy permits it", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "partial-allowed"), [], {
+        completeness: "partial",
+        unsupported_claims: [{
+          id: "scan-partial-allowed",
+          claim: "Repository scan covered all eligible files within the configured limits.",
+          reason: "missing_evidence",
+          sourceSection: "repo-graph:scan",
+        }],
+      });
+      const policyPath = writePartialAllowedPolicy(path.join(tempOutDir, "partial-allowed-policy.yaml"));
+      const outDir = path.join(tempOutDir, "partial-allowed-out");
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyPath,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ]);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(readiness.status).toBe("passed_with_risk");
+      expect(readiness.completeness).toBe("partial");
+      expect(readiness.counts.findings).toBe(0);
+      expect(readiness.summary).toContain("partial");
+      expect(readiness.summary).toContain("allowed by policy");
+      expect(readiness.summary).not.toContain("Blocked");
+      expect(readiness.failedConditions).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "INCOMPLETE_INPUT" })])
+      );
+      expect(readiness.recommendedActions.length).toBeGreaterThan(0);
+
+      const validation = await validateArtifactObject(readiness, "release-readiness.json");
+      expect(validation.status).toBe("ok");
+    });
+
     it("evaluates blocking severities and categories", async () => {
       // Critical severity
       const criticalDir = writeFindingsToDir(path.join(tempOutDir, "critical"), [
@@ -736,7 +891,7 @@ suppression:
       process.env.CTG_BASELINE_OWNER = "@quality";
       process.env.CTG_BASELINE_EXPIRES_AT = "2000-01-01T00:00:00Z";
       try {
-        const fingerprint = "expiredbaseline01";
+        const fingerprint = "expired-base-001";
         const baselineDir = writeFindingsToDir(path.join(tempOutDir, "baseline-expired-readiness"), [
           createFinding({
             id: "baseline-high",
@@ -928,8 +1083,8 @@ suppression:
     it("includes selfAnalysis summary in readiness artifact", async () => {
       // Create findings with suppression candidates
       const findings = [
-        createFinding({ id: "f-1", ruleId: "CLIENT_TRUSTED_PRICE", severity: "critical", evidence: [{ id: "ev-1", path: "src/rules/client-price.ts" }] }),
-        createFinding({ id: "f-2", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-2", path: "src/core/utils.ts" }] }),
+        createFinding({ id: "f-1", ruleId: "CLIENT_TRUSTED_PRICE", severity: "critical", evidence: [{ id: "ev-1", path: "src/rules/client-price.ts", kind: "ast" }] }),
+        createFinding({ id: "f-2", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-2", path: "src/core/utils.ts", kind: "ast" }] }),
       ];
 
       const findingsDir = writeFindingsToDir(path.join(tempOutDir, "self-analysis"), findings);
@@ -977,7 +1132,7 @@ suppression:
 
       // Create findings that match broad suppression patterns
       const findings = [
-        createFinding({ id: "f-1", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-1", path: "src/core/large-file.ts" }] }),
+        createFinding({ id: "f-1", ruleId: "LARGE_MODULE", severity: "medium", evidence: [{ id: "ev-1", path: "src/core/large-file.ts", kind: "ast" }] }),
       ];
 
       const findingsDir = writeFindingsToDir(path.join(tempOutDir, "broad-review"), findings);

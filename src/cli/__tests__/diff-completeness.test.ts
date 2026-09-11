@@ -2,31 +2,67 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-const scanState = vi.hoisted(() => ({ partial: false }));
-vi.mock("../../core/file-utils.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../core/file-utils.js")>();
+const snapshotState = vi.hoisted(() => ({
+  partial: false,
+  omittedPath: undefined as string | undefined,
+}));
+vi.mock("../../adapters/git-snapshot.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../adapters/git-snapshot.js")>();
   return {
     ...actual,
-    walkDirBounded: (...args: Parameters<typeof actual.walkDirBounded>) => {
-      const scan = actual.walkDirBounded(...args);
-      return scanState.partial
-        ? { ...scan, partial: true, reasons: [...scan.reasons, "TEST_SCAN_PARTIAL"] }
-        : scan;
+    readGitSnapshot(...args: Parameters<typeof actual.readGitSnapshot>) {
+      const [repoRoot, headRef, options] = args;
+      const snapshot = actual.readGitSnapshot(
+        repoRoot,
+        headRef,
+        snapshotState.partial
+          ? { ...(options ?? {}), limits: { ...(options?.limits ?? {}), maxFiles: 0 } }
+          : options
+      );
+      const omittedPath = snapshotState.omittedPath;
+      if (!omittedPath) return snapshot;
+
+      const omittedContent = snapshot.contents.get(omittedPath);
+      const contents = new Map(
+        [...snapshot.contents.entries()].filter(([filePath]) => filePath !== omittedPath)
+      );
+      return {
+        ...snapshot,
+        paths: snapshot.paths.filter(filePath => filePath !== omittedPath),
+        contents,
+        partial: true,
+        reasons: [...new Set([...snapshot.reasons, `TEST_SNAPSHOT_READ_FAILED:${omittedPath}`])],
+        scan: {
+          ...snapshot.scan,
+          acceptedFiles: contents.size,
+          acceptedBytes: Math.max(
+            0,
+            snapshot.scan.acceptedBytes - (omittedContent === undefined ? 0 : Buffer.byteLength(omittedContent))
+          ),
+          skippedFiles: snapshot.scan.skippedFiles + (omittedContent === undefined ? 0 : 1),
+        },
+      };
     },
   };
 });
 
 import { diffCommand } from "../diff.js";
-import { nodeFileAccess } from "../../adapters/node-services.js";
 
 const EXIT = { OK: 0, READINESS_NOT_CLEAR: 1, USAGE_ERROR: 2, SCAN_FAILED: 3, POLICY_FAILED: 5 } as const;
 const VERSION = "test";
+const BASE_REF = "refs/tags/base";
+const HEAD_REF = "refs/tags/head";
 const getOption = (args: string[], name: string): string | undefined => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
 };
+
+afterEach(() => {
+  snapshotState.partial = false;
+  snapshotState.omittedPath = undefined;
+});
 
 function createRepo(root: string, base: string, head: string, fileName = "src/index.ts"): string {
   const repo = path.join(root, "repo");
@@ -66,17 +102,16 @@ partial: { allow_partial: false }
 describe("diff completeness", () => {
   it("keeps an actually partial scan blocking even when findings are empty", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "ctg-diff-completeness-"));
-    scanState.partial = true;
+    snapshotState.partial = true;
     try {
       const repo = createRepo(root, "export const value = 1;\n", "export const value = 2;\n");
       const out = path.join(root, "out");
-      const code = await diffCommand([repo, "--base", "base", "--head", "head", "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
+      const code = await diffCommand([repo, "--base", BASE_REF, "--head", HEAD_REF, "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
       const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
       expect(code).toBe(EXIT.READINESS_NOT_CLEAR);
       expect(findings.findings).toHaveLength(0);
       expect(findings.completeness).toBe("partial");
     } finally {
-      scanState.partial = false;
       rmSync(root, { recursive: true, force: true });
     }
   });
@@ -89,7 +124,7 @@ describe("diff completeness", () => {
         : ["fn main() {}\n", "fn main() { println!(\"ok\"); }\n"];
       const repo = createRepo(root, base, head, `src/main.${extension}`);
       const out = path.join(root, "out");
-      const code = await diffCommand([repo, "--base", "base", "--head", "head", "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
+      const code = await diffCommand([repo, "--base", BASE_REF, "--head", HEAD_REF, "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
       const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
       expect(code).toBe(EXIT.READINESS_NOT_CLEAR);
       expect(findings.findings).toHaveLength(0);
@@ -99,21 +134,18 @@ describe("diff completeness", () => {
     }
   });
 
-  it("keeps a target file read failure partial", async () => {
+  it("keeps a target file omitted from the snapshot partial", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "ctg-diff-read-failure-"));
-    const originalReadFile = nodeFileAccess.readFile;
     try {
       const repo = createRepo(root, "export const value = 1;\n", "export const value = 2;\n");
-      nodeFileAccess.readFile = (filePath) =>
-        filePath.endsWith(`${path.sep}src${path.sep}index.ts`) ? null : originalReadFile(filePath);
+      snapshotState.omittedPath = "src/index.ts";
       const out = path.join(root, "out");
-      const code = await diffCommand([repo, "--base", "base", "--head", "head", "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
+      const code = await diffCommand([repo, "--base", BASE_REF, "--head", HEAD_REF, "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
       const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
       expect(code).toBe(EXIT.READINESS_NOT_CLEAR);
       expect(findings.findings).toHaveLength(0);
       expect(findings.completeness).toBe("partial");
     } finally {
-      nodeFileAccess.readFile = originalReadFile;
       rmSync(root, { recursive: true, force: true });
     }
   });
@@ -123,7 +155,7 @@ describe("diff completeness", () => {
     try {
       const repo = createDatabaseRepo(root);
       const out = path.join(root, "out");
-      const code = await diffCommand([repo, "--base", "base", "--head", "head", "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
+      const code = await diffCommand([repo, "--base", BASE_REF, "--head", HEAD_REF, "--out", out, "--policy", writePolicy(root)], { VERSION, EXIT, getOption });
       const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
       expect(code).toBe(EXIT.READINESS_NOT_CLEAR);
       expect(findings.completeness).toBe("partial");
@@ -137,7 +169,7 @@ describe("diff completeness", () => {
     try {
       const repo = createDatabaseRepo(root);
       const out = path.join(root, "out");
-      const code = await diffCommand([repo, "--base", "base", "--head", "head", "--out", out, "--policy", writePolicy(root), "--database-analysis"], { VERSION, EXIT, getOption });
+      const code = await diffCommand([repo, "--base", BASE_REF, "--head", HEAD_REF, "--out", out, "--policy", writePolicy(root), "--database-analysis"], { VERSION, EXIT, getOption });
       const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
       expect(code).toBe(EXIT.OK);
       expect(findings.completeness).toBe("complete");
@@ -149,17 +181,16 @@ describe("diff completeness", () => {
 
   it("keeps a partial scan partial after adding database findings", async () => {
     const root = mkdtempSync(path.join(tmpdir(), "ctg-diff-sql-partial-"));
-    scanState.partial = true;
+    snapshotState.partial = true;
     try {
       const repo = createDatabaseRepo(root);
       const out = path.join(root, "out");
-      const code = await diffCommand([repo, "--base", "base", "--head", "head", "--out", out, "--policy", writePolicy(root), "--database-analysis"], { VERSION, EXIT, getOption });
+      const code = await diffCommand([repo, "--base", BASE_REF, "--head", HEAD_REF, "--out", out, "--policy", writePolicy(root), "--database-analysis"], { VERSION, EXIT, getOption });
       const findings = JSON.parse(readFileSync(path.join(out, "findings.json"), "utf8"));
       expect(code).toBe(EXIT.READINESS_NOT_CLEAR);
       expect(findings.completeness).toBe("partial");
       expect(findings.findings.some((finding: { ruleId?: string }) => finding.ruleId === "DB_DROP_TABLE")).toBe(true);
     } finally {
-      scanState.partial = false;
       rmSync(root, { recursive: true, force: true });
     }
   });

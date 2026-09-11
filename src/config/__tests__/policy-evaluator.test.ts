@@ -10,6 +10,7 @@ import {
   isBlockingStatus,
   getStatusMessage,
   generateEvaluationSummary,
+  generateBlockingSummary,
 } from "../policy-evaluator.js";
 import {
   createDefaultPolicy,
@@ -536,6 +537,33 @@ describe("policy-evaluator", () => {
       expect(getStatusMessage("passed_with_risk")).toContain("risk");
       expect(getStatusMessage("needs_review")).toContain("review");
       expect(getStatusMessage("blocked_input")).toContain("Blocked");
+      expect(getStatusMessage("blocked_input")).toContain("incomplete");
+    });
+  });
+
+  describe("generateBlockingSummary", () => {
+    it("explains incomplete input when no findings are blocked", () => {
+      const summary = generateBlockingSummary([
+        { type: "incomplete_input", message: "Input evidence is partial: scan limit" },
+      ], []);
+
+      expect(summary).toBe("Blocked: input evidence is partial");
+      expect(summary).not.toContain("Blocked by 0 findings");
+    });
+
+    it("keeps incomplete input and high finding reasons together", () => {
+      const finding = createMockFinding("f1", "RULE_001", "high", "auth", 0.9);
+      const summary = generateBlockingSummary([
+        { type: "severity_block", severity: "high", message: "high is blocked" },
+        { type: "incomplete_input", message: "Input evidence is partial" },
+      ], [finding]);
+
+      expect(summary).toContain("high severity findings");
+      expect(summary).toContain("input evidence is partial");
+    });
+
+    it("preserves the no-blocking summary for complete input", () => {
+      expect(generateBlockingSummary([], [])).toBe("No blocking conditions");
     });
   });
 
