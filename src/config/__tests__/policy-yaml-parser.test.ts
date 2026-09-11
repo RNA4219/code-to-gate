@@ -110,6 +110,111 @@ describe("policy YAML parser", () => {
     expect(parsed.blocking?.category?.releaseRisk).toBe(true);
   });
 
+  it("keeps inline values and rule keys from the YAML document", () => {
+    const parsed = parseYamlPolicy([
+      "blocking: { rules: { DEBT_MARKER: true }, severity: { high: false } } # inline policy",
+      "confidence: { min_confidence: 0.9 }",
+      'suppression: { file: "C:/work/repo/.ctg/suppressions.yaml" }',
+    ].join("\n"));
+
+    expect(parsed.blocking?.rules).toEqual({ DEBT_MARKER: true });
+    expect(parsed.blocking?.severity?.high).toBe(false);
+    expect(parsed.confidence?.minConfidence).toBe(0.9);
+    expect(parsed.suppression?.file).toBe("C:/work/repo/.ctg/suppressions.yaml");
+  });
+
+  it("treats equivalent YAML layouts and legacy releaseRisk spelling identically", () => {
+    const block = [
+      'version: "ctg/v1" # schema',
+      'policy_id: "layout:policy" # identifier',
+      "blocking:",
+      "    severity:",
+      '        "high": false # explicit false',
+      "    category:",
+      "        release-risk: true",
+      "    rules:",
+      "        DEBT_MARKER: true # preserve rule key",
+      "    count_threshold:",
+      "        high_max: 0 # explicit zero",
+      "confidence:",
+      "    min_confidence: 0.9",
+      "    filter_low: false # retain false",
+      'suppression: { file: "C:/work/repo/.ctg/suppressions.yaml" }',
+      "llm: { enabled: false, mode: none, min_confidence: 0 }",
+      "baseline: { enabled: true }",
+      "exit: { warn_only: true }",
+    ].join("\n");
+    const inlineLegacy = [
+      "version: ctg/v1",
+      "policy_id: 'layout:policy'",
+      "blocking: { severity: { high: false }, category: { releaseRisk: true }, rules: { DEBT_MARKER: true }, count_threshold: { high_max: 0 } }",
+      "confidence: { min_confidence: 0.9, filter_low: false }",
+      'suppression: { file: "C:/work/repo/.ctg/suppressions.yaml" }',
+      "llm: { enabled: false, mode: none, min_confidence: 0 }",
+      "baseline: { enabled: true }",
+      "exit: { warn_only: true }",
+    ].join("\n");
+    const select = (content: string) => {
+      const parsed = mergeWithDefaults(parseYamlPolicy(content));
+      return {
+        version: parsed.version,
+        policyId: parsed.policyId,
+        high: parsed.blocking.severity.high,
+        releaseRisk: parsed.blocking.category.releaseRisk,
+        debtMarker: parsed.blocking.rules?.DEBT_MARKER,
+        highMax: parsed.blocking.countThreshold?.highMax,
+        minConfidence: parsed.confidence.minConfidence,
+        filterLow: parsed.confidence.filterLow,
+        suppressionFile: parsed.suppression?.file,
+        llm: parsed.llm,
+        baselineEnabled: parsed.baseline?.enabled,
+        warnOnly: parsed.exit?.warnOnly,
+      };
+    };
+    expect(select(block)).toEqual(select(inlineLegacy));
+    expect(select(block)).toMatchObject({
+      high: false,
+      releaseRisk: true,
+      debtMarker: true,
+      highMax: 0,
+      minConfidence: 0.9,
+      filterLow: false,
+      baselineEnabled: true,
+      warnOnly: true,
+    });
+  });
+
+  it.each([
+    ["blocking", "blocking: []"],
+    ["confidence", "confidence: []"],
+    ["suppression", "suppression: []"],
+    ["llm", "llm: []"],
+    ["baseline", "baseline: []"],
+    ["exit", "exit: []"],
+  ])("rejects a non-map known section (%s)", (_section, content) => {
+    expect(() => parseYamlPolicy(content)).toThrow(/must be an object/);
+  });
+
+  it.each([
+    ["blocking severity", "blocking: { severity: { high: \"false\" } }", /blocking\.severity\.high must be a boolean/],
+    ["blocking category", "blocking: { category: { security: 1 } }", /blocking\.category\.security must be a boolean/],
+    ["blocking rule", "blocking: { rules: { DEBT_MARKER: \"true\" } }", /blocking\.rules\.DEBT_MARKER must be a boolean/],
+    ["count threshold", "blocking: { count_threshold: { high_max: \"0\" } }", /blocking count threshold high_max must be a number/],
+    ["confidence boolean", "confidence: { filter_low: \"false\" }", /confidence\.filter_low must be a boolean/],
+    ["confidence number", "confidence: { min_confidence: \"0.9\" }", /confidence\.min_confidence must be a number/],
+    ["suppression file", "suppression: { file: 1 }", /suppression\.file must be a string/],
+    ["llm enabled", "llm: { enabled: \"false\" }", /llm\.enabled must be a boolean/],
+    ["llm mode", "llm: { mode: invalid }", /llm\.mode is invalid/],
+    ["baseline enabled", "baseline: { enabled: 1 }", /baseline\.enabled must be a boolean/],
+    ["exit boolean", "exit: { warn_only: null }", /exit\.warn_only must be a boolean/],
+  ])("rejects an invalid known value (%s)", (_label, content, error) => {
+    expect(() => parseYamlPolicy(content)).toThrow(error);
+  });
+
+  it.each(["[]", "policy", "null"])("rejects a non-map YAML root: %s", (content) => {
+    expect(() => parseYamlPolicy(content)).toThrow(/policy root must be an object/);
+  });
+
   it("parses partial structurally across inline, quoted, and indented YAML", () => {
     const expected = { allowPartial: true, partialWarningThreshold: 0.4 };
     const variants = [
