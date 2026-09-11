@@ -76,12 +76,14 @@ node ./dist/cli.js diff . --base origin/main --head HEAD --database-analysis --o
 
 ### 3. ポリシー評価
 
-必須フィールド:
+主な設定項目:
 
 - `blocking.severity`: critical/high/medium/low
 - `blocking.category`: auth/payment/validation/security
 - `blocking.rules`: 特定ルールID
-- `readiness.criticalFindingStatus`: blocked_input/needs_review
+- `blocking.count_threshold`: critical_max/high_max/medium_max/low_max
+
+policyのIDは`policy_id`で指定する。readiness状態は評価結果から導出し、`readiness.criticalFindingStatus`による切り替えは実装していない。YAMLの真偽値・数値は引用せず、パスは引用符付き文字列で指定できる。
 
 ### 4. Docs/Test同期
 

@@ -23,8 +23,9 @@
   "deps_in": [],
   "tests": [
     "src/cli/__tests__/readiness-partial-policy.test.ts",
+    "src/cli/__tests__/readiness-policy-yaml.test.ts",
     "src/cli/__tests__/readiness.test.ts"
   ],
   "sourceHash": "5c0762332c963710d33b2e82bb312c3cedb5a7ac25601a10e2635ccbce6077b2",
-  "generation_id": "birdseye-29078f245fa179da"
+  "generation_id": "birdseye-d2d6a58ca24118dd"
 }

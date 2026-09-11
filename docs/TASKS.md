@@ -79,6 +79,7 @@ next_review_due: YYYY-MM-DD
 - [20260911-01-human-readme](tasks/20260911-01-human-readme.md) — 人間向けREADMEの用途・初回実行・結果の読み方
 - [20260911-02-readiness-diff-followups](tasks/20260911-02-readiness-diff-followups.md) — 補助文書を先行し、readiness入力・diff参照と削除・ブロック理由を修正
 - [20260911-03-partial-yaml](tasks/20260911-03-partial-yaml.md) — partialの1行・複数行YAMLの判定一致と不正値の拒否
+- [20260911-04-policy-yaml-sections](tasks/20260911-04-policy-yaml-sections.md) — policy全節のYAML解釈・Windowsパス・同梱設定の整合
 
 ---
 

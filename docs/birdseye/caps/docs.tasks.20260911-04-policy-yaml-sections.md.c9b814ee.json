@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260911-04-policy-yaml-sections.md",
+  "role": "dependency",
+  "summary": "policyのYAML書式・パス・同梱設定を順に修正",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "0db4e04b305c97d60075b23f67d34ad37993c8479996308fde2b3cd762bf9bee",
+  "generation_id": "birdseye-d2d6a58ca24118dd"
+}

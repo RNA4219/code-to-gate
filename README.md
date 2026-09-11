@@ -157,7 +157,7 @@ preview/experimental surface and should not be treated as part of the stable
 | Java / PHP / C# / C++ | Baseline heuristic support |
 | Core rules | 17 core rules |
 | Database analysis | Optional SQL / migration checks via `--database-analysis` |
-| Schema version | `ctg/v1`; `ctg/v1alpha1` is accepted for backward compatibility |
+| Schema version | `ctg/v1` |
 
 ## Policy Example
 
@@ -173,8 +173,6 @@ blocking:
     data: true
   rules:
     DB_DROP_TABLE: true
-readiness:
-  criticalFindingStatus: blocked_input
 ```
 
 ## Documentation
