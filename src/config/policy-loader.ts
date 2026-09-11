@@ -21,6 +21,29 @@ import {
 } from "./policy-types.js";
 import { parseYamlPolicy, mergeWithDefaults, parseSuppressionFile } from "./policy-yaml-parser.js";
 
+const SUPPRESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseSuppressionExpiry(value: string): Date | undefined {
+  if (!SUPPRESSION_DATE_PATTERN.test(value)) {
+    return undefined;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(0);
+  parsed.setUTCHours(0, 0, 0, 0);
+  parsed.setUTCFullYear(year, month - 1, day);
+
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 // Re-export types and constants
 export {
   POLICY_VERSION,
@@ -263,7 +286,10 @@ export function isSuppressed(
     }
 
     if (suppression.expiry) {
-      const expiryDate = new Date(suppression.expiry);
+      const expiryDate = parseSuppressionExpiry(suppression.expiry);
+      if (!expiryDate) {
+        continue;
+      }
       const now = new Date();
       if (now > expiryDate) {
         continue;
@@ -288,7 +314,7 @@ export interface SuppressionExpiryWarning {
   path: string;
   ruleId: string;
   expiry: string;
-  status: "expired" | "expiring_soon";
+  status: "expired" | "expiring_soon" | "invalid";
   daysUntilExpiry?: number;
 }
 
@@ -308,10 +334,20 @@ export function checkSuppressionExpiry(
       continue;
     }
 
-    const expiryDate = new Date(suppression.expiry);
+    const expiryDate = parseSuppressionExpiry(suppression.expiry);
+    if (!expiryDate) {
+      warnings.push({
+        path: suppression.path,
+        ruleId: suppression.ruleId,
+        expiry: suppression.expiry,
+        status: "invalid",
+      });
+      continue;
+    }
+
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (daysUntilExpiry < 0) {
+    if (now > expiryDate) {
       warnings.push({
         path: suppression.path,
         ruleId: suppression.ruleId,

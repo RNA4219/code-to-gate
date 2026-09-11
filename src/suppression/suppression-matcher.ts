@@ -33,6 +33,30 @@ export interface SuppressionMatchResult {
  */
 export const DEFAULT_EXPIRY_WARNING_DAYS = 30;
 
+function parseExpiryDate(value: string): Date | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(value);
+  if (!match) {
+    return undefined;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const datePart = new Date(0);
+  datePart.setUTCHours(0, 0, 0, 0);
+  datePart.setUTCFullYear(year, month - 1, day);
+  if (
+    datePart.getUTCFullYear() !== year ||
+    datePart.getUTCMonth() !== month - 1 ||
+    datePart.getUTCDate() !== day
+  ) {
+    return undefined;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
 /**
  * Check if a date string has expired
  * @param expiryDate - ISO date string (YYYY-MM-DD)
@@ -45,8 +69,8 @@ export function isExpired(
 ): boolean {
   if (!expiryDate) return false;
 
-  const expiry = new Date(expiryDate);
-  return currentDate > expiry;
+  const expiry = parseExpiryDate(expiryDate);
+  return expiry === undefined || currentDate > expiry;
 }
 
 /**
@@ -63,7 +87,8 @@ export function isApproachingExpiry(
 ): { expiring: boolean; daysRemaining?: number } {
   if (!expiryDate) return { expiring: false };
 
-  const expiry = new Date(expiryDate);
+  const expiry = parseExpiryDate(expiryDate);
+  if (!expiry) return { expiring: false };
   const warningThreshold = new Date(currentDate);
   warningThreshold.setDate(warningThreshold.getDate() + warningDays);
 

@@ -18,7 +18,8 @@
     "src/reporters/index.ts",
     "src/reporters/raw-findings-reporter.ts",
     "src/self-analysis/suppression-summary.ts",
-    "src/types/artifacts.ts"
+    "src/types/artifacts.ts",
+    "src/utils/run-id.ts"
   ],
   "deps_in": [],
   "tests": [
@@ -26,6 +27,6 @@
     "src/cli/__tests__/readiness-policy-yaml.test.ts",
     "src/cli/__tests__/readiness.test.ts"
   ],
-  "sourceHash": "5c0762332c963710d33b2e82bb312c3cedb5a7ac25601a10e2635ccbce6077b2",
-  "generation_id": "birdseye-d2d6a58ca24118dd"
+  "sourceHash": "1421bacb00652e57872dd74bfcbf82e29b4f212ed40c89639a5bedc77a619f57",
+  "generation_id": "birdseye-33377e4a68abbf61"
 }

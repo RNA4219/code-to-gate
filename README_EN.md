@@ -14,7 +14,7 @@ seeds, SARIF, and release-readiness evidence.
 | Before a PR | [`analyze`](docs/cli-reference.md#analyze) or [`diff`](docs/cli-reference.md#diff) | Review points and changed-scope evidence |
 | QA planning | [`analyze`](docs/cli-reference.md#analyze) | Candidate tests in `test-seeds.json` |
 | Before a release | [`analyze`](docs/cli-reference.md#analyze), then `readiness` | Policy evaluation in `release-readiness.json` |
-| CI result aggregation | [`import`](docs/cli-reference.md#import), then [`export`](docs/cli-reference.md#export) SARIF | Existing tool results and `results.sarif`; external tools are not run by these commands |
+| CI result aggregation | [`import`](docs/cli-reference.md#import), `analyze --from-imports`, then [`export`](docs/cli-reference.md#export) SARIF | Existing tool results and `results.sarif`; use the same output directory for import and analyze |
 
 ## Distribution Status
 
@@ -93,7 +93,14 @@ code-to-gate export evidence-dag --from .qh --out .qh/evidence-dag.json
 ```
 
 `import` consumes results that another tool has already produced; it does not
-execute that tool. Use the imported artifacts as input to the relevant export.
+execute that tool. Import and analyze must use the same output directory so that
+analyze can read and validate the import manifest:
+
+```bash
+code-to-gate import sarif ./external-results.sarif --repo-root ./my-repo --out .qh
+code-to-gate analyze ./my-repo --from-imports --emit all --out .qh
+code-to-gate export sarif --from .qh --out results.sarif
+```
 
 ## Limits and expectations
 

@@ -169,6 +169,32 @@ describe("policy-evaluator", () => {
       expect(result.status).toBe("needs_review");
     });
 
+    it.each([
+      [true, "needs_review", 0, 1],
+      [undefined, "needs_review", 0, 1],
+      [false, "blocked_input", 1, 0],
+    ] as const)("honors filter_low=%s for below-threshold findings", (filterLow, status, blockedCount, lowConfidenceCount) => {
+      const policy = createDefaultPolicy();
+      policy.confidence.minConfidence = 0.7;
+      policy.confidence.filterLow = filterLow;
+      policy.blocking.category.maintainability = false;
+      const result = evaluatePolicy([
+        createMockFinding("below-threshold", "RULE_001", "high", "maintainability", 0.5),
+      ], policy);
+
+      expect(result.status).toBe(status);
+      expect(result.blockedFindings).toHaveLength(blockedCount);
+      expect(result.lowConfidenceFindings).toHaveLength(lowConfidenceCount);
+      expect(result.passedFindings).toHaveLength(0);
+      if (filterLow === false) {
+        expect(result.failedConditions).toContainEqual(expect.objectContaining({
+          type: "severity_block",
+          severity: "high",
+          findingId: "below-threshold",
+        }));
+      }
+    });
+
     it("should apply suppressions", () => {
       const policy = createDefaultPolicy();
       policy.blocking.severity.critical = true;

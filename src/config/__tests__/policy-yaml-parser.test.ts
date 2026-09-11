@@ -258,6 +258,35 @@ describe("policy YAML parser", () => {
     expect(() => parseYamlPolicy("version: ctg/v1\npolicy_id: 42")).toThrow(/policy_id must be a string/);
   });
 
+  it.each([
+    ["empty version", 'version: ""\npolicy_id: policy', /version must not be empty/],
+    ["blank policy id", 'version: ctg/v1\npolicy_id: "   "', /policy_id must not be empty/],
+    ["negative expiry warning", "suppression: { expiry_warning_days: -1 }", /suppression\.expiry_warning_days must be a non-negative integer/],
+    ["fractional suppression limit", "suppression: { max_suppressions_per_rule: 1.5 }", /suppression\.max_suppressions_per_rule must be a non-negative integer/],
+    ["negative unsupported claims", "llm: { unsupported_claims_max: -2 }", /llm\.unsupported_claims_max must be a non-negative integer/],
+    ["NaN suppression limit", "suppression: { max_suppressions_per_rule: .nan }", /suppression\.max_suppressions_per_rule must be a number/],
+    ["infinite unsupported claims", "llm: { unsupported_claims_max: .inf }", /llm\.unsupported_claims_max must be a number/],
+  ])("rejects explicitly invalid schema-bound value: %s", (_label, content, error) => {
+    expect(() => parseYamlPolicy(content)).toThrow(error);
+  });
+
+  it("preserves valid zero boundaries while rejecting invalid fraction boundaries", () => {
+    const parsed = parseYamlPolicy([
+      "version: ctg/v1",
+      "policy_id: boundary-policy",
+      "confidence: { min_confidence: 0, low_confidence_threshold: 1 }",
+      "suppression: { expiry_warning_days: 0, max_suppressions_per_rule: 0 }",
+      "llm: { min_confidence: 0, unsupported_claims_max: 0 }",
+      "partial: { partial_warning_threshold: 1 }",
+    ].join("\n"));
+    expect(parsed.confidence).toMatchObject({ minConfidence: 0, lowConfidenceThreshold: 1 });
+    expect(parsed.suppression).toEqual({ expiryWarningDays: 0, maxSuppressionsPerRule: 0 });
+    expect(parsed.llm).toMatchObject({ minConfidence: 0, unsupportedClaimsMax: 0 });
+    expect(parsed.partial?.partialWarningThreshold).toBe(1);
+    expect(() => parseYamlPolicy("confidence: { min_confidence: -0.1 }")).toThrow(/confidence\.min_confidence must be between 0 and 1/);
+    expect(() => parseYamlPolicy("partial: { partial_warning_threshold: 1.1 }")).toThrow(/partial\.partial_warning_threshold must be between 0 and 1/);
+  });
+
   it("parses suppression entries, inline fields, classes, and defaults", () => {
     const suppression = parseSuppressionFile([
       "version: ctg.policy/v1",
@@ -283,5 +312,23 @@ describe("policy YAML parser", () => {
     expect(suppression.suppressions[2].path).toBe("src/three.ts");
     expect(parseSuppressionFile("- rule_id: ONLY_ID").suppressions).toEqual([]);
     expect(parseSuppressionFile(["-", "  not-a-field"].join("\n")).suppressions).toEqual([]);
+  });
+
+  it("uses YAML scalar rules for flow entries, quoted keys, and escaped values", () => {
+    const suppression = parseSuppressionFile(
+      '"version": "ctg/v1" # schema\n"suppressions": [{ "rule_id": \'RULE_ONE\', "path": \'src/#.ts\', "reason": "Keep \\"quoted\\" # debt", "expiry": "2027-01-01" }] # entry'
+    );
+
+    expect(suppression).toEqual({
+      version: "ctg/v1",
+      suppressions: [{
+        ruleId: "RULE_ONE",
+        path: "src/#.ts",
+        reason: 'Keep "quoted" # debt',
+        expiry: "2027-01-01",
+        author: undefined,
+        class: "temporary-debt",
+      }],
+    });
   });
 });

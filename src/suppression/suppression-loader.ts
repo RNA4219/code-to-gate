@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { parseSimpleYaml } from "../core/config-utils.js";
+import yaml from "js-yaml";
 import { CTG_VERSION } from "../types/artifacts.js";
 
 /**
@@ -34,114 +34,85 @@ export interface SuppressionFile {
   suppressions: Suppression[];
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
 /**
  * Parse suppression YAML content
  * @param content - YAML content string
  * @returns Parsed suppression file object
  */
 export function parseSuppressionYaml(content: string): SuppressionFile {
-  const baseResult = parseSimpleYaml(content);
-
-  // Parse suppressions list from YAML
-  const suppressions: Suppression[] = [];
-  const lines = content.split("\n");
-
-  let currentSuppression: Partial<Suppression> | null = null;
-  let inSuppressionsBlock = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    // Detect suppressions block start
-    if (trimmed === "suppressions:") {
-      inSuppressionsBlock = true;
-      continue;
-    }
-
-    // Exit suppressions block on new top-level key (line without leading space or dash)
-    if (inSuppressionsBlock && !line.startsWith(" ") && !line.startsWith("-") && trimmed.includes(":")) {
-      inSuppressionsBlock = false;
-      // Save current suppression before exiting
-      if (currentSuppression && currentSuppression.rule_id && currentSuppression.path) {
-        suppressions.push({
-          rule_id: currentSuppression.rule_id,
-          path: currentSuppression.path,
-          reason: currentSuppression.reason ?? "",
-          expiry: currentSuppression.expiry,
-          author: currentSuppression.author,
-        });
-      }
-      currentSuppression = null;
-      continue;
-    }
-
-    if (inSuppressionsBlock) {
-      // Start new suppression entry (line starting with -)
-      if (trimmed.startsWith("-")) {
-        // Save previous suppression if complete
-        if (currentSuppression && currentSuppression.rule_id && currentSuppression.path) {
-          suppressions.push({
-            rule_id: currentSuppression.rule_id,
-            path: currentSuppression.path,
-            reason: currentSuppression.reason ?? "",
-            expiry: currentSuppression.expiry,
-            author: currentSuppression.author,
-          });
-        }
-        currentSuppression = {};
-
-        // Handle case where first field is on same line as dash
-        // e.g., "- rule_id: CLIENT_TRUSTED_PRICE"
-        const afterDash = trimmed.substring(1).trim();
-        if (afterDash.startsWith("rule_id:")) {
-          currentSuppression.rule_id = afterDash.split(":")[1]?.trim() ?? "";
-        }
-        continue;
-      }
-
-      // Parse suppression fields (indented under the dash line)
-      if (currentSuppression !== null) {
-        if (trimmed.startsWith("rule_id:")) {
-          currentSuppression.rule_id = trimmed.split(":")[1]?.trim() ?? "";
-        } else if (trimmed.startsWith("path:")) {
-          // Handle quoted paths
-          const pathValue = trimmed.substring(5).trim();
-          // Remove quotes if present
-          currentSuppression.path = pathValue.replace(/^["']|["']$/g, "");
-        } else if (trimmed.startsWith("reason:")) {
-          // Handle quoted reasons
-          const reasonValue = trimmed.substring(7).trim();
-          currentSuppression.reason = reasonValue.replace(/^["']|["']$/g, "");
-        } else if (trimmed.startsWith("expiry:")) {
-          const expiryValue = trimmed.substring(7).trim();
-          // Remove quotes if present
-          currentSuppression.expiry = expiryValue.replace(/^["']|["']$/g, "");
-        } else if (trimmed.startsWith("author:")) {
-          const authorValue = trimmed.substring(7).trim();
-          currentSuppression.author = authorValue.replace(/^["']|["']$/g, "");
-        }
-      }
-    }
+  let parsed: unknown;
+  try {
+    parsed = yaml.load(content, { schema: yaml.JSON_SCHEMA });
+  } catch (error) {
+    throw new Error(
+      `Invalid suppression YAML: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    );
   }
 
-  // Save last suppression if complete
-  if (currentSuppression && currentSuppression.rule_id && currentSuppression.path) {
+  if (Array.isArray(parsed)) {
+    return { version: CTG_VERSION, suppressions: [] };
+  }
+  if (parsed === null || (parsed !== undefined && !asRecord(parsed))) {
+    throw new Error("suppression root must be an object");
+  }
+
+  const root = asRecord(parsed) ?? {};
+  if (root.version !== undefined && typeof root.version !== "string") {
+    throw new Error("suppression.version must be a string");
+  }
+  const rawSuppressions = root.suppressions;
+  if (rawSuppressions === undefined || rawSuppressions === null) {
+    return {
+      version: typeof root.version === "string" && root.version.trim() ? root.version : CTG_VERSION,
+      suppressions: [],
+    };
+  }
+  if (!Array.isArray(rawSuppressions)) {
+    throw new Error("suppressions must be an array");
+  }
+
+  const readOptionalString = (entry: Record<string, unknown>, key: string, index: number): string | undefined => {
+    const value = entry[key];
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value !== "string") {
+      throw new Error(`suppressions[${index}].${key} must be a string`);
+    }
+    return value;
+  };
+
+  const suppressions: Suppression[] = [];
+  for (const [index, rawEntry] of rawSuppressions.entries()) {
+    const entry = asRecord(rawEntry);
+    if (!entry) {
+      continue;
+    }
+
+    const ruleId = readOptionalString(entry, "rule_id", index);
+    const pathValue = readOptionalString(entry, "path", index);
+    if (!ruleId || !pathValue) {
+      continue;
+    }
+
     suppressions.push({
-      rule_id: currentSuppression.rule_id,
-      path: currentSuppression.path,
-      reason: currentSuppression.reason ?? "",
-      expiry: currentSuppression.expiry,
-      author: currentSuppression.author,
+      rule_id: ruleId,
+      path: pathValue,
+      reason: readOptionalString(entry, "reason", index) ?? "",
+      expiry: readOptionalString(entry, "expiry", index),
+      author: readOptionalString(entry, "author", index),
     });
   }
 
   return {
-    version: baseResult.version ?? CTG_VERSION,
+    version: typeof root.version === "string" && root.version.trim() ? root.version : CTG_VERSION,
     suppressions,
   };
 }

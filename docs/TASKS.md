@@ -65,6 +65,8 @@ next_review_due: YYYY-MM-DD
 
 ## 5. 登録済み Task Seeds
 
+- [20260911-05-manual-bb-fixes](tasks/20260911-05-manual-bb-fixes.md) — manual-bbの10件修正、partial仕様確定、105ケース再検収
+
 - [20260910-01-ledger-sync](tasks/20260910-01-ledger-sync.md) — 改修台帳・文書同期（技術検収済み）
 - [20260910-02-precision-review](tasks/20260910-02-precision-review.md) — 実 repo 精度レビューの機能（技術検収済み、人手判定は別途）
 - [20260910-03-release-prep](tasks/20260910-03-release-prep.md) — 1.6.0 次版準備（ローカル検証済み、公開は別途）

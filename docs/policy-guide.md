@@ -125,6 +125,12 @@ and accepts `manual-bb.json` or `manual-bb-seed.json`.
 
 ## Readiness Status
 
+### Partial入力と警告運用
+
+`partial.allow_partial`は、省略/falseなら不完全入力をブロックし、trueなら`passed_with_risk`として理由を残す。`partial_warning_threshold`はv1の予約設定で、有限の0..1として検証するが判定を変更しない。欠落割合の母数が入力にないため、指摘件数から割合を推定しない。完全性との12通りの受入条件は[Readiness入力仕様](specs/readiness-input-contract.md)を参照。
+
+`exit.warn_only: true`は正常に生成されたreadiness判定の終了コードを0にする。artifactの実際のstatus・理由は保持し、不正入力やI/Oエラーは成功に変更しない。
+
 readinessの状態はblocking、partial、DSL等の評価結果から導出する。`readiness.criticalFindingStatus`という設定で切り替える機能は実装していない。
 
 | Value | Meaning |

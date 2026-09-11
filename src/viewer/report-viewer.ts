@@ -27,10 +27,9 @@ import {
   generateHistoricalSection,
   generateQegSection,
   generateFooter,
+  resolveArtifactToolVersion,
 } from "./report-sections.js";
 import { getReportJavaScript } from "./report-scripts.js";
-
-const VERSION = "0.2.0";
 
 // Re-export for external use
 export { LoadedArtifacts, escapeHtml };
@@ -123,7 +122,7 @@ export function generateReportHtml(
   const historicalSection = config.showHistorical
     ? generateHistoricalSection(artifacts.historicalComparison)
     : "";
-  const footer = generateFooter();
+  const footer = generateFooter(resolveArtifactToolVersion(artifacts));
   const script = getReportJavaScript({ darkModeDefault: config.darkModeDefault });
   const redactionSection = generateRedactionSection(config);
 
@@ -167,7 +166,7 @@ function createEmptyFindings(): FindingsArtifact {
     generated_at: new Date().toISOString(),
     run_id: "none",
     repo: { root: "unknown" },
-    tool: { name: "code-to-gate", version: VERSION, plugin_versions: [] },
+    tool: { name: "code-to-gate", version: "unknown", plugin_versions: [] },
     artifact: "findings",
     schema: "findings@v1",
     version: "ctg/v1alpha1",

@@ -31,6 +31,12 @@ code-to-gate運用時のチェックリスト集。
 
 ## Pull Request / Review
 
+### manual-bb失敗の再検収
+
+- baseline明示参照の競合、抑制path/期限のYAML同値性と不正日付、policyの空/負数/小数を正常対照と照合する。
+- readinessの同時刻run ID、warn_onlyの終了コードと不正入力拒否、SARIF/all生成、未知emit、global help、HTML versionを確認する。
+- [Readiness入力仕様](docs/specs/readiness-input-contract.md)のpartial 12通りを検証し、105ケースの証跡と修正差分の自動coverageでGateを再評価する。
+
 ### 2026-09-10 改修の検収
 
 - 精度reviewは入力bytes・repo・commit・finding IDとevidenceを照合し、AI/未判定を人手精度合格にしない

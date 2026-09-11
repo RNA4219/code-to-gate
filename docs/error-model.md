@@ -60,7 +60,7 @@ code-to-gate は CI で使われるため、失敗を曖昧にしない。
 
 - base / head の差分が解決できる。
 - changed files と blast radius が artifact に入る。
-- base ref が存在しない場合は exit code `2`。
+- base/head ref が存在しない場合は exit code `3`。必須ref引数の欠落は `2`。
 - diff は取れるが一部ファイルが parser 失敗した場合は `partial` とし、policy に従う。
 
 ### 3.4 `readiness`

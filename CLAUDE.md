@@ -96,6 +96,8 @@ All artifacts use stable schemas in `schemas/`:
 
 ## Policy System
 
+manual-bbの入力契約は[Readiness入力仕様](docs/specs/readiness-input-contract.md)に定義する。v1のpartial_warning_thresholdは予約値、warn_onlyは品質判定の終了コードのみ変更する。baselineの明示参照、独立readinessのID、抑制期限とYAML同値性は[Task 20260911-05](docs/tasks/20260911-05-manual-bb-fixes.md)で検収する。
+
 Policies are YAML files. See `docs/policy-guide.md` for the public guide.
 
 Common fields:

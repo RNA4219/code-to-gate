@@ -89,6 +89,17 @@ describe("suppression-matcher", () => {
       expect(isExpired(dateStr)).toBe(false);
     });
 
+    it("treats an invalid expiry as expired so it cannot keep a finding suppressed", () => {
+      const suppression = createSuppression("RULE_INVALID", "src/*.ts", {
+        expiry: "not-a-date",
+      });
+      const finding = createFinding("f-invalid-expiry", "RULE_INVALID", "src/api.ts");
+
+      expect(isExpired(suppression.expiry, new Date("2026-06-30T00:00:00.000Z"))).toBe(true);
+      expect(matchSuppression(finding, [suppression]).status).toBe("expired");
+      expect(isSuppressed(finding, [suppression])).toBe(false);
+    });
+
     it("accepts custom current date parameter", () => {
       const expiryDate = "2026-06-30";
       const currentDate = new Date("2026-07-01");

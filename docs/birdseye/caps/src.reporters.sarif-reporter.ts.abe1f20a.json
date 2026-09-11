@@ -1,0 +1,29 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/reporters/sarif-reporter.ts",
+  "role": "dependency",
+  "summary": "SarifArtifactLocation, SarifLocation, SarifLog, SarifMessage の公開API",
+  "public_api": [
+    "SarifArtifactLocation",
+    "SarifLocation",
+    "SarifLog",
+    "SarifMessage",
+    "SarifPhysicalLocation",
+    "SarifRegion",
+    "SarifResult",
+    "SarifRule",
+    "SarifRun",
+    "SarifTool",
+    "SarifToolDriver",
+    "generateFullSarifReport"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/analyze.ts"
+  ],
+  "tests": [
+    "src/reporters/__tests__/sarif-reporter.test.ts"
+  ],
+  "sourceHash": "1eac55bd7f4c1502bdc2e2dcd85ee708b413dbbcf7c4293a386b623d990a13e5",
+  "generation_id": "birdseye-33377e4a68abbf61"
+}

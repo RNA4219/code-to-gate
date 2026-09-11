@@ -88,7 +88,30 @@ describe("analyze CLI", () => {
     expect(existsSync(path.join(allTestDir, "findings.json"))).toBe(true);
     expect(existsSync(path.join(allTestDir, "risk-register.yaml"))).toBe(true);
     expect(existsSync(path.join(allTestDir, "analysis-report.md"))).toBe(true);
+    expect(existsSync(path.join(allTestDir, "results.sarif"))).toBe(true);
     expect(existsSync(path.join(allTestDir, "audit.json"))).toBe(true);
+  });
+
+  it("--emit sarif generates results.sarif and records it in audit", async () => {
+    const sarifTestDir = path.join(tempOutDir, "emit-sarif");
+    mkdirSync(sarifTestDir, { recursive: true });
+
+    const result = await analyzeCommand(
+      [fixturesDir, "--emit", "sarif", "--out", sarifTestDir],
+      { VERSION, EXIT, getOption }
+    );
+
+    expect(result).toBe(EXIT.OK);
+    const sarifPath = path.join(sarifTestDir, "results.sarif");
+    expect(existsSync(sarifPath)).toBe(true);
+    const sarif = JSON.parse(readFileSync(sarifPath, "utf8"));
+    expect(sarif.version).toBe("2.1.0");
+    expect(Array.isArray(sarif.runs)).toBe(true);
+
+    const audit = JSON.parse(readFileSync(path.join(sarifTestDir, "audit.json"), "utf8"));
+    expect(audit.artifacts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: expect.stringContaining("results.sarif") }),
+    ]));
   });
 
   it("exit code OK on successful analysis", async () => {
@@ -155,6 +178,7 @@ describe("analyze CLI", () => {
         "findings.json",
         "risk-register.yaml",
         "analysis-report.md",
+        "results.sarif",
         "test-seeds.json",
         "invariants.json",
         "repo-graph.json",
@@ -659,17 +683,17 @@ describe("analyze CLI", () => {
     expect(existsSync(path.join(mermaidTestDir, "audit.json"))).toBe(true);
   });
 
-  it("unknown emit format is filtered out", async () => {
-    const unknownTestDir = path.join(tempOutDir, "emit-unknown");
-    mkdirSync(unknownTestDir, { recursive: true });
+  it("rejects unknown emit formats with a usage error", async () => {
+    for (const value of ["invalid-format", "not-a-format"]) {
+      const unknownTestDir = path.join(tempOutDir, `emit-${value}`);
+      mkdirSync(unknownTestDir, { recursive: true });
 
-    // unknown format should be filtered, still generates audit.json
-    const args = [fixturesDir, "--emit", "unknown,invalid", "--out", unknownTestDir];
-    const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
-    // Should return OK - unknown formats are filtered out
-    expect(result).toBe(EXIT.OK);
-    // audit.json should always exist
-    expect(existsSync(path.join(unknownTestDir, "audit.json"))).toBe(true);
+      const args = [fixturesDir, "--emit", value, "--out", unknownTestDir];
+      const result = await analyzeCommand(args, { VERSION, EXIT, getOption });
+
+      expect(result).toBe(EXIT.USAGE_ERROR);
+      expect(existsSync(path.join(unknownTestDir, "audit.json"))).toBe(false);
+    }
   });
 
   it("completeness field in findings", async () => {

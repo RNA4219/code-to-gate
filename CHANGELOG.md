@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- manual-bbで検出したbaseline参照、抑制YAML・不正期限、policy数値検証、readiness ID・warn_only、emit検証・SARIF、共通help、Viewerのversion表示を修正した。filter_low=falseの評価漏れも対照テストで修正した（[Task Seed 20260911-05](docs/tasks/20260911-05-manual-bb-fixes.md)）。
+- v1のpartial_warning_thresholdを予約設定として仕様化し、入力完全性・allow_partialによる判定、warn_onlyの境界、rename表現を明記した。READMEのimportからexportまでの手順を同期した（[Readiness入力仕様](docs/specs/readiness-input-contract.md)）。
 - policyの既知項目を解析済みYAMLから読み取り、書式による判定不一致とWindowsパスの切り詰めを修正する。同梱policyのID・件数上限を正式なキーへ整合する（[Task Seed 20260911-04](docs/tasks/20260911-04-policy-yaml-sections.md)）。
 - partial policyを1行・複数行YAMLで同じように読み取り、不正な型をpolicyエラーとして拒否する（[Task Seed 20260911-03](docs/tasks/20260911-03-partial-yaml.md)）。
 - 補助文書のpolicy例を理由付きの個別調整へ更新し、設定確認とGitHub/npmの配布状態を同期した（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。

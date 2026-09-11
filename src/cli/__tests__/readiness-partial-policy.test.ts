@@ -153,6 +153,25 @@ describe("readiness partial policy YAML", () => {
     expect(readiness?.recommendedActions?.[0]).toContain("scan diagnostics");
   });
 
+  it.each([0, 0.2, 1])("treats partial warning threshold %s as a reserved v1 value", async (threshold) => {
+    for (const completeness of ["complete", "partial"] as const) {
+      for (const allowPartial of [false, true]) {
+        const { findingsDir, outDir, policyPath } = createCase(
+          `reserved-${threshold}-${completeness}-${allowPartial}`,
+          `partial: { allow_partial: ${allowPartial}, partial_warning_threshold: ${threshold} }`,
+        );
+        const inputPath = path.join(findingsDir, "findings.json");
+        const input = JSON.parse(readFileSync(inputPath, "utf8"));
+        input.completeness = completeness;
+        writeFileSync(inputPath, JSON.stringify(input));
+        const { exitCode, readiness } = await runReadiness(findingsDir, policyPath, outDir);
+        expect(readiness?.status).toBe(completeness === "complete" ? "passed" : allowPartial ? "passed_with_risk" : "blocked_input");
+        expect(exitCode).toBe(completeness === "partial" && !allowPartial ? EXIT.READINESS_NOT_CLEAR : EXIT.OK);
+        expect(readiness?.failedConditions?.some(c => c.id === "INCOMPLETE_INPUT")).toBe(completeness === "partial");
+      }
+    }
+  });
+
   it("keeps the omitted partial section strict", async () => {
     const { findingsDir, outDir, policyPath } = createCase("strict-omitted");
     const { exitCode, readiness } = await runReadiness(findingsDir, policyPath, outDir);

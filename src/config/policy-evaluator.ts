@@ -376,7 +376,7 @@ export function evaluatePolicy(
     }
 
     // Check confidence threshold
-    if (finding.confidence < policy.confidence.minConfidence) {
+    if (policy.confidence.filterLow !== false && finding.confidence < policy.confidence.minConfidence) {
       lowConfidenceFindings.push(finding);
       failedConditions.push({
         type: "low_confidence",

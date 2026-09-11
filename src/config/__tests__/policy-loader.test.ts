@@ -2,7 +2,7 @@
  * Tests for policy-loader.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import {
   createDefaultPolicy,
   loadPolicyFile,
@@ -10,6 +10,7 @@ import {
   isValidPolicyVersion,
   loadSuppressionFile,
   isSuppressed,
+  checkSuppressionExpiry,
   detectBroadSuppressions,
   isBroadSuppression,
   POLICY_VERSION,
@@ -583,6 +584,74 @@ suppressions:
 
       expect(result.suppressed).toBe(true);
       expect(result.expiry).toBe("2030-12-31");
+    });
+
+    it("should treat quoted fields with trailing comments like uncommented YAML", () => {
+      const plainPath = path.join(tempDir, "plain-suppression.yaml");
+      const commentedPath = path.join(tempDir, "commented-suppression.yaml");
+      writeFileSync(plainPath, `version: ctg/v1
+suppressions:
+  - rule_id: DEBT_MARKER
+    path: src/index.ts
+    reason: Accepted debt
+    expiry: 2099-12-31
+`);
+      writeFileSync(commentedPath, `version: "ctg/v1" # schema
+suppressions:
+  - rule_id: "DEBT_MARKER" # rule
+    path: "src/index.ts" # source path
+    reason: "Accepted debt" # rationale
+    expiry: "2099-12-31" # review date
+`);
+
+      const plain = loadSuppressionFile(plainPath, tempDir);
+      const commented = loadSuppressionFile(commentedPath, tempDir);
+
+      expect(commented.version).toBe(plain.version);
+      expect(commented.suppressions).toEqual(plain.suppressions);
+      expect(isSuppressed("DEBT_MARKER", "src/index.ts", commented.suppressions).suppressed).toBe(true);
+    });
+
+    it.each(["not-a-date", "2026-02-30"])("does not apply an invalid expiry (%s) and reports an invalid-date diagnostic", (expiry) => {
+      const suppressions: SuppressionEntry[] = [{
+        ruleId: "DEBT_MARKER",
+        path: "src/index.ts",
+        reason: "Invalid test input",
+        expiry,
+      }];
+
+      expect(isSuppressed("DEBT_MARKER", "src/index.ts", suppressions).suppressed).toBe(false);
+      expect(checkSuppressionExpiry(suppressions)).toEqual([
+        expect.objectContaining({
+          path: "src/index.ts",
+          ruleId: "DEBT_MARKER",
+          expiry,
+          status: "invalid",
+        }),
+      ]);
+    });
+
+    it("uses UTC midnight for the YYYY-MM-DD expiry boundary", () => {
+      const suppressions: SuppressionEntry[] = [{
+        ruleId: "DEBT_MARKER",
+        path: "src/index.ts",
+        reason: "UTC boundary",
+        expiry: "2026-06-30",
+      }];
+
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date("2026-06-29T23:59:59.999Z"));
+        expect(isSuppressed("DEBT_MARKER", "src/index.ts", suppressions).suppressed).toBe(true);
+
+        vi.setSystemTime(new Date("2026-06-30T00:00:00.000Z"));
+        expect(isSuppressed("DEBT_MARKER", "src/index.ts", suppressions).suppressed).toBe(true);
+
+        vi.setSystemTime(new Date("2026-06-30T00:00:00.001Z"));
+        expect(isSuppressed("DEBT_MARKER", "src/index.ts", suppressions).suppressed).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 

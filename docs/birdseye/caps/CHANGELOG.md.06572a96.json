@@ -10,6 +10,7 @@
     "docs/acceptance/AC-20260910-15-release-1.6.0.md",
     "docs/distribution-status.md",
     "docs/releases/v1.6.0.md",
+    "docs/specs/readiness-input-contract.md",
     "docs/tasks/20260910-01-ledger-sync.md",
     "docs/tasks/20260910-02-precision-review.md",
     "docs/tasks/20260910-03-release-prep.md",
@@ -24,13 +25,14 @@
     "docs/tasks/20260911-01-human-readme.md",
     "docs/tasks/20260911-02-readiness-diff-followups.md",
     "docs/tasks/20260911-03-partial-yaml.md",
-    "docs/tasks/20260911-04-policy-yaml-sections.md"
+    "docs/tasks/20260911-04-policy-yaml-sections.md",
+    "docs/tasks/20260911-05-manual-bb-fixes.md"
   ],
   "deps_in": [
     "CHECKLISTS.md",
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "ca3ccf2b46c5a23014e1d1bcf45f8a69cd50e1390be3f91474f3a83150ef1523",
-  "generation_id": "birdseye-d2d6a58ca24118dd"
+  "sourceHash": "085399754ede262f006112f943ffe028eec2388023a60c14ca674920977d80ae",
+  "generation_id": "birdseye-33377e4a68abbf61"
 }

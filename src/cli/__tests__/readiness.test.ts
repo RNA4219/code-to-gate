@@ -5,7 +5,7 @@
  * Refactored: 15 tests (merged similar cases)
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { readinessCommand } from "../readiness.js";
 import { validateArtifactObject } from "../schema-validate.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
@@ -1018,15 +1018,49 @@ suppression:
       const out1 = path.join(tempOutDir, "run1");
       const out2 = path.join(tempOutDir, "run2");
 
-      await readinessCommand([fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", out1], { VERSION, EXIT, getOption });
-      await new Promise(r => setTimeout(r, 100));
-      await readinessCommand([fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", out2], { VERSION, EXIT, getOption });
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-09-11T00:00:00.000Z"));
+      try {
+        await readinessCommand([fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", out1], { VERSION, EXIT, getOption });
+        await readinessCommand([fixturesDir, "--policy", policyFile, "--from", findingsDir, "--out", out2], { VERSION, EXIT, getOption });
+      } finally {
+        vi.useRealTimers();
+      }
 
       const r1 = JSON.parse(readFileSync(path.join(out1, "release-readiness.json"), "utf8"));
       const r2 = JSON.parse(readFileSync(path.join(out2, "release-readiness.json"), "utf8"));
 
       expect(r1.run_id).toMatch(/^readiness-/);
       expect(r2.run_id).toMatch(/^readiness-/);
+      expect(r1.run_id).not.toBe(r2.run_id);
+      for (const [out, result] of [[out1, r1], [out2, r2]]) {
+        const debt = JSON.parse(readFileSync(path.join(out, "self-analysis-debt.json"), "utf8"));
+        expect(debt.run_id).toBe(result.run_id);
+      }
+      expect(JSON.parse(readFileSync(path.join(findingsDir, "findings.json"), "utf8")).run_id).toBe("test-run");
+    });
+  });
+
+  describe("warn-only exit policy", () => {
+    it.each([false, true])("keeps a blocked verdict with warn_only=%s", async (warnOnly) => {
+      const input = writeFindingsToDir(path.join(tempOutDir, "warn-input"), [
+        createFinding({ ruleId: "DEBT_MARKER", category: "maintainability", severity: "high" }),
+      ]);
+      const warningPolicy = path.join(tempOutDir, "warn.yaml");
+      writeFileSync(warningPolicy, `version: ctg/v1\nblocking:\n  severity: { high: true }\nexit: { warn_only: ${warnOnly} }\n`);
+      const { exitCode, readiness } = await runReadiness([fixturesDir, "--policy", warningPolicy, "--from", input, "--out", tempOutDir]);
+      expect(exitCode).toBe(warnOnly ? EXIT.OK : EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.failedConditions).toEqual(expect.arrayContaining([expect.objectContaining({ id: "BLOCKING_SEVERITY_HIGH" })]));
+    });
+
+    it("does not hide invalid input under warn_only", async () => {
+      const input = writeFindingsToDir(path.join(tempOutDir, "invalid-warn"), [], { completeness: "invalid" });
+      const warningPolicy = path.join(tempOutDir, "warn.yaml");
+      writeFileSync(warningPolicy, "version: ctg/v1\nexit: { warn_only: true }\n");
+      const { exitCode } = await runReadiness([fixturesDir, "--policy", warningPolicy, "--from", input, "--out", tempOutDir]);
+      expect(exitCode).toBe(EXIT.SCHEMA_FAILED);
+      expect(existsSync(path.join(tempOutDir, "release-readiness.json"))).toBe(false);
     });
   });
 

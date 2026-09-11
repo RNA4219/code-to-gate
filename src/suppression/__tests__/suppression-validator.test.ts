@@ -358,6 +358,22 @@ describe("suppression-validator", () => {
         expect(result.valid).toBe(false);
       });
 
+      it("rejects a date-only value that JavaScript would normalize", () => {
+        const suppression = createValidSuppression({
+          expiry: "2026-02-30",
+        });
+
+        const result = validateSuppression(suppression, 0);
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContainEqual(
+          expect.objectContaining({
+            type: "field",
+            field: "expiry",
+            message: "Invalid date value",
+          })
+        );
+      });
+
       it("warns for expired date", () => {
         const suppression = createValidSuppression({
           expiry: getPastDate(),

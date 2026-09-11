@@ -14,7 +14,6 @@ import {
   DEFAULT_SUPPRESSION_CLASS,
   type CtgPolicy,
   type SuppressionFile,
-  type SuppressionEntry,
   type SuppressionClass,
   type PolicyDslConfig,
   type PolicyDslRule,
@@ -25,26 +24,40 @@ import {
 } from "./policy-types.js";
 import type { RuleOptionsConfig } from "../types/rule-options.js";
 
-function splitYamlKeyValue(line: string): [string, string] | undefined {
-  const separatorIndex = line.indexOf(":");
-  if (separatorIndex < 0) {
-    return undefined;
-  }
-
-  return [
-    line.slice(0, separatorIndex).trim(),
-    line.slice(separatorIndex + 1).trim(),
-  ];
-}
-
-function unquoteYamlScalar(value: string | undefined): string {
-  return (value ?? "").replace(/^["']|["']$/g, "");
-}
-
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;
+}
+
+function legacyRootSuppressionDocument(content: string): string | undefined {
+  const lines = content.split(/\r?\n/);
+  const listIndex = lines.findIndex((line) => /^-\s*/.test(line));
+  if (listIndex < 0 || !lines.slice(0, listIndex).some((line) => /^\s*version\s*:/.test(line))) {
+    return undefined;
+  }
+
+  return [
+    ...lines.slice(0, listIndex),
+    "suppressions:",
+    ...lines.slice(listIndex).map((line) => line.trim() ? `  ${line}` : line),
+  ].join("\n");
+}
+
+function loadSuppressionYaml(content: string): unknown {
+  try {
+    return yaml.load(content, { schema: yaml.JSON_SCHEMA });
+  } catch (error) {
+    const legacyContent = legacyRootSuppressionDocument(content);
+    if (legacyContent === undefined) {
+      throw error;
+    }
+    try {
+      return yaml.load(legacyContent, { schema: yaml.JSON_SCHEMA });
+    } catch {
+      throw error;
+    }
+  }
 }
 
 function scalarString(value: unknown): string | undefined {
@@ -56,6 +69,26 @@ function numericValue(value: unknown): number | undefined {
     return undefined;
   }
   return typeof value === "number" ? value : Number.NaN;
+}
+
+function nonNegativeInteger(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be a number`);
+  }
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return value;
+}
+
+function fraction(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be a number`);
+  }
+  if (value < 0 || value > 1) {
+    throw new Error(`${label} must be between 0 and 1`);
+  }
+  return value;
 }
 
 function parseRuleOptions(content: string): RuleOptionsConfig | undefined {
@@ -186,10 +219,10 @@ function parsePartialSection(root: Record<string, unknown> | undefined): CtgPoli
     partial.allowPartial = raw.allow_partial;
   }
   if (Object.prototype.hasOwnProperty.call(raw, "partial_warning_threshold")) {
-    if (typeof raw.partial_warning_threshold !== "number") {
-      throw new Error("partial.partial_warning_threshold must be a number");
+    if (typeof raw.partial_warning_threshold !== "number" || !Number.isFinite(raw.partial_warning_threshold)) {
+      throw new Error("partial_warning_threshold must be a number");
     }
-    partial.partialWarningThreshold = raw.partial_warning_threshold;
+    partial.partialWarningThreshold = fraction(raw.partial_warning_threshold, "partial.partial_warning_threshold");
   }
   return partial;
 }
@@ -216,6 +249,7 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   const stringValue = (object: Record<string, unknown>, key: string, label: string): string | undefined => {
     if (!has(object, key)) return undefined;
     if (typeof object[key] !== "string") throw new Error(`${label} must be a string`);
+    if (!(object[key] as string).trim()) throw new Error(`${label} must not be empty`);
     return object[key] as string;
   };
   const booleanValue = (object: Record<string, unknown>, key: string, label: string): boolean | undefined => {
@@ -223,10 +257,13 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
     if (typeof object[key] !== "boolean") throw new Error(`${label} must be a boolean`);
     return object[key] as boolean;
   };
-  const numberValue = (object: Record<string, unknown>, key: string, label: string): number | undefined => {
+  const fractionValue = (object: Record<string, unknown>, key: string, label: string): number | undefined => {
     if (!has(object, key)) return undefined;
-    if (typeof object[key] !== "number") throw new Error(`${label} must be a number`);
-    return object[key] as number;
+    return fraction(object[key], label);
+  };
+  const nonNegativeIntegerValue = (object: Record<string, unknown>, key: string, label: string): number | undefined => {
+    if (!has(object, key)) return undefined;
+    return nonNegativeInteger(object[key], label);
   };
 
   result.version = stringValue(documentRoot, "version", "version");
@@ -266,7 +303,7 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
       for (const [yamlKey, property] of [
         ["critical_max", "criticalMax"], ["high_max", "highMax"], ["medium_max", "mediumMax"], ["low_max", "lowMax"],
       ] as const) {
-        const value = numberValue(countThreshold, yamlKey, `blocking count threshold ${yamlKey}`);
+        const value = nonNegativeIntegerValue(countThreshold, yamlKey, `blocking count threshold ${yamlKey}`);
         if (value !== undefined) parsedBlocking.countThreshold[property] = value;
       }
     }
@@ -276,8 +313,8 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   const confidence = section(documentRoot, "confidence");
   if (confidence) {
     result.confidence = { ...DEFAULT_CONFIDENCE };
-    const min = numberValue(confidence, "min_confidence", "confidence.min_confidence");
-    const low = numberValue(confidence, "low_confidence_threshold", "confidence.low_confidence_threshold");
+    const min = fractionValue(confidence, "min_confidence", "confidence.min_confidence");
+    const low = fractionValue(confidence, "low_confidence_threshold", "confidence.low_confidence_threshold");
     const filter = booleanValue(confidence, "filter_low", "confidence.filter_low");
     if (min !== undefined) result.confidence.minConfidence = min;
     if (low !== undefined) result.confidence.lowConfidenceThreshold = low;
@@ -288,8 +325,8 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   if (suppression) {
     result.suppression = {};
     const file = stringValue(suppression, "file", "suppression.file");
-    const expiry = numberValue(suppression, "expiry_warning_days", "suppression.expiry_warning_days");
-    const max = numberValue(suppression, "max_suppressions_per_rule", "suppression.max_suppressions_per_rule");
+    const expiry = nonNegativeIntegerValue(suppression, "expiry_warning_days", "suppression.expiry_warning_days");
+    const max = nonNegativeIntegerValue(suppression, "max_suppressions_per_rule", "suppression.max_suppressions_per_rule");
     if (file !== undefined) result.suppression.file = file;
     if (expiry !== undefined) result.suppression.expiryWarningDays = expiry;
     if (max !== undefined) result.suppression.maxSuppressionsPerRule = max;
@@ -300,9 +337,9 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
     result.llm = {};
     const enabled = booleanValue(llm, "enabled", "llm.enabled");
     const mode = stringValue(llm, "mode", "llm.mode");
-    const min = numberValue(llm, "min_confidence", "llm.min_confidence");
+    const min = fractionValue(llm, "min_confidence", "llm.min_confidence");
     const requireLlm = booleanValue(llm, "require_llm", "llm.require_llm");
-    const unsupported = numberValue(llm, "unsupported_claims_max", "llm.unsupported_claims_max");
+    const unsupported = nonNegativeIntegerValue(llm, "unsupported_claims_max", "llm.unsupported_claims_max");
     if (enabled !== undefined) result.llm.enabled = enabled;
     if (mode !== undefined) {
       if (!["remote", "local-only", "none"].includes(mode)) throw new Error(`llm.mode is invalid: ${mode}`);
@@ -390,93 +427,88 @@ export function parseSuppressionFile(content: string): SuppressionFile {
     suppressions: [],
   };
 
-  const lines = content.split("\n");
-  let currentSuppression: Partial<SuppressionEntry> | null = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    if (trimmed.startsWith("-")) {
-      if (currentSuppression && currentSuppression.ruleId && currentSuppression.path) {
-        result.suppressions.push({
-          ruleId: currentSuppression.ruleId,
-          path: currentSuppression.path,
-          reason: currentSuppression.reason || "",
-          expiry: currentSuppression.expiry,
-          author: currentSuppression.author,
-          class: currentSuppression.class || DEFAULT_SUPPRESSION_CLASS,
-        });
-      }
-      currentSuppression = {};
-
-      // Handle case where first field is on same line as dash
-      // e.g., "- rule_id: CLIENT_TRUSTED_PRICE"
-      const afterDash = trimmed.substring(1).trim();
-      const inlineField = splitYamlKeyValue(afterDash);
-      if (inlineField) {
-        const [key, value] = inlineField;
-        if (key === "rule_id") {
-          currentSuppression.ruleId = unquoteYamlScalar(value);
-        } else if (key === "path") {
-          currentSuppression.path = unquoteYamlScalar(value);
-        }
-      }
-      continue;
-    }
-
-    if (trimmed.includes(":") && currentSuppression) {
-      const field = splitYamlKeyValue(trimmed);
-      if (!field) {
-        continue;
-      }
-      const [key, value] = field;
-
-      if (key === "rule_id") {
-        currentSuppression.ruleId = unquoteYamlScalar(value);
-      } else if (key === "path") {
-        currentSuppression.path = unquoteYamlScalar(value);
-      } else if (key === "reason") {
-        currentSuppression.reason = unquoteYamlScalar(value);
-      } else if (key === "expiry") {
-        currentSuppression.expiry = unquoteYamlScalar(value);
-      } else if (key === "author") {
-        currentSuppression.author = unquoteYamlScalar(value);
-      } else if (key === "class") {
-        // Parse class field, validate against allowed values
-        const classValue = unquoteYamlScalar(value) as SuppressionClass;
-        const validClasses: SuppressionClass[] = [
-          "self-reference",
-          "fixture-intentional",
-          "generated-artifact",
-          "accepted-design",
-          "temporary-debt",
-        ];
-        if (validClasses.includes(classValue)) {
-          currentSuppression.class = classValue;
-        } else {
-          // Invalid class defaults to temporary-debt
-          currentSuppression.class = DEFAULT_SUPPRESSION_CLASS;
-        }
-      }
-    }
-
-    if (trimmed.startsWith("version:")) {
-      result.version = trimmed.split(":")[1]?.trim() || POLICY_VERSION;
-    }
+  let parsed: unknown;
+  try {
+    parsed = loadSuppressionYaml(content);
+  } catch (error) {
+    throw new Error(
+      `Invalid suppression YAML: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    );
   }
 
-  if (currentSuppression && currentSuppression.ruleId && currentSuppression.path) {
+  // A bare root list was accepted by the old line parser as an omitted
+  // suppressions section. Keep that compatibility while valid files use an
+  // object root with an array-valued suppressions field.
+  if (Array.isArray(parsed)) {
+    return result;
+  }
+  if (parsed === null || (parsed !== undefined && !asRecord(parsed))) {
+    throw new Error("suppression root must be an object");
+  }
+
+  const root = asRecord(parsed) ?? {};
+  const version = root.version;
+  if (version !== undefined && typeof version !== "string") {
+    throw new Error("suppression.version must be a string");
+  }
+  if (typeof version === "string" && version.trim()) {
+    result.version = version;
+  }
+
+  const rawSuppressions = root.suppressions;
+  if (rawSuppressions === undefined || rawSuppressions === null) {
+    return result;
+  }
+  if (!Array.isArray(rawSuppressions)) {
+    throw new Error("suppressions must be an array");
+  }
+
+  const validClasses: SuppressionClass[] = [
+    "self-reference",
+    "fixture-intentional",
+    "generated-artifact",
+    "accepted-design",
+    "temporary-debt",
+  ];
+  const readOptionalString = (entry: Record<string, unknown>, key: string, index: number): string | undefined => {
+    const value = entry[key];
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value !== "string") {
+      throw new Error(`suppressions[${index}].${key} must be a string`);
+    }
+    return value;
+  };
+
+  for (const [index, rawEntry] of rawSuppressions.entries()) {
+    // Keep the legacy behavior that incomplete/null list items are ignored.
+    const entry = asRecord(rawEntry);
+    if (!entry) {
+      continue;
+    }
+
+    const ruleId = readOptionalString(entry, "rule_id", index);
+    const pathValue = readOptionalString(entry, "path", index);
+    if (!ruleId || !pathValue) {
+      continue;
+    }
+
+    const reason = readOptionalString(entry, "reason", index) ?? "";
+    const expiry = readOptionalString(entry, "expiry", index);
+    const author = readOptionalString(entry, "author", index);
+    const classValue = readOptionalString(entry, "class", index) as SuppressionClass | undefined;
+
     result.suppressions.push({
-      ruleId: currentSuppression.ruleId,
-      path: currentSuppression.path,
-      reason: currentSuppression.reason || "",
-      expiry: currentSuppression.expiry,
-      author: currentSuppression.author,
-      class: currentSuppression.class || DEFAULT_SUPPRESSION_CLASS,
+      ruleId,
+      path: pathValue,
+      reason,
+      expiry,
+      author,
+      class: classValue && validClasses.includes(classValue)
+        ? classValue
+        : DEFAULT_SUPPRESSION_CLASS,
     });
   }
 

@@ -90,6 +90,27 @@ suppressions:
       expect(result.suppressions[0].path).toBe("src/**/*.ts");
     });
 
+    it("strips trailing comments from suppression scalar values", () => {
+      const yaml = `
+version: ctg/v1 # schema
+suppressions:
+  - rule_id: DEBT_MARKER # rule
+    path: "src/**/*.ts" # source path
+    reason: "Accepted debt" # rationale
+    expiry: "2099-12-31" # review date
+`;
+
+      const result = parseSuppressionYaml(yaml);
+
+      expect(result.suppressions).toEqual([{
+        rule_id: "DEBT_MARKER",
+        path: "src/**/*.ts",
+        reason: "Accepted debt",
+        expiry: "2099-12-31",
+        author: undefined,
+      }]);
+    });
+
     it("handles suppressions without optional fields", () => {
       const yaml = `
 suppressions:
@@ -287,7 +308,7 @@ suppressions:
       expect(result.suppressions).toHaveLength(1);
     });
 
-    it("handles malformed YAML gracefully", () => {
+    it("rejects malformed YAML instead of partially applying earlier entries", () => {
       const yaml = `
 suppressions:
   - rule_id: GOOD_RULE
@@ -296,9 +317,24 @@ suppressions:
   - invalid entry without dash
     something: value
 `;
-      const result = parseSuppressionYaml(yaml);
-      // Should still parse the good entry
-      expect(result.suppressions.length).toBeGreaterThanOrEqual(1);
+
+      expect(() => parseSuppressionYaml(yaml)).toThrow(/Invalid suppression YAML/);
+    });
+
+    it("rejects a valid suppression followed by a malformed expiry", () => {
+      const yaml = `
+suppressions:
+  - rule_id: GOOD_RULE
+    path: good/*.ts
+    reason: good
+    expiry: 2099-12-31
+  - rule_id: BROKEN_RULE
+    path: broken/*.ts
+    reason: broken
+    expiry: "2099-12-31
+`;
+
+      expect(() => parseSuppressionYaml(yaml)).toThrow(/Invalid suppression YAML/);
     });
 
     it("handles very long paths", () => {
