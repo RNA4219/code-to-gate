@@ -1,6 +1,6 @@
 # 補助文書とreadiness・diff修正の検収（2026-09-11）
 
-状態: 作業中。対象は[Task Seed 20260911-02](../tasks/20260911-02-readiness-diff-followups.md)。
+状態: 5段階の実装とローカル検証完了。対象は[Task Seed 20260911-02](../tasks/20260911-02-readiness-diff-followups.md)。CI・マージ結果はPRで追跡する。
 
 ## 実施記録
 
@@ -44,7 +44,20 @@
 - partial許可時はpassed_with_risk・exit 0を維持し、summaryにpolicyによるpartial許可を明示する。
 - config evaluator 36テストとreadiness 36テスト、typecheck、全体lintが成功した。
 - 実CLIのstrict partial出力は既存release-readiness schemaに適合した（`readiness-partial-strict/release-readiness.json`）。
+- 複数行YAMLのpartial許可設定で、実CLIもpassed_with_risk・exit 0となりschema検証が成功した（`readiness-partial-allowed/release-readiness.json`）。
+
+### 追加の残課題
+
+P2: 既存policy parserは`partial: { allow_partial: true }`という1行形式を反映せず、strictの既定値を使う。今回の5件の修正とは別のYAML解釈の問題として記録し、CLI referenceに複数行形式を案内した。parser全体のYAML形式対応は別変更で扱う。再現policyは外部証跡の`partial-allowed-inline.yaml`。
 
 ## 統合検証
 
-実施中。公開schemaと既存の厳格policy、公開済みtag/assetを維持する。
+成功。公開schemaと既存の厳格policy、公開済みtag/assetを維持した。
+
+- build、typecheck、全体lint: 成功。
+- `npm test`: 通常198ファイル3,765件成功・既存skip 4件、Tree-sitter 63件成功、maintenance 15件成功（`full-tests.log`）。
+- coverage: 116ファイル1,883件成功・既存skip 4件。statements 88.85%、branches 80.67%、functions 94.80%、lines 89.84%で、4指標すべて既存80%閾値を通過した（`coverage.log`）。
+- 現在のsource差分をCIと同じdiff/readiness policyで評価し、既存suppression適用後のreadinessはpassed。raw/effective情報を維持し、policyの閾値や抑制設定は変更していない（`pr-gate/release-readiness.json`）。
+- release immutability、docs参照、配布状態、roadmap drift（0候補）を確認した。
+- 配布package smoke: 成功。生成tgzを一時環境へインストールし、agent、analyze、viewer、precision-review、diffとdiff policyを確認した（`package-smoke-network.log`）。最初のsandbox試行はnpm registryのEACCESで停止し、通信許可を付けた再実行が成功した。
+- sourceの最終検証以後は検収記録と案内のみを更新し、Birdseye生成・checkとdiff検査で整合を確認する。

@@ -1,8 +1,8 @@
 {
   "schema": "birdseye/hot/v1",
-  "generated_at": "birdseye-985c742dc85d14b0",
-  "generation_id": "birdseye-985c742dc85d14b0",
-  "sourceHash": "985c742dc85d14b0fdf6ff2e8c6fbaadef4acb748a086dfb26f3104160f2d521",
+  "generated_at": "birdseye-276040b543b42afb",
+  "generation_id": "birdseye-276040b543b42afb",
+  "sourceHash": "276040b543b42afb54fc61a4ef5331aeb7a5e426865287f6a7a7be56dcc40aaf",
   "hot_nodes": [
     ".ctg/policy.yaml",
     "GUARDRAILS.md",

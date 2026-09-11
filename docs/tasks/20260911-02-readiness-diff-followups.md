@@ -2,7 +2,7 @@
 task_id: 20260911-02
 intent_id: READINESS-DIFF-FOLLOWUPS-20260911-02
 owner: code-to-gate-team
-status: in_progress
+status: done
 last_reviewed_at: 2026-09-11
 next_review_due: 2026-10-11
 ---
@@ -37,3 +37,5 @@ next_review_due: 2026-10-11
 ## 証跡
 
 [検収記録](../acceptance/AC-20260911-02-readiness-diff-followups.md)で段階ごとの結果を追跡する。
+
+5段階の実装とローカル必須検証を完了した。追加で判明したpartial設定の1行YAML制約は検収記録へ分けて記載した。PRのCIとマージ結果はGitHub側で追跡する。

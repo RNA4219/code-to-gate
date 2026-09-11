@@ -483,6 +483,13 @@ code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <
 
 不完全なfindingsは、指摘0件でも厳格policyでは`INCOMPLETE_INPUT`としてブロックする。summaryとrecommendedActionsを確認し、unsupported claimsや走査診断の原因を解消してanalyze/diffから再生成する。`partial.allow_partial: true`を明示した場合も、状態は`passed_with_risk`となり入力が不完全であることを表示する。
 
+現在のreadiness用policy loaderでは、partial設定は次の複数行形式で記載する。`partial: { allow_partial: true }`という1行形式は反映されない既知の制約がある。
+
+```yaml
+partial:
+  allow_partial: true
+```
+
 **Example:**
 ```bash
 # Evaluate with policy
