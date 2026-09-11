@@ -12,7 +12,7 @@ automatic release decisions. `critical` and `high` are gate severity labels used
 to prioritize human review; the final release decision remains with the human
 or downstream approval gate.
 
-[![Package](https://img.shields.io/badge/package-1.6.0-blue)](CHANGELOG.md)
+[![Package](https://img.shields.io/badge/package-1.6.1-blue)](CHANGELOG.md)
 [![GitHub release](https://img.shields.io/badge/GitHub%20release-v1.6.0-yellow)](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0)
 [![npm](https://img.shields.io/badge/npm-not%20published-lightgrey)](https://www.npmjs.com/package/@quality-harness/code-to-gate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -33,7 +33,7 @@ Language: English | [日本語](README_JA.md)
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.6.0` GitHub release version |
+| `package.json` | `1.6.1` source version; GitHub publication pending |
 | GitHub Release | `v1.6.0` latest public release (2026-09-10) |
 | npm registry | Not published yet |
 

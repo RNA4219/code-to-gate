@@ -36,7 +36,7 @@ code-to-gate export sarif --from .qh --out results.sarif
 
 | チャネル | 状態 |
 |----------|------|
-| `package.json` | `1.6.0` GitHub公開版の対象 |
+| `package.json` | `1.6.1` ソース版。GitHub公開待ち |
 | GitHub Release | `v1.6.0` 公開済み（2026-09-10） |
 | npm registry | 未公開 |
 

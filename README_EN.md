@@ -20,7 +20,7 @@ seeds, SARIF, and release-readiness evidence.
 
 | Channel | Status |
 |---------|--------|
-| `package.json` | `1.6.0` GitHub release version |
+| `package.json` | `1.6.1` source version; GitHub publication pending |
 | GitHub Release | `v1.6.0` latest public release (2026-09-10) |
 | npm registry | Not published yet |
 

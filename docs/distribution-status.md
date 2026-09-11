@@ -2,7 +2,7 @@
 intent_id: DOC-DISTRIBUTION-STATUS-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-09-10
+last_reviewed_at: 2026-09-11
 next_review_due: 2026-10-10
 ---
 
@@ -15,7 +15,7 @@ npm publication status.
 
 | Channel | Current State | Notes |
 |---------|---------------|-------|
-| `package.json` | `1.6.0` | GitHub release version; npm remains unpublished |
+| `package.json` | `1.6.1` | Source version updated; GitHub publication pending; npm remains unpublished |
 | GitHub Release | `v1.6.0` | Latest public release, published 2026-09-10 at [v1.6.0](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0); draft/prerelease false |
 | npm registry | Not published | `npm view @quality-harness/code-to-gate` returned `E404` on 2026-09-10 |
 | Recommended install | Public GitHub tgz | Use the `v1.6.0` release asset below |
@@ -57,6 +57,12 @@ and [Security CI](https://github.com/RNA4219/code-to-gate/actions/runs/344581486
 both succeeded. CI ZIP files are not public distribution assets.
 
 ## 1.6.0 Release Status
+
+The source package has advanced to `1.6.1`, containing the readiness, policy,
+diff and CLI fixes recorded in [the patch notes](releases/v1.6.1.md).
+The latest verified public GitHub release remains `v1.6.0` until a separate
+tag/asset publication is completed. Source version and public availability
+are tracked independently.
 
 `1.6.0` is the public GitHub release from integrated revision `a793d2f`.
 npm publication remains separate and unverified; no npm, binary, or Docker CLI
