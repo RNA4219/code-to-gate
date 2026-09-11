@@ -41,6 +41,7 @@ code-to-gate運用時のチェックリスト集。
 - CIのmaintenance・台帳・文書・Birdseye checkが既存必須jobで失敗を伝播することを確認する
 - 文書のみ・指摘0件の正常なdiffがcompleteとなり、走査上限や読み取り失敗によるpartialと重大findingは厳格policyで引き続きブロックされることを確認する
 - readinessは不正入力をexit 7で拒否し、公開版の正常artifact、重大指摘、baseline/severity調整の動作を維持することを確認する
+- 不完全入力は指摘0件でも条件ID・summary・再解析の推奨操作を持ち、partial許可時もpassed_with_riskとして理由を表示することを確認する
 - 固定base/headのdiffはcheckout・未コミット編集によらず同じfinding/evidence・影響範囲となり、元の作業ツリーを変更しないことを確認する
 - 未参照ソースの削除だけのdiffはcompleteとなり、残存importerの影響範囲と未対応ソース混在時のpartial判定を維持することを確認する
 - 独立run IDの同時計時衝突防止とagentの冪等再利用を別々に検証する

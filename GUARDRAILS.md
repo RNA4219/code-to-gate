@@ -31,6 +31,7 @@ code-to-gate運用時に守るべき原則と振る舞いを体系化する。
 
 - 型安全：TypeScript `--strict` モード。新規・変更シグネチャには必ず型を付与し、Optional/Union は必要最小限に抑える。
 - 例外設計：既存 errors 階層に合わせ、再試行可否を区別する。
+- 入力不完全は指摘件数と別の条件・理由・推奨操作で説明し、partial許可policyでも完全な解析と表示しない。
 - diffの削除は入力欠落と区別し、残存importerの影響範囲と実際の読み取り失敗に対するpartial判定を維持する。
 - 後方互換：CLI/JSON 出力は互換性を維持し、破壊的変更は明示的フラグで段階移行する。Schema version `ctg/v1` を遵守。
 - 精度評価：AI判定と人手判定を区別し、入力生bytes・repo・commit・finding/evidenceの一致からreportable状態を計算する。

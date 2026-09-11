@@ -74,6 +74,9 @@ function mapFailedConditions(result: PolicyEvaluationResult): Array<{
       case "dsl_hold":
         id = `POLICY_DSL_HOLD_${condition.dslRuleId || "UNKNOWN"}`;
         break;
+      case "incomplete_input":
+        id = "INCOMPLETE_INPUT";
+        break;
       default:
         id = "UNKNOWN_CONDITION";
     }
@@ -136,6 +139,11 @@ function generateRecommendedActions(result: PolicyEvaluationResult): string[] {
     if (condition.type === "rule_block") {
       actions.push(`Address findings for blocking rule ${condition.ruleId}`);
     }
+
+    if (condition.type === "incomplete_input") {
+      actions.push("Review unsupported claims and scan diagnostics to identify the incomplete-input cause");
+      actions.push("Resolve the incomplete-input cause, then rerun analyze or diff followed by readiness");
+    }
   }
 
   // Add general recommendations if no specific ones
@@ -155,6 +163,9 @@ function getStatusSummary(status: ReadinessStatus, evalResult?: PolicyEvaluation
     case "passed":
       return "All policy conditions met, release ready";
     case "passed_with_risk":
+      if (evalResult?.failedConditions.some((condition) => condition.type === "incomplete_input")) {
+        return "Release possible with partial input allowed by policy; identified risks to address";
+      }
       return "Release possible with identified risks to address";
     case "needs_review":
       return "Release blocked pending review of findings";

@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { readinessCommand } from "../readiness.js";
+import { validateArtifactObject } from "../schema-validate.js";
 import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -33,7 +34,7 @@ function getOption(args: string[], name: string): string | undefined {
 }
 
 // Helper: Create findings artifact
-function createFindingsArtifact(findings: object[] = [], overrides = {}): object {
+function createFindingsArtifact(findings: object[] = [], overrides: Record<string, unknown> = {}): object {
   return {
     version: "ctg/v1",
     generated_at: new Date().toISOString(),
@@ -65,14 +66,33 @@ function createFinding(overrides = {}): object {
 }
 
 // Helper: Write findings to directory
-function writeFindingsToDir(dir: string, findings: object[]): string {
+function writeFindingsToDir(dir: string, findings: object[], overrides: Record<string, unknown> = {}): string {
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     path.join(dir, "findings.json"),
-    JSON.stringify(createFindingsArtifact(findings)),
+    JSON.stringify(createFindingsArtifact(findings, overrides)),
     "utf8"
   );
   return dir;
+}
+
+function writePartialAllowedPolicy(filePath: string): string {
+  writeFileSync(
+    filePath,
+    `version: ctg/v1
+policy_id: partial-allowed
+blocking:
+  severity: { critical: false, high: false, medium: false, low: false }
+  category: { auth: false, payment: false, validation: false, data: false, config: false, maintainability: false, testing: false, compatibility: false, release-risk: false, security: false }
+confidence:
+  min_confidence: 0.6
+  filter_low: true
+partial:
+  allow_partial: true
+`,
+    "utf8"
+  );
+  return filePath;
 }
 
 function writePolicyDslPolicy(filePath: string, dslYaml: string): string {
@@ -189,6 +209,8 @@ describe("readiness CLI", () => {
       expect(readiness.artifactRefs).toBeDefined();
       expect(readiness.completeness).toBeDefined();
       expect(["complete", "partial"]).toContain(readiness.completeness);
+      expect(readiness.status).toBe("passed");
+      expect(readiness.completeness).toBe("complete");
     });
 
     it("handles different fixtures and relative paths", async () => {
@@ -390,6 +412,92 @@ suppression:
   });
 
   describe("policy evaluation", () => {
+    it("blocks zero-finding partial input with an explicit condition and recovery actions", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "partial-strict"), [], {
+        completeness: "partial",
+        unsupported_claims: [{
+          id: "scan-partial",
+          claim: "Repository scan covered all eligible files within the configured limits.",
+          reason: "missing_evidence",
+          sourceSection: "repo-graph:scan",
+        }],
+      });
+      const outDir = path.join(tempOutDir, "partial-strict-out");
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyFile,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ]);
+
+      expect(exitCode).toBe(EXIT.READINESS_NOT_CLEAR);
+      expect(readiness.status).toBe("blocked_input");
+      expect(readiness.completeness).toBe("partial");
+      expect(readiness.counts.findings).toBe(0);
+      expect(readiness.counts.unsupportedClaims).toBe(1);
+      expect(readiness.failedConditions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "INCOMPLETE_INPUT",
+            reason: expect.stringContaining("partial"),
+          }),
+        ])
+      );
+      expect(readiness.summary).toContain("partial");
+      expect(readiness.recommendedActions).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("unsupported claims"),
+          expect.stringContaining("scan diagnostics"),
+          expect.stringContaining("analyze or diff"),
+          expect.stringContaining("readiness"),
+        ])
+      );
+
+      const validation = await validateArtifactObject(readiness, "release-readiness.json");
+      expect(validation.status).toBe("ok");
+    });
+
+    it("allows zero-finding partial input as passed_with_risk when policy permits it", async () => {
+      const findingsDir = writeFindingsToDir(path.join(tempOutDir, "partial-allowed"), [], {
+        completeness: "partial",
+        unsupported_claims: [{
+          id: "scan-partial-allowed",
+          claim: "Repository scan covered all eligible files within the configured limits.",
+          reason: "missing_evidence",
+          sourceSection: "repo-graph:scan",
+        }],
+      });
+      const policyPath = writePartialAllowedPolicy(path.join(tempOutDir, "partial-allowed-policy.yaml"));
+      const outDir = path.join(tempOutDir, "partial-allowed-out");
+      const { exitCode, readiness } = await runReadiness([
+        fixturesDir,
+        "--policy",
+        policyPath,
+        "--from",
+        findingsDir,
+        "--out",
+        outDir,
+      ]);
+
+      expect(exitCode).toBe(EXIT.OK);
+      expect(readiness.status).toBe("passed_with_risk");
+      expect(readiness.completeness).toBe("partial");
+      expect(readiness.counts.findings).toBe(0);
+      expect(readiness.summary).toContain("partial");
+      expect(readiness.summary).toContain("allowed by policy");
+      expect(readiness.summary).not.toContain("Blocked");
+      expect(readiness.failedConditions).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "INCOMPLETE_INPUT" })])
+      );
+      expect(readiness.recommendedActions.length).toBeGreaterThan(0);
+
+      const validation = await validateArtifactObject(readiness, "release-readiness.json");
+      expect(validation.status).toBe("ok");
+    });
+
     it("evaluates blocking severities and categories", async () => {
       // Critical severity
       const criticalDir = writeFindingsToDir(path.join(tempOutDir, "critical"), [

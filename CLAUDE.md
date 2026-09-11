@@ -78,6 +78,8 @@ Diff completeness follows scan/read completeness, not finding count or the inten
 
 Readiness validates the input findings artifact against the existing findings@v1 schema before policy evaluation. Invalid JSON or schema violations return SCHEMA_FAILED (7) without generating a new readiness artifact.
 
+Partial input has an explicit INCOMPLETE_INPUT condition, explanatory summary, and recovery actions even with zero findings. Policy-allowed partial input remains passed_with_risk and is identified as partial in the summary.
+
 Diff file metadata, rule evidence, and importer traversal use the same pinned head snapshot. The tracked commit content is read in bounded Git batches, independently of checkout and uncommitted edits.
 
 Deleted files are valid diff inputs even though they are absent at head; remaining importers stay in the blast radius. Unprocessed added/modified sources and actual snapshot failures remain partial.

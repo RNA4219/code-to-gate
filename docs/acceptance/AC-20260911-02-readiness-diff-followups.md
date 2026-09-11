@@ -38,6 +38,13 @@
 - diff/deletion/snapshot/policyの80テスト、typecheck、対象lintが成功した。
 - 実CLIの削除差分もcomplete・exit 0へ改善し、固定headの3状態一致を維持した（`diff-deletion-repro.json`）。
 
+### 5. 不完全入力の説明（完了）
+
+- strict policyで指摘0件・partialの入力を評価し、INCOMPLETE_INPUT、`Blocked: input evidence is partial`、原因確認とanalyze/diff・readiness再実行の2操作を出力した。
+- partial許可時はpassed_with_risk・exit 0を維持し、summaryにpolicyによるpartial許可を明示する。
+- config evaluator 36テストとreadiness 36テスト、typecheck、全体lintが成功した。
+- 実CLIのstrict partial出力は既存release-readiness schemaに適合した（`readiness-partial-strict/release-readiness.json`）。
+
 ## 統合検証
 
-未実施。公開schemaと既存の厳格policy、公開済みtag/assetを維持する。
+実施中。公開schemaと既存の厳格policy、公開済みtag/assetを維持する。

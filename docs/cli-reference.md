@@ -476,10 +476,12 @@ code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <
 **Status Values:**
 | Status | Description |
 |--------|-------------|
-| `passed` | No findings detected |
-| `passed_with_risk` | Low/medium findings present but not blocking |
-| `needs_review` | High severity findings require human review |
-| `blocked_input` | Critical findings block release |
+| `passed` | Policy conditions are met with complete input |
+| `passed_with_risk` | Policy allows identified risks or explicitly permits partial input |
+| `needs_review` | Policy requires human review of findings |
+| `blocked_input` | Blocking policy conditions, incomplete input, or unresolved intake issues prevent release |
+
+不完全なfindingsは、指摘0件でも厳格policyでは`INCOMPLETE_INPUT`としてブロックする。summaryとrecommendedActionsを確認し、unsupported claimsや走査診断の原因を解消してanalyze/diffから再生成する。`partial.allow_partial: true`を明示した場合も、状態は`passed_with_risk`となり入力が不完全であることを表示する。
 
 **Example:**
 ```bash
