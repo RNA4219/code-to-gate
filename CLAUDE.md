@@ -78,6 +78,8 @@ Diff completeness follows scan/read completeness, not finding count or the inten
 
 Readiness validates the input findings artifact against the existing findings@v1 schema before policy evaluation. Invalid JSON or schema violations return SCHEMA_FAILED (7) without generating a new readiness artifact.
 
+Diff file metadata, rule evidence, and importer traversal use the same pinned head snapshot. The tracked commit content is read in bounded Git batches, independently of checkout and uncommitted edits.
+
 **Current version**: `ctg/v1`
 
 All artifacts use stable schemas in `schemas/`:

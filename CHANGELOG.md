@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 補助文書のpolicy例を理由付きの個別調整へ更新し、設定確認とGitHub/npmの配布状態を同期した（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
 - readinessは入力findingsを既存schemaで検証し、形式不備を成功扱いせずexit 7で拒否する（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
+- diffのファイル情報・指摘根拠・影響範囲を指定headの固定commitから生成し、checkoutや未コミット編集による結果の変動を解消する（[Task Seed 20260911-02](docs/tasks/20260911-02-readiness-diff-followups.md)）。
 - 人間向けREADMEに用途別の案内、初回解析から結果を読む手順、利用上の限界を追加し、Quickstartの配布経路とCI例を同期した（[Task Seed 20260911-01](docs/tasks/20260911-01-human-readme.md)）。
 - 文書のみの差分や指摘0件の正常な差分を`partial`として誤ブロックする問題を修正し、解析の完全性を読み取り・走査の結果に基づいて扱う（[Task Seed 20260911-01](docs/tasks/20260911-01-human-readme.md)）。
 

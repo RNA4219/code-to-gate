@@ -291,6 +291,8 @@ Analyze differences between two Git references and estimate blast radius.
 code-to-gate diff <repo-path> --base <ref> --head <ref> --out <output-dir> [--policy <file>]
 ```
 
+解析本文・ファイル情報・影響範囲は、指定した`--head`を解決したcommitの追跡ファイルから作る。checkout先や未コミット編集・未追跡ファイルは混入しない。作業中のファイルを調べる場合は`analyze`を使う。取得したcommit SHAはfindingsの`repo.revision`へ記録する。
+
 **Arguments:**
 | Argument | Required | Description |
 |----------|----------|-------------|
