@@ -39,6 +39,7 @@ code-to-gate運用時のチェックリスト集。
 - `npm run build`、`npm run lint`、`npm test`、`npm run test:coverage`、package smokeを実行し、80%閾値を維持する
 - package 1.6.0候補と公開v1.5.1を区別し、検収結果と公開承認を別に記録する
 - CIのmaintenance・台帳・文書・Birdseye checkが既存必須jobで失敗を伝播することを確認する
+- 文書のみ・指摘0件の正常なdiffがcompleteとなり、走査上限や読み取り失敗によるpartialと重大findingは厳格policyで引き続きブロックされることを確認する
 - 独立run IDの同時計時衝突防止とagentの冪等再利用を別々に検証する
 - diffの任意policy設定でraw/effective・終了判定・出力が一致することを確認する
 - 精度レビュー画面のJSON保存・再開・入力照合・AI/人手区別を実ブラウザで確認する

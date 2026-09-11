@@ -74,6 +74,8 @@ Repository -> scan -> repo-graph.json -> analyze -> findings.json -> readiness -
 
 ## Schema Versioning
 
+Diff completeness follows scan/read completeness, not finding count or the intentional diff scope. Clean documentation/code changes may have zero findings; actual incomplete input must remain partial under strict policy.
+
 **Current version**: `ctg/v1`
 
 All artifacts use stable schemas in `schemas/`:
