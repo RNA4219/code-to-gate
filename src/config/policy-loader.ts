@@ -211,7 +211,7 @@ export function loadPolicyFile(
     return {
       policy: createDefaultPolicy(),
       source,
-      errors: [`severity override invalid: ${error instanceof Error ? error.message : String(error)}`],
+      errors: [`Invalid policy YAML: ${error instanceof Error ? error.message : String(error)}`],
     };
   }
 

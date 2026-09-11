@@ -46,9 +46,9 @@
 - 実CLIのstrict partial出力は既存release-readiness schemaに適合した（`readiness-partial-strict/release-readiness.json`）。
 - 複数行YAMLのpartial許可設定で、実CLIもpassed_with_risk・exit 0となりschema検証が成功した（`readiness-partial-allowed/release-readiness.json`）。
 
-### 追加の残課題
+### 追加調査で判明した課題
 
-P2: 既存policy parserは`partial: { allow_partial: true }`という1行形式を反映せず、strictの既定値を使う。今回の5件の修正とは別のYAML解釈の問題として記録し、CLI referenceに複数行形式を案内した。parser全体のYAML形式対応は別変更で扱う。再現policyは外部証跡の`partial-allowed-inline.yaml`。
+P2: PR #23時点のpolicy parserは`partial: { allow_partial: true }`という1行形式を反映せず、strictの既定値を使った。今回の5件とは別のYAML解釈の問題として記録した。partialの修正・検収は[AC-20260911-03](AC-20260911-03-partial-yaml.md)へ引き継ぐ。再現policyは外部証跡の`partial-allowed-inline.yaml`。
 
 ## 統合検証
 

@@ -22,13 +22,14 @@
     "docs/tasks/20260910-11-severity-report.md",
     "docs/tasks/20260910-12-release-1.6.0.md",
     "docs/tasks/20260911-01-human-readme.md",
-    "docs/tasks/20260911-02-readiness-diff-followups.md"
+    "docs/tasks/20260911-02-readiness-diff-followups.md",
+    "docs/tasks/20260911-03-partial-yaml.md"
   ],
   "deps_in": [
     "CHECKLISTS.md",
     "README.md"
   ],
   "tests": [],
-  "sourceHash": "aab92a18a542af038a91affb6d0ebd4891c41eb66909f958a838f4b61b073f4c",
-  "generation_id": "birdseye-276040b543b42afb"
+  "sourceHash": "34572edb95d56c17e978af580f763ed8dbc6412fdd0e49e592b2b431ea384c75",
+  "generation_id": "birdseye-29078f245fa179da"
 }

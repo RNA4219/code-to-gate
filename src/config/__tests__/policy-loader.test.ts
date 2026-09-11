@@ -247,6 +247,16 @@ confidence:
       expect(result.errors.some(error => error.includes("must be a string"))).toBe(true);
     });
 
+    it("should report malformed partial YAML as a generic policy error", () => {
+      const policyPath = path.join(tempDir, "invalid-partial-policy.yaml");
+      writeFileSync(policyPath, "version: ctg/v1\npolicy_id: invalid-partial\npartial: null\n");
+      const result = loadPolicyFile(policyPath, tempDir);
+
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain("Invalid policy YAML: partial must be an object");
+      expect(result.errors[0]).not.toContain("severity override");
+    });
+
     it("should parse rule blocking", () => {
       const policyPath = path.join(tempDir, "rule-policy.yaml");
       writeFileSync(policyPath, `

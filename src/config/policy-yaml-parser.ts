@@ -185,12 +185,33 @@ function parseSeverityOverrides(content: string): SeverityOverride[] | undefined
   });
 }
 
+function parsePartialSection(root: Record<string, unknown> | undefined): CtgPolicy["partial"] | undefined {
+  if (!root || !Object.prototype.hasOwnProperty.call(root, "partial")) return undefined;
+  const raw = asRecord(root.partial);
+  if (!raw) throw new Error("partial must be an object");
+
+  const partial: NonNullable<CtgPolicy["partial"]> = {};
+  if (Object.prototype.hasOwnProperty.call(raw, "allow_partial")) {
+    if (typeof raw.allow_partial !== "boolean") throw new Error("partial.allow_partial must be a boolean");
+    partial.allowPartial = raw.allow_partial;
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, "partial_warning_threshold")) {
+    if (typeof raw.partial_warning_threshold !== "number") {
+      throw new Error("partial.partial_warning_threshold must be a number");
+    }
+    partial.partialWarningThreshold = raw.partial_warning_threshold;
+  }
+  return partial;
+}
+
 /**
  * Parse YAML policy file
  */
 export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
   const result: Partial<CtgPolicy> = {};
   const documentRoot = asRecord(yaml.load(content, { schema: yaml.JSON_SCHEMA }));
+  const partial = parsePartialSection(documentRoot);
+  if (partial) result.partial = partial;
   const severityOverrides = parseSeverityOverrides(content);
   if (severityOverrides) result.severityOverrides = severityOverrides;
   const dsl = parsePolicyDsl(content);
@@ -248,8 +269,6 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
         result.suppression = {};
       } else if (key === "llm") {
         result.llm = {};
-      } else if (key === "partial") {
-        result.partial = {};
       } else if (key === "baseline") {
         result.baseline = {};
       } else if (key === "exit") {
@@ -321,12 +340,6 @@ export function parseYamlPolicy(content: string): Partial<CtgPolicy> {
           result.llm.requireLlm = value === "true";
         } else if (key === "unsupported_claims_max") {
           result.llm.unsupportedClaimsMax = parseInt(value, 10);
-        }
-      } else if (currentSection === "partial" && result.partial) {
-        if (key === "allow_partial") {
-          result.partial.allowPartial = value === "true";
-        } else if (key === "partial_warning_threshold") {
-          result.partial.partialWarningThreshold = parseStrictNumber(value);
         }
       } else if (currentSection === "baseline" && result.baseline) {
         if (key === "enabled") {

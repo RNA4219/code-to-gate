@@ -58,7 +58,10 @@ describe("severity resolver", () => {
     try {
       writeFileSync(join(directory, "policy.yml"), "version: ctg/v1\nseverity_overrides: [\n");
       const result = loadPolicyFile("policy.yml", directory);
-      expect(result.errors.some((error) => error.includes("severity override"))).toBe(true);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toMatch(/^Invalid policy YAML: /);
+      expect(result.errors[0]).not.toContain("severity override invalid");
+      expect(result.errors[0]).toContain("unexpected end of the stream");
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

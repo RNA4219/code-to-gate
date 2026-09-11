@@ -110,6 +110,37 @@ describe("policy YAML parser", () => {
     expect(parsed.blocking?.category?.releaseRisk).toBe(true);
   });
 
+  it("parses partial structurally across inline, quoted, and indented YAML", () => {
+    const expected = { allowPartial: true, partialWarningThreshold: 0.4 };
+    const variants = [
+      "partial: { allow_partial: true, partial_warning_threshold: 0.4 }",
+      '"partial": { allow_partial: true, partial_warning_threshold: 0.4 } # policy setting',
+      ["partial:", "    allow_partial: true # allow bounded scans", "    partial_warning_threshold: 0.4"].join("\n"),
+    ];
+
+    for (const content of variants) expect(parseYamlPolicy(content).partial).toEqual(expected);
+  });
+
+  it.each([
+    ["partial: null", /partial must be an object/],
+    ["partial: []", /partial must be an object/],
+    ["partial: { allow_partial: \"true\" }", /allow_partial must be a boolean/],
+    ["partial: { allow_partial: 1 }", /allow_partial must be a boolean/],
+    ["partial: { allow_partial: null }", /allow_partial must be a boolean/],
+    ["partial: { partial_warning_threshold: \"0.4\" }", /partial_warning_threshold must be a number/],
+    ["partial: { partial_warning_threshold: null }", /partial_warning_threshold must be a number/],
+    ["partial: { partial_warning_threshold: [] }", /partial_warning_threshold must be a number/],
+  ])("rejects malformed partial shape: %s", (content, error) => {
+    expect(() => parseYamlPolicy(content)).toThrow(error);
+  });
+
+  it("keeps omitted and empty partial sections compatible with defaults", () => {
+    expect(parseYamlPolicy("version: ctg/v1").partial).toBeUndefined();
+    expect(mergeWithDefaults(parseYamlPolicy("partial: {}")).partial).toEqual(
+      mergeWithDefaults({}).partial,
+    );
+  });
+
   it("uses YAML root scalars with comments and escapes", () => {
     const parsed = parseYamlPolicy([
       'version: "ctg/v1" # current schema',

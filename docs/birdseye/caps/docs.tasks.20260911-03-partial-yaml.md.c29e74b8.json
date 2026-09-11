@@ -1,0 +1,14 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260911-03-partial-yaml.md",
+  "role": "dependency",
+  "summary": "partial設定のYAML書式による判定不一致を修正",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md"
+  ],
+  "tests": [],
+  "sourceHash": "21d59a5adea79664b501d3cab84ffcd2074c541fb80acd05bcbbb4be8d58ca00",
+  "generation_id": "birdseye-29078f245fa179da"
+}
