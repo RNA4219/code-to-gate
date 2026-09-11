@@ -36,18 +36,18 @@ code-to-gate export sarif --from .qh --out results.sarif
 
 | チャネル | 状態 |
 |----------|------|
-| `package.json` | `1.6.1` ソース版。GitHub公開待ち |
-| GitHub Release | `v1.6.0` 公開済み（2026-09-10） |
+| `package.json` | `1.6.1` ソース版。GitHub Release公開済み |
+| GitHub Release | `v1.6.1` 公開済み（2026-09-11 20:20:56 JST） |
 | npm registry | 未公開 |
 
 詳細は [Distribution Status](docs/distribution-status.md) を正本にします。
-`1.6.0` は [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0) として公開済みです。npm package は未公開です。
+`1.6.1` は [GitHub release](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.1) として公開済みです。npm package は未公開です。
 
 ## インストール
 
 ```bash
 # 公開tgz（推奨）
-npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.0/quality-harness-code-to-gate-1.6.0.tgz
+npm install -g https://github.com/RNA4219/code-to-gate/releases/download/v1.6.1/quality-harness-code-to-gate-1.6.1.tgz
 ```
 
 Node.js 20以上が必要です。sourceから使う場合は、このリポジトリをcloneしたディレクトリで実行します。

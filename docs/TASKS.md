@@ -67,6 +67,7 @@ next_review_due: YYYY-MM-DD
 
 - [20260911-05-manual-bb-fixes](tasks/20260911-05-manual-bb-fixes.md) — manual-bbの10件修正、partial仕様確定、105ケース再検収
 - [20260911-06-version-1.6.1](tasks/20260911-06-version-1.6.1.md) — 検収済み修正のpatch version更新とCI確認
+- [20260911-07-release-1.6.1](tasks/20260911-07-release-1.6.1.md) — v1.6.1 GitHub Release公開と公開後検証
 
 - [20260910-01-ledger-sync](tasks/20260910-01-ledger-sync.md) — 改修台帳・文書同期（技術検収済み）
 - [20260910-02-precision-review](tasks/20260910-02-precision-review.md) — 実 repo 精度レビューの機能（技術検収済み、人手判定は別途）

@@ -8,9 +8,9 @@ code-to-gate is a local-first quality harness CLI tool that analyzes repositorie
 **Node**: 20+
 **Framework**: Vitest for testing, ts-morph for AST parsing
 **Package**: `@quality-harness/code-to-gate`
-**Current package version**: `1.6.1` (source version; GitHub publication pending)
-**GitHub release**: `v1.6.0` ([tag](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.0)), latest public release on 2026-09-10; tag commit `0260825379a6698c5dab4ec5303dfecc8536a014`
-**npm registry**: not published; `npm view` returned E404 and `npm whoami` returned E401 on 2026-09-10. These checks do not establish broader publish permissions.
+**Current package version**: `1.6.1` (source and GitHub public release)
+**GitHub release**: `v1.6.1` ([tag](https://github.com/RNA4219/code-to-gate/releases/tag/v1.6.1)), latest public release on 2026-09-11; tag commit `968b319252ad7e37294e9219af6c6b00129fae00`; published at `2026-09-11T11:20:56Z`
+**npm registry**: not published; `npm view @quality-harness/code-to-gate` returned E404 on 2026-09-11. This check does not establish broader publish permissions.
 
 ## Key Commands
 
