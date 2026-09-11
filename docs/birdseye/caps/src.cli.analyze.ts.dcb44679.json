@@ -31,6 +31,7 @@
     "src/reporters/llm-enrichment.ts",
     "src/reporters/markdown-reporter.ts",
     "src/reporters/raw-findings-reporter.ts",
+    "src/reporters/sarif-reporter.ts",
     "src/reporters/self-analysis-debt-reporter.ts",
     "src/reporters/test-seed-generator.ts",
     "src/reporters/yaml-reporter.ts",
@@ -44,6 +45,6 @@
     "src/cli/__tests__/analyze-imports-security.test.ts",
     "src/cli/__tests__/analyze.test.ts"
   ],
-  "sourceHash": "88b060789f31af41c7c225259a0b4dbc4842a64cc2ba0cf4cf7670622fc1494f",
-  "generation_id": "birdseye-d2d6a58ca24118dd"
+  "sourceHash": "8bedcb160eed9bf6eafa85a99660eb23e7ce53b285d967536cb8d4b6cd4fbade",
+  "generation_id": "birdseye-33377e4a68abbf61"
 }

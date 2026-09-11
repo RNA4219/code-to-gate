@@ -1,0 +1,15 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/tasks/20260911-05-manual-bb-fixes.md",
+  "role": "dependency",
+  "summary": "manual-bbの失敗修正と未確定仕様の確定",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md",
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "8a159ba8598ea6d8557d836931bc885e342d46270046a7af1706585e5001e2a1",
+  "generation_id": "birdseye-33377e4a68abbf61"
+}

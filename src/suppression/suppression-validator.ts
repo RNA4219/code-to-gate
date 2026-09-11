@@ -211,6 +211,31 @@ function validateExpiryDate(expiryDate: string): {
     };
   }
 
+  const dateParts = /^(\d{4})-(\d{2})-(\d{2})/.exec(expiryDate);
+  if (!dateParts) {
+    return {
+      valid: false,
+      message: "Invalid date value",
+    };
+  }
+
+  const year = Number(dateParts[1]);
+  const month = Number(dateParts[2]);
+  const day = Number(dateParts[3]);
+  const dateOnly = new Date(0);
+  dateOnly.setUTCHours(0, 0, 0, 0);
+  dateOnly.setUTCFullYear(year, month - 1, day);
+  if (
+    dateOnly.getUTCFullYear() !== year ||
+    dateOnly.getUTCMonth() !== month - 1 ||
+    dateOnly.getUTCDate() !== day
+  ) {
+    return {
+      valid: false,
+      message: "Invalid date value",
+    };
+  }
+
   // Parse and validate date
   const parsed = new Date(expiryDate);
   if (isNaN(parsed.getTime())) {

@@ -13,12 +13,13 @@
     "docs/quality-evidence-os-spec.md",
     "docs/Release_Checklist.md",
     "docs/security/Security_Review_Checklist.md",
+    "docs/specs/readiness-input-contract.md",
     "docs/TASKS.md",
     "GUARDRAILS.md",
     "orchestration/quality-evidence-os-implementation.md"
   ],
   "deps_in": [],
   "tests": [],
-  "sourceHash": "7290d53f40310b4e7e95b0f24ec0f7d2ad20685af25fd59058e59698f2c17cdf",
-  "generation_id": "birdseye-d2d6a58ca24118dd"
+  "sourceHash": "1265613c0628ef8a0c69ac9e2cc7217b4e5d2db6fc6e779edeab29661ad91714",
+  "generation_id": "birdseye-33377e4a68abbf61"
 }

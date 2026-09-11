@@ -131,6 +131,7 @@ export interface LlmPolicyConfig {
  */
 export interface PartialConfig {
   allowPartial?: boolean;
+  /** Reserved in v1: validated as 0..1; does not alter completeness or warnings. */
   partialWarningThreshold?: number;
 }
 

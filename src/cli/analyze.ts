@@ -65,6 +65,7 @@ import {
   generateRawFindingsArtifact,
   writeRawFindingsJson,
 } from "../reporters/raw-findings-reporter.js";
+import { writeSarifReport } from "../reporters/sarif-reporter.js";
 import {
   classifySuppressedFindings,
   countSuppressedByClass,
@@ -92,6 +93,8 @@ interface AnalyzeOptions {
 // Constants
 const VALID_LLM_PROVIDERS: LlmProviderType[] = ["ollama", "llamacpp", "deterministic"];
 const VALID_LLM_MODES = ["local-only", "allow-cloud"];
+type AnalyzeEmitFormat = Exclude<EmitFormat, "all"> | "sarif";
+const VALID_EMIT_FORMATS: readonly AnalyzeEmitFormat[] = ["json", "yaml", "md", "mermaid", "sarif"];
 
 function classifyGeneratedArtifact(filePath: string): AuditOutputArtifact["kind"] {
   const name = nodePathService.basename(filePath);
@@ -166,12 +169,24 @@ export function buildGeneratedArtifactRefs(paths: string[], cwd: string): AuditO
   });
 }
 
-function parseEmitOption(value: string | undefined): EmitFormat[] {
-  if (!value || value === "all") {
-    return ["json", "yaml", "md", "mermaid"];
+function parseEmitOption(value: string | undefined): {
+  formats: AnalyzeEmitFormat[];
+  invalidFormats: string[];
+} {
+  if (value === undefined || value === "all") {
+    return { formats: [...VALID_EMIT_FORMATS], invalidFormats: [] };
   }
-  const formats = value.split(",").map((f) => f.trim() as EmitFormat);
-  return formats.filter((f) => ["json", "yaml", "md", "mermaid", "all"].includes(f));
+
+  const values = value.split(",").map((format) => format.trim());
+  const invalidFormats = values.filter(
+    (format) => format !== "all" && !VALID_EMIT_FORMATS.includes(format as AnalyzeEmitFormat)
+  );
+  const formats = values.includes("all")
+    ? [...VALID_EMIT_FORMATS]
+    : values.filter((format): format is AnalyzeEmitFormat =>
+      VALID_EMIT_FORMATS.includes(format as AnalyzeEmitFormat)
+    );
+  return { formats, invalidFormats };
 }
 
 /**
@@ -262,6 +277,17 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     return options.EXIT.USAGE_ERROR;
   }
 
+  const parsedEmit = parseEmitOption(emitValue);
+  if (parsedEmit.invalidFormats.length > 0) {
+    emitCliError(`Invalid emit format: ${parsedEmit.invalidFormats.join(", ")}`, {
+      code: "INVALID_EMIT_FORMAT",
+      command: "analyze",
+      exitCode: options.EXIT.USAGE_ERROR,
+    });
+    console.error(`Valid formats: all, ${VALID_EMIT_FORMATS.join(", ")}`);
+    return options.EXIT.USAGE_ERROR;
+  }
+
   // Validate repo argument
   if (!repoArg) {
     emitCliError("usage: code-to-gate analyze <repo> [--emit all] --out <dir> [--policy <file>] [--llm-provider <provider>] [--llm-base-url <url>] [--from-imports] [--tree-sitter] [--database-analysis]", {
@@ -307,7 +333,7 @@ export async function analyzeCommand(args: string[], options: AnalyzeOptions): P
     return options.EXIT.USAGE_ERROR;
   }
 
-  const emitFormats = parseEmitOption(emitValue);
+  const emitFormats = parsedEmit.formats;
   const absoluteOutDir = nodePathService.resolve(cwd, outDir);
 
   // Analyze uses text-based rules by default so large TypeScript repos stay responsive.
@@ -557,6 +583,16 @@ Provide concise, actionable findings.`,
     const invariants = buildInvariantsFromFindings(reportedFindings, graph.run_id, graph.repo.root, policy?.policyId);
     const invariantsPath = writeInvariantsJson(absoluteOutDir, invariants);
     generated.push(invariantsPath);
+
+    if (emitFormats.includes("sarif")) {
+      const sarifPath = writeSarifReport(absoluteOutDir, reportedFindings, {
+        includeRiskRegister: true,
+        includeTestSeeds: true,
+        riskRegister,
+        testSeeds,
+      });
+      generated.push(sarifPath);
+    }
 
     // Generate self-analysis-debt.json only when policy is provided
     // When no policy, readiness command will generate authoritative debt artifact

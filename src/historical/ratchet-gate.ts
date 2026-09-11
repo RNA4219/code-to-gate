@@ -79,16 +79,23 @@ function candidateFindingsFromReadiness(
   cwd: string
 ): string[] {
   const dir = path.dirname(readinessPath);
-  const candidates = [path.join(dir, "findings.json")];
   const ref = readiness.artifactRefs?.findings;
 
-  if (ref) {
-    candidates.push(path.isAbsolute(ref) ? ref : path.resolve(cwd, ref));
-    candidates.push(path.resolve(dir, ref));
-    candidates.push(path.join(dir, path.basename(ref)));
+  // An explicit findings reference is authoritative. Keep the historical
+  // cwd-relative and readiness-relative interpretations for compatibility,
+  // but never fall back to a sibling file when the reference is present.
+  if (ref !== undefined) {
+    if (typeof ref !== "string" || !ref.trim()) {
+      return [];
+    }
+
+    return [
+      path.isAbsolute(ref) ? ref : path.resolve(cwd, ref),
+      path.resolve(dir, ref),
+    ].filter((candidate, index, candidates) => candidates.indexOf(candidate) === index);
   }
 
-  return [...new Set(candidates)];
+  return [path.join(dir, "findings.json")];
 }
 
 function loadReadinessLinkedFindings(filePath: string, cwd: string): LoadedBaselineFindings | undefined {
@@ -112,6 +119,12 @@ function loadReadinessLinkedFindings(filePath: string, cwd: string): LoadedBasel
     }
   }
 
+  if (parsed.artifactRefs?.findings !== undefined) {
+    throw new Error(
+      `explicit artifactRefs.findings not found: ${String(parsed.artifactRefs.findings)}`
+    );
+  }
+
   return undefined;
 }
 
@@ -122,17 +135,27 @@ export function loadBaselineFindingsArtifact(inputPath: string, cwd: string): Lo
   }
 
   if (statSync(absolutePath).isDirectory()) {
-    const candidates = [
-      path.join(absolutePath, "findings.json"),
-      path.join(absolutePath, "baseline-findings.json"),
+    // Readiness artifacts can point at the authoritative baseline findings.
+    // Resolve those references before considering directory-level siblings so
+    // an unrelated findings.json cannot silently replace an explicit ref.
+    const readinessCandidates = [
       path.join(absolutePath, "release-readiness.json"),
       path.join(absolutePath, "baseline-release-readiness.json"),
     ];
 
-    for (const candidate of candidates) {
-      const loaded = candidate.endsWith("readiness.json")
-        ? loadReadinessLinkedFindings(candidate, cwd)
-        : loadFindingsFile(candidate);
+    for (const candidate of readinessCandidates) {
+      const loaded = loadReadinessLinkedFindings(candidate, cwd);
+      if (loaded) {
+        return loaded;
+      }
+    }
+
+    const directCandidates = [
+      path.join(absolutePath, "findings.json"),
+      path.join(absolutePath, "baseline-findings.json"),
+    ];
+    for (const candidate of directCandidates) {
+      const loaded = loadFindingsFile(candidate);
       if (loaded) {
         return loaded;
       }

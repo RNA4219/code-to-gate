@@ -1,0 +1,16 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "docs/specs/readiness-input-contract.md",
+  "role": "dependency",
+  "summary": "Readiness入力・警告・実行識別の仕様",
+  "public_api": [],
+  "deps_out": [],
+  "deps_in": [
+    "CHANGELOG.md",
+    "CHECKLISTS.md",
+    "CLAUDE.md"
+  ],
+  "tests": [],
+  "sourceHash": "e5094db3168880d8a66af4f831dbc92ba868e2fd8b3823ea850d630beeeac769",
+  "generation_id": "birdseye-33377e4a68abbf61"
+}

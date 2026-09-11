@@ -1,0 +1,20 @@
+{
+  "schema": "birdseye/cap/v1",
+  "id": "src/utils/run-id.ts",
+  "role": "dependency",
+  "summary": "UniqueRunIdOptions, createUniqueRunId の公開API",
+  "public_api": [
+    "UniqueRunIdOptions",
+    "createUniqueRunId"
+  ],
+  "deps_out": [],
+  "deps_in": [
+    "src/cli/readiness.ts"
+  ],
+  "tests": [
+    "src/utils/__tests__/run-id-integration.test.ts",
+    "src/utils/__tests__/run-id.test.ts"
+  ],
+  "sourceHash": "51e85e7cba0084f138cfdee8fbb9f1c272f52afee04109700fd64069d2bfabf3",
+  "generation_id": "birdseye-33377e4a68abbf61"
+}

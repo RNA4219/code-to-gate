@@ -24,6 +24,14 @@ finding は **review-required candidate** であり、確定済み脆弱性や�
 指摘が妥当なら修正・追加テストへ進み、誤検知や意図した設計なら理由を記録します。
 外部解析ツールの結果を取り込む場合、そのツールの実行は別途必要です。
 
+既存のSARIFを取り込む場合は、importとanalyzeに同じ出力先を指定します。analyzeがimport manifestを検証してfindingsへ統合した後、exportします。
+
+```bash
+code-to-gate import sarif ./external-results.sarif --repo-root ./my-repo --out .qh
+code-to-gate analyze ./my-repo --from-imports --emit all --out .qh
+code-to-gate export sarif --from .qh --out results.sarif
+```
+
 ## 公開状態
 
 | チャネル | 状態 |

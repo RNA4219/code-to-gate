@@ -15,6 +15,6 @@
   "tests": [
     "src/config/__tests__/policy-yaml-parser.test.ts"
   ],
-  "sourceHash": "8ce4fa244b8407d4c614ca7cf23b115331eb17dfa2ebd3db86104079de133d85",
-  "generation_id": "birdseye-d2d6a58ca24118dd"
+  "sourceHash": "2d33b2ca2262913216201cf54d0d67708f16c21bc6605e77808aba6175bed0c1",
+  "generation_id": "birdseye-33377e4a68abbf61"
 }

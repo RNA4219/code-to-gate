@@ -109,7 +109,7 @@ Options:
                      Baseline findings/readiness artifact or artifact directory for ratchet gating
   --manual-evidence <file>
                      Manual BB evidence artifact used by Policy DSL
-  --emit <formats>   Output formats (all, json, yaml, md, mermaid)
+  --emit <formats>   Output formats (all, json, yaml, md, mermaid, sarif)
   --require-llm      Require LLM analysis
   --llm-provider     LLM provider (ollama, llamacpp, deterministic)
   --llm-mode         LLM mode (local-only, allow-cloud)
@@ -178,6 +178,43 @@ async function main(): Promise<number> {
 
     if (command === "--version") {
       console.log(`code-to-gate ${VERSION}`);
+      return EXIT.OK;
+    }
+
+    // Every public command accepts the global help form.  `agent` is the
+    // machine-readable exception: its own protocol owns stdout and must
+    // continue to receive `--help` unchanged.
+    const helpCommands = new Set([
+      "schema", "scan", "analyze", "diff", "import", "readiness",
+      "precision-review", "export", "viewer", "llm-health", "historical",
+      "spec-drift", "rule", "pack", "doctor", "test-plan", "ownership",
+      "query", "explain-gate", "drift-budget", "review-queue",
+      "baseline-ledger", "qeos", "release-pack", "pr-review",
+      "pr-review-publish", "plugin-marketplace", "evidence", "plugin-sandbox",
+      "assurance",
+    ]);
+    const valueOptions = new Set([
+      "--out", "--base", "--head", "--policy", "--from", "--baseline",
+      "--manual-evidence", "--emit", "--format", "--llm-provider", "--llm-mode",
+      "--llm-model", "--llm-port", "--llm-base-url", "--title", "--public-url",
+      "--hosted-target", "--redaction-profile", "--intake", "--repo-root",
+      "--max-input-mb", "--producer-version", "--review", "--history",
+      "--current", "--previous", "--category", "--severity", "--description",
+      "--owner", "--approver", "--approval-reason", "--refresh-reason",
+      "--estimated-effort", "--prevention-note", "--failed-budget",
+      "--warning-budget", "--recurrence-budget", "--branch", "--ci-url",
+      "--comment-file", "--artifact-url", "--repo", "--pull", "--commit-sha",
+      "--target-version", "--plugins", "--input", "--sandbox", "--timeout",
+      "--memory", "--cpu", "--execution-policy", "--docker-image", "--output",
+      "--min-confidence", "--cache", "--parallel", "--suppress", "--blast-depth",
+      "--schema-version", "--scope", "--provider", "--run-id",
+    ]);
+    const commandHelpRequested = args.some((arg, index) => {
+      if (arg !== "--help" && arg !== "-h") return false;
+      return index === 0 || !valueOptions.has(args[index - 1]);
+    });
+    if (helpCommands.has(command) && commandHelpRequested) {
+      printHelp();
       return EXIT.OK;
     }
 

@@ -6,6 +6,8 @@
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+import { createUniqueRunId } from "../utils/run-id.js";
 import { ensureDir } from "../core/file-utils.js";
 import { EXIT, getOption, VERSION } from "./exit-codes.js";
 import { loadPolicyFile, loadSuppressionFile, checkSuppressionExpiry, detectBroadSuppressions, type SuppressionEntry, type SuppressionExpiryWarning } from "../config/policy-loader.js";
@@ -442,7 +444,11 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
 
     // Add expiry warnings to recommended actions
     for (const warning of expiryWarnings) {
-      if (warning.status === "expired") {
+      if (warning.status === "invalid") {
+        recommendedActions.push(
+          `WARNING: Suppression for ${warning.ruleId} at ${warning.path} has invalid expiry ${warning.expiry} and was not applied. Correct the date or remove the suppression.`
+        );
+      } else if (warning.status === "expired") {
         recommendedActions.push(
           `WARNING: Suppression for ${warning.ruleId} at ${warning.path} expired ${warning.daysUntilExpiry} days ago. Review and update or remove.`
         );
@@ -490,7 +496,7 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
 
     // Build readiness artifact
     const now = new Date().toISOString();
-    const runId = `readiness-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
+    const runId = createUniqueRunId("readiness", { timestamp: now });
 
     const readiness: ReleaseReadinessArtifact = {
       version: CTG_VERSION,
@@ -579,8 +585,9 @@ export async function readinessCommand(args: string[], options: ReadinessOptions
       })
     );
 
-    // Return exit code based on status
-    if (readinessStatus === "passed" || readinessStatus === "passed_with_risk") {
+    // warn_only changes the verdict exit, retaining the actual artifact status.
+    // Input and I/O errors are handled separately and remain failures.
+    if (policy.exit?.warnOnly || readinessStatus === "passed" || readinessStatus === "passed_with_risk") {
       return options.EXIT.OK;
     } else {
       return options.EXIT.READINESS_NOT_CLEAR;

@@ -5,6 +5,7 @@
 sourceのhash、finding fingerprint、cacheされた解析内容は、この実行識別とは別に維持する。
 
 入力artifactを引き継ぐ処理は元の`run_id`を保持する。
+readinessは入力を別policyで評価する新しい実行として一意のIDを生成し、同じ実行のself-analysis-debtと共有する。元のfindingsのIDは変更しない。
 agent APIのrequest/fingerprintによるrun IDと冪等再利用は従来どおりで、同じrequestを独立実行へ変換しない。
 
 `run_id`は不透明な文字列として扱う。repoやcommitは`repo`フィールドを参照し、IDの末尾から推測しない。

@@ -485,6 +485,10 @@ code-to-gate readiness <repo-path> --policy <file> --from <artifact-dir> --out <
 
 partial設定は次の1行形式・複数行形式を同じように読み取る。`allow_partial`はboolean、`partial_warning_threshold`は0..1の数値で指定する。文字列の`"true"`や`"0.4"`、nullなどの不正な型はpolicyエラー（exit 5）になる。
 
+`partial_warning_threshold`はv1では予約設定であり、値を変えても警告・status・終了コードは変わらない。入力完全性は`completeness`と`allow_partial`で判断し、finding件数から欠落割合を計算しない。[Readiness入力仕様](specs/readiness-input-contract.md)に境界と受入条件を定義する。
+
+Unreleasedの`exit.warn_only: true`は、正常に生成したreadiness判定の終了コードを0に変更する。artifactのstatusと理由は実際の評価を保持する。引数・policy・schema・I/Oのエラーは通常どおり失敗する。
+
 ```yaml
 partial: { allow_partial: true, partial_warning_threshold: 0.4 }
 ```
@@ -1921,7 +1925,7 @@ suppressions:
 |--------|-------------|
 | `fail_on_critical` | Exit with error on critical findings |
 | `fail_on_high` | Exit with error on high findings |
-| `warn_only` | Never fail, only warn |
+| `warn_only` | Return 0 for an evaluated verdict, preserving its status; input and I/O errors still fail |
 
 ### Policy DSL
 
