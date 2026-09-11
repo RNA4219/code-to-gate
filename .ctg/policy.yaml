@@ -1,7 +1,7 @@
 version: ctg/v1
 
-policyId: code-to-gate-quality-policy
-description: Quality policy for code-to-gate repository
+policy_id: code-to-gate-quality-policy
+# Quality policy for the code-to-gate repository
 
 blocking:
   severity:
@@ -24,33 +24,32 @@ blocking:
     HARDCODED_SECRET: true
     RAW_SQL: true
     UNSAFE_REDIRECT: true
-  count:
-    criticalMax: 0
-    highMax: 10
-    mediumMax: 50
-    lowMax: 100
+  count_threshold:
+    critical_max: 0
+    high_max: 10
+    medium_max: 50
+    low_max: 100
 
-readiness:
-  criticalFindingStatus: blocked_input
-  requireLlm: false
-  allowSuppressed: true
-  coverageThreshold: 80
+llm:
+  require_llm: false
 
 suppression:
   file: .ctg/suppressions.yaml
-  expiryWarningDays: 30
-  maxSuppressionsPerRule: 10
+  expiry_warning_days: 30
+  max_suppressions_per_rule: 10
 
 confidence:
-  minConfidence: 0.6
-  lowConfidenceThreshold: 0.4
-  filterLow: true
+  min_confidence: 0.6
+  low_confidence_threshold: 0.4
+  filter_low: true
 
 partial:
-  allowPartial: false
-  partialWarningThreshold: 0.2
+  allow_partial: false
+  partial_warning_threshold: 0.2
 
 exit:
-  failOnCritical: true
-  failOnHigh: true
-  warnOnly: false
+  fail_on_critical: true
+  fail_on_high: true
+  warn_only: false
+
+# Coverage threshold 80 is managed by CI configuration.
