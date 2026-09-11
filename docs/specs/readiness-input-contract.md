@@ -8,7 +8,7 @@ next_review_due: 2026-10-11
 
 # Readiness入力・警告・実行識別の仕様
 
-対象は `ctg/v1` / `findings@v1` / `release-readiness@v1`。manual-bbのPART-004と失敗ケースで確認した契約を定義する。修正はUnreleasedに含み、公開済みv1.6.0の動作保証へ遡及しない。
+対象は `ctg/v1` / `findings@v1` / `release-readiness@v1`。manual-bbのPART-004と失敗ケースで確認した契約を定義する。修正は1.6.1に含み、公開済みv1.6.0の動作保証へ遡及しない。
 
 ## 完全性とpartial設定
 
