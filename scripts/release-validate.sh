@@ -140,7 +140,10 @@ log_step() {
 }
 
 # Track validation results
-declare -A VALIDATION_RESULTS
+# Parallel indexed arrays instead of an associative array, so this script
+# also runs on the stock bash 3.2 shipped with macOS.
+VALIDATION_NAMES=()
+VALIDATION_VALUES=()
 TOTAL_CHECKS=0
 PASSED_CHECKS=0
 FAILED_CHECKS=0
@@ -150,7 +153,20 @@ record_result() {
     local result="$2"  # "pass" or "fail"
     local details="$3"
 
-    VALIDATION_RESULTS["$check_name"]="$result|$details"
+    local i
+    local existing=""
+    for (( i=0; i<${#VALIDATION_NAMES[@]}; i++ )); do
+        if [[ "${VALIDATION_NAMES[$i]}" == "$check_name" ]]; then
+            existing="$i"
+            break
+        fi
+    done
+    if [[ -n "$existing" ]]; then
+        VALIDATION_VALUES[$existing]="$result|$details"
+    else
+        VALIDATION_NAMES+=("$check_name")
+        VALIDATION_VALUES+=("$result|$details")
+    fi
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
 
     if [[ "$result" == "pass" ]]; then
@@ -550,8 +566,10 @@ generate_summary() {
     echo "Check Results:"
     echo "--------------"
 
-    for check in "${!VALIDATION_RESULTS[@]}"; do
-        local result="${VALIDATION_RESULTS[$check]}"
+    local i
+    for (( i=0; i<${#VALIDATION_NAMES[@]}; i++ )); do
+        local check="${VALIDATION_NAMES[$i]}"
+        local result="${VALIDATION_VALUES[$i]}"
         local status="${result%%|*}"
         local details="${result#*|}"
 
@@ -584,8 +602,10 @@ validation:
 checks:
 EOF
 
-    for check in "${!VALIDATION_RESULTS[@]}"; do
-        local result="${VALIDATION_RESULTS[$check]}"
+    local i
+    for (( i=0; i<${#VALIDATION_NAMES[@]}; i++ )); do
+        local check="${VALIDATION_NAMES[$i]}"
+        local result="${VALIDATION_VALUES[$i]}"
         local status="${result%%|*}"
         local details="${result#*|}"
         echo "  - name: $check" >> "$summary_file"
