@@ -128,13 +128,23 @@ function extractTypeScriptCommentLines(content: string, language: string): Comme
       : language === "js"
         ? ts.ScriptKind.JS
         : ts.ScriptKind.TS;
-  const sourceFile = ts.createSourceFile(
-    `comments.${language}`,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKind
-  );
+  let sourceFile: ts.SourceFile;
+  try {
+    sourceFile = ts.createSourceFile(
+      `comments.${language}`,
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+      scriptKind
+    );
+  } catch {
+    // Some real-world files trip parser-internal assertions (Debug
+    // Failure) instead of producing parse diagnostics — for example
+    // baseline outputs of intentionally invalid conformance tests.
+    // Debt markers are textual, so fall back to line-based extraction
+    // instead of aborting the whole analyze run.
+    return extractSlashComments(content);
+  }
   const ranges = new Map<string, ts.CommentRange>();
 
   const addRanges = (candidates: readonly ts.CommentRange[] | undefined): void => {
@@ -143,14 +153,19 @@ function extractTypeScriptCommentLines(content: string, language: string): Comme
     }
   };
 
-  const visit = (node: ts.Node): void => {
+  // Iterative DFS with an explicit stack: a recursive walk overflows the
+  // call stack on files with extremely deep ASTs (for example, very long
+  // binary-expression chains). Ranges are deduplicated by position and
+  // sorted afterwards, so traversal order does not matter.
+  const pending: ts.Node[] = [sourceFile];
+  while (pending.length > 0) {
+    const node = pending.pop()!;
     addRanges(ts.getLeadingCommentRanges(content, node.getFullStart()));
     addRanges(ts.getTrailingCommentRanges(content, node.getEnd()));
     for (const child of node.getChildren(sourceFile)) {
-      visit(child);
+      pending.push(child);
     }
-  };
-  visit(sourceFile);
+  }
 
   const comments: CommentLine[] = [];
   for (const range of [...ranges.values()].sort((left, right) => left.pos - right.pos)) {
