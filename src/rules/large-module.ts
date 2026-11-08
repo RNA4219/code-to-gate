@@ -238,16 +238,34 @@ function countTypeScriptFunctions(content: string, language: string): number {
       : language === "js"
         ? ts.ScriptKind.JS
         : ts.ScriptKind.TS;
-  const sourceFile = ts.createSourceFile(
-    `module.${language}`,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKind
-  );
+  let sourceFile: ts.SourceFile;
+  try {
+    sourceFile = ts.createSourceFile(
+      `module.${language}`,
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+      scriptKind
+    );
+  } catch {
+    // Real-world repositories contain files that trip parser-internal
+    // assertions (Debug Failure) instead of producing parse diagnostics —
+    // for example baseline outputs of intentionally invalid conformance
+    // tests. A counting heuristic must not abort the whole analyze run
+    // over one such file; treat it as having no countable functions.
+    return 0;
+  }
   let count = 0;
 
-  const visit = (node: ts.Node): void => {
+  // Iterative DFS with an explicit stack. A recursive walk overflows the
+  // call stack on real-world files whose AST is extremely deep (for
+  // example, very long binary-expression chains nest one level per
+  // operand), which used to abort the whole analyze run with a
+  // RangeError. Counting is order-insensitive, so a stack is safe here.
+  const pending: ts.Node[] = [sourceFile];
+  while (pending.length > 0) {
+    const node = pending.pop()!;
+
     if (ts.isFunctionDeclaration(node) && node.body) {
       count += 1;
     } else if (
@@ -262,10 +280,11 @@ function countTypeScriptFunctions(content: string, language: string): number {
       }
     }
 
-    ts.forEachChild(node, visit);
-  };
+    ts.forEachChild(node, (child) => {
+      pending.push(child);
+    });
+  }
 
-  visit(sourceFile);
   return count;
 }
 

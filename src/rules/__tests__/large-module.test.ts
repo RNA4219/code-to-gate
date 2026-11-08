@@ -557,4 +557,56 @@ describe("LARGE_MODULE_RULE", () => {
     expect(findings.length).toBeGreaterThan(0);
     expect(findings.some((f) => f.title.includes("too many functions"))).toBe(true);
   });
+
+  it("should not overflow the stack on deeply nested binary expressions", () => {
+    // Regression: countTypeScriptFunctions used to walk the AST recursively.
+    // A long binary-expression chain nests one AST level per operand, which
+    // overflowed the call stack (RangeError: Maximum call stack size
+    // exceeded) on real-world repositories and aborted the whole analyze
+    // run (Real Repo Test against microsoft/TypeScript).
+    const chain = Array.from({ length: 10000 }, () => "1").join(" + ");
+    const content = `export const total = ${chain};\n${generateManyFunctionsContent(25)}`;
+    const files = [createMockFile("src/deep-chain.ts", content)];
+    const contents = new Map([["src/deep-chain.ts", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    // Reaching the function-count finding proves the traversal completed
+    // and still counted the 25 functions correctly.
+    expect(
+      findings.some((f) => f.title.includes("too many functions (25)"))
+    ).toBe(true);
+  });
+
+  it("should not throw on files that trip parser-internal assertions", () => {
+    // Regression: microsoft/TypeScript ships baseline outputs of
+    // intentionally invalid conformance tests (decorators/invalid). One of
+    // them makes ts.createSourceFile throw "Debug Failure. False
+    // expression." instead of reporting parse diagnostics, which used to
+    // abort the whole analyze run (Real Repo Test against
+    // microsoft/TypeScript). The file must simply yield no function count.
+    const content = [
+      "//// [tests/cases/conformance/decorators/invalid/decoratorOnAwait.ts] ////",
+      "",
+      "//// [decoratorOnAwait.ts]",
+      "declare function dec<T>(target: T): T;",
+      "",
+      "@dec",
+      "await 1",
+      "",
+      "",
+      "//// [decoratorOnAwait.js]",
+      '"use strict";',
+      "await 1;",
+      "",
+    ].join("\n");
+    const files = [createMockFile("src/conformance-output.js", content, "js")];
+    const contents = new Map([["src/conformance-output.js", content]]);
+    const context = createMockContext(files, contents);
+
+    const findings = LARGE_MODULE_RULE.evaluate(context);
+
+    expect(findings).toEqual([]);
+  });
 });
