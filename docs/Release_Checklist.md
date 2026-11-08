@@ -2,8 +2,8 @@
 intent_id: DOC-LEGACY
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-05-31
-next_review_due: 2026-06-30
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # リリースチェックリスト

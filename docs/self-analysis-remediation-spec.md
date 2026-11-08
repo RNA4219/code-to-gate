@@ -2,8 +2,8 @@
 intent_id: INT-SELF-ANALYSIS-001
 owner: code-to-gate
 status: draft
-last_reviewed_at: 2026-05-17
-next_review_due: 2026-06-17
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-09
 ---
 
 # Self-Analysis Remediation Specification

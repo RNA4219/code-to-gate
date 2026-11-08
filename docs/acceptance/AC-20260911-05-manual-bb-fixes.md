@@ -2,8 +2,8 @@
 intent_id: INT-MANUAL-BB-FIXES
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-09-11
-next_review_due: 2026-10-11
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # manual-bb失敗修正の検収

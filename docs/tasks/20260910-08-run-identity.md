@@ -3,8 +3,8 @@ task_id: 20260910-08
 intent_id: RUN-IDENTITY-20260910-08
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-09-10
-next_review_due: 2026-10-10
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # 独立実行の識別

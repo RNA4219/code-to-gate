@@ -2,8 +2,8 @@
 intent_id: DOC-REAL-REPO-EVIDENCE-20260704
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-07-04
-next_review_due: 2026-08-04
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-09
 ---
 
 # Real Repo Validation Evidence - 2026-07-04

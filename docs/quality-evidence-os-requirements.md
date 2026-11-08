@@ -2,8 +2,8 @@
 intent_id: QEOS-REQ-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-07-05
-next_review_due: 2026-08-05
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-09
 ---
 
 # Quality Evidence OS 要件定義

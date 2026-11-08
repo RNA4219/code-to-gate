@@ -3,8 +3,8 @@ task_id: 20260911-04
 intent_id: POLICY-YAML-SECTIONS-20260911-04
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-09-11
-next_review_due: 2026-10-11
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # policyのYAML書式・パス・同梱設定を順に修正

@@ -2,8 +2,8 @@
 intent_id: INT-ASSURANCE-SMELL-DETECTOR-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-06-08
-next_review_due: 2026-06-22
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-11-22
 ---
 
 # Implementation Plan: Assurance Smell Detector

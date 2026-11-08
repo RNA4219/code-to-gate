@@ -3,8 +3,8 @@ task_id: 20260911-02
 intent_id: READINESS-DIFF-FOLLOWUPS-20260911-02
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-09-11
-next_review_due: 2026-10-11
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # 補助文書とreadiness・diffの追加修正

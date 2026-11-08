@@ -2,8 +2,8 @@
 intent_id: DOC-PRODUCT-MATURITY-ISSUES-001
 owner: code-to-gate
 status: active
-last_reviewed_at: 2026-09-10
-next_review_due: 2026-10-10
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # Product Maturity Issues
