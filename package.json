@@ -127,7 +127,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "acorn": "^8.14.1",
+    "acorn": "^8.19.0",
     "acorn-walk": "^8.3.4",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
