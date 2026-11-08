@@ -3,8 +3,8 @@ task_id: 20260608-06
 intent_id: INT-ASSURANCE-SMELL-DETECTOR-001
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-06-09
-next_review_due: 2026-06-23
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-11-22
 ---
 
 # Task Seed: Wave 2 Task 06 - Risk and Invariant Rules

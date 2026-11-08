@@ -3,8 +3,8 @@ task_id: 20260911-05
 intent_id: INT-MANUAL-BB-FIXES
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-09-11
-next_review_due: 2026-10-11
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # manual-bbの失敗修正と未確定仕様の確定

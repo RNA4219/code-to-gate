@@ -194,4 +194,40 @@ describe("DEBT_MARKER_RULE", () => {
     // Should not detect 'temporary' when it's just describing a directory/storage
     expect(findings).toHaveLength(0);
   });
+
+  it("falls back to line-based extraction on files that trip parser assertions", () => {
+    // Regression: microsoft/TypeScript ships baseline outputs of
+    // intentionally invalid conformance tests (decorators/invalid). One of
+    // them makes ts.createSourceFile throw "Debug Failure. False
+    // expression." instead of reporting parse diagnostics, which used to
+    // abort the whole analyze run (Real Repo Test against
+    // microsoft/TypeScript). Extraction must fall back, not throw.
+    const content = [
+      "// TODO: regenerate this baseline",
+      "//// [decoratorOnAwait.ts]",
+      "declare function dec<T>(target: T): T;",
+      "",
+      "@dec",
+      "await 1",
+      "",
+    ].join("\n");
+    const files = [createMockFile("src/conformance-output.js", content, "js")];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/conformance-output.js", content]])));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].evidence[0]?.startLine).toBe(1);
+  });
+
+  it("does not overflow the stack on deeply nested binary expressions", () => {
+    // Regression: comment extraction used to walk the AST recursively.
+    // A long binary-expression chain nests one AST level per operand,
+    // which overflowed the call stack on real-world repositories.
+    const chain = Array.from({ length: 10000 }, () => "1").join(" + ");
+    const content = `// TODO: split this generated table\nexport const total = ${chain};\n`;
+    const files = [createMockFile("src/deep-chain.ts", content)];
+    const findings = DEBT_MARKER_RULE.evaluate(createContext(files, new Map([["src/deep-chain.ts", content]])));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].evidence[0]?.startLine).toBe(1);
+  });
 });

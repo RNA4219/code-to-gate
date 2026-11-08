@@ -2,8 +2,8 @@
 intent_id: DOC-CONFIG-GUIDE-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-07-04
-next_review_due: 2026-10-04
+last_reviewed_at: 2026-11-08
+next_review_due: 2027-02-08
 ---
 
 # Configuration Guide

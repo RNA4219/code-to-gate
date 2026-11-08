@@ -3,8 +3,8 @@ task_id: 20260611-02
 intent_id: INT-SQL-DATABASE-ANALYSIS-001
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-06-11
-next_review_due: 2026-06-25
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-11-22
 ---
 # Task Seed: Database Asset契約
 

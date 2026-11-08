@@ -2,8 +2,8 @@
 intent_id: AC-FP-REPRODUCTION-20260910-02
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-09-10
-next_review_due: 2026-10-10
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # Acceptance: False-positive reproduction check

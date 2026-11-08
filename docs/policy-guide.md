@@ -2,8 +2,8 @@
 intent_id: DOC-POLICY-GUIDE-001
 owner: code-to-gate-team
 status: active
-last_reviewed_at: 2026-08-25
-next_review_due: 2026-09-25
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-09
 ---
 
 # Policy Guide

@@ -53,11 +53,16 @@ export function resolvePosix(...segments: string[]): string {
 
 /**
  * Check if a path is an absolute path
+ *
+ * Paths handled here come from analyzed repositories and configuration,
+ * not only from the host filesystem, so both POSIX and Windows absolute
+ * forms are recognized on every platform (same approach as
+ * src/cli/import-provenance.ts).
  * @param filePath - Path to check
- * @returns True if the path is absolute
+ * @returns True if the path is absolute in POSIX or Windows form
  */
 export function isAbsolutePath(filePath: string): boolean {
-  return path.isAbsolute(filePath);
+  return path.isAbsolute(filePath) || path.win32.isAbsolute(filePath);
 }
 
 /**

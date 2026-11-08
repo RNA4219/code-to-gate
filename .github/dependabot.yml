@@ -1,0 +1,66 @@
+version: 2
+updates:
+  # ルートは通常のバージョン更新の対象（月次）。セキュリティ更新もここを対象にする。
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+  # fixtures は解析対象として意図的に脆弱な依存を固定している。
+  # 依存を上げると「検出されるべき所見」自体が変わってフィクスチャの意味が崩れるため、
+  # fixtures 配下では更新PR（セキュリティ更新を含む）を作らない。
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-auth-js"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-ci-imports"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-github-actions-ts"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-migrations-ts"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-monorepo"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-monorepo/packages/api"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-monorepo/packages/core"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-monorepo/packages/web"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-monorepo/shared"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-shop-ts"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"
+    directory: "/fixtures/demo-suppressions-ts"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 0

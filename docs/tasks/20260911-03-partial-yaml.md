@@ -3,8 +3,8 @@ task_id: 20260911-03
 intent_id: PARTIAL-YAML-20260911-03
 owner: code-to-gate-team
 status: done
-last_reviewed_at: 2026-09-11
-next_review_due: 2026-10-11
+last_reviewed_at: 2026-11-08
+next_review_due: 2026-12-08
 ---
 
 # partial設定のYAML書式による判定不一致を修正
