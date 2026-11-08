@@ -41,7 +41,8 @@ export const nodePathService: PathService = {
   },
 
   isAbsolute(filePath: string): boolean {
-    return path.isAbsolute(filePath);
+    // Analyzed paths may use Windows form on any host; recognize both.
+    return path.isAbsolute(filePath) || path.win32.isAbsolute(filePath);
   },
 
   toPosix(filePath: string): string {

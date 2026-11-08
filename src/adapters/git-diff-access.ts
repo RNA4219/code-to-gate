@@ -363,8 +363,8 @@ export class GitDiffAccess implements DiffAccess {
   }
 
   isPathSafe(filePath: string): boolean {
-    // Reject absolute paths
-    if (path.isAbsolute(filePath)) return false;
+    // Reject absolute paths (POSIX and Windows forms, on any host)
+    if (path.isAbsolute(filePath) || path.win32.isAbsolute(filePath)) return false;
 
     // Reject NUL bytes (security: prevents path truncation attacks)
     if (filePath.includes("\0") || filePath.includes("NUL")) return false;
@@ -826,7 +826,7 @@ export class MockDiffAccess implements DiffAccess {
 
   isPathSafe(filePath: string): boolean {
     // Match GitDiffAccess behavior for consistency
-    if (path.isAbsolute(filePath)) return false;
+    if (path.isAbsolute(filePath) || path.win32.isAbsolute(filePath)) return false;
     if (filePath.includes("\0") || filePath.includes("NUL")) return false;
     if (filePath.split(/[\\/]/u).includes("..")) return false;
     return true;
