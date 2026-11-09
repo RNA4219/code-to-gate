@@ -5,7 +5,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 5
+    # 凍結中（2026-11-09〜）: 更新PRは作らない
+    open-pull-requests-limit: 0
   # fixtures は解析対象として意図的に脆弱な依存を固定している。
   # 依存を上げると「検出されるべき所見」自体が変わってフィクスチャの意味が崩れるため、
   # fixtures 配下では更新PR（セキュリティ更新を含む）を作らない。

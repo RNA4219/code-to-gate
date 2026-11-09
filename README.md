@@ -1,5 +1,9 @@
 # code-to-gate
 
+**Status: frozen (2026-11-09).** This repository is archived and no longer
+maintained. Weekly CI schedules and Dependabot updates are disabled; the
+code remains available as-is.
+
 **Local-first quality gate for release readiness.**
 
 `code-to-gate` scans a repository locally and turns code signals into reviewable
